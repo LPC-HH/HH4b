@@ -70,7 +70,7 @@ class JetHTTriggerEfficienciesProcessor(processor.ProcessorABC):
         )
 
         # passing our triggers
-        bbVV_triggered = np.any(
+        bbbb_triggered = np.any(
             np.array(
                 [events.HLT[trigger] for trigger in HLTs[year] if trigger in events.HLT.fields]
             ),
@@ -123,7 +123,7 @@ class JetHTTriggerEfficienciesProcessor(processor.ProcessorABC):
             # select events which pass the muon triggers and selection
             "den": select * muon_triggered,
             # add our triggers
-            "num": select * muon_triggered * bbVV_triggered,
+            "num": select * muon_triggered * bbbb_triggered,
         }
 
         hists = {}
@@ -206,11 +206,11 @@ class JetHT3DTriggerEfficienciesProcessor(processor.ProcessorABC):
         # numerator
 
         # passing all HLT triggers
-        bbVV_triggered = np.any(
+        bbbb_triggered = np.any(
             np.array([events.HLT[trigger] for trigger in self.HLTs[2017]]), axis=0
         )
 
-        num_selection = fatjet1bool * muon_triggered * bbVV_triggered
+        num_selection = fatjet1bool * muon_triggered * bbbb_triggered
 
         num = (
             Hist.new.Var(jet2varbins, name="jet2pt", label="AK15 Fat Jet 2 $p_T$ (GeV)")
@@ -352,12 +352,12 @@ class JetHTHybrid3DTriggerEfficienciesProcessor(processor.ProcessorABC):
             )
 
             # passing all HLT triggers
-            bbVV_triggered = np.any(
+            bbbb_triggered = np.any(
                 np.array([events2.HLT[trigger] for trigger in self.HLTs[2017]]), axis=0
             )
 
-            bbFatJet = bbFatJet[bbVV_triggered]
-            VVFatJet = VVFatJet[bbVV_triggered]
+            bbFatJet = bbFatJet[bbbb_triggered]
+            VVFatJet = VVFatJet[bbbb_triggered]
 
             hybr_num = (
                 Hist.new.Var(jet2varbins, name="VVjetpt", label="AK15 VV Fat Jet $p_T$ (GeV)")

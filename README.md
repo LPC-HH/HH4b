@@ -1,10 +1,10 @@
 # HH4b
 
 [![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/rkansal47/HHbbVV/main.svg)](https://results.pre-commit.ci/latest/github/rkansal47/HHbbVV/main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/rkansal47/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/rkansal47/HH4b/main)
 
 <!-- <p align="left">
-  <img width="300" src="https://raw.githubusercontent.com/rkansal47/HHbbVV/main/figure.png" />
+  <img width="300" src="https://raw.githubusercontent.com/rkansal47/HH4b/main/figure.png" />
 </p> -->
 
 <!-- Search for two boosted (high transverse momentum) Higgs bosons (H) decaying to two beauty quarks (b) and two vector bosons (V). The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
@@ -56,14 +56,14 @@ for i in condor/$TAG/*.jdl; do condor_submit $i; done
 Alternatively, can be submitted from a yaml file:
 
 ```bash
-python src/condor/submit_from_yaml.py --year 2017 --processor skimmer --tag $TAG --yaml src/condor/submit_configs/skimmer_inputs_07_24.yaml 
+python src/condor/submit_from_yaml.py --year 2022 --processor skimmer --tag $TAG --yaml src/condor/submit_configs/skimmer_inputs_07_24.yaml 
 ```
 
 To test locally first (recommended), can do e.g.:
 
 ```bash
 mkdir outfiles
-python -W ignore src/run.py --starti 0 --endi 1 --year 2017 --processor skimmer --executor iterative --samples HWW --subsamples GluGluToHHTobbVV_node_cHHH1_pn4q
+python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
 ```
 
 #### TODO: instructions for lpcjobqueue (currently quite buggy)
@@ -88,20 +88,21 @@ nohup bash -c 'for i in 2016 2016APV 2017 2018; do python src/condor/submit.py -
 
 ### bbbbSkimmer
 
-Applies pre-selection cuts, runs inference with our new HVV tagger, and saves unbinned branches as parquet files.
+Applies pre-selection cuts and saves unbinned branches as parquet and root files.
 
-Parquet and pickle files will be saved in the eos directory of specified user at path `~/eos/bbVV/skimmer/<tag>/<sample_name>/<parquet or pickles>`. Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
+Parquet and pickle files will be saved in the eos directory of specified user at path `~/eos/HH4b/skimmer/<tag>/<sample_name>/<parquet or root or pickles>`. 
+Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
 
 To test locally:
 
 ```bash
-python -W ignore src/run.py --processor skimmer --year 2017 --samples HH --subsamples GluGluToHHTobbVV_node_cHHH1 --save-systematics --starti 0 --endi 1
+python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
 ```
 
 Or on a specific file(s):
 
 ```bash
-python -W ignore src/run.py --processor skimmer --year 2017 --files $FILE --files-name GluGluToHHTobbVV_node_cHHH1
+python -W ignore src/run.py --processor skimmer --year 2017 --files $FILE --files-name QCD
 ```
 
 Jobs
@@ -122,11 +123,6 @@ To Submit (if not using the --submit flag)
 nohup bash -c 'for i in condor/'"${TAG}"'/*.jdl; do condor_submit $i; done' &> tmp/submitout.txt &
 ```
 
-Or just signal:
-
-```bash
-python src/condor/submit.py --year 2017 --tag $TAG --samples HH --subsamples GluGluToHHTobbVV_node_cHHH1 --processor skimmer --submit
-```
 
 ## Condor Scripts
 

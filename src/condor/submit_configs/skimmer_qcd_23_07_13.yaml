@@ -1,0 +1,6 @@
+{
+    "Skimmer":
+        {
+            "QCD": { "files_per_job": 20 },
+        },
+}

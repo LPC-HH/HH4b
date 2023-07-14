@@ -38,16 +38,15 @@ def get_fileset(
     if processor == "trigger":
         samples = [f"SingleMu{year[:4]}"]
 
-    # redirector = "root://cmsxrootd.fnal.gov//" if not coffea_casa else "root://xcache//"
-    redirector = "root://cmseos.fnal.gov//" if not coffea_casa else "root://xcache//"
+    redirector = "root://cmsxrootd.fnal.gov//"
 
-    with open(f"data/pfnanoindex_{year}.json", "r") as f:
-        full_fileset_pfnano = json.load(f)
+    with open(f"data/nanoindex_{year}.json", "r") as f:
+        full_fileset_nano = json.load(f)
 
     fileset = {}
 
     for sample in samples:
-        sample_set = full_fileset_pfnano[year][sample]
+        sample_set = full_fileset_nano[year][sample]
 
         set_subsamples = list(sample_set.keys())
 
@@ -137,7 +136,7 @@ def parse_common_args(parser):
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
     parser.add_argument("--chunksize", default=10000, help="chunk size", type=int)
 
-    # bbVVSkimmer args
+    # Skimmer args
     # REMEMBER TO PROPAGATE THIS TO SUBMIT TEMPLATE!!
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
     add_bool_arg(parser, "inference", default=True, help="run inference for ak8 jets")

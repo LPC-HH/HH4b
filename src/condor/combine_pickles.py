@@ -65,10 +65,10 @@ if __name__ == "__main__":
     if args.outuser == "":
         args.outuser = user
 
-    tag_dir = f"/eos/uscms/store/user/{args.inuser}/bbVV/{args.processor}/{args.tag}"
+    tag_dir = f"/eos/uscms/store/user/{args.inuser}/HH4b/{args.processor}/{args.tag}"
     indir = f"{tag_dir}/{args.year}/"
 
-    outdir = f"/eos/uscms/store/user/{args.outuser}/bbVV/{args.processor}/{args.tag}/"
+    outdir = f"/eos/uscms/store/user/{args.outuser}/HH4b/{args.processor}/{args.tag}/"
     os.system(f"mkdir -p {outdir}")
 
     print(f"Inputs directory:", indir)
