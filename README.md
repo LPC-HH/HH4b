@@ -14,7 +14,6 @@
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
     - [Condor](#condor)
-      - [TODO: instructions for lpcjobqueue (currently quite buggy)](#todo-instructions-for-lpcjobqueue-currently-quite-buggy)
   - [Processors](#processors)
     - [JetHTTriggerEfficiencies](#jethttriggerefficiencies)
     - [bbbbSkimmer](#bbbbskimmer)
@@ -65,8 +64,6 @@ To test locally first (recommended), can do e.g.:
 mkdir outfiles
 python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
 ```
-
-#### TODO: instructions for lpcjobqueue (currently quite buggy)
 
 ## Processors
 
