@@ -116,9 +116,7 @@ def parse_common_args(parser):
         choices=["trigger", "skimmer"],
     )
 
-    parser.add_argument(
-        "--year", help="year", type=str, required=True, choices=["2022"]
-    )
+    parser.add_argument("--year", help="year", type=str, required=True, choices=["2022"])
 
     parser.add_argument(
         "--samples",

@@ -46,9 +46,7 @@ eosdir = f"/eos/uscms/store/user/{args.user}/HH4b/{args.processor}/{args.tag}/{a
 samples = listdir(eosdir)
 jdls = [
     jdl
-    for jdl in listdir(
-        f"/uscms/home/{args.user}/nobackup/HH4b/condor/{args.processor}/{args.tag}/"
-    )
+    for jdl in listdir(f"/uscms/home/{args.user}/nobackup/HH4b/condor/{args.processor}/{args.tag}/")
     if jdl.endswith(".jdl")
 ]
 

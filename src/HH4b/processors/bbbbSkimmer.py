@@ -82,10 +82,8 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     jecs = common.jecs
-    
-    def __init__(
-        self, xsecs={}, save_systematics=True, inference=True
-    ):
+
+    def __init__(self, xsecs={}, save_systematics=True, inference=True):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
@@ -260,11 +258,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             HLT_triggered = np.any(
                 np.array(
-                    [
-                        events.HLT[trigger]
-                        for trigger in HLTs[year]
-                        if trigger in events.HLT.fields
-                    ]
+                    [events.HLT[trigger] for trigger in HLTs[year] if trigger in events.HLT.fields]
                 ),
                 axis=0,
             )
@@ -294,12 +288,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for shift in jmsr_shifted_vars["msoftdrop"]:
             msds = jmsr_shifted_vars["msoftdrop"][shift]
             cut = np.prod(
-                pad_val(
-                    msds > self.preselection["msd"],
-                    num_jets,
-                    False,
-                    axis=1
-                ),
+                pad_val(msds > self.preselection["msd"], num_jets, False, axis=1),
                 axis=1,
             )
             cuts.append(cut)
@@ -315,7 +304,6 @@ class bbbbSkimmer(processor.ProcessorABC):
         #     >= self.preselection["bbFatJetParticleNetMD_Txbb"]
         # )
         # add_selection("ak8bb_txbb", txbb_cut, *selection_args)
-        
 
         ######################
         # Weights

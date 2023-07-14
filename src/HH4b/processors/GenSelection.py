@@ -151,8 +151,8 @@ def gen_selection_HHbbVV(
         bb,
         ak.flatten(VV_children, axis=2),
     )
-    
-    
+
+
 # TODO!!
 def gen_selection_HHbbbb():
     return
