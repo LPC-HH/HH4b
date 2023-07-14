@@ -102,13 +102,13 @@ python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer 
 Or on a specific file(s):
 
 ```bash
-python -W ignore src/run.py --processor skimmer --year 2017 --files $FILE --files-name QCD
+python -W ignore src/run.py --processor skimmer --year 2022 --files $FILE --files-name QCD
 ```
 
 Jobs
 
 ```bash
-nohup python src/condor/submit_from_yaml.py --year 2017 --tag $TAG --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/skimmer_inputs_23_02_17.yaml &> tmp/submitout.txt &
+nohup python src/condor/submit_from_yaml.py --year 2022 --tag $TAG --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/skimmer_inputs_23_02_17.yaml &> tmp/submitout.txt &
 ```
 
 All years:

@@ -498,7 +498,7 @@ def get_jec_jets(
     # fatjet_factory.build gives an error if there are no fatjets in event
     if apply_jecs:
         jets = jet_factory[corr_key].build(
-            _add_jec_variables(jets, events.fixedGridRhoFastjetAll), jec_cache
+            _add_jec_variables(jets, events.Rho.fixedGridRhoFastjetAll), jec_cache
         )
 
     # return only fatjets if no jecs given
