@@ -33,7 +33,10 @@ For submitting to condor, all you need is python >= 3.7.
 For running locally:
 
 ```bash
-# Install miniconda + mamba
+# Download the mamba setup script (change if needed for your machine https://github.com/conda-forge/miniforge#mambaforge)
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
+# Install: (the mamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
+./Mambaforge-Linux-x86_64.sh  # follow instructions in the installation
 mamba create -n hh4b python=3.9
 mamba activate hh4b
 pip install coffea
@@ -44,12 +47,11 @@ pip install coffea
 Manually splits up the files into condor jobs.
 
 ```bash
-git clone https://github.com/LPC-HH/HH4b/
+git clone https://github.com/rkansal47/HH4b/
 cd HH4b
 TAG=23Jul13
-# will need python3 (recommended to set up via miniconda)
-python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20  
-for i in condor/$TAG/*.jdl; do condor_submit $i; done
+# will need python3 (can use either CMSSW >= 11_2_0 or via miniconda/mamba)
+python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20 --submit
 ```
 
 Alternatively, can be submitted from a yaml file:
@@ -99,7 +101,8 @@ python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer 
 Or on a specific file(s):
 
 ```bash
-python -W ignore src/run.py --processor skimmer --year 2022 --files $FILE --files-name QCD
+FILE=/eos/uscms/store/user/rkansal/Hbb/nano/Run3Winter23NanoAOD/QCD_PT-15to7000_TuneCP5_13p6TeV_pythia8/02c29a77-3e0e-40e0-90a1-0562f54144e9.root
+python -W ignore src/run.py --processor skimmer --year 2023 --files $FILE --files-name QCD
 ```
 
 Jobs
