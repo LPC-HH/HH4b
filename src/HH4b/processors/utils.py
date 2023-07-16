@@ -38,6 +38,16 @@ def pad_val(
     ret = ak.fill_none(ak.pad_none(arr, target, axis=axis, clip=clip), value, axis=axis)
     return ret.to_numpy() if to_numpy else ret
 
+def flatten_dict(var_dict: dict, key_to_replace=str):
+    """
+    flattens dictionary of variables so that each key has a 1d-array
+    """
+    new_dict = {}
+    for key,var in var_dict.items():
+        num_objects = var.shape[-1]
+        temp_dict = {key.replace(key_to_replace, f"{key_to_replace}{obj}"): var[:,obj] for obj in range(num_objects)}
+        new_dict = {**new_dict, **temp_dict}
+    return new_dict
 
 def add_selection(
     name: str,
