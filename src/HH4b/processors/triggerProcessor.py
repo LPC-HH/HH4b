@@ -8,6 +8,7 @@ from coffea.analysis_tools import PackedSelection
 
 from .utils import add_selection
 
+
 class JetHTTriggerEfficienciesProcessor(processor.ProcessorABC):
     """Accumulates two 2D (pT, msd) histograms from all input events: 1) before triggers, and 2) after triggers"""
 

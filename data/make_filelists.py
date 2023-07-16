@@ -24,9 +24,10 @@ qcd_bins = [
 # Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1
 # or Run3Summer22NanoAODv10-124X_mcRun3_2022_realistic_v12-v1
 datasets = {
-    "2022": { 
+    "2022": {
         "QCD": {
-            f"QCD_PT-{qbin}": f"/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8/Run3Summer22NanoAODv10-124X_mcRun3_2022_realistic_v12-v1/NANOAODSIM" for qbin in qcd_bins
+            f"QCD_PT-{qbin}": f"/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8/Run3Summer22NanoAODv10-124X_mcRun3_2022_realistic_v12-v1/NANOAODSIM"
+            for qbin in qcd_bins
         },
         "Hbb": {
             "GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8": "/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
@@ -48,12 +49,12 @@ datasets = {
             "Run2023C_1_v3": "/JetMET1/Run2023C-PromptNanoAODv12_v3-v1/NANOAOD",
             "Run2023C_1_v4": "/JetMET1/Run2023C-PromptNanoAODv12_v4-v1/NANOAOD",
         },
-    }
+    },
 }
 
 index = datasets.copy()
-for year,ydict in datasets.items():
-    for sample,sdict in ydict.items():
+for year, ydict in datasets.items():
+    for sample, sdict in ydict.items():
         for sname, dataset in sdict.items():
             files = [ifile["logical_file_name"] for ifile in dbs.listFiles(dataset=dataset)]
             index[year][sample][sname] = files

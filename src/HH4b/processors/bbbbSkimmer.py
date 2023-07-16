@@ -81,7 +81,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     preselection = {
-        "jet_pt": 25, # should this be 40?
+        "jet_pt": 25,  # should this be 40?
         "fatjet_pt": 200,
         "msd": 50,
     }
@@ -172,26 +172,30 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         selection_args = (selection, cutflow, isData, gen_weights)
 
-        ######################### 
+        #########################
         # Object definitions
         #########################
         # FIXME: with 2022/2023 corrections
         corr_year = "2018"
-        
+
         num_jets = 6
         # FIXME: use AK4 Puppi Jets
         jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
-        jets, jec_shifted_jetvars = get_jec_jets(events, jets, corr_year, isData, self.jecs, fatjets=False)
+        jets, jec_shifted_jetvars = get_jec_jets(
+            events, jets, corr_year, isData, self.jecs, fatjets=False
+        )
 
         num_fatjets = 3
         fatjets = good_ak8jets(events.FatJet)
-        fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, corr_year, isData, self.jecs)
+        fatjets, jec_shifted_fatjetvars = get_jec_jets(
+            events, fatjets, corr_year, isData, self.jecs
+        )
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, corr_year, isData)
-    
+
         #########################
         # Save / derive variables
         #########################
-        skimmed_events = {}                                                                                                                                                                                          
+        skimmed_events = {}
 
         # gen variables - saving HH and bbbb 4-vector info
         for d in gen_selection_dict:
@@ -254,7 +258,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["other"].items()
         }
 
-        # flatten object variables 
+        # flatten object variables
         ak8FatJetVars = flatten_dict(ak8FatJetVars, "ak8FatJet")
 
         skimmed_events = {**skimmed_events, **ak8FatJetVars, **fatDijetVars, **otherVars}
@@ -271,14 +275,18 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             HLT_triggered = np.any(
                 np.array(
-                    [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
+                    [
+                        events.HLT[trigger]
+                        for trigger in self.HLTs[year]
+                        if trigger in events.HLT.fields
+                    ]
                 ),
                 axis=0,
             )
             add_selection("trigger", HLT_triggered, *selection_args)
 
         # jet veto map for 2022
-        if year=="2022" and isData:
+        if year == "2022" and isData:
             jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
             print(jetveto)
             add_selection("ak4_jetveto", jetveto, *selection_args)
@@ -416,12 +424,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         dijetVars[f"DijetPt{shift}"] = Dijet.pt
         dijetVars[f"DijetMass{shift}"] = Dijet.M
         dijetVars[f"DijetEta{shift}"] = Dijet.eta
-        
-        if shift=="":
+
+        if shift == "":
             dijetVars["DijetDeltaEta"] = abs(jet0.eta - jet1.eta)
             dijetVars["DijetDeltaPhi"] = jet0.deltaRapidityPhi(jet1)
             dijetVars["DijetDeltaR"] = jet0.deltaR(jet1)
-            dijetVars["DijetPtJ2overPtJ1"] = jet1.pt/jet0.pt
-            dijetVars["DijetMJ2overMJ1"] = jet1.M/jet0.M
+            dijetVars["DijetPtJ2overPtJ1"] = jet1.pt / jet0.pt
+            dijetVars["DijetMJ2overMJ1"] = jet1.M / jet0.M
 
         return dijetVars

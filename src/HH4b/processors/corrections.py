@@ -48,6 +48,7 @@ pog_jsons = {
     "btagging": ["BTV", "btagging.json.gz"],
 }
 
+
 # TODO: get rid of Run-2 years
 def get_jec_key(year: str):
     thekey = f"{year}mc"
@@ -57,6 +58,7 @@ def get_jec_key(year: str):
         thekey = "2016preVFPmc"
     return thekey
 
+
 def get_vfp_year(year: str) -> str:
     if year == "2016":
         year = "2016postVFP"
@@ -65,11 +67,14 @@ def get_vfp_year(year: str) -> str:
 
     return year
 
+
 def get_UL_year(year: str) -> str:
     return f"{get_vfp_year(year)}_UL"
 
+
 def get_Prompt_year(year: str) -> str:
     return f"{year}_Prompt"
+
 
 def get_pog_json(obj: str, year: str) -> str:
     try:
@@ -77,7 +82,7 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
-    year = get_UL_year(year) if year!="2022" else get_Prompt_year(year)
+    year = get_UL_year(year) if year != "2022" else get_Prompt_year(year)
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
@@ -363,6 +368,8 @@ def add_btag_weights(
 
 TOP_PDGID = 6
 GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
+
+
 def add_top_pt_weight(weights: Weights, events: NanoEventsArray):
     """https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting"""
     # finding the two gen tops
@@ -377,6 +384,7 @@ def add_top_pt_weight(weights: Weights, events: NanoEventsArray):
     tops_sf = np.sqrt(tops_sf[:, 0] * tops_sf[:, 1]).to_numpy()
     weights.add("top_pt", tops_sf)
 
+
 # FIXME: update using Json Paths
 # find corrections path using this file's path
 try:
@@ -387,6 +395,7 @@ try:
     fatjet_factory = jmestuff["fatjet_factory"]
 except:
     print("Failed loading compiled JECs")
+
 
 def _add_jec_variables(jets: JetArray, event_rho: ak.Array) -> JetArray:
     """add variables needed for JECs"""
@@ -554,9 +563,11 @@ def add_trig_effs(weights: Weights, fatjets: FatJetArray, year: str, num_jets: i
 
     weights.add("trig_effs", combined_trigEffs)
 
+
 FirstRun_2022C = 355794
 LastRun_2022D = 359021
 FirstRun_2022E = 359022
+
 
 # Jet Veto Maps
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.
@@ -566,9 +577,9 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
     # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
-    
+
     j, nj = ak.flatten(jets), ak.num(jets)
-    
+
     def get_veto(j, nj, csetstr):
         j_phi = np.clip(np.array(j.eta), -3.1415, 3.1415)
         veto = cset[csetstr].evaluate("jetvetomap", np.array(j.eta), j_phi)
@@ -577,37 +588,35 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
     jet_veto = (
         # RunCD
         (
-            (run >= FirstRun_2022C) & (run <= LastRun_2022D)
-            & ( get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0 )
-        ) |
-        # RunE
-        (
-            (run >= FirstRun_2022E) 
-            & ( get_veto(j, nj,"Winter22Run3_RunE_V1") > 0 )
+            (run >= FirstRun_2022C)
+            & (run <= LastRun_2022D)
+            & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
         )
+        |
+        # RunE
+        ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
     )
 
     return jet_veto
+
 
 def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
 
     j, nj = ak.flatten(jets), ak.num(jets)
-    
+
     def get_veto(j, nj, csetstr):
         j_phi = np.clip(np.array(j.eta), -3.1415, 3.1415)
         veto = cset[csetstr].evaluate("jetvetomap_eep", np.array(j.eta), j_phi)
         return ak.unflatten(veto, nj)
 
     event_veto = (
-        (
-            (run >= FirstRun_2022C) & (run <= LastRun_2022D)
-            & ( ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1) )
-        ) |
-        (
-            (run >= FirstRun_2022E)
-            & ( ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1) )
-        )
+        (run >= FirstRun_2022C)
+        & (run <= LastRun_2022D)
+        & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
+    ) | (
+        (run >= FirstRun_2022E)
+        & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
     )
 
     return event_veto
