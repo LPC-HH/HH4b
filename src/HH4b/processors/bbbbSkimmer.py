@@ -300,7 +300,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             )
             cuts.append(cut)
         add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
-            
+
         # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
         cuts = []
         for shift in jmsr_shifted_vars["msoftdrop"]:
