@@ -78,7 +78,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     preselection = {
         "jet_pt": 25,  # should this be 40?
         "fatjet_pt": 200,
-        "msd": 50,
+        "fatjet_msd": 50,
     }
 
     jecs = common.jecs
@@ -291,7 +291,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for pts in jec_shifted_vars["pt"].values():
             cut = np.prod(
                 pad_val(
-                    (pts > self.preselection["pt"])
+                    (pts > self.preselection["fatjet_pt"])
                     num_fatjets,
                     False,
                     axis=1,
@@ -306,16 +306,15 @@ class bbbbSkimmer(processor.ProcessorABC):
         for shift in jmsr_shifted_vars["msoftdrop"]:
             msds = jmsr_shifted_vars["msoftdrop"][shift]
             cut = np.prod(
-                pad_val(msds > self.preselection["msd"], num_fatjets, False, axis=1),
+                pad_val(msds > self.preselection["fatjet_msd"], num_fatjets, False, axis=1),
                 axis=1,
             )
             cuts.append(cut)
-        add_selection("ak8_mass", np.any(cuts, axis=0), *selection_args)
+        add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
 
         # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations
 
         # Txbb pre-selection cut
-
         # txbb_cut = (
         #     ak8FatJetVars["ak8FatJetParticleNetMD_Txbb"]
         #     >= self.preselection["bbFatJetParticleNetMD_Txbb"]
