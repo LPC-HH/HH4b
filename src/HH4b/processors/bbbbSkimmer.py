@@ -291,7 +291,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for pts in jec_shifted_vars["pt"].values():
             cut = np.prod(
                 pad_val(
-                    (pts > self.preselection["fatjet_pt"])
+                    (pts > self.preselection["fatjet_pt"]),
                     num_fatjets,
                     False,
                     axis=1,
