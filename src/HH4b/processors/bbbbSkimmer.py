@@ -1,5 +1,5 @@
 """
-Skimmer for bbbb analysis.
+Skimmer for bbbb analysis with FatJets.
 Author(s): Raghav Kansal, Cristina Suarez
 """
 
@@ -54,12 +54,7 @@ logger.setLevel(logging.INFO)
 class bbbbSkimmer(processor.ProcessorABC):
     """
     Skims nanoaod files, saving selected branches and events passing preselection cuts
-    (and triggers for data), for preliminary cut-based analysis and BDT studies.
-
-    Args:
-        xsecs (dict, optional): sample cross sections,
-          if sample not included no lumi and xsec will not be applied to weights
-        save_ak15 (bool, optional): save ak15 jets as well, for HVV candidate
+    (and triggers for data).
     """
 
     # key is name in nano files, value will be the name in the skimmed output
@@ -291,7 +286,22 @@ class bbbbSkimmer(processor.ProcessorABC):
             print(jetveto)
             add_selection("ak4_jetveto", jetveto, *selection_args)
 
-        # mass cuts: check if jet passes mass cut in any of the JMS/R variations
+        # pt cuts: check if fatjet passes pt cut in any of the JEC variations
+        cuts = []
+        for pts in jec_shifted_vars["pt"].values():
+            cut = np.prod(
+                pad_val(
+                    (pts > self.preselection["pt"])
+                    num_fatjets,
+                    False,
+                    axis=1,
+                ),
+                axis=1,
+            )
+            cuts.append(cut)
+        add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
+            
+        # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
         cuts = []
         for shift in jmsr_shifted_vars["msoftdrop"]:
             msds = jmsr_shifted_vars["msoftdrop"][shift]
@@ -424,12 +434,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         dijetVars[f"DijetPt{shift}"] = Dijet.pt
         dijetVars[f"DijetMass{shift}"] = Dijet.M
         dijetVars[f"DijetEta{shift}"] = Dijet.eta
+        dijetVars[f"DijetPtJ2overPtJ1{shift}"] = jet1.pt / jet0.pt
+        dijetVars[f"DijetMJ2overMJ1{shift}"] = jet1.M / jet0.M
 
         if shift == "":
             dijetVars["DijetDeltaEta"] = abs(jet0.eta - jet1.eta)
             dijetVars["DijetDeltaPhi"] = jet0.deltaRapidityPhi(jet1)
             dijetVars["DijetDeltaR"] = jet0.deltaR(jet1)
-            dijetVars["DijetPtJ2overPtJ1"] = jet1.pt / jet0.pt
-            dijetVars["DijetMJ2overMJ1"] = jet1.M / jet0.M
 
         return dijetVars
