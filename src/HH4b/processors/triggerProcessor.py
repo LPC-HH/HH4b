@@ -7,11 +7,12 @@ import numpy as np
 from coffea.analysis_tools import PackedSelection
 
 from .utils import add_selection
-from .common import HLTs
 
 
 class JetHTTriggerEfficienciesProcessor(processor.ProcessorABC):
     """Accumulates two 2D (pT, msd) histograms from all input events: 1) before triggers, and 2) after triggers"""
+
+    HLTs = {}
 
     muon_HLTs = {
         "2016": ["IsoMu24", "IsoTkMu24", "Mu50"],
@@ -72,7 +73,7 @@ class JetHTTriggerEfficienciesProcessor(processor.ProcessorABC):
         # passing our triggers
         bbbb_triggered = np.any(
             np.array(
-                [events.HLT[trigger] for trigger in HLTs[year] if trigger in events.HLT.fields]
+                [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
             ),
             axis=0,
         )

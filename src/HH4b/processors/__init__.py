@@ -1,2 +1,2 @@
-from .JetHTTriggerEfficienciesProcessor import *
+from .triggerProcessor import *
 from .bbbbSkimmer import *
