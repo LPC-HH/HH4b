@@ -59,7 +59,12 @@ def main(args):
     os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
 
     fileset = run_utils.get_fileset(
-        args.processor, args.year, args.nano_version, args.samples, args.subsamples, get_num_files=True
+        args.processor,
+        args.year,
+        args.nano_version,
+        args.samples,
+        args.subsamples,
+        get_num_files=True,
     )
 
     print(f"fileset: {fileset}")

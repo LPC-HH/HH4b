@@ -120,7 +120,7 @@ def parse_common_args(parser):
         "--nano_version",
         type=str,
         required=True,
-        choices=["v10","v11","v11_private","v12"],
+        choices=["v10", "v11", "v11_private", "v12"],
         help="NanoAOD version",
     )
     parser.add_argument(
