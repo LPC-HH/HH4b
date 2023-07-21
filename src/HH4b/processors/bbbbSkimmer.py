@@ -83,7 +83,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
     jecs = common.jecs
 
-    def __init__(self, xsecs={}, save_systematics=True, inference=True):
+    def __init__(self, xsecs={}, save_systematics=True):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
@@ -94,19 +94,9 @@ class bbbbSkimmer(processor.ProcessorABC):
         # save systematic variations
         self._systematics = save_systematics
 
-        # run inference
-        self._inference = inference
-
-        # for tagger model and preprocessing dict
-        self.tagger_resources_path = (
-            str(pathlib.Path(__file__).parent.resolve()) + "/tagger_resources/"
-        )
-
         self._accumulator = processor.dict_accumulator({})
 
-        logger.info(
-            f"Running skimmer with inference {self._inference} and systematics {self._systematics}"
-        )
+        logger.info(f"Running skimmer with systematics {self._systematics}")
 
     def to_pandas(self, events: Dict[str, np.array]):
         """
@@ -288,7 +278,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations
         cuts = []
-        for pts in jec_shifted_vars["pt"].values():
+        for pts in jec_shifted_fatjetvars["pt"].values():
             cut = np.prod(
                 pad_val(
                     (pts > self.preselection["fatjet_pt"]),

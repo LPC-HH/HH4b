@@ -59,7 +59,12 @@ def main(args):
     os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
 
     fileset = run_utils.get_fileset(
-        args.processor, args.year, args.samples, args.subsamples, get_num_files=True
+        args.processor,
+        args.year,
+        args.nano_version,
+        args.samples,
+        args.subsamples,
+        get_num_files=True,
     )
 
     print(f"fileset: {fileset}")
@@ -101,10 +106,10 @@ def main(args):
                     "eosoutpkl": f"{eosoutput_dir}/pickles/out_{j}.pkl",
                     "eosoutparquet": f"{eosoutput_dir}/parquet/out_{j}.parquet",
                     "eosoutroot": f"{eosoutput_dir}/root/nano_skim_{j}.root",
+                    "nano_version": args.nano_version,
                     "save_systematics": "--save-systematics"
                     if args.save_systematics
                     else "--no-save-systematics",
-                    "inference": "--inference" if args.inference else "--no-inference",
                 }
                 write_template(sh_templ, localsh, sh_args)
                 os.system(f"chmod u+x {localsh}")

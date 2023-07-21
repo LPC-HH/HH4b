@@ -85,13 +85,19 @@ def run(p: processor, fileset: dict, args):
 
 
 def main(args):
-    p = run_utils.get_processor(args.processor, args.save_systematics, args.inference)
+    p = run_utils.get_processor(args.processor, args.save_systematics)
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
     else:
         fileset = run_utils.get_fileset(
-            args.processor, args.year, args.samples, args.subsamples, args.starti, args.endi
+            args.processor,
+            args.year,
+            args.nano_version,
+            args.samples,
+            args.subsamples,
+            args.starti,
+            args.endi,
         )
 
     print(f"Running on fileset {fileset}")
@@ -99,10 +105,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # e.g.
-    # inside a condor job: python run.py --year 2017 --processor trigger --condor --starti 0 --endi 1
-    # inside a dask job:  python run.py --year 2017 --processor trigger --dask
-
     parser = argparse.ArgumentParser()
     run_utils.parse_common_args(parser)
     parser.add_argument("--starti", default=0, help="start index of files", type=int)

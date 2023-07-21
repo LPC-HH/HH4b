@@ -28,6 +28,7 @@ def add_mixins(nanoevents):
 def get_fileset(
     processor: str,
     year: int,
+    version: str,
     samples: list,
     subsamples: list,
     starti: int = 0,
@@ -40,7 +41,7 @@ def get_fileset(
 
     redirector = "root://cmsxrootd.fnal.gov//"
 
-    with open(f"data/nanoindex_{year}.json", "r") as f:
+    with open(f"data/nanoindex_{version}.json", "r") as f:
         full_fileset_nano = json.load(f)
 
     fileset = {}
@@ -90,7 +91,6 @@ def get_xsecs():
 def get_processor(
     processor: str,
     save_systematics: bool = None,
-    inference: bool = None,
 ):
     # define processor
     if processor == "trigger":
@@ -103,7 +103,6 @@ def get_processor(
         return bbbbSkimmer(
             xsecs=get_xsecs(),
             save_systematics=save_systematics,
-            inference=inference,
         )
 
 
@@ -117,7 +116,13 @@ def parse_common_args(parser):
     )
 
     parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2023"])
-
+    parser.add_argument(
+        "--nano_version",
+        type=str,
+        required=True,
+        choices=["v10", "v11", "v11_private", "v12"],
+        help="NanoAOD version",
+    )
     parser.add_argument(
         "--samples",
         default=[],
@@ -137,4 +142,3 @@ def parse_common_args(parser):
     # Skimmer args
     # REMEMBER TO PROPAGATE THIS TO SUBMIT TEMPLATE!!
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
-    add_bool_arg(parser, "inference", default=True, help="run inference for ak8 jets")
