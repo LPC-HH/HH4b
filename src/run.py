@@ -80,7 +80,9 @@ def run(p: processor, fileset: dict, args):
         ) as rfile:
             rfile["Events"] = ak.Array(
                 # take only top-level column names in multiindex df
-                {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                run_utils.flatten_dict(
+                    {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                )
             )
 
 

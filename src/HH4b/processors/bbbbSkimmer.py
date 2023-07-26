@@ -20,7 +20,7 @@ from typing import Dict
 from collections import OrderedDict
 
 from .GenSelection import gen_selection_HHbbbb
-from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, flatten_dict
+from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4
 from .corrections import (
     add_pileup_weight,
     add_VJets_kFactors,
@@ -242,9 +242,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
             for (var, key) in self.skim_vars["other"].items()
         }
-
-        # flatten object variables
-        ak8FatJetVars = flatten_dict(ak8FatJetVars, "ak8FatJet")
 
         skimmed_events = {**skimmed_events, **ak8FatJetVars, **fatDijetVars, **otherVars}
 

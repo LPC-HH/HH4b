@@ -142,3 +142,18 @@ def parse_common_args(parser):
     # Skimmer args
     # REMEMBER TO PROPAGATE THIS TO SUBMIT TEMPLATE!!
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
+
+
+def flatten_dict(var_dict: dict, key_to_replace: str):
+    """
+    Flattens dictionary of variables so that each key has a 1d-array
+    """
+    new_dict = {}
+    for key, var in var_dict.items():
+        num_objects = var.shape[-1]
+        if num_objects > 1:
+            new_dict[key] = var[:, 0]
+        else:
+            temp_dict = {f"{key}{obj}": var[:, obj] for obj in range(num_objects)}
+            new_dict = {**new_dict, **temp_dict}
+    return new_dict
