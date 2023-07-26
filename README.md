@@ -1,7 +1,7 @@
 # HH4b
 
 [![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/rkansal47/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/rkansal47/HH4b/main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/LPC-HH/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/LPC-HH/HH4b/main)
 
 <!-- <p align="left">
   <img width="300" src="https://raw.githubusercontent.com/rkansal47/HH4b/main/figure.png" />
