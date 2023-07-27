@@ -95,7 +95,7 @@ Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
 To test locally:
 
 ```bash
-python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
+python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11 --samples Hbb --subsamples ZH_Hto2B_Zto2Q_M-125 --starti 0 --endi 1
 ```
 
 Or on a specific file(s):
