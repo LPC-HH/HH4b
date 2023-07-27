@@ -117,7 +117,7 @@ def parse_common_args(parser):
 
     parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2023"])
     parser.add_argument(
-        "--nano_version",
+        "--nano-version",
         type=str,
         required=True,
         choices=["v10", "v11", "v11_private", "v12"],
