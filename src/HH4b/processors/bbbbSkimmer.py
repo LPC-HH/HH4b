@@ -20,7 +20,7 @@ from typing import Dict
 from collections import OrderedDict
 
 from .GenSelection import gen_selection_HHbbbb
-from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4
+from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
 from .corrections import (
     add_pileup_weight,
     add_VJets_kFactors,
@@ -75,10 +75,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         "GenHiggs": P4,
         "Event": {
             "run",
-            "lumi",
             "event",
-            "npu",
+            "lumi",
         },
+        "Pileup": {"nPU"},
         "other": {
             "MET_pt": "MET_pt",
         },
@@ -143,6 +143,8 @@ class bbbbSkimmer(processor.ProcessorABC):
     def process(self, events: ak.Array):
         """Runs event processor for different types of jets"""
 
+        # breakpoint()
+
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
@@ -186,6 +188,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, corr_year, isData)
 
+        num_leptons = 2
         muons = good_muons(events.Muon)
         electrons = good_electrons(events.Electron)
 
@@ -259,23 +262,33 @@ class bbbbSkimmer(processor.ProcessorABC):
         # lepton variables
         lepton_skim = {"Muon": muons, "Electron": electrons}
         leptonVars = {
-            key: obj[var].to_numpy()
-            for (var, key) in self.skim_vars[label].items()
+            f"{label}{key}": pad_val(obj[var], num_leptons, axis=1)
             for (label, obj) in lepton_skim.items()
+            for (var, key) in self.skim_vars[label].items()
         }
 
         skimmed_events = {**skimmed_events, **leptonVars}
 
-        eventVars = {key: events[var].to_numpy() for (var, key) in self.skim_vars["Event"].items()}
+        eventVars = {
+            key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events
+        }
+        if not isData:
+            eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
+
+        pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
             for (var, key) in self.skim_vars["other"].items()
         }
 
-        HLTVars = {key: events[key].to_numpy() for key in HLTs}
+        HLTVars = {
+            key: events.HLT[key.split("HLT_")[1]].to_numpy()
+            for key in HLTs
+            if key.split("HLT_")[1] in events.HLT
+        }
 
-        skimmed_events = {**skimmed_events, **eventVars, **otherVars, **HLTVars}
+        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars, **HLTVars}
 
         ######################
         # Selection
@@ -318,6 +331,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 axis=1,
             )
             cuts.append(cut)
+
         add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
 
         # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
@@ -329,6 +343,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 axis=1,
             )
             cuts.append(cut)
+
         add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
 
         # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations

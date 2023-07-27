@@ -2,6 +2,8 @@ import warnings
 
 # from distributed.diagnostics.plugin import WorkerPlugin
 import json
+import numpy as np
+
 from xsecs import xsecs
 
 
@@ -134,16 +136,17 @@ def parse_common_args(parser):
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
 
 
-def flatten_dict(var_dict: dict, key_to_replace: str):
+def flatten_dict(var_dict: dict):
     """
     Flattens dictionary of variables so that each key has a 1d-array
     """
     new_dict = {}
     for key, var in var_dict.items():
         num_objects = var.shape[-1]
-        if num_objects > 1:
-            new_dict[key] = var[:, 0]
-        else:
+        if len(var.shape) >= 2 and num_objects > 1:
             temp_dict = {f"{key}{obj}": var[:, obj] for obj in range(num_objects)}
             new_dict = {**new_dict, **temp_dict}
+        else:
+            new_dict[key] = np.squeeze(var)
+
     return new_dict

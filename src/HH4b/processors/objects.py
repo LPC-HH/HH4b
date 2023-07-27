@@ -10,26 +10,26 @@ muon_selection = {
     "pt": 30,
     "eta": 2.4,
     "miniPFRelIso_all": 0.2,
-    "id": "Tight",
+    "id": "tight",
 }
 
 electron_selection = {
     "pt": 35,
     "eta": 2.5,
     "miniPFRelIso_all": 0.2,
-    "id": "cutBased",
+    # "id": "Tight",
 }
 
 
 ak4_selection = {
     "eta": 4.7,
-    "id": "Tight",
+    # "id": "Tight",
     # "pt": 50
 }
 
 ak8_selection = {
     "eta": 2.5,
-    "id": "Tight",
+    # "id": "Tight",
 }
 
 
@@ -37,8 +37,8 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
     sel = (
         (muons.pt >= selection["pt"])
         & (muons.eta <= selection["eta"])
-        & (muons.miniPfRelIso_all <= selection["miniPFRelIso_all"])
-        & (muons[f"is{selection['id']}"])
+        & (muons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
+        & (muons[f"{selection['id']}Id"])
     )
     return muons[sel]
 
@@ -47,8 +47,8 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
     sel = (
         (electrons.pt >= selection["pt"])
         & (electrons.eta <= selection["eta"])
-        & (electrons.miniPfRelIso_all <= selection["miniPFRelIso_all"])
-        & (electrons[f"is{selection['id']}"])
+        & (electrons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
+        & (electrons.isTight)
     )
     return electrons[sel]
 
@@ -62,7 +62,7 @@ def good_ak4jets(
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
     goodjets = (
-        (jets[f"is{selection['id']}"])
+        (jets.isTight)
         # & ((jets.pt < 50) & (jets.puId >=6)) | (jets.pt >=50)
         & (abs(jets.eta) < selection["eta"])
     )
@@ -90,6 +90,6 @@ def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
         )
     )
 
-    sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets[f"is{selection['id']}"])
+    sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
 
     return fatjets[sel]

@@ -7,11 +7,11 @@ BR_HBB = 0.5809
 
 xsecs = {
     # From XSDB
-    # "QCD_Pt_5to10_TuneCUETP8M1_13TeV_pythia8":                                   ,
-    # "QCD_Pt_10to15_TuneCUETP8M1_13TeV_pythia8":                                   ,
-    # "QCD_Pt_15to30_TuneCUETP8M1_13TeV_pythia8":                                   ,
-    # "QCD_Pt_30to50_TuneCUETP8M1_13TeV_pythia8":                                    ,
-    # "QCD_Pt_50to80_TuneCUETP8M1_13TeV_pythia8":                                     ,
+    # "QCD_Pt_5to10_TuneCUETP8M1_13TeV_pythia8":
+    # "QCD_Pt_10to15_TuneCUETP8M1_13TeV_pythia8":
+    # "QCD_Pt_15to30_TuneCUETP8M1_13TeV_pythia8":
+    # "QCD_Pt_30to50_TuneCUETP8M1_13TeV_pythia8":
+    # "QCD_Pt_50to80_TuneCUETP8M1_13TeV_pythia8":
     "QCD_Pt_80to120_TuneCUETP8M1_13TeV_pythia8": 2534000.0,
     "QCD_Pt_120to170_TuneCUETP8M1_13TeV_pythia8": 445800.0,
     "QCD_Pt_170to300_TuneCUETP8M1_13TeV_pythia8": 113700.0,
