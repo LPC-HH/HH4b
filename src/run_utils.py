@@ -2,6 +2,7 @@ import warnings
 
 # from distributed.diagnostics.plugin import WorkerPlugin
 import json
+from xsecs import xsecs
 
 
 def add_bool_arg(parser, name, help, default=False, no_name=None):
@@ -77,17 +78,6 @@ def get_fileset(
     return fileset
 
 
-def get_xsecs():
-    with open("data/xsecs.json") as f:
-        xsecs = json.load(f)
-
-    for key, value in xsecs.items():
-        if type(value) == str:
-            xsecs[key] = eval(value)
-
-    return xsecs
-
-
 def get_processor(
     processor: str,
     save_systematics: bool = None,
@@ -101,7 +91,7 @@ def get_processor(
         from HH4b.processors import bbbbSkimmer
 
         return bbbbSkimmer(
-            xsecs=get_xsecs(),
+            xsecs=xsecs,
             save_systematics=save_systematics,
         )
 
