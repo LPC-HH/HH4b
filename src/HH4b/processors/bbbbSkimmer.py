@@ -272,10 +272,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         eventVars = {
             key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events
         }
-        if not isData:
-            eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
 
-        pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
+        if isData:
+            pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
+        else:
+            eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
+            pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
