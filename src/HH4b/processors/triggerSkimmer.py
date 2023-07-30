@@ -13,12 +13,15 @@ from .utils import add_selection, P4, pad_val, flatten_dict
 from .objects import get_ak8jets
 
 import warnings
+
 warnings.filterwarnings("ignore", message="invalid value encountered in divide")
 
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 class TriggerProcessor(processor.ProcessorABC):
     HLTs = {
@@ -72,7 +75,7 @@ class TriggerProcessor(processor.ProcessorABC):
             "Mu27",
             "Mu50",
             "Mu55",
-        ]
+        ],
     }
 
     egamma_HLTs = {
@@ -86,17 +89,17 @@ class TriggerProcessor(processor.ProcessorABC):
 
     L1s = {
         "2022": [
-            "Mu6_HTT240er", #un-prescaled
+            "Mu6_HTT240er",  # un-prescaled
             "QuadJet60er2p5",
             "HTT280er",
             "HTT320er",
-            "HTT360er", #un-prescaled
-            "HTT400er", #un-prescaled
-            "HTT450er", #un-prescaled
+            "HTT360er",  # un-prescaled
+            "HTT400er",  # un-prescaled
+            "HTT450er",  # un-prescaled
             "HTT280er_QuadJet_70_55_40_35_er2p5",
-            "HTT320er_QuadJet_70_55_40_40_er2p5", #un-prescaled
-            "HTT320er_QuadJet_80_60_er2p1_45_40_er2p3", #un-prescaled
-            "HTT320er_QuadJet_80_60_er2p1_50_45_er2p3", #un-prescaled
+            "HTT320er_QuadJet_70_55_40_40_er2p5",  # un-prescaled
+            "HTT320er_QuadJet_80_60_er2p1_45_40_er2p3",  # un-prescaled
+            "HTT320er_QuadJet_80_60_er2p1_50_45_er2p3",  # un-prescaled
         ],
     }
 
@@ -132,8 +135,8 @@ class TriggerProcessor(processor.ProcessorABC):
         table = pa.Table.from_pandas(pddf)
         pq.write_table(table, f"{local_dir}/{fname}")
 
-class BoostedTriggerSkimmer(TriggerProcessor):
 
+class BoostedTriggerSkimmer(TriggerProcessor):
     def __init__(self):
         super(TriggerProcessor, self).__init__()
 
@@ -151,7 +154,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
             "fatjet_pt": 200,
             "fatjet_eta": 2.5,
             "fatjet_dr_muon": 1.5,
-            "muon_id": "tight", 
+            "muon_id": "tight",
             "muon_pt": 30,
             "muon_eta": 2.4,
             "muon_pfIsoId": 4,  # tight PF isolation
@@ -181,10 +184,17 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         HLTs = self.HLTs[year]
         zeros = np.zeros(len(events), dtype="bool")
-        HLT_vars = {trigger: (events.HLT[trigger].to_numpy().astype(int) if trigger in events.HLT.fields else zeros) for trigger in HLTs}
+        HLT_vars = {
+            trigger: (
+                events.HLT[trigger].to_numpy().astype(int)
+                if trigger in events.HLT.fields
+                else zeros
+            )
+            for trigger in HLTs
+        }
 
         skimmed_events = {**HLT_vars, **{"run": events.run.to_numpy()}}
-        
+
         muons = events.Muon
         muon_selector = (
             (muons[f"{self.preselection['muon_id']}Id"])
@@ -198,9 +208,9 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
         fatjet_selector = (
-            (fatjets.pt > self.preselection["fatjet_pt"]) &
-            (np.abs(fatjets.eta) < self.preselection["fatjet_eta"]) &
-            (np.abs(fatjets.delta_r(leading_muon)) > self.preselection["fatjet_dr_muon"])
+            (fatjets.pt > self.preselection["fatjet_pt"])
+            & (np.abs(fatjets.eta) < self.preselection["fatjet_eta"])
+            & (np.abs(fatjets.delta_r(leading_muon)) > self.preselection["fatjet_dr_muon"])
         )
         fatjets = fatjets[fatjet_selector]
         ak8FatJetVars = {
@@ -218,7 +228,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         add_selection("muon_trigger", muon_triggered, *selection_args)
 
         # add one muon
-        add_selection("one_muon", (nmuons==1), *selection_args)
+        add_selection("one_muon", (nmuons == 1), *selection_args)
 
         # add at least one fat jet selection
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
@@ -227,21 +237,20 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         sel_all = selection.all(*selection.names)
 
         skimmed_events = {
-            key: value.reshape(len(events), -1)[sel_all]
-            for (key, value) in skimmed_events.items()
-        }        
+            key: value.reshape(len(events), -1)[sel_all] for (key, value) in skimmed_events.items()
+        }
 
         df = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(df, fname)
-        
+
         return {}
 
     def postprocess(self, accumulator):
         return accumulator
 
-class BoostedTriggerProcessor(TriggerProcessor):
 
+class BoostedTriggerProcessor(TriggerProcessor):
     def __init__(self):
         super(TriggerProcessor, self).__init__()
 
@@ -265,7 +274,6 @@ class BoostedTriggerProcessor(TriggerProcessor):
             "muon_pfIsoId": 4,
             "nmuons": 1,
         }
-
 
 
 class ResolvedTriggerSkimmer(TriggerProcessor):
@@ -298,7 +306,7 @@ class ResolvedTriggerSkimmer(TriggerProcessor):
             "muon_iso": 0.20,
             "electron_pt": 25,
             "electron_eta": 2.5,
-            "electron_mvaIso": 0.80, 
+            "electron_mvaIso": 0.80,
         }
 
     @property
@@ -309,7 +317,7 @@ class ResolvedTriggerSkimmer(TriggerProcessor):
         """Returns processed information for trigger studies"""
 
         year = events.metadata["dataset"][:4]
-        
+
         selection = PackedSelection()
 
         cutflow = OrderedDict()
@@ -322,7 +330,14 @@ class ResolvedTriggerSkimmer(TriggerProcessor):
 
         HLTs = self.HLTs[year]
         zeros = np.zeros(len(events), dtype="bool")
-        HLT_vars = {trigger: (events.HLT[trigger].to_numpy().astype(int) if trigger in events.HLT.fields else zeros) for trigger in HLTs}
+        HLT_vars = {
+            trigger: (
+                events.HLT[trigger].to_numpy().astype(int)
+                if trigger in events.HLT.fields
+                else zeros
+            )
+            for trigger in HLTs
+        }
 
         skimmed_events = {**HLT_vars, **{"run": events.run.to_numpy()}}
 
@@ -339,23 +354,14 @@ class ResolvedTriggerSkimmer(TriggerProcessor):
         )
         nmuons = ak.sum(muon_selector, axis=1)
 
-        veto_muon_selector = (
-            (muons.pt > 10) 
-            & (muons.looseId)
-            & (muons.pfRelIso04_all < 0.25)
-        )
-        
+        veto_muon_selector = (muons.pt > 10) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
+
         electrons = events.Electron
         electron_selector = (
-            (electrons.pt > self.preselection["electron_pt"]) 
+            (electrons.pt > self.preselection["electron_pt"])
             & (np.abs(electrons.eta) < self.preselection["electron_eta"])
             & (electrons.mvaFall17V2Iso_WP80)
         )
         nelectrons = ak.sum(electron_selector, axis=1)
 
-        veto_electron_selector = (
-            (electrons.pt >15)
-            & (electrons.mvaFall17V2Iso_WP90)
-        )
-
-        
+        veto_electron_selector = (electrons.pt > 15) & (electrons.mvaFall17V2Iso_WP90)

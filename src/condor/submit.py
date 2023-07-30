@@ -59,7 +59,12 @@ def main(args):
     os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
 
     fileset = run_utils.get_fileset(
-        args.processor, args.year, args.nano_version, args.samples, args.subsamples, get_num_files=True
+        args.processor,
+        args.year,
+        args.nano_version,
+        args.samples,
+        args.subsamples,
+        get_num_files=True,
     )
 
     print(f"fileset: {fileset}")
@@ -122,9 +127,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     parser.add_argument("--script", default="run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)

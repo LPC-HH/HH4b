@@ -96,9 +96,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         self._accumulator = processor.dict_accumulator({})
 
-        logger.info(
-            f"Running skimmer with systematics {self._systematics}"
-        )
+        logger.info(f"Running skimmer with systematics {self._systematics}")
 
     def to_pandas(self, events: Dict[str, np.array]):
         """
