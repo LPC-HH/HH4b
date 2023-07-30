@@ -52,6 +52,7 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
     )
     return electrons[sel]
 
+
 # ak4 jet definition
 def good_ak4jets(
     jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
@@ -74,18 +75,20 @@ def good_ak4jets(
 
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
-    fatjets["Txbb"] = ak.nan_to_num(fatjets.particleNetMD_Xbb / (
-        fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb
-    ), nan=-1.0)
+    fatjets["Txbb"] = ak.nan_to_num(
+        fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
+        nan=-1.0,
+    )
     fatjets["Txjj"] = ak.nan_to_num(
-        (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq
-     ) / (
-         fatjets.particleNetMD_Xbb
-         + fatjets.particleNetMD_Xcc
-         + fatjets.particleNetMD_Xqq
-         + fatjets.particleNetMD_QCD
-     )
-    , nan=-1.0)
+        (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
+        / (
+            fatjets.particleNetMD_Xbb
+            + fatjets.particleNetMD_Xcc
+            + fatjets.particleNetMD_Xqq
+            + fatjets.particleNetMD_QCD
+        ),
+        nan=-1.0,
+    )
     return fatjets
 
 
