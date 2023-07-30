@@ -34,7 +34,6 @@ from .corrections import (
     get_jmsr,
     get_jetveto_event,
 )
-from .HLTs import HLTs
 from .common import LUMI, jec_shifts, jmsr_shifts
 from .objects import good_ak4jets, good_ak8jets, good_muons, good_electrons
 from . import common
@@ -98,7 +97,24 @@ class bbbbSkimmer(processor.ProcessorABC):
         self.XSECS = xsecs  # in pb
 
         # HLT selection
-        self.HLTs = {}
+        self.HLTs = {
+            "2022": [
+                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet400_SoftDropMass40",
+                "AK8PFJet425_SoftDropMass40",
+                "AK8PFJet450_SoftDropMass40",
+            ],
+            "2022EE": [
+                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "AK8PFJet400_SoftDropMass40",
+                "AK8PFJet425_SoftDropMass40",
+                "AK8PFJet450_SoftDropMass40",
+            ],
+        }
 
         # save systematic variations
         self._systematics = save_systematics
@@ -286,7 +302,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         HLTVars = {
             key: events.HLT[key.split("HLT_")[1]].to_numpy()
-            for key in HLTs
+            for key in HLTs[year]
             if key.split("HLT_")[1] in events.HLT
         }
 

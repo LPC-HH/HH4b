@@ -79,6 +79,7 @@ def main(args):
             print("Submitting " + subsample)
             os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
 
+            print(args.files_per_job)
             njobs = ceil(tot_files / args.files_per_job)
 
             eosoutput_dir = f"{t2_prefix}/{outdir}/{args.year}/{subsample}/"
@@ -126,7 +127,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     parser.add_argument("--script", default="run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)

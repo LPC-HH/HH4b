@@ -4,7 +4,7 @@ import numpy as np
 from coffea.nanoevents.methods.nanoaod import JetArray, FatJetArray, MuonArray, ElectronArray
 from coffea.nanoevents.methods.base import NanoEventsArray
 from .corrections import get_jetveto
-
+import awkward as ak
 
 muon_selection = {
     "pt": 30,
@@ -73,23 +73,27 @@ def good_ak4jets(
     return jets[goodjets]
 
 
-# ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
-    # add extra variables to FatJet collection
-    fatjets["Txbb"] = fatjets.particleNetMD_Xbb / (
-        fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb
+# add extra variables to FatJet collection
+def get_ak8jets(fatjets: FatJetArray):
+    fatjets["Txbb"] = ak.nan_to_num(
+        fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
+        nan=-1.0,
     )
-    fatjets["Txjj"] = (
-        fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq
-    ) / (
-        (
+    fatjets["Txjj"] = ak.nan_to_num(
+        (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
+        / (
             fatjets.particleNetMD_Xbb
             + fatjets.particleNetMD_Xcc
             + fatjets.particleNetMD_Xqq
             + fatjets.particleNetMD_QCD
-        )
+        ),
+        nan=-1.0,
     )
+    return fatjets
 
+
+# ak8 jet definition
+def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
+    fatjets = get_ak8jets(fatjets)
     sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
-
     return fatjets[sel]

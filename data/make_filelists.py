@@ -57,23 +57,14 @@ def get_v10():
             "HHbb": {
                 # TSG samples (100k events)
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
             },
             "JetMET": {
                 "Run2022E": "/JetMET/Run2022E-PromptNanoAODv10_v1-v3/NANOAOD",
@@ -243,8 +234,8 @@ def get_v11_private():
         "2022": {
             "JetMET": {
                 # path_to_dataset/folder/name_of_dataset
-                "Run2022B": f"{path_mkolosov}/JetHT/JetHT_Run2022B_PromptReco_v1_11June2023",
-                "Run2022C_s": f"{path_mkolosov}/JetHT/JetHT_Run2022C_PromptReco_v1_11June2023",
+                "Run2022B_single": f"{path_mkolosov}/JetHT/JetHT_Run2022B_PromptReco_v1_11June2023",
+                "Run2022C_single": f"{path_mkolosov}/JetHT/JetHT_Run2022C_PromptReco_v1_11June2023",
                 "Run2022C": f"{path_mkolosov}/JetMET/JetMET_Run2022C_PromptReco_v1_11June2023",
                 "Run2022D_v1": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v1",
                 "Run2022D_v2": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v2",
@@ -258,8 +249,8 @@ def get_v11_private():
                 "Run2022D_v3": f"{path_mkolosov}/MuonEG/MuonEG_Run2022D_PromptReco_v3",
             },
             "Muon": {
-                "Run2022B": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022B_PromptReco_v1_11June2023",
-                "Run2022C_s": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022C_PromptReco_v1_11June2023",
+                "Run2022B_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022B_PromptReco_v1_11June2023",
+                "Run2022C_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022C_PromptReco_v1_11June2023",
                 "Run2022C": f"{path_mkolosov}/Muon/Muon_Run2022C_PromptReco_v1_11June2023",
                 "Run2022D_v1": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptReco_v1_11June2023",
                 "Run2022D_v2": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptReco_v2_11June2023",

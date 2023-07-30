@@ -27,7 +27,16 @@ def run(p: processor, fileset: dict, args):
     outdir = "./outfiles"
     os.system(f"mkdir -p {outdir}")
 
-    if args.processor in ["skimmer", "input", "ttsfs"]:
+    save_parquet = {
+        "skimmer": True,
+        "trigger_boosted": True,
+    }[args.processor]
+    save_root = {
+        "skimmer": True,
+        "trigger_boosted": False,
+    }[args.processor]
+
+    if save_parquet or save_root:
         # these processors store intermediate files in the "./outparquet" local directory
         local_dir = os.path.abspath(".")
         local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet"))
@@ -60,30 +69,31 @@ def run(p: processor, fileset: dict, args):
 
     # need to combine all the files from these processors before transferring to EOS
     # otherwise it will complain about too many small files
-    if args.processor in ["skimmer"]:
+    if save_parquet or save_root:
         import pandas as pd
         import pyarrow.parquet as pq
         import pyarrow as pa
 
         pddf = pd.read_parquet(local_parquet_dir)
 
-        # need to write with pyarrow as pd.to_parquet doesn't support different types in
-        # multi-index column names
-        table = pa.Table.from_pandas(pddf)
-        pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
+        if save_parquet:
+            # need to write with pyarrow as pd.to_parquet doesn't support different types in
+            # multi-index column names
+            table = pa.Table.from_pandas(pddf)
+            pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
 
-        # save as root files as well
-        import awkward as ak
+        if save_root:
+            import awkward as ak
 
-        with uproot.recreate(
-            f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
-        ) as rfile:
-            rfile["Events"] = ak.Array(
-                # take only top-level column names in multiindex df
-                run_utils.flatten_dict(
-                    {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+            with uproot.recreate(
+                f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
+            ) as rfile:
+                rfile["Events"] = ak.Array(
+                    # take only top-level column names in multiindex df
+                    run_utils.flatten_dict(
+                        {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                    )
                 )
-            )
 
 
 def main(args):
@@ -107,7 +117,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)

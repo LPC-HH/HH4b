@@ -1,2 +1,2 @@
-from .triggerProcessor import *
+from .triggerSkimmer import *
 from .bbbbSkimmer import *

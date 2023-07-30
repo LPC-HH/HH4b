@@ -35,7 +35,7 @@ def accumulate_files(files: list):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)  # year, processor
     parser.add_argument("--tag", type=str, required=True)
     parser.add_argument("--name", default="combined", help="name of combined files", type=str)
