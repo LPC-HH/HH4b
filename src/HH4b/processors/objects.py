@@ -52,7 +52,6 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
     )
     return electrons[sel]
 
-
 # ak4 jet definition
 def good_ak4jets(
     jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
@@ -88,6 +87,7 @@ def get_ak8jets(fatjets: FatJetArray):
      )
     , nan=-1.0)
     return fatjets
+
 
 # ak8 jet definition
 def good_ak8jets(fatjets: FatJetArray):

@@ -127,9 +127,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     parser.add_argument("--script", default="run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)

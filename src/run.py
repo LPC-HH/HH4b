@@ -84,9 +84,9 @@ def run(p: processor, fileset: dict, args):
 
         if save_root:
             import awkward as ak
-            
+
             with uproot.recreate(
-                    f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
+                f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
             ) as rfile:
                 rfile["Events"] = ak.Array(
                     # take only top-level column names in multiindex df
@@ -94,6 +94,7 @@ def run(p: processor, fileset: dict, args):
                         {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
                     )
                 )
+
 
 def main(args):
     p = run_utils.get_processor(args.processor, args.save_systematics)
@@ -116,9 +117,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)
