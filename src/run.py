@@ -90,7 +90,9 @@ def run(p: processor, fileset: dict, args):
             ) as rfile:
                 rfile["Events"] = ak.Array(
                     # take only top-level column names in multiindex df
-                    {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                    run_utils.flatten_dict(
+                        {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                    )
                 )
 
 def main(args):
@@ -100,7 +102,13 @@ def main(args):
         fileset = {f"{args.year}_{args.files_name}": args.files}
     else:
         fileset = run_utils.get_fileset(
-            args.processor, args.year, args.nano_version, args.samples, args.subsamples, args.starti, args.endi
+            args.processor,
+            args.year,
+            args.nano_version,
+            args.samples,
+            args.subsamples,
+            args.starti,
+            args.endi,
         )
 
     print(f"Running on fileset {fileset}")

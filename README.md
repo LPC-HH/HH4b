@@ -1,7 +1,7 @@
 # HH4b
 
 [![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/rkansal47/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/rkansal47/HH4b/main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/LPC-HH/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/LPC-HH/HH4b/main)
 
 <!-- <p align="left">
   <img width="300" src="https://raw.githubusercontent.com/rkansal47/HH4b/main/figure.png" />
@@ -101,7 +101,7 @@ Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
 To test locally:
 
 ```bash
-python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
+python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11 --samples Hbb --subsamples ZH_Hto2B_Zto2Q_M-125 --starti 0 --endi 1
 ```
 
 Or on a specific file(s):
