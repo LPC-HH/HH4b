@@ -20,7 +20,7 @@ from typing import Dict
 from collections import OrderedDict
 
 from .GenSelection import gen_selection_HHbbbb
-from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, flatten_dict
+from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
 from .corrections import (
     add_pileup_weight,
     add_VJets_kFactors,
@@ -34,8 +34,9 @@ from .corrections import (
     get_jmsr,
     get_jetveto_event,
 )
+from .HLTs import HLTs
 from .common import LUMI, jec_shifts, jmsr_shifts
-from .objects import good_ak4jets, good_ak8jets
+from .objects import good_ak4jets, good_ak8jets, good_muons, good_electrons
 from . import common
 
 
@@ -62,6 +63,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         "Jet": {
             **P4,
         },
+        "Muon": {**P4},
+        "Electron": {**P4},
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
@@ -70,6 +73,12 @@ class bbbbSkimmer(processor.ProcessorABC):
             "particleNet_mass": "PNetMass",
         },
         "GenHiggs": P4,
+        "Event": {
+            "run",
+            "event",
+            "lumi",
+        },
+        "Pileup": {"nPU"},
         "other": {
             "MET_pt": "MET_pt",
         },
@@ -134,6 +143,8 @@ class bbbbSkimmer(processor.ProcessorABC):
     def process(self, events: ak.Array):
         """Runs event processor for different types of jets"""
 
+        # breakpoint()
+
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
@@ -177,6 +188,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, corr_year, isData)
 
+        num_leptons = 2
+        muons = good_muons(events.Muon)
+        electrons = good_electrons(events.Electron)
+
         #########################
         # Save / derive variables
         #########################
@@ -203,6 +218,8 @@ class bbbbSkimmer(processor.ProcessorABC):
                 if shift != "":
                     ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
 
+        skimmed_events = {**skimmed_events, **ak4JetVars}
+
         # FatJet variables
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
@@ -224,6 +241,8 @@ class bbbbSkimmer(processor.ProcessorABC):
                 label = "" if shift == "" else "_" + shift
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
 
+        skimmed_events = {**skimmed_events, **ak8FatJetVars}
+
         # dijet variables
         fatDijetVars = {}
         for shift in jec_shifted_fatjetvars["pt"]:
@@ -238,37 +257,62 @@ class bbbbSkimmer(processor.ProcessorABC):
                     **self.getFatDijetVars(ak8FatJetVars, mass_shift=label),
                 }
 
+        skimmed_events = {**skimmed_events, **fatDijetVars}
+
+        # lepton variables
+        lepton_skim = {"Muon": muons, "Electron": electrons}
+        leptonVars = {
+            f"{label}{key}": pad_val(obj[var], num_leptons, axis=1)
+            for (label, obj) in lepton_skim.items()
+            for (var, key) in self.skim_vars[label].items()
+        }
+
+        skimmed_events = {**skimmed_events, **leptonVars}
+
+        eventVars = {
+            key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events
+        }
+
+        if isData:
+            pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
+        else:
+            eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
+            pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
+
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
             for (var, key) in self.skim_vars["other"].items()
         }
 
-        # flatten object variables
-        ak8FatJetVars = flatten_dict(ak8FatJetVars, "ak8FatJet")
+        HLTVars = {
+            key: events.HLT[key.split("HLT_")[1]].to_numpy()
+            for key in HLTs
+            if key.split("HLT_")[1] in events.HLT
+        }
 
-        skimmed_events = {**skimmed_events, **ak8FatJetVars, **fatDijetVars, **otherVars}
+        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars, **HLTVars}
 
         ######################
         # Selection
         ######################
 
         # OR-ing HLT triggers
-        if isData:
-            for trigger in self.HLTs[year]:
-                if trigger not in events.HLT.fields:
-                    logger.warning(f"Missing HLT {trigger}!")
+        # if isData:
+        #     for trigger in self.HLTs[year]:
+        #         if trigger not in events.HLT.fields:
+        #             logger.warning(f"Missing HLT {trigger}!")
 
-            HLT_triggered = np.any(
-                np.array(
-                    [
-                        events.HLT[trigger]
-                        for trigger in self.HLTs[year]
-                        if trigger in events.HLT.fields
-                    ]
-                ),
-                axis=0,
-            )
-            add_selection("trigger", HLT_triggered, *selection_args)
+        #     HLT_triggered = np.any(
+        #         np.array(
+        #             [
+        #                 events.HLT[trigger]
+        #                 for trigger in self.HLTs[year]
+        #                 if trigger in events.HLT.fields
+        #             ]
+        #         ),
+        #         axis=0,
+        #     )
+        #     add_selection("trigger", HLT_triggered, *selection_args)
 
         # jet veto map for 2022
         if year == "2022" and isData:
@@ -289,6 +333,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 axis=1,
             )
             cuts.append(cut)
+
         add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
 
         # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
@@ -300,6 +345,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 axis=1,
             )
             cuts.append(cut)
+
         add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
 
         # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations

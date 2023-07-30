@@ -2,6 +2,9 @@ import warnings
 
 # from distributed.diagnostics.plugin import WorkerPlugin
 import json
+import numpy as np
+
+from xsecs import xsecs
 
 
 def add_bool_arg(parser, name, help, default=False, no_name=None):
@@ -77,17 +80,6 @@ def get_fileset(
     return fileset
 
 
-def get_xsecs():
-    with open("data/xsecs.json") as f:
-        xsecs = json.load(f)
-
-    for key, value in xsecs.items():
-        if type(value) == str:
-            xsecs[key] = eval(value)
-
-    return xsecs
-
-
 def get_processor(
     processor: str,
     save_systematics: bool = None,
@@ -101,7 +93,7 @@ def get_processor(
         from HH4b.processors import bbbbSkimmer
 
         return bbbbSkimmer(
-            xsecs=get_xsecs(),
+            xsecs=xsecs,
             save_systematics=save_systematics,
         )
 
@@ -117,7 +109,7 @@ def parse_common_args(parser):
 
     parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2023"])
     parser.add_argument(
-        "--nano_version",
+        "--nano-version",
         type=str,
         required=True,
         choices=["v10", "v11", "v11_private", "v12"],
@@ -142,3 +134,19 @@ def parse_common_args(parser):
     # Skimmer args
     # REMEMBER TO PROPAGATE THIS TO SUBMIT TEMPLATE!!
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
+
+
+def flatten_dict(var_dict: dict):
+    """
+    Flattens dictionary of variables so that each key has a 1d-array
+    """
+    new_dict = {}
+    for key, var in var_dict.items():
+        num_objects = var.shape[-1]
+        if len(var.shape) >= 2 and num_objects > 1:
+            temp_dict = {f"{key}{obj}": var[:, obj] for obj in range(num_objects)}
+            new_dict = {**new_dict, **temp_dict}
+        else:
+            new_dict[key] = np.squeeze(var)
+
+    return new_dict
