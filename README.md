@@ -44,7 +44,7 @@ pip install coffea
 
 Clone the repository:
 ```
-git clone https://github.com/rkansal47/HH4b/
+git clone https://github.com/LPC-HH/HH4b/
 ```
 
 
