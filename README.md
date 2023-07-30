@@ -7,7 +7,7 @@
   <img width="300" src="https://raw.githubusercontent.com/rkansal47/HH4b/main/figure.png" />
 </p> -->
 
-<!-- Search for two boosted (high transverse momentum) Higgs bosons (H) decaying to two beauty quarks (b) and two vector bosons (V). The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
+<!-- Search for two boosted (high transverse momentum) Higgs bosons (H) decaying to four beauty quarks (b). The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
 
 
 - [HH4b](#hh4b)
@@ -42,23 +42,29 @@ mamba activate hh4b
 pip install coffea
 ```
 
+Clone the repository:
+```
+git clone https://github.com/rkansal47/HH4b/
+```
+
+
 ### Condor
 
-Manually splits up the files into condor jobs.
+The script `src/condor/submit.py` manually splits up the files into condor jobs:
 
+e.g. `TAG=23Jul13`
 ```bash
-git clone https://github.com/rkansal47/HH4b/
-cd HH4b
-TAG=23Jul13
 # will need python3 (can use either CMSSW >= 11_2_0 or via miniconda/mamba)
 python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20 --submit
 ```
 
-Alternatively, can be submitted from a yaml file:
+Alternatively, jobs can be submitted from a yaml file:
 
 ```bash
 python src/condor/submit_from_yaml.py --year 2022 --processor skimmer --tag $TAG --yaml src/condor/submit_configs/skimmer_inputs_07_24.yaml 
 ```
+
+### Running locally
 
 To test locally first (recommended), can do e.g.:
 
@@ -69,20 +75,20 @@ python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer 
 
 ## Processors
 
-### JetHTTriggerEfficiencies
+### triggerSkmimer
 
-Applies a muon pre-selection and accumulates 3D ([Txbb, pT, mSD]) yields before and after our triggers.
+Applies a muon pre-selection.
 
 To test locally:
 
 ```bash
-python -W ignore src/run.py --year 2018 --processor trigger --sample SingleMu2017 --subsamples SingleMuon_Run2018B --starti 0 --endi 1
+python -W ignore src/run.py  --year 2022 --processor trigger_boosted --samples Muon --subsamples Run2022C --nano_version v11_private --starti 0 --endi 1
 ```
 
-And to submit all:
+And to submit all jobs, e.g. for 2022:
 
 ```bash
-nohup bash -c 'for i in 2016 2016APV 2017 2018; do python src/condor/submit.py --year $i --tag '"${TAG}"' --processor trigger --submit; done' &> tmp/submitout.txt &
+python src/condor/submit.py --year 2022 --processor trigger_boosted --tag $TAG --submit
 ```
 
 ### bbbbSkimmer

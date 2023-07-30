@@ -32,7 +32,9 @@ def add_bool_arg(parser, name, help, default=False, no_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     run_utils.parse_common_args(parser)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)
     parser.add_argument("--jet", default="AK8", help="jet", type=str)
@@ -59,22 +61,13 @@ if __name__ == "__main__":
     tag = args.tag
     for key, tdict in samples_to_submit.items():
         for sample, sdict in tdict.items():
-            if sample in ["JetHT", "SingleMu"]:
-                sample += args.year[:4]
-
             args.samples = [sample]
             args.subsamples = sdict.get("subsamples", [])
             args.files_per_job = sdict["files_per_job"]
             args.njets = sdict.get("njets", 2)
             args.maxchunks = sdict.get("maxchunks", 0)
             args.chunksize = sdict.get("chunksize", 10000)
-
             args.tag = tag
-
-            args.label = args.jet + sdict["label"] if "label" in sdict.keys() else "None"
-
-            if key == "Validation":
-                args.tag = f"{args.tag}_Validation"
 
             print(args)
             submit.main(args)

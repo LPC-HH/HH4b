@@ -36,8 +36,8 @@ def get_fileset(
     get_num_files: bool = False,
     coffea_casa: str = False,
 ):
-    if processor == "trigger":
-        samples = [f"SingleMu{year[:4]}"]
+    if processor == "trigger_boosted":
+        samples = ["Muon"]
 
     redirector = "root://cmsxrootd.fnal.gov//"
 
@@ -93,10 +93,11 @@ def get_processor(
     save_systematics: bool = None,
 ):
     # define processor
-    if processor == "trigger":
-        from HH4b.processors import JetHTTriggerEfficienciesProcessor
+    if processor == "trigger_boosted":
+        from HH4b.processors import BoostedTriggerSkimmer
 
-        return JetHTTriggerEfficienciesProcessor()
+        return BoostedTriggerSkimmer()
+
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
@@ -109,10 +110,10 @@ def get_processor(
 def parse_common_args(parser):
     parser.add_argument(
         "--processor",
-        default="trigger",
+        required=True,
         help="Trigger processor",
         type=str,
-        choices=["trigger", "skimmer"],
+        choices=["trigger_boosted", "skimmer"],
     )
 
     parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2023"])
@@ -139,6 +140,4 @@ def parse_common_args(parser):
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
     parser.add_argument("--chunksize", default=10000, help="chunk size", type=int)
 
-    # Skimmer args
-    # REMEMBER TO PROPAGATE THIS TO SUBMIT TEMPLATE!!
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
