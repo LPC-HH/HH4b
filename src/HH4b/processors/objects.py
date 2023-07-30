@@ -93,7 +93,7 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray):
+def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
     fatjets = get_ak8jets(fatjets)
     sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
     return fatjets[sel]
