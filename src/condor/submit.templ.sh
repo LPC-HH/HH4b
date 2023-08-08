@@ -9,7 +9,7 @@ mkdir outfiles
 
 # run code
 # pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano_version ${nano_version}
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version}
 
 #move output to eos
 xrdcp -f outfiles/* $eosoutpkl

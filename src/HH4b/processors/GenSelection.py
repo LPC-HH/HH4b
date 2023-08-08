@@ -94,4 +94,4 @@ def gen_selection_HHbbbb(
         for var in ["HiggsMatch","HiggsMatchIndex","NumBMatched"]
     }
 
-    return {**GenHiggsVars, **ak4JetVars}
+    return {**GenHiggsVars, **ak4JetVars, **ak8FatJetVars}

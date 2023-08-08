@@ -17,7 +17,7 @@ electron_selection = {
     "pt": 35,
     "eta": 2.5,
     "miniPFRelIso_all": 0.2,
-    "id": "isTight",
+    "id": "cutBased:4",
 }
 
 veto_muon_selection = {
@@ -77,11 +77,16 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
 
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
     electrons = base_electrons(electrons)
+    if "cutBased" in selection["id"]:
+        wp = selection["id"].split(":")[1]
+        id_selection = electrons["cutBased"] >= electrons[wp]
+    else:
+        id_selection = electrons[selection["id"]]
     sel = (
         (electrons.pt >= selection["pt"])
         & (abs(electrons.eta) <= selection["eta"])
         & (electrons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
-        & (electrons[selection["id"]])
+        & id_selection
     )
     return electrons[sel]
 

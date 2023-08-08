@@ -41,7 +41,7 @@ from . import common
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
-    "GluGluToHHTobbbb_node_cHHH": gen_selection_HHbbbb,
+    "GluGlutoHHto4B": gen_selection_HHbbbb,
 }
 
 
@@ -96,7 +96,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         self.XSECS = xsecs  # in pb
 
         # HLT selection
-        self.HLTs = {
+        HLTs = {
             "signal": {
                 "2022": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -109,28 +109,30 @@ class bbbbSkimmer(processor.ProcessorABC):
             },
             "1leptop": {
                 "2022": [
-                    "HLT_Ele30_WPTight_Gsf",
-                    "HLT_Ele32_WPTight_Gsf",
-                    "HLT_Ele35_WPTight_Gsf",
-                    "HLT_Ele38_WPTight_Gsf",
-                    "HLT_Ele40_WPTight_Gsf",
-                    "HLT_IsoMu27",
-                    "HLT_IsoMu24",
-                    "HLT_IsoMu24_eta2p1",
+                    "Ele30_WPTight_Gsf",
+                    "Ele32_WPTight_Gsf",
+                    "Ele35_WPTight_Gsf",
+                    "Ele38_WPTight_Gsf",
+                    "Ele40_WPTight_Gsf",
+                    "IsoMu27",
+                    "IsoMu24",
+                    "IsoMu24_eta2p1",
                 ],
                 "2022EE": [
-                    "HLT_Ele30_WPTight_Gsf",
-                    "HLT_Ele32_WPTight_Gsf",
-                    "HLT_Ele35_WPTight_Gsf",
-                    "HLT_Ele38_WPTight_Gsf",
-                    "HLT_Ele40_WPTight_Gsf",
-                    "HLT_IsoMu27",
-                    "HLT_IsoMu24",
-                    "HLT_IsoMu24_eta2p1",
+                    "Ele30_WPTight_Gsf",
+                    "Ele32_WPTight_Gsf",
+                    "Ele35_WPTight_Gsf",
+                    "Ele38_WPTight_Gsf",
+                    "Ele40_WPTight_Gsf",
+                    "IsoMu27",
+                    "IsoMu24",
+                    "IsoMu24_eta2p1",
                 ],
             }
         }
-        self.HLTs["hadtop"] = self.HLTs["signal"]
+        HLTs["hadtop"] = HLTs["signal"]
+
+        self.HLTs = HLTs[region]
 
         # save systematic variations
         self._systematics = save_systematics
@@ -323,34 +325,34 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         HLTVars = {
-            key: events.HLT[key.split("HLT_")[1]].to_numpy()
-            for key in HLTs[self._region][year]
-            if key.split("HLT_")[1] in events.HLT
+            f"HLT_{key}": events.HLT[key].to_numpy()
+            for key in self.HLTs[year]
+            if key in events.HLT
         }
 
-        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars, **HLTVars}
+
+        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars}
 
         ######################
         # Selection
         ######################
 
-        # OR-ing HLT triggers
-        # if isData:
-        #     for trigger in self.HLTs[year]:
-        #         if trigger not in events.HLT.fields:
-        #             logger.warning(f"Missing HLT {trigger}!")
-
-        #     HLT_triggered = np.any(
-        #         np.array(
-        #             [
-        #                 events.HLT[trigger]
-        #                 for trigger in self.HLTs[year]
-        #                 if trigger in events.HLT.fields
-        #             ]
-        #         ),
-        #         axis=0,
-        #     )
-        #     add_selection("trigger", HLT_triggered, *selection_args)
+        # OR-ing HLT triggers (applied to data and simulation)
+        for trigger in self.HLTs[year]:
+            if trigger not in events.HLT.fields:
+                logger.warning(f"Missing HLT {trigger}!")
+                
+        HLT_triggered = np.any(
+            np.array(
+                [
+                    events.HLT[trigger]
+                    for trigger in self.HLTs[year]
+                    if trigger in events.HLT.fields
+                ]
+            ),
+            axis=0,
+        )
+        add_selection("trigger", HLT_triggered, *selection_args)
 
         # jet veto map for 2022
         if year == "2022" and isData:
@@ -412,10 +414,10 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             # TODO: figure out which of these apply to VBF, single Higgs, ttbar etc.
 
-            if "GluGluToHHTobbbb" in dataset or "WJets" in dataset or "ZJets" in dataset:
+            if "GluGlutoHHto4B" in dataset or "WJets" in dataset or "ZJets" in dataset:
                 add_ps_weight(weights, events.PSWeight)
 
-            if "GluGluToHHTobbbb" in dataset:
+            if "GluGlutoHHto4B" in dataset:
                 if "LHEPdfWeight" in events.fields:
                     add_pdf_weight(weights, events.LHEPdfWeight)
                 else:
