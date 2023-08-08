@@ -7,7 +7,7 @@ dbs = DbsApi("https://cmsweb.cern.ch/dbs/prod/global/DBSReader")
 qcd_bins = [
     # "0to80",
     "80to120",
-    "15to30", # unclear if these are needed
+    "15to30",  # unclear if these are needed
     "30to50",
     "50to80",
     "120to170",
@@ -131,17 +131,17 @@ def get_v11():
                 "Zto2Q-4Jets_HT-600to800": "/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
                 "Zto2Q-4Jets_HT-800": "/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
             },
-            # PromptReco: 
+            # PromptReco:
             # ReReco should be 27Jun2023...
             # "JetMET": {
-            #     "Run2022C_single": 
-            #     "Run2022C": 
-            #     "Run2022D": 
+            #     "Run2022C_single":
+            #     "Run2022C":
+            #     "Run2022D":
             # },
             # "Muon": {
-            #     "Run2022C_single": 
-            #     "Run2022C": 
-            #     "Run2022D": 
+            #     "Run2022C_single":
+            #     "Run2022C":
+            #     "Run2022D":
             # },
         },
         # MC campaign post EE+ leak
@@ -208,7 +208,7 @@ def get_v11():
             },
             # Re-reco and prompt-reco
             "JetMET": {
-                # "Run2022E": 
+                # "Run2022E":
                 "Run2022F": "/JetMET/Run2022F-PromptNanoAODv11_v1-v2/NANOAOD",
                 "Run2022G": "/JetMET/Run2022G-PromptNanoAODv11_v1-v2/NANOAOD",
             },
@@ -224,6 +224,7 @@ def get_v11():
 path_mkolosov = "/store/user/mkolosov/CRAB3_TransferData/PrivateNanoAOD/"
 path_dihiggsboost = "/store/user/lpcdihiggsboost/nanov12/"
 path_dihiggsboost_trigobj = "/store/user/lpcdihiggsboost/nanov11_trigobj/"
+
 
 def get_v11_private():
     return {
@@ -401,7 +402,7 @@ def get_v12():
 
 def eos_rec_search(startdir, suffix, dirs):
     eosbase = "root://cmseos.fnal.gov/"
-    try: 
+    try:
         dirlook = (
             subprocess.check_output(f"eos {eosbase} ls {startdir}", shell=True)
             .decode("utf-8")

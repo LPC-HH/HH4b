@@ -35,6 +35,7 @@ logger.setLevel(logging.INFO)
 #  https://indico.cern.ch/event/1233757/contributions/5281432/attachments/2598122/4485548/HLTforHHto4b_MKolosova.pdf
 #  https://indico.cern.ch/event/1251452/contributions/5288361/attachments/2602604/4494289/HLTforGluGluHHTo4b_Semiresolved_MKolosova_01March2023.pdf
 
+
 class TriggerProcessor(processor.ProcessorABC):
     HLTs = {
         "2022": [
@@ -42,13 +43,13 @@ class TriggerProcessor(processor.ProcessorABC):
             "QuadPFJet70_50_40_30_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_45_35_PFBTagParticleNet_2BTagSum0p65",
-            "PFHT1050", 
-            "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35", # prescaled for fraction of 2022 
-            "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35", # un-prescaled
-            "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35", #un-prescaled
-            "AK8PFJet400_SoftDropMass40", # prescaled for fraction of 2022
-            "AK8PFJet425_SoftDropMass40", # un-prescaled
-            "AK8PFJet450_SoftDropMass40", # un-prescaled
+            "PFHT1050",
+            "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",  # prescaled for fraction of 2022
+            "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",  # un-prescaled
+            "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",  # un-prescaled
+            "AK8PFJet400_SoftDropMass40",  # prescaled for fraction of 2022
+            "AK8PFJet425_SoftDropMass40",  # un-prescaled
+            "AK8PFJet450_SoftDropMass40",  # un-prescaled
             "AK8DiPFJet250_250_MassSD30",
             "AK8DiPFJet250_250_MassSD50",
             "AK8DiPFJet260_260_MassSD30",
@@ -114,7 +115,7 @@ class TriggerProcessor(processor.ProcessorABC):
             "HTT320er_QuadJet_80_60_er2p1_50_45_er2p3",  # un-prescaled
         ],
     }
-    
+
     # check trigger object filters
     # https://hlt-config-editor-confdbv3.app.cern.ch/open?cfg=%2Fcdaq%2Fphysics%2FRun2022%2F2e34%2Fv1.5.0%2FHLT%2FV6&db=online
 
@@ -142,24 +143,23 @@ class TriggerProcessor(processor.ProcessorABC):
     #  hltAK8SinglePFJets250SoftDropMass40BTagParticleNetBB0p35
 
     triggerObj_bits = {
-        "hlt4PixelOnlyPFCentralJetTightIDPt20": 0, # 4 jets, jetForthHighestPt_pt
-        "hlt3PixelOnlyPFCentralJetTightIDPt30": 1, # 3 jets, jetThirdHighestPt_pt
-        "hlt2PixelOnlyPFCentralJetTightIDPt40": 6, # 2 jets, jetSecondHighestPt_pt
-        "hlt1PixelOnlyPFCentralJetTightIDPt60": 23, # 1 jet, jetFirstHighestPt_pt
-        "hlt4PFCentralJetTightIDPt35": 4, # 4 jets, jetForthHighestPt_pt
-        "hlt2PFCentralJetTightIDPt50": 22, # 2 jets, jetSecondHighestPt_pt
-        "hlt1PFCentralJetTightIDPt70": 24, # 1 jet, jetFirstHighestPt_pt
+        "hlt4PixelOnlyPFCentralJetTightIDPt20": 0,  # 4 jets, jetForthHighestPt_pt
+        "hlt3PixelOnlyPFCentralJetTightIDPt30": 1,  # 3 jets, jetThirdHighestPt_pt
+        "hlt2PixelOnlyPFCentralJetTightIDPt40": 6,  # 2 jets, jetSecondHighestPt_pt
+        "hlt1PixelOnlyPFCentralJetTightIDPt60": 23,  # 1 jet, jetFirstHighestPt_pt
+        "hlt4PFCentralJetTightIDPt35": 4,  # 4 jets, jetForthHighestPt_pt
+        "hlt2PFCentralJetTightIDPt50": 22,  # 2 jets, jetSecondHighestPt_pt
+        "hlt1PFCentralJetTightIDPt70": 24,  # 1 jet, jetFirstHighestPt_pt
         # hltBTagCentralJetPt35PFParticleNet2BTagSum0p65 OR hltBTagCentralJetPt30PFParticleNet2BTagSum0p65 OR hltPFJetTwoC30PFBTagParticleNet2BTagSum0p65
-        "hltBTagCentralJetPt35PFParticleNet2BTagSum0p65": 27, # jetFirstHighestPN_PNBtag
-        "hltAK8PFJetsCorrected": 1, # 1 fatjet
-        "hltAK8SingleCaloJet200": 2, # 1 fatjet
-        "hltAK8PFSoftDropJets230": 4, # 1 fatjet, 
+        "hltBTagCentralJetPt35PFParticleNet2BTagSum0p65": 27,  # jetFirstHighestPN_PNBtag
+        "hltAK8PFJetsCorrected": 1,  # 1 fatjet
+        "hltAK8SingleCaloJet200": 2,  # 1 fatjet
+        "hltAK8PFSoftDropJets230": 4,  # 1 fatjet,
         # hltAK8SinglePFJets230SoftDropMass40BTagParticleNetBB0p35 OR hltAK8SinglePFJets250SoftDropMass40BTagParticleNetBB0p35 OR hltAK8SinglePFJets275SoftDropMass40BTagParticleNetBB0p35
-        "hltAK8SinglePFJets230SoftDropMass40BTagParticleNetBB0p35": 12, # 1 fatjet, fatjetFirstHighestPN_PNBB
-        "hltAK8DoublePFJetSDModMass30": 16, # 2 fatjet
-        "hltAK8DoublePFJetSDModMass50": 48, # 2 fatjet
+        "hltAK8SinglePFJets230SoftDropMass40BTagParticleNetBB0p35": 12,  # 1 fatjet, fatjetFirstHighestPN_PNBB
+        "hltAK8DoublePFJetSDModMass30": 16,  # 2 fatjet
+        "hltAK8DoublePFJetSDModMass50": 48,  # 2 fatjet
     }
-    
 
     def __init__(self):
         pass
@@ -206,7 +206,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
                 "Txjj": "PNetXjj",
                 "particleNet_mass": "PNetMass",
             },
-       }
+        }
 
         self.preselection = {
             "fatjet_pt": 200,
@@ -235,7 +235,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         # # bins, min, max
         msd_bins = (15, 0, 300)
-        
+
         # edges
         pt_bins = [250, 275, 300, 325, 350, 375, 400, 450, 500, 600, 800, 1000]
         xbb_bins = [0.0, 0.8, 0.9, 0.95, 0.98, 1.0]
@@ -321,19 +321,27 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'
         fatjet_obj = events.TrigObj[(events.TrigObj.id == 6)]
         jet_obj = events.TrigObj[(events.TrigObj.id == 1)]
-        
+
         # trigger objects matched to leading jet and
-        matched_obj_fatjet0 = fatjet_obj[ak.any(fatjet_obj.metric_table(fatjets[:,0:1]) < 1.0, axis=1)]
-        matched_obj_fatjet1 = fatjet_obj[ak.any(fatjet_obj.metric_table(fatjets[:,1:2]) < 1.0, axis=1)]
+        matched_obj_fatjet0 = fatjet_obj[
+            ak.any(fatjet_obj.metric_table(fatjets[:, 0:1]) < 1.0, axis=1)
+        ]
+        matched_obj_fatjet1 = fatjet_obj[
+            ak.any(fatjet_obj.metric_table(fatjets[:, 1:2]) < 1.0, axis=1)
+        ]
 
         num_trigobjs = 1
         trigObjFatJetVars = {
             # not matched to fatjets
-            f"trigObj_filterBits":  pad_val(fatjet_obj["filterBits"], num_trigobjs, axis=1),
+            f"trigObj_filterBits": pad_val(fatjet_obj["filterBits"], num_trigobjs, axis=1),
             # matched to leading fatjet
-            f"trigObjFatJet0_filterBits": pad_val(matched_obj_fatjet0["filterBits"], num_trigobjs, axis=1),
+            f"trigObjFatJet0_filterBits": pad_val(
+                matched_obj_fatjet0["filterBits"], num_trigobjs, axis=1
+            ),
             # matched to sub-leading fatjet
-            f"trigObjFatJet1_filterBits": pad_val(matched_obj_fatjet1["filterBits"], num_trigobjs, axis=1),
+            f"trigObjFatJet1_filterBits": pad_val(
+                matched_obj_fatjet1["filterBits"], num_trigobjs, axis=1
+            ),
         }
         skimmed_events = {**skimmed_events, **trigObjFatJetVars}
 
@@ -343,7 +351,11 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         if self.save_hist:
             bbbb_triggered = np.any(
                 np.array(
-                    [events.HLT[trigger] for trigger in self.HLTs_hist[year] if trigger in events.HLT.fields]
+                    [
+                        events.HLT[trigger]
+                        for trigger in self.HLTs_hist[year]
+                        if trigger in events.HLT.fields
+                    ]
                 ),
                 axis=0,
             )
@@ -366,11 +378,14 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         else:
             skimmed_events = {
-                key: value.reshape(len(events), -1)[sel_all] for (key, value) in skimmed_events.items()
+                key: value.reshape(len(events), -1)[sel_all]
+                for (key, value) in skimmed_events.items()
             }
-            
+
             df = self.to_pandas(skimmed_events)
-            fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
+            fname = (
+                events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
+            )
             self.dump_table(df, fname)
 
             return {}
