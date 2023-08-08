@@ -97,11 +97,7 @@ def get_processor(
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
-        return bbbbSkimmer(
-            xsecs=xsecs,
-            save_systematics=save_systematics,
-            region=region
-        )
+        return bbbbSkimmer(xsecs=xsecs, save_systematics=save_systematics, region=region)
 
 
 def parse_common_args(parser):
@@ -113,7 +109,9 @@ def parse_common_args(parser):
         choices=["trigger_boosted", "skimmer", "matching"],
     )
 
-    parser.add_argument("--year", help="year", type=str, default="2022", choices=["2022", "2022EE", "2023"])
+    parser.add_argument(
+        "--year", help="year", type=str, default="2022", choices=["2022", "2022EE", "2023"]
+    )
     parser.add_argument(
         "--nano-version",
         type=str,

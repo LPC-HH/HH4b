@@ -111,9 +111,7 @@ def main(args):
                     "save_systematics": "--save-systematics"
                     if args.save_systematics
                     else "--no-save-systematics",
-                    "region": f"--region {args.region}"
-                    if args.region is not None
-                    else ""
+                    "region": f"--region {args.region}" if args.region is not None else "",
                 }
                 write_template(sh_templ, localsh, sh_args)
                 os.system(f"chmod u+x {localsh}")
