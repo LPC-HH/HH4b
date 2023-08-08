@@ -17,9 +17,22 @@ electron_selection = {
     "pt": 35,
     "eta": 2.5,
     "miniPFRelIso_all": 0.2,
-    # "id": "Tight",
+    "id": "isTight",
 }
 
+veto_muon_selection = {
+    "pt": 15,
+    "eta": 2.4,
+    "miniPFRelIso_all": 0.4,
+    "id": "loose",
+}
+
+veto_electron_selection = {
+    "pt": 20,
+    "eta": 2.5,
+    "miniPFRelIso_all": 0.4,
+    "id": "mvaFall17V2noIso_WP90",
+}
 
 ak4_selection = {
     "eta": 4.7,
@@ -32,26 +45,45 @@ ak8_selection = {
     # "id": "Tight",
 }
 
+def base_muons(muons: MuonArray):
+    # base selection of muons (ref. VBF HH4b boosted Run2)
+    sel = (
+        (muons.pt >= 5)
+        & (abs(muons.eta) <= 2.4)
+        & (abs(muons.dxy) < 0.05)
+        & (abs(muons.dz) < 0.2)
+    )
+    return muons[sel]
+
+def base_electrons(electrons: ElectronArray):
+    # base selection of electrons (ref. VBF HH4b boosted Run2)
+    sel = (
+        (electrons.pt >= 7)
+        & (abs(electrons.eta) <= 2.5)
+        & (abs(electrons.dxy) < 0.05)
+        & (abs(electrons.dz) < 0.2)
+    )
+    return electrons[sel]
 
 def good_muons(muons: MuonArray, selection: Dict = muon_selection):
+    muons = base_muons(muons)
     sel = (
         (muons.pt >= selection["pt"])
-        & (muons.eta <= selection["eta"])
+        & (abs(muons.eta) <= selection["eta"])
         & (muons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
         & (muons[f"{selection['id']}Id"])
     )
     return muons[sel]
 
-
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
+    electrons = base_electrons(electrons)
     sel = (
         (electrons.pt >= selection["pt"])
-        & (electrons.eta <= selection["eta"])
+        & (abs(electrons.eta) <= selection["eta"])
         & (electrons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
-        & (electrons.isTight)
+        & (electrons[selection["id"]])
     )
     return electrons[sel]
-
 
 # ak4 jet definition
 def good_ak4jets(
@@ -88,6 +120,10 @@ def get_ak8jets(fatjets: FatJetArray):
             + fatjets.particleNetMD_QCD
         ),
         nan=-1.0,
+    )
+    fatjets["t32"] = ak.nan_to_num(
+        fatjets.tau3 / fatjets.tau2,
+        nan=-1.0
     )
     return fatjets
 

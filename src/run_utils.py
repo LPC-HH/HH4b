@@ -39,9 +39,6 @@ def get_fileset(
     get_num_files: bool = False,
     coffea_casa: str = False,
 ):
-    if processor == "trigger_boosted":
-        samples = ["Muon"]
-
     redirector = "root://cmsxrootd.fnal.gov//"
 
     with open(f"data/nanoindex_{version}.json", "r") as f:
@@ -83,12 +80,17 @@ def get_fileset(
 def get_processor(
     processor: str,
     save_systematics: bool = None,
+    save_hist: bool = False,
 ):
     # define processor
     if processor == "trigger_boosted":
         from HH4b.processors import BoostedTriggerSkimmer
 
-        return BoostedTriggerSkimmer()
+        return BoostedTriggerSkimmer(save_hist=save_hist)
+
+    elif processor == "matching":
+         from HH4b.processors import matchingSkimmer
+         return matchingSkimmer()
 
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
@@ -105,10 +107,10 @@ def parse_common_args(parser):
         required=True,
         help="Trigger processor",
         type=str,
-        choices=["trigger_boosted", "skimmer"],
+        choices=["trigger_boosted", "skimmer", "matching"],
     )
 
-    parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2023"])
+    parser.add_argument("--year", help="year", type=str, required=True, choices=["2022", "2022EE", "2023"])
     parser.add_argument(
         "--nano-version",
         type=str,
@@ -133,7 +135,7 @@ def parse_common_args(parser):
     parser.add_argument("--chunksize", default=10000, help="chunk size", type=int)
 
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
-
+    add_bool_arg(parser, "save-hist", default=False, help="save histogram as output of the processor (for trigger processor)")
 
 def flatten_dict(var_dict: dict):
     """

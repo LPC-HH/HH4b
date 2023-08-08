@@ -78,46 +78,70 @@ class bbbbSkimmer(processor.ProcessorABC):
             "lumi",
         },
         "Pileup": {"nPU"},
-        "other": {
+        "Other": {
             "MET_pt": "MET_pt",
         },
     }
 
     preselection = {
-        "jet_pt": 25,  # should this be 40?
         "fatjet_pt": 200,
         "fatjet_msd": 50,
     }
 
     jecs = common.jecs
 
-    def __init__(self, xsecs={}, save_systematics=True):
+    def __init__(self, xsecs={}, save_systematics=False, region="signal"):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
 
         # HLT selection
         self.HLTs = {
-            "2022": [
-                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet400_SoftDropMass40",
-                "AK8PFJet425_SoftDropMass40",
-                "AK8PFJet450_SoftDropMass40",
-            ],
-            "2022EE": [
-                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet400_SoftDropMass40",
-                "AK8PFJet425_SoftDropMass40",
-                "AK8PFJet450_SoftDropMass40",
-            ],
+            "signal": {
+                "2022": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                ],
+                "2022EE": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                ],
+            },
+            "1leptop": {
+                "2022": [
+                    "HLT_Ele30_WPTight_Gsf",
+                    "HLT_Ele32_WPTight_Gsf",
+                    "HLT_Ele35_WPTight_Gsf",
+                    "HLT_Ele38_WPTight_Gsf",
+                    "HLT_Ele40_WPTight_Gsf",
+                    "HLT_IsoMu27",
+                    "HLT_IsoMu24",
+                    "HLT_IsoMu24_eta2p1",
+                ],
+                "2022EE": [
+                    "HLT_Ele30_WPTight_Gsf",
+                    "HLT_Ele32_WPTight_Gsf",
+                    "HLT_Ele35_WPTight_Gsf",
+                    "HLT_Ele38_WPTight_Gsf",
+                    "HLT_Ele40_WPTight_Gsf",
+                    "HLT_IsoMu27",
+                    "HLT_IsoMu24",
+                    "HLT_IsoMu24_eta2p1",
+                ],
+            }
         }
+        self.HLTs["hadtop"] = self.HLTs["signal"]
 
         # save systematic variations
         self._systematics = save_systematics
+
+        # analysis region
+        """
+        signal:
+        hadtop:
+        1leptop:
+        """
+        self._region = region
 
         self._accumulator = processor.dict_accumulator({})
 
@@ -159,8 +183,6 @@ class bbbbSkimmer(processor.ProcessorABC):
     def process(self, events: ak.Array):
         """Runs event processor for different types of jets"""
 
-        # breakpoint()
-
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
@@ -191,7 +213,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         corr_year = "2018"
 
         num_jets = 6
-        # FIXME: use AK4 Puppi Jets
+        # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
         jets, jec_shifted_jetvars = get_jec_jets(
             events, jets, corr_year, isData, self.jecs, fatjets=False
@@ -217,7 +239,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for d in gen_selection_dict:
             if d in dataset:
                 vars_dict = gen_selection_dict[d](
-                    events, fatjets, selection, cutflow, gen_weights, P4
+                    events, jets, fatjets, selection, cutflow, gen_weights, P4
                 )
                 skimmed_events = {**skimmed_events, **vars_dict}
 
@@ -297,12 +319,12 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
-            for (var, key) in self.skim_vars["other"].items()
+            for (var, key) in self.skim_vars["Other"].items()
         }
 
         HLTVars = {
             key: events.HLT[key.split("HLT_")[1]].to_numpy()
-            for key in HLTs[year]
+            for key in HLTs[self._region][year]
             if key.split("HLT_")[1] in events.HLT
         }
 
@@ -333,7 +355,6 @@ class bbbbSkimmer(processor.ProcessorABC):
         # jet veto map for 2022
         if year == "2022" and isData:
             jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
-            print(jetveto)
             add_selection("ak4_jetveto", jetveto, *selection_args)
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations
