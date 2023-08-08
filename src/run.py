@@ -103,7 +103,7 @@ def run(p: processor, fileset: dict, args):
 
 
 def main(args):
-    p = run_utils.get_processor(args.processor, args.save_systematics, args.save_hist)
+    p = run_utils.get_processor(args.processor, args.save_systematics, args.save_hist, args.region)
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}

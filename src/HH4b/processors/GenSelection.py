@@ -40,6 +40,7 @@ b_PDGIDS = [511, 521, 523]
 
 GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
 
+
 def gen_selection_HHbbbb(
     events: NanoEventsArray,
     jets: JetArray,
@@ -50,7 +51,7 @@ def gen_selection_HHbbbb(
     skim_vars: dict,
 ):
     """Gets HH, bb 4-vectors"""
-    
+
     # finding the two gen higgs
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
@@ -78,20 +79,24 @@ def gen_selection_HHbbbb(
     # is the jet matched to the Higgs?
     jets["HiggsMatch"] = ak.any(jets.metric_table(higgs) < 0.4, axis=2)
     # index of higgs to which the jet is closest to
-    jets["HiggsMatchIndex"] = ak.mask(ak.argmin(jets.metric_table(higgs), axis=2), jets["HiggsMatch"]==1)
+    jets["HiggsMatchIndex"] = ak.mask(
+        ak.argmin(jets.metric_table(higgs), axis=2), jets["HiggsMatch"] == 1
+    )
     ak4JetVars = {
         f"ak4Jet{var}": pad_val(jets[var], num_jets, axis=1)
-        for var in ["HiggsMatch","HiggsMatchIndex"]
+        for var in ["HiggsMatch", "HiggsMatchIndex"]
     }
-    
+
     # match fatjets to bb
     num_fatjets = 3
     fatjets["HiggsMatch"] = ak.any(fatjets.metric_table(higgs) < 0.8, axis=2)
-    fatjets["HiggsMatchIndex"] = ak.mask(ak.argmin(fatjets.metric_table(higgs), axis=2), fatjets["HiggsMatch"]==1)
+    fatjets["HiggsMatchIndex"] = ak.mask(
+        ak.argmin(fatjets.metric_table(higgs), axis=2), fatjets["HiggsMatch"] == 1
+    )
     fatjets["NumBMatched"] = ak.sum(fatjets.metric_table(bs) < 0.8, axis=2)
     ak8FatJetVars = {
         f"ak8FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
-        for var in ["HiggsMatch","HiggsMatchIndex","NumBMatched"]
+        for var in ["HiggsMatch", "HiggsMatchIndex", "NumBMatched"]
     }
 
     return {**GenHiggsVars, **ak4JetVars, **ak8FatJetVars}

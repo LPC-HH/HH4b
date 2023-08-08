@@ -45,15 +45,14 @@ ak8_selection = {
     # "id": "Tight",
 }
 
+
 def base_muons(muons: MuonArray):
     # base selection of muons (ref. VBF HH4b boosted Run2)
     sel = (
-        (muons.pt >= 5)
-        & (abs(muons.eta) <= 2.4)
-        & (abs(muons.dxy) < 0.05)
-        & (abs(muons.dz) < 0.2)
+        (muons.pt >= 5) & (abs(muons.eta) <= 2.4) & (abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.2)
     )
     return muons[sel]
+
 
 def base_electrons(electrons: ElectronArray):
     # base selection of electrons (ref. VBF HH4b boosted Run2)
@@ -65,6 +64,7 @@ def base_electrons(electrons: ElectronArray):
     )
     return electrons[sel]
 
+
 def good_muons(muons: MuonArray, selection: Dict = muon_selection):
     muons = base_muons(muons)
     sel = (
@@ -74,6 +74,7 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
         & (muons[f"{selection['id']}Id"])
     )
     return muons[sel]
+
 
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
     electrons = base_electrons(electrons)
@@ -89,6 +90,7 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
         & id_selection
     )
     return electrons[sel]
+
 
 # ak4 jet definition
 def good_ak4jets(
@@ -126,10 +128,7 @@ def get_ak8jets(fatjets: FatJetArray):
         ),
         nan=-1.0,
     )
-    fatjets["t32"] = ak.nan_to_num(
-        fatjets.tau3 / fatjets.tau2,
-        nan=-1.0
-    )
+    fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
     return fatjets
 
 

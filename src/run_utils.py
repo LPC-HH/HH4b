@@ -81,6 +81,7 @@ def get_processor(
     processor: str,
     save_systematics: bool = None,
     save_hist: bool = False,
+    region: str = None,
 ):
     # define processor
     if processor == "trigger_boosted":
@@ -89,8 +90,9 @@ def get_processor(
         return BoostedTriggerSkimmer(save_hist=save_hist)
 
     elif processor == "matching":
-         from HH4b.processors import matchingSkimmer
-         return matchingSkimmer()
+        from HH4b.processors import matchingSkimmer
+
+        return matchingSkimmer()
 
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
@@ -98,6 +100,7 @@ def get_processor(
         return bbbbSkimmer(
             xsecs=xsecs,
             save_systematics=save_systematics,
+            region=region
         )
 
 
@@ -110,7 +113,7 @@ def parse_common_args(parser):
         choices=["trigger_boosted", "skimmer", "matching"],
     )
 
-    parser.add_argument("--year", help="year", type=str, choices=["2022", "2022EE", "2023"])
+    parser.add_argument("--year", help="year", type=str, default="2022", choices=["2022", "2022EE", "2023"])
     parser.add_argument(
         "--nano-version",
         type=str,
@@ -133,9 +136,15 @@ def parse_common_args(parser):
 
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
     parser.add_argument("--chunksize", default=10000, help="chunk size", type=int)
-
+    parser.add_argument("--region", help="region", default=None, type=str)
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
-    add_bool_arg(parser, "save-hist", default=False, help="save histogram as output of the processor (for trigger processor)")
+    add_bool_arg(
+        parser,
+        "save-hist",
+        default=False,
+        help="save histogram as output of the processor (for trigger processor)",
+    )
+
 
 def flatten_dict(var_dict: dict):
     """

@@ -128,7 +128,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "IsoMu24",
                     "IsoMu24_eta2p1",
                 ],
-            }
+            },
         }
         HLTs["hadtop"] = HLTs["signal"]
 
