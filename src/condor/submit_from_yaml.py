@@ -58,6 +58,8 @@ if __name__ == "__main__":
     args.test = False
     tag = args.tag
     for key, tdict in samples_to_submit.items():
+        print(f"Submitting for year {key}")
+        args.year = key
         for sample, sdict in tdict.items():
             args.samples = [sample]
             args.subsamples = sdict.get("subsamples", [])

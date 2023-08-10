@@ -28,13 +28,18 @@ def run(p: processor, fileset: dict, args):
     os.system(f"mkdir -p {outdir}")
 
     save_parquet = {
+        "matching": True,
         "skimmer": True,
         "trigger_boosted": True,
     }[args.processor]
     save_root = {
+        "matching": False,
         "skimmer": True,
         "trigger_boosted": False,
     }[args.processor]
+
+    if args.save_hist:
+        save_parquet["trigger_boosted"] = False
 
     if save_parquet or save_root:
         # these processors store intermediate files in the "./outparquet" local directory
@@ -64,6 +69,7 @@ def run(p: processor, fileset: dict, args):
     out, metrics = run(fileset, "Events", processor_instance=p)
 
     filehandler = open(f"{outdir}/{args.starti}-{args.endi}.pkl", "wb")
+    print(out)
     pickle.dump(out, filehandler)
     filehandler.close()
 
@@ -97,7 +103,7 @@ def run(p: processor, fileset: dict, args):
 
 
 def main(args):
-    p = run_utils.get_processor(args.processor, args.save_systematics)
+    p = run_utils.get_processor(args.processor, args.save_systematics, args.save_hist, args.region)
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}

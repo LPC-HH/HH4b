@@ -41,7 +41,7 @@ from . import common
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
-    "GluGluToHHTobbbb_node_cHHH": gen_selection_HHbbbb,
+    "GluGlutoHHto4B": gen_selection_HHbbbb,
 }
 
 
@@ -78,46 +78,72 @@ class bbbbSkimmer(processor.ProcessorABC):
             "lumi",
         },
         "Pileup": {"nPU"},
-        "other": {
+        "Other": {
             "MET_pt": "MET_pt",
         },
     }
 
     preselection = {
-        "jet_pt": 25,  # should this be 40?
         "fatjet_pt": 200,
         "fatjet_msd": 50,
     }
 
     jecs = common.jecs
 
-    def __init__(self, xsecs={}, save_systematics=True):
+    def __init__(self, xsecs={}, save_systematics=False, region="signal"):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
 
         # HLT selection
-        self.HLTs = {
-            "2022": [
-                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet400_SoftDropMass40",
-                "AK8PFJet425_SoftDropMass40",
-                "AK8PFJet450_SoftDropMass40",
-            ],
-            "2022EE": [
-                "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                "AK8PFJet400_SoftDropMass40",
-                "AK8PFJet425_SoftDropMass40",
-                "AK8PFJet450_SoftDropMass40",
-            ],
+        HLTs = {
+            "signal": {
+                "2022": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                ],
+                "2022EE": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                ],
+            },
+            "1leptop": {
+                "2022": [
+                    "Ele30_WPTight_Gsf",
+                    "Ele32_WPTight_Gsf",
+                    "Ele35_WPTight_Gsf",
+                    "Ele38_WPTight_Gsf",
+                    "Ele40_WPTight_Gsf",
+                    "IsoMu27",
+                    "IsoMu24",
+                    "IsoMu24_eta2p1",
+                ],
+                "2022EE": [
+                    "Ele30_WPTight_Gsf",
+                    "Ele32_WPTight_Gsf",
+                    "Ele35_WPTight_Gsf",
+                    "Ele38_WPTight_Gsf",
+                    "Ele40_WPTight_Gsf",
+                    "IsoMu27",
+                    "IsoMu24",
+                    "IsoMu24_eta2p1",
+                ],
+            },
         }
+        HLTs["hadtop"] = HLTs["signal"]
+
+        self.HLTs = HLTs[region]
 
         # save systematic variations
         self._systematics = save_systematics
+
+        # analysis region
+        """
+        signal:
+        hadtop:
+        1leptop:
+        """
+        self._region = region
 
         self._accumulator = processor.dict_accumulator({})
 
@@ -159,8 +185,6 @@ class bbbbSkimmer(processor.ProcessorABC):
     def process(self, events: ak.Array):
         """Runs event processor for different types of jets"""
 
-        # breakpoint()
-
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
@@ -191,7 +215,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         corr_year = "2018"
 
         num_jets = 6
-        # FIXME: use AK4 Puppi Jets
+        # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
         jets, jec_shifted_jetvars = get_jec_jets(
             events, jets, corr_year, isData, self.jecs, fatjets=False
@@ -217,7 +241,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for d in gen_selection_dict:
             if d in dataset:
                 vars_dict = gen_selection_dict[d](
-                    events, fatjets, selection, cutflow, gen_weights, P4
+                    events, jets, fatjets, selection, cutflow, gen_weights, P4
                 )
                 skimmed_events = {**skimmed_events, **vars_dict}
 
@@ -297,43 +321,35 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
-            for (var, key) in self.skim_vars["other"].items()
+            for (var, key) in self.skim_vars["Other"].items()
         }
 
         HLTVars = {
-            key: events.HLT[key.split("HLT_")[1]].to_numpy()
-            for key in HLTs[year]
-            if key.split("HLT_")[1] in events.HLT
+            f"HLT_{key}": events.HLT[key].to_numpy() for key in self.HLTs[year] if key in events.HLT
         }
 
-        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars, **HLTVars}
+        skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars}
 
         ######################
         # Selection
         ######################
 
-        # OR-ing HLT triggers
-        # if isData:
-        #     for trigger in self.HLTs[year]:
-        #         if trigger not in events.HLT.fields:
-        #             logger.warning(f"Missing HLT {trigger}!")
+        # OR-ing HLT triggers (applied to data and simulation)
+        for trigger in self.HLTs[year]:
+            if trigger not in events.HLT.fields:
+                logger.warning(f"Missing HLT {trigger}!")
 
-        #     HLT_triggered = np.any(
-        #         np.array(
-        #             [
-        #                 events.HLT[trigger]
-        #                 for trigger in self.HLTs[year]
-        #                 if trigger in events.HLT.fields
-        #             ]
-        #         ),
-        #         axis=0,
-        #     )
-        #     add_selection("trigger", HLT_triggered, *selection_args)
+        HLT_triggered = np.any(
+            np.array(
+                [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
+            ),
+            axis=0,
+        )
+        add_selection("trigger", HLT_triggered, *selection_args)
 
         # jet veto map for 2022
         if year == "2022" and isData:
             jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
-            print(jetveto)
             add_selection("ak4_jetveto", jetveto, *selection_args)
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations
@@ -391,10 +407,10 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             # TODO: figure out which of these apply to VBF, single Higgs, ttbar etc.
 
-            if "GluGluToHHTobbbb" in dataset or "WJets" in dataset or "ZJets" in dataset:
+            if "GluGlutoHHto4B" in dataset or "WJets" in dataset or "ZJets" in dataset:
                 add_ps_weight(weights, events.PSWeight)
 
-            if "GluGluToHHTobbbb" in dataset:
+            if "GluGlutoHHto4B" in dataset:
                 if "LHEPdfWeight" in events.fields:
                     add_pdf_weight(weights, events.LHEPdfWeight)
                 else:

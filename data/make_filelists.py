@@ -5,8 +5,11 @@ from dbs.apis.dbsClient import DbsApi
 dbs = DbsApi("https://cmsweb.cern.ch/dbs/prod/global/DBSReader")
 
 qcd_bins = [
-    "0to80",
+    # "0to80",
     "80to120",
+    "15to30",  # unclear if these are needed
+    "30to50",
+    "50to80",
     "120to170",
     "170to300",
     "300to470",
@@ -36,10 +39,6 @@ qcd_ht_bins = [
 def get_v10():
     return {
         "2022": {
-            "QCD": {
-                f"QCD_PT-{qbin}": f"/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8/Run3Summer22NanoAODv10-124X_mcRun3_2022_realistic_v12-v1/NANOAODSIM"
-                for qbin in qcd_bins
-            },
             "JetMET": {
                 "Run2022C_single": "/JetHT/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
                 "Run2022C": "/JetMET/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
@@ -54,18 +53,6 @@ def get_v10():
             },
         },
         "2022EE": {
-            "HHbb": {
-                # TSG samples (100k events)
-                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson60KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
-            },
             "JetMET": {
                 "Run2022E": "/JetMET/Run2022E-PromptNanoAODv10_v1-v3/NANOAOD",
                 "Run2022F": "/JetMET/Run2022F-PromptNanoAODv10_v1-v2/NANOAOD",
@@ -144,12 +131,18 @@ def get_v11():
                 "Zto2Q-4Jets_HT-600to800": "/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
                 "Zto2Q-4Jets_HT-800": "/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
             },
-            "JetMET": {
-                # replace ReReco with later?
-                "Run2022C": "/JetMET/Run2022C-ReRecoNanoAODv11-v1/NANOAOD",
-                "Run2022D": "/JetMET/Run2022D-ReRecoNanoAODv11-v1/NANOAOD",
-            },
-            "Muon": {},
+            # PromptReco:
+            # ReReco should be 27Jun2023...
+            # "JetMET": {
+            #     "Run2022C_single":
+            #     "Run2022C":
+            #     "Run2022D":
+            # },
+            # "Muon": {
+            #     "Run2022C_single":
+            #     "Run2022C":
+            #     "Run2022D":
+            # },
         },
         # MC campaign post EE+ leak
         "2022EE": {
@@ -186,7 +179,7 @@ def get_v11():
                     for qbin in qcd_bins
                 },
                 **{
-                    f"QCD_HT-{qbin}": f"/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM"
+                    f"QCDB_HT-{qbin}": f"/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM"
                     for qbin in qcd_ht_bins
                 },
             },
@@ -213,12 +206,14 @@ def get_v11():
                 "Zto2Q-4Jets_HT-600to800": "/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
                 "Zto2Q-4Jets_HT-800": "/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
             },
+            # Re-reco and prompt-reco
             "JetMET": {
-                "Run2022E": "/JetMET/Run2022E-ReRecoNanoAODv11-v1/NANOAOD",
+                # "Run2022E":
                 "Run2022F": "/JetMET/Run2022F-PromptNanoAODv11_v1-v2/NANOAOD",
                 "Run2022G": "/JetMET/Run2022G-PromptNanoAODv11_v1-v2/NANOAOD",
             },
             "Muon": {
+                # "Run2022E":
                 "Run2022F": "/Muon/Run2022F-PromptNanoAODv11_v1-v2/NANOAOD",
                 "Run2022G": "/Muon/Run2022G-PromptNanoAODv11_v1-v2/NANOAOD",
             },
@@ -227,6 +222,8 @@ def get_v11():
 
 
 path_mkolosov = "/store/user/mkolosov/CRAB3_TransferData/PrivateNanoAOD/"
+path_dihiggsboost = "/store/user/lpcdihiggsboost/nanov12/"
+path_dihiggsboost_trigobj = "/store/user/lpcdihiggsboost/nanov11_trigobj/"
 
 
 def get_v11_private():
@@ -234,12 +231,17 @@ def get_v11_private():
         "2022": {
             "JetMET": {
                 # path_to_dataset/folder/name_of_dataset
-                "Run2022B_single": f"{path_mkolosov}/JetHT/JetHT_Run2022B_PromptReco_v1_11June2023",
-                "Run2022C_single": f"{path_mkolosov}/JetHT/JetHT_Run2022C_PromptReco_v1_11June2023",
-                "Run2022C": f"{path_mkolosov}/JetMET/JetMET_Run2022C_PromptReco_v1_11June2023",
-                "Run2022D_v1": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v1",
-                "Run2022D_v2": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v2",
-                "Run2022D_v3": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v3",
+                # "Run2022B_single": f"{path_mkolosov}/JetHT/JetHT_Run2022B_PromptReco_v1_11June2023",
+                # "Run2022C_single": f"{path_mkolosov}/JetHT/JetHT_Run2022C_PromptReco_v1_11June2023",
+                # "Run2022C": f"{path_mkolosov}/JetMET/JetMET_Run2022C_PromptReco_v1_11June2023",
+                # "Run2022D_v1": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v1",
+                # "Run2022D_v2": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v2",
+                # "Run2022D_v3": f"{path_mkolosov}/JetMET/JetMET_Run2022D_PromptReco_v3",
+                "Run2022C_single": f"{path_dihiggsboost_trigobj}/cmantill/2022/JetMET/JetHT/Run2022C_single",
+                "Run2022C": f"{path_dihiggsboost_trigobj}/cmantill/2022/JetMET/JetMET/Run2022C",
+                "Run2022D_v1": f"{path_dihiggsboost_trigobj}/cmantill/2022/JetMET/JetMET/Run2022D_v1",
+                "Run2022D_v2": f"{path_dihiggsboost_trigobj}/cmantill/2022/JetMET/JetMET/Run2022D_v2",
+                "Run2022D_v3": f"{path_dihiggsboost_trigobj}/cmantill/2022/JetMET/JetMET/Run2022D_v3",
             },
             "MuonEG": {
                 "Run2022B": f"{path_mkolosov}/MuonEG/MuonEG_Run2022B_PromptReco_v1_11June2023",
@@ -249,21 +251,75 @@ def get_v11_private():
                 "Run2022D_v3": f"{path_mkolosov}/MuonEG/MuonEG_Run2022D_PromptReco_v3",
             },
             "Muon": {
-                "Run2022B_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022B_PromptReco_v1_11June2023",
-                "Run2022C_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022C_PromptReco_v1_11June2023",
-                "Run2022C": f"{path_mkolosov}/Muon/Muon_Run2022C_PromptReco_v1_11June2023",
-                "Run2022D_v1": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptReco_v1_11June2023",
-                "Run2022D_v2": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptReco_v2_11June2023",
+                # "Run2022B_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022B_PromptReco_v1_11June2023",
+                # "Run2022C_single": f"{path_mkolosov}/SingleMuon/SingleMuon_Run2022C_PromptReco_v1_11June2023",
+                # "Run2022C": f"{path_mkolosov}/Muon/Muon_Run2022C_PromptReco_v1_11June2023",
+                # "Run2022D_v1": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptReco_v1_11June2023",
+                # "Run2022D_v2": f"{path_mkolosov}/Muon/Muon_Run2022D_PromptResco_v2_11June2023",
+                "Run2022C_single": f"{path_dihiggsboost_trigobj}/cmantill/2022/Muon/SingleMuon/Muon_Run2022C_single/",
+                # "Run2022C":
+                "Run2022D_v1": f"{path_dihiggsboost_trigobj}/cmantill/2022/Muon/Muon/Muon_Run2022D_v1/",
+                # Run2022D_v2
+                "Run2022D_v3": f"{path_dihiggsboost_trigobj}/cmantill/2022/Muon/Muon/Muon_Run2022D_v3/",
+            },
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": f"{path_dihiggsboost_trigobj}/cmantill/2022/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8",
+                "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": f"{path_dihiggsboost_trigobj}/cmantill/2022/HH/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8",
+                # "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": f"{path_dihiggsboost}/cmantill/2022/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "Diboson": {
+                "WW": f"{path_dihiggsboost}/cmantill/2022/Diboson/WW_TuneCP5_13p6TeV_pythia8",
+                "WZ": f"{path_dihiggsboost}/cmantill/2022/Diboson/WZ_TuneCP5_13p6TeV_pythia8",
+                "ZZ": f"{path_dihiggsboost}/cmantill/2022/Diboson/ZZ_TuneCP5_13p6TeV_pythia8",
+            },
+            "Hbb": {
+                "GluGluHto2B_PT-200_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8",
+                "VBFHto2B_M-125_dipoleRecoilOn": f"{path_dihiggsboost}/cmantill/2022/Higgs/VBFHto2B_M-125_dipoleRecoilOn_TuneCP5_13p6TeV_powheg-pythia8",
+                "WminusH_Hto2B_Wto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WminusH_Hto2B_WtoLNu_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WplusH_Hto2B_Wto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WplusH_Hto2B_WtoLNu_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ZH_Hto2B_Zto2L_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ZH_Hto2B_Zto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2L_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2Nu_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ggZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ttHto2B_M-125": f"{path_dihiggsboost}/cmantill/2022/Higgs/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8",
             },
             "TT": {
-                "TTto2L2Nu": f"{path_mkolosov}/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto4Q": f"{path_dihiggsboost}/cmantill/2022/TTbar/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": f"{path_dihiggsboost}/cmantill/2022/TTbar/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": f"{path_dihiggsboost}/cmantill/2022/TTbar/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "VJets": {
+                "Wto2Q-3Jets_HT-200to400": f"{path_dihiggsboost}/cmantill/2022/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-400to600": f"{path_dihiggsboost}/cmantill/2022/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-600to800": f"{path_dihiggsboost}/cmantill/2022/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-800": f"{path_dihiggsboost}/cmantill/2022/VJets/Wto2Q-3Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-200to400": f"{path_dihiggsboost}/cmantill/2022/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-400to600": f"{path_dihiggsboost}/cmantill/2022/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-600to800": f"{path_dihiggsboost}/cmantill/2022/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-800": f"{path_dihiggsboost}/cmantill/2022/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "QCD": {
+                **{
+                    f"QCD_PT-{qbin}": f"{path_dihiggsboost}/cmantill/2022/QCD/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8"
+                    for qbin in qcd_bins
+                },
+                **{
+                    f"QCDB_HT-{qbin}": f"{path_dihiggsboost}/cmantill/2022/QCD/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8"
+                    for qbin in qcd_ht_bins
+                },
             },
         },
         "2022EE": {
             "JetMET": {
-                "Run2022E": f"{path_mkolosov}/JetMET/JetMET_Run2022E_PromptReco_v1",
-                "Run2022F": f"{path_mkolosov}/JetMET/JetMET_Run2022F_PromptReco_v1",
-                "Run2022G": f"{path_mkolosov}/JetMET/JetMET_Run2022G_PromptReco_v1",
+                # "Run2022E": f"{path_mkolosov}/JetMET/JetMET_Run2022E_PromptReco_v1",
+                # "Run2022F": f"{path_mkolosov}/JetMET/JetMET_Run2022F_PromptReco_v1",
+                # "Run2022G": f"{path_mkolosov}/JetMET/JetMET_Run2022G_PromptReco_v1",
+                "Run2022E": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022E",
+                "Run2022F": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022F",
+                "Run2022G": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022G",
             },
             "MuonEG": {
                 "Run2022E": f"{path_mkolosov}/MuonEG/MuonEG_Run2022E_PromptReco_v1",
@@ -271,12 +327,59 @@ def get_v11_private():
                 "Run2022G": f"{path_mkolosov}/MuonEG/MuonEG_Run2022G_PromptReco_v1",
             },
             "Muon": {
-                "Run2022E": f"{path_mkolosov}/Muon/Muon_Run2022E_PromptReco_v1_11June2023",
-                "Run2022F": f"{path_mkolosov}/Muon/Muon_Run2022F_PromptReco_v1_11June2023",
-                "Run2022G": f"{path_mkolosov}/Muon/Muon_Run2022G_PromptReco_v1_11June2023",
+                # "Run2022E": f"{path_mkolosov}/Muon/Muon_Run2022E_PromptReco_v1_11June2023",
+                # "Run2022F": f"{path_mkolosov}/Muon/Muon_Run2022F_PromptReco_v1_11June2023",
+                # "Run2022G": f"{path_mkolosov}/Muon/Muon_Run2022G_PromptReco_v1_11June2023",
+                "Run2022E": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/Muon/Muon/Muon_Run2022E",
+                "Run2022F": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/Muon/Muon/Muon_Run2022F",
+                "Run2022G": f"{path_dihiggsboost_trigobj}/cmantill/2022EE/Muon/Muon/Muon_Run2022G",
+            },
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": f"{path_dihiggsboost}/cmantill/2022EE/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "Diboson": {
+                "WW": f"{path_dihiggsboost}/cmantill/2022EE/Diboson/WW_TuneCP5_13p6TeV_pythia8",
+                "WZ": f"{path_dihiggsboost}/cmantill/2022EE/Diboson/WZ_TuneCP5_13p6TeV_pythia8",
+                "ZZ": f"{path_dihiggsboost}/cmantill/2022EE/Diboson/ZZ_TuneCP5_13p6TeV_pythia8",
+            },
+            "Hbb": {
+                "GluGluHto2B_PT-200_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8",
+                "VBFHto2B_M-125_dipoleRecoilOn": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/VBFHto2B_M-125_dipoleRecoilOn_TuneCP5_13p6TeV_powheg-pythia8",
+                "WminusH_Hto2B_Wto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WminusH_Hto2B_WtoLNu_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WplusH_Hto2B_Wto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "WplusH_Hto2B_WtoLNu_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ZH_Hto2B_Zto2L_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ZH_Hto2B_Zto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2L_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2Nu_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ggZH_Hto2B_Zto2Q_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ggZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ttHto2B_M-125": f"{path_dihiggsboost}/cmantill/2022EE/Higgs/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8",
             },
             "TT": {
-                "TTto2L2Nu": f"{path_mkolosov}/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22MiniAODv3_preEE",
+                "TTto4Q": f"{path_dihiggsboost}/cmantill/2022EE/TTbar/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": f"{path_dihiggsboost}/cmantill/2022EE/TTbar/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": f"{path_dihiggsboost}/cmantill/2022EE/TTbar/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "VJets": {
+                "Wto2Q-3Jets_HT-200to400": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-400to600": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-600to800": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Wto2Q-3Jets_HT-800": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-200to400": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-400to600": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-600to800": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-800": f"{path_dihiggsboost}/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "QCD": {
+                **{
+                    f"QCD_PT-{qbin}": f"{path_dihiggsboost}/cmantill/2022EE/QCD/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8"
+                    for qbin in qcd_bins
+                },
+                **{
+                    f"QCDB_HT-{qbin}": f"{path_dihiggsboost}/cmantill/2022EE/QCD/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8"
+                    for qbin in qcd_ht_bins
+                },
             },
         },
     }
@@ -299,11 +402,16 @@ def get_v12():
 
 def eos_rec_search(startdir, suffix, dirs):
     eosbase = "root://cmseos.fnal.gov/"
-    dirlook = (
-        subprocess.check_output(f"eos {eosbase} ls {startdir}", shell=True)
-        .decode("utf-8")
-        .split("\n")[:-1]
-    )
+    try:
+        dirlook = (
+            subprocess.check_output(f"eos {eosbase} ls {startdir}", shell=True)
+            .decode("utf-8")
+            .split("\n")[:-1]
+        )
+    except:
+        print(f"No files found for {startdir}")
+        return dirs
+
     donedirs = [[] for d in dirlook]
     for di, d in enumerate(dirlook):
         if d.endswith(suffix):
@@ -318,7 +426,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v10", "v11", "v11_private", "v12"]:
+for version in ["v10", "v11", "v11_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

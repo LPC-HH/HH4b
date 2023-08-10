@@ -26,8 +26,6 @@
 
 ### Setup
 
-TODO: test this from scratch
-
 For submitting to condor, all you need is python >= 3.7.
 
 For running locally:
@@ -62,7 +60,7 @@ python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20 --
 Alternatively, jobs can be submitted from a yaml file:
 
 ```bash
-python src/condor/submit_from_yaml.py --year 2022 --processor skimmer --tag $TAG --yaml src/condor/submit_configs/skimmer_inputs_07_24.yaml 
+python src/condor/submit_from_yaml.py --processor skimmer --tag $TAG --yaml src/condor/submit_configs/${YAML}.yaml 
 ```
 
 ### Running locally
@@ -115,15 +113,8 @@ python -W ignore src/run.py --processor skimmer --year 2023 --files $FILE --file
 Jobs
 
 ```bash
-nohup python src/condor/submit_from_yaml.py --year 2022 --tag $TAG --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/skimmer_inputs_23_02_17.yaml &> tmp/submitout.txt &
+nohup python src/condor/submit_from_yaml.py --tag $TAG --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/${YAML}.yaml &> tmp/submitout.txt &
 ```
-
-All years:
-
-```bash
-nohup bash -c 'for year in 2016APV 2016 2017 2018; do python src/condor/submit_from_yaml.py --year $year --tag '"${TAG}"' --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/skimmer_inputs_23_02_17.yaml; done' &> tmp/submitout.txt &
-```
-
 
 To Submit (if not using the --submit flag)
 ```bash
