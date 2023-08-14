@@ -28,8 +28,6 @@ from .corrections import (
     add_ps_weight,
     add_pdf_weight,
     add_scalevar_7pt,
-    add_trig_effs,
-    get_jec_key,
     get_jec_jets,
     get_jmsr,
     get_jetveto_event,
@@ -211,22 +209,19 @@ class bbbbSkimmer(processor.ProcessorABC):
         #########################
         # Object definitions
         #########################
-        # FIXME: with 2022/2023 corrections
-        corr_year = "2018"
-
         num_jets = 6
         # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
         jets, jec_shifted_jetvars = get_jec_jets(
-            events, jets, corr_year, isData, self.jecs, fatjets=False
+            events, jets, year, isData, self.jecs, fatjets=False
         )
 
         num_fatjets = 3
         fatjets = good_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, fatjets, corr_year, isData, self.jecs
+            events, fatjets, year, isData, self.jecs
         )
-        jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, corr_year, isData)
+        jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         num_leptons = 2
         muons = good_muons(events.Muon)
@@ -405,7 +400,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         else:
             weights.add("genweight", gen_weights)
 
-            add_pileup_weight(weights, corr_year, events.Pileup.nPU.to_numpy())
+            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy())
             add_VJets_kFactors(weights, events.GenPart, dataset)
 
             # if dataset.startswith("TTTo"):
@@ -414,6 +409,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             # TODO: figure out which of these apply to VBF, single Higgs, ttbar etc.
 
+            """
             if "GluGlutoHHto4B" in dataset or "WJets" in dataset or "ZJets" in dataset:
                 add_ps_weight(weights, events.PSWeight)
 
@@ -426,6 +422,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     add_scalevar_7pt(weights, events.LHEScaleWeight)
                 else:
                     add_scalevar_7pt(weights, [])
+            """
 
             # add_trig_effs(weights, fatjets, year, num_fatjets)
 
