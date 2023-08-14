@@ -53,6 +53,7 @@ pog_jsons = {
     "btagging": ["BTV", "btagging.json.gz"],
 }
 
+
 def get_Prompt_year(year: str) -> str:
     return f"{year}_Prompt"
 
@@ -63,16 +64,17 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
-    year = get_Prompt_year(year) if year=="2022" else year
+    year = get_Prompt_year(year) if year == "2022" else year
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
 def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
-
     # TODO: Switch to official recommendation when and if any
-    #cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-    
-    cset = correctionlib.CorrectionSet.from_file(package_path + "/corrections/2022_puWeights.json.gz") 
+    # cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+
+    cset = correctionlib.CorrectionSet.from_file(
+        package_path + "/corrections/2022_puWeights.json.gz"
+    )
 
     year_to_corr = {
         "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
@@ -299,6 +301,7 @@ def add_scalevar_3pt(weights, var_weights):
 
     weights.add("QCDscale3pt", nom, up, down)
 
+
 TOP_PDGID = 6
 GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
 
@@ -317,14 +320,16 @@ def add_top_pt_weight(weights: Weights, events: NanoEventsArray):
     tops_sf = np.sqrt(tops_sf[:, 0] * tops_sf[:, 1]).to_numpy()
     weights.add("top_pt", tops_sf)
 
+
 try:
-    with gzip.open(package_path + "/corrections/jec_compiled.pkl.gz" , "rb") as filehandler:
+    with gzip.open(package_path + "/corrections/jec_compiled.pkl.gz", "rb") as filehandler:
         jmestuff = pickle.load(filehandler)
-        
+
     ak4jet_factory = jmestuff["jet_factory"]
     fatjet_factory = jmestuff["fatjet_factory"]
 except:
     print("Failed loading compiled JECs")
+
 
 def _add_jec_variables(jets: JetArray, event_rho: ak.Array) -> JetArray:
     """add variables needed for JECs"""
@@ -398,6 +403,7 @@ def get_jec_jets(
 
     return jets, jec_shifted_vars
 
+
 # Jet mass scale and Jet mass resolution
 # FIXME: Using placeholder Run 2 values !!
 # nominal, down, up
@@ -407,7 +413,7 @@ jmsValues = {}
 jmrValues = {}
 
 jmrValues["msoftdrop"] = {
-    "2022": [1.09, 1.04, 1.14], 
+    "2022": [1.09, 1.04, 1.14],
     "2022EE": [1.09, 1.04, 1.14],
 }
 
@@ -461,6 +467,7 @@ def get_jmsr(
         jmsr_shifted_vars[mkey] = tdict
 
     return jmsr_shifted_vars
+
 
 # Jet Veto Maps
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.

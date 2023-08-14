@@ -218,9 +218,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         num_fatjets = 3
         fatjets = good_ak8jets(events.FatJet)
-        fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, fatjets, year, isData, self.jecs
-        )
+        fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, year, isData, self.jecs)
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         num_leptons = 2

@@ -32,7 +32,6 @@ def jet_factory_factory(files):
     return CorrectedJetsFactory(jec_name_map, jec_stack)
 
 
-
 # question: should we apply L3Absolute for both data and MC?
 jet_factory = {
     # MC: L1 + MC-truth
