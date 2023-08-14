@@ -112,7 +112,7 @@ def main(args):
                     if args.save_systematics
                     else "--no-save-systematics",
                     "region": f"--region {args.region}"
-                    if args.region is not None
+                    if "skimmer" in args.processor 
                     else ""
                 }
                 write_template(sh_templ, localsh, sh_args)
