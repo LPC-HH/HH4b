@@ -34,6 +34,10 @@ from .utils import P4, pad_val
 
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
+# Important Run3 start of Run
+FirstRun_2022C = 355794
+LastRun_2022D = 359021
+FirstRun_2022E = 359022
 
 """
 CorrectionLib files are available from: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration - synced daily
@@ -43,33 +47,11 @@ pog_jsons = {
     "muon": ["MUO", "muon_Z.json.gz"],
     "electron": ["EGM", "electron.json.gz"],
     "pileup": ["LUM", "puWeights.json.gz"],
-    "jec": ["JME", "fatJet_jerc.json.gz"],
+    "fatjet_jec": ["JME", "fatJet_jerc.json.gz"],
+    "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
 }
-
-
-# TODO: get rid of Run-2 years
-def get_jec_key(year: str):
-    thekey = f"{year}mc"
-    if year == "2016":
-        thekey = "2016postVFPmc"
-    elif year == "2016APV":
-        thekey = "2016preVFPmc"
-    return thekey
-
-
-def get_vfp_year(year: str) -> str:
-    if year == "2016":
-        year = "2016postVFP"
-    elif year == "2016APV":
-        year = "2016preVFP"
-
-    return year
-
-
-def get_UL_year(year: str) -> str:
-    return f"{get_vfp_year(year)}_UL"
 
 
 def get_Prompt_year(year: str) -> str:
@@ -82,29 +64,30 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
-    year = get_UL_year(year) if year != "2022" else get_Prompt_year(year)
+    year = get_Prompt_year(year) if year == "2022" else year
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
 def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
-    """
-    Should be able to do something similar to lepton weight but w pileup
-    e.g. see here: https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/LUMI_puWeights_Run2_UL/
-    """
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+    # TODO: Switch to official recommendation when and if any
+    # cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+
+    cset = correctionlib.CorrectionSet.from_file(
+        package_path + "/corrections/2022_puWeights.json.gz"
+    )
 
     year_to_corr = {
-        "2016": "Collisions16_UltraLegacy_goldenJSON",
-        "2016APV": "Collisions16_UltraLegacy_goldenJSON",
-        "2017": "Collisions17_UltraLegacy_goldenJSON",
-        "2018": "Collisions18_UltraLegacy_goldenJSON",
+        "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
+        "2022EE_Prompt": "Collisions_2022_PromptReco_goldenJSON",
     }
 
     values = {}
 
-    values["nominal"] = cset[year_to_corr[year]].evaluate(nPU, "nominal")
-    values["up"] = cset[year_to_corr[year]].evaluate(nPU, "up")
-    values["down"] = cset[year_to_corr[year]].evaluate(nPU, "down")
+    # evaluate and clip up to 10 to avoid large weights
+    y = get_Prompt_year(year)
+    values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
+    values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
+    values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
 
     # add weights (for now only the nominal weight)
     weights.add("pileup", values["nominal"], values["up"], values["down"])
@@ -319,53 +302,6 @@ def add_scalevar_3pt(weights, var_weights):
     weights.add("QCDscale3pt", nom, up, down)
 
 
-def _btagSF(cset, jets, flavour, wp="M", algo="deepJet", syst="central"):
-    j, nj = ak.flatten(jets), ak.num(jets)
-    corrs = cset[f"{algo}_comb"] if flavour == "bc" else cset[f"{algo}_incl"]
-    sf = corrs.evaluate(
-        syst,
-        wp,
-        np.array(j.hadronFlavour),
-        np.array(abs(j.eta)),
-        np.array(j.pt),
-    )
-    return ak.unflatten(sf, nj)
-
-
-def _btag_prod(eff, sf):
-    num = ak.fill_none(ak.prod(1 - sf * eff, axis=-1), 1)
-    den = ak.fill_none(ak.prod(1 - eff, axis=-1), 1)
-    return num, den
-
-
-def add_btag_weights(
-    weights: Weights,
-    year: str,
-    jets: JetArray,
-    jet_selector: ak.Array,
-    wp: str = "M",
-    algo: str = "deepJet",
-):
-    ul_year = get_UL_year(year)
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("btagging", year))
-    efflookup = cutil.load(package_path + f"/corrections/btag_effs/btageff_deepJet_M_{year}.coffea")
-
-    lightJets = jets[jet_selector & (jets.hadronFlavour == 0)]
-    bcJets = jets[jet_selector & (jets.hadronFlavour > 0)]
-
-    lightEff = efflookup(lightJets.pt, abs(lightJets.eta), lightJets.hadronFlavour)
-    bcEff = efflookup(bcJets.pt, abs(bcJets.eta), bcJets.hadronFlavour)
-
-    lightSF = _btagSF(cset, lightJets, "light", wp, algo)
-    bcSF = _btagSF(cset, bcJets, "bc", wp, algo)
-
-    lightnum, lightden = _btag_prod(lightEff, lightSF)
-    bcnum, bcden = _btag_prod(bcEff, bcSF)
-
-    weight = np.nan_to_num((1 - lightnum * bcnum) / (1 - lightden * bcden), nan=1)
-    weights.add("btagSF", weight)
-
-
 TOP_PDGID = 6
 GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
 
@@ -385,10 +321,8 @@ def add_top_pt_weight(weights: Weights, events: NanoEventsArray):
     weights.add("top_pt", tops_sf)
 
 
-# FIXME: update using Json Paths
-# find corrections path using this file's path
 try:
-    with open(package_path + "/corrections/jec_compiled.pkl", "rb") as filehandler:
+    with gzip.open(package_path + "/corrections/jec_compiled.pkl.gz", "rb") as filehandler:
         jmestuff = pickle.load(filehandler)
 
     ak4jet_factory = jmestuff["jet_factory"]
@@ -414,13 +348,9 @@ def get_jec_jets(
     isData: bool = False,
     jecs: Dict[str, str] = None,
     fatjets: bool = True,
+    applyData: bool = False,
 ) -> FatJetArray:
     """
-    Based on https://github.com/nsmith-/boostedhiggs/blob/master/boostedhiggs/hbbprocessor.py
-    Eventually update to V5 JECs once I figure out what's going on with the 2017 UL V5 JER scale factors
-
-    See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/
-
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
 
@@ -430,13 +360,25 @@ def get_jec_jets(
     else:
         jet_factory = ak4jet_factory
 
-    apply_jecs = not (not ak.any(jets.pt) or isData)
+    if applyData:
+        apply_jecs = not ak.any(jets.pt)
+    else:
+        # do not apply JECs to data
+        apply_jecs = not (not ak.any(jets.pt) or isData)
 
     import cachetools
 
     jec_cache = cachetools.Cache(np.inf)
 
-    corr_key = f"{get_vfp_year(year)}mc"
+    if isData:
+        # FIXME: Using RunC or RunF as placeholders
+        # TODO: use run array to determine which correction to use
+        if year == "2022EE":
+            corr_key = f"{year}NOJER_runF"
+        else:
+            corr_key = f"{year}NOJER_runC"
+    else:
+        corr_key = f"{year}mc"
 
     # fatjet_factory.build gives an error if there are no fatjets in event
     if apply_jecs:
@@ -462,44 +404,32 @@ def get_jec_jets(
     return jets, jec_shifted_vars
 
 
+# Jet mass scale and Jet mass resolution
+# FIXME: Using placeholder Run 2 values !!
+# nominal, down, up
 jmsr_vars = ["msoftdrop", "particleNet_mass"]
 
 jmsValues = {}
 jmrValues = {}
 
-# https://github.com/cms-nanoAOD/nanoAOD-tools/blob/959c9ffb084bc974fb26ba2db41e3369cee04ae7/python/postprocessing/modules/jme/jetmetHelperRun2.py#L85-L110
-
-# jet mass resolution: https://twiki.cern.ch/twiki/bin/view/CMS/JetWtagging
-# nominal, down, up (these are switched in the github!!!)
 jmrValues["msoftdrop"] = {
-    "2016": [1.0, 0.8, 1.2],
-    "2017": [1.09, 1.04, 1.14],
-    # Use 2017 values for 2018 until 2018 are released
-    "2018": [1.09, 1.04, 1.14],
+    "2022": [1.09, 1.04, 1.14],
+    "2022EE": [1.09, 1.04, 1.14],
 }
 
-# jet mass scale
-# W-tagging PUPPI softdrop JMS values: https://twiki.cern.ch/twiki/bin/view/CMS/JetWtagging
-# 2016 values
 jmsValues["msoftdrop"] = {
-    "2016": [1.00, 0.9906, 1.0094],  # nominal, down, up
-    "2017": [0.982, 0.978, 0.986],
-    # Use 2017 values for 2018 until 2018 are released
-    "2018": [0.982, 0.978, 0.986],
+    "2022": [0.982, 0.978, 0.986],
+    "2022EE": [0.982, 0.978, 0.986],
 }
 
-# https://github.com/cmantill/NanoNN/blob/6bd117357e2d7ec66866b5f74790e747411efcad/python/producers/hh4bProducer.py#L154-L159
-
-# nominal, down, up
 jmrValues["particleNet_mass"] = {
-    "2016": [1.028, 1.007, 1.063],
-    "2017": [1.026, 1.009, 1.059],
-    "2018": [1.031, 1.006, 1.075],
+    "2022": [1.031, 1.006, 1.075],
+    "2022EE": [1.031, 1.006, 1.075],
 }
+
 jmsValues["particleNet_mass"] = {
-    "2016": [1.00, 0.998, 1.002],
-    "2017": [1.002, 0.996, 1.008],
-    "2018": [0.994, 0.993, 1.001],
+    "2022": [0.994, 0.993, 1.001],
+    "2022EE": [0.994, 0.993, 1.001],
 }
 
 
@@ -537,36 +467,6 @@ def get_jmsr(
         jmsr_shifted_vars[mkey] = tdict
 
     return jmsr_shifted_vars
-
-
-def add_trig_effs(weights: Weights, fatjets: FatJetArray, year: str, num_jets: int = 2):
-    """Add the trigger efficiencies we measured in SingleMuon data"""
-    with open(f"{package_path}/corrections/trigEffs/{year}_combined.pkl", "rb") as filehandler:
-        combined = pickle.load(filehandler)
-
-    # sum over TH4q bins
-    effs_txbb = combined["num"][:, sum, :, :] / combined["den"][:, sum, :, :]
-
-    ak8TrigEffsLookup = dense_lookup(
-        np.nan_to_num(effs_txbb.view(flow=False), 0), np.squeeze(effs_txbb.axes.edges)
-    )
-
-    # TODO: confirm that these should be corrected pt, msd values
-    fj_trigeffs = ak8TrigEffsLookup(
-        pad_val(fatjets.Txbb, num_jets, axis=1),
-        pad_val(fatjets.pt, num_jets, axis=1),
-        pad_val(fatjets.msoftdrop, num_jets, axis=1),
-    )
-
-    # combined eff = 1 - (1 - fj1_eff) * (1 - fj2_eff)
-    combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
-
-    weights.add("trig_effs", combined_trigEffs)
-
-
-FirstRun_2022C = 355794
-LastRun_2022D = 359021
-FirstRun_2022E = 359022
 
 
 # Jet Veto Maps
