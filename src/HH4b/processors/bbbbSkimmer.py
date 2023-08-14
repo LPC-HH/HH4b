@@ -320,11 +320,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         HLTVars = {
-            f"HLT_{key}": events.HLT[key].to_numpy()
-            for key in self.HLTs[year]
-            if key in events.HLT
+            f"HLT_{key}": events.HLT[key].to_numpy() for key in self.HLTs[year] if key in events.HLT
         }
-
 
         skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars}
 
@@ -336,14 +333,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         for trigger in self.HLTs[year]:
             if trigger not in events.HLT.fields:
                 logger.warning(f"Missing HLT {trigger}!")
-                
+
         HLT_triggered = np.any(
             np.array(
-                [
-                    events.HLT[trigger]
-                    for trigger in self.HLTs[year]
-                    if trigger in events.HLT.fields
-                ]
+                [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
             ),
             axis=0,
         )
