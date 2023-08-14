@@ -218,9 +218,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         num_fatjets = 3
         fatjets = good_ak8jets(events.FatJet)
-        fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, fatjets, year, isData, self.jecs
-        )
+        fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, year, isData, self.jecs)
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         num_leptons = 2
@@ -320,11 +318,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         HLTVars = {
-            f"HLT_{key}": events.HLT[key].to_numpy()
-            for key in self.HLTs[year]
-            if key in events.HLT
+            f"HLT_{key}": events.HLT[key].to_numpy() for key in self.HLTs[year] if key in events.HLT
         }
-
 
         skimmed_events = {**skimmed_events, **eventVars, **pileupVars, **otherVars}
 
@@ -336,14 +331,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         for trigger in self.HLTs[year]:
             if trigger not in events.HLT.fields:
                 logger.warning(f"Missing HLT {trigger}!")
-                
+
         HLT_triggered = np.any(
             np.array(
-                [
-                    events.HLT[trigger]
-                    for trigger in self.HLTs[year]
-                    if trigger in events.HLT.fields
-                ]
+                [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
             ),
             axis=0,
         )
