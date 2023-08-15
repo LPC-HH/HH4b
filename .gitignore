@@ -4,6 +4,8 @@ test.ipynb
 **/__pycache__
 **/.DS_Store
 outfiles
+plots
+docker_stderr
 *.jdl
 *.sh
 *.err
