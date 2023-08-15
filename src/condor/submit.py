@@ -50,12 +50,14 @@ def main(args):
     homedir = f"/store/user/{username}/bbbb/{args.processor}/"
     outdir = homedir + args.tag + "/"
 
+    print("Outputs dir: " + outdir)
+
     # make local directory
     logdir = local_dir + "/logs"
     os.system(f"mkdir -p {logdir}")
 
     # and condor directory
-    print("CONDOR work dir: " + outdir)
+    print("Condor work dir: " + local_dir)
     os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
 
     fileset = run_utils.get_fileset(
@@ -78,8 +80,6 @@ def main(args):
         for subsample, tot_files in fileset[sample].items():
             print("Submitting " + subsample)
             os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
-
-            print(args.files_per_job)
             njobs = ceil(tot_files / args.files_per_job)
 
             eosoutput_dir = f"{t2_prefix}/{outdir}/{args.year}/{subsample}/"
