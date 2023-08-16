@@ -14,9 +14,11 @@
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
     - [Condor](#condor)
+    - [Running locally](#running-locally)
   - [Processors](#processors)
-    - [JetHTTriggerEfficiencies](#jethttriggerefficiencies)
+    - [triggerSkmimer](#triggerskmimer)
     - [bbbbSkimmer](#bbbbskimmer)
+    - [matchingSkimmer](#matchingskimmer)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
@@ -120,6 +122,24 @@ To Submit (if not using the --submit flag)
 ```bash
 nohup bash -c 'for i in condor/'"${TAG}"'/*.jdl; do condor_submit $i; done' &> tmp/submitout.txt &
 ```
+
+
+### matchingSkimmer
+
+Output is very similar to bbbbSkimmer.
+
+
+To test locally:
+
+```bash
+python -W ignore src/run.py --processor matching --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
+```
+
+To submit:
+
+```bash
+python src/condor/submit.py --processor matching --tag $TAG --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG
+``````
 
 
 ## Condor Scripts
