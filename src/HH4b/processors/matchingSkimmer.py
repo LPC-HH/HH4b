@@ -67,6 +67,7 @@ class matchingSkimmer(processor.ProcessorABC):
             "Txjj": "PNetXjj",
             "particleNet_mass": "PNetMass",
         },
+        "GenJet": P4,
     }
 
     preselection = {
@@ -174,19 +175,35 @@ class matchingSkimmer(processor.ProcessorABC):
                 )
                 skimmed_events = {**skimmed_events, **vars_dict}
 
-        skimmed_events = {**skimmed_events, **ak4JetVars, **ak8FatJetVars}
+        ak4GenJetVars = {
+            f"ak4GenJet{key}": pad_val(events.GenJet[var], num_jets, axis=1)
+            for (var, key) in self.skim_vars["GenJet"].items()
+        }
+
+        ak8GenJetVars = {
+            f"ak8GenJet{key}": pad_val(events.GenJetAK8[var], num_fatjets, axis=1)
+            for (var, key) in self.skim_vars["GenJet"].items()
+        }
+
+        skimmed_events = {
+            **skimmed_events,
+            **ak4JetVars,
+            **ak8FatJetVars,
+            **ak4GenJetVars,
+            **ak8GenJetVars,
+        }
 
         ######################
         # Selection
         ######################
 
-        # jet veto map for 2022
-        if year == "2022" and isData:
-            jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
-            add_selection("ak4_jetveto", jetveto, *selection_args)
+        # # jet veto map for 2022
+        # if year == "2022" and isData:
+        #     jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
+        #     add_selection("ak4_jetveto", jetveto, *selection_args)
 
         # require at least one ak8 jet
-        add_selection("ak8_pt", np.any(fatjets.pt > 200, axis=1), *selection_args)
+        # add_selection("ak8_pt", np.any(fatjets.pt > 200, axis=1), *selection_args)
 
         ######################
         # Weights
