@@ -18,6 +18,7 @@
   - [Processors](#processors)
     - [triggerSkmimer](#triggerskmimer)
     - [bbbbSkimmer](#bbbbskimmer)
+      - [Jobs](#jobs)
     - [matchingSkimmer](#matchingskimmer)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
@@ -102,7 +103,7 @@ Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
 To test locally:
 
 ```bash
-python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11 --samples Hbb --subsamples ZH_Hto2B_Zto2Q_M-125 --starti 0 --endi 1
+python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
 ```
 
 Or on a specific file(s):
@@ -112,13 +113,22 @@ FILE=/eos/uscms/store/user/rkansal/Hbb/nano/Run3Winter23NanoAOD/QCD_PT-15to7000_
 python -W ignore src/run.py --processor skimmer --year 2023 --files $FILE --files-name QCD
 ```
 
-Jobs
+#### Jobs
+
+On a specific sample:
+
+```bash
+python src/condor/submit.py --processor skimmer --tag $TAG --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG
+```
+
+Over many samples, using a yaml file:
 
 ```bash
 nohup python src/condor/submit_from_yaml.py --tag $TAG --processor skimmer --save-systematics --submit --yaml src/condor/submit_configs/${YAML}.yaml &> tmp/submitout.txt &
 ```
 
-To Submit (if not using the --submit flag)
+To Submit (if not using the --submit flag):
+
 ```bash
 nohup bash -c 'for i in condor/'"${TAG}"'/*.jdl; do condor_submit $i; done' &> tmp/submitout.txt &
 ```
