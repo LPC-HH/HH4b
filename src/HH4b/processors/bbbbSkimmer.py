@@ -338,7 +338,9 @@ class bbbbSkimmer(processor.ProcessorABC):
             ),
             axis=0,
         )
-        add_selection("trigger", HLT_triggered, *selection_args)
+
+        # Don't apply trigger selection for now
+        # add_selection("trigger", HLT_triggered, *selection_args)
 
         # jet veto map for 2022
         if year == "2022" and isData:
@@ -487,6 +489,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # get dijet with two first fatjets
+        # TODO: probably want to use first two ordered by Txbb in the future?
         jet0 = jets[:, 0]
         jet1 = jets[:, 1]
         Dijet = jet0 + jet1
