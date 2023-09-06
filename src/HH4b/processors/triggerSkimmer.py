@@ -35,14 +35,15 @@ logger.setLevel(logging.INFO)
 #  https://indico.cern.ch/event/1233757/contributions/5281432/attachments/2598122/4485548/HLTforHHto4b_MKolosova.pdf
 #  https://indico.cern.ch/event/1251452/contributions/5288361/attachments/2602604/4494289/HLTforGluGluHHTo4b_Semiresolved_MKolosova_01March2023.pdf
 
+# how to check for prescales
+# e.g. https://cmsoms.cern.ch/cms/triggers/prescale?cms_run=368566&cms_run_sequence=GLOBAL-RUN
+#  here look at Index 2 2p3E34 column 
+#  1=active, 0=disabled, N=1 in N events kept
 
 class TriggerProcessor(processor.ProcessorABC):
     HLTs = {
         "2022": [
-            "QuadPFJet70_50_40_30",
-            "QuadPFJet70_50_40_30_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
-            "QuadPFJet70_50_45_35_PFBTagParticleNet_2BTagSum0p65",
             "PFHT1050",
             "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",  # prescaled for fraction of 2022
             "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",  # un-prescaled
@@ -56,10 +57,7 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet270_270_MassSD30",
         ],
         "2022EE": [
-            "QuadPFJet70_50_40_30",
-            "QuadPFJet70_50_40_30_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
-            "QuadPFJet70_50_45_35_PFBTagParticleNet_2BTagSum0p65",
             "PFHT1050",
             "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
             "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -72,22 +70,44 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet260_260_MassSD30",
             "AK8DiPFJet270_270_MassSD30",
         ],
+        "2023": [
+            "PFHT280_QuadPFJet30_PNet2BTagMean0p55", 
+            "PFHT1050",
+            "AK8PFJet230_SoftDropMass40_PNetBB0p06", # un-prescaled
+            "AK8PFJet230_SoftDropMass40_PNetBB0p10", # un-prescaled
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p06", # un-prescaled 
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p10", # un-prescaled 
+            # "AK8PFJet275_SoftDropMass40_PNetBB0p06",
+            # "AK8PFJet275_SoftDropMass40_PNetBB0p10",
+            "AK8PFJet425_SoftDropMass40",
+            # "AK8DiPFJet250_250_MassSD30", # inactive
+            "AK8DiPFJet250_250_MassSD50",
+            "AK8DiPFJet260_260_MassSD30",
+            "AK8DiPFJet270_270_MassSD30",
+            # https://hlt-config-editor-confdbv3.app.cern.ch/open?cfg=%2Ffrozen%2F2023%2F2e34%2Fv1.2%2FHLT%2FV1&db=offline-run3
+            # https://twiki.cern.ch/twiki/bin/viewauth/CMS/B2GTrigger#2023_online_menus
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p50", # main? un-prescaled
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p53",
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p55", # backup?
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p60",
+        ],
     }
 
+    # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2022
     muon_HLTs = {
         "2022": [
             "IsoMu24",
-            "IsoMu27",
-            "Mu27",
             "Mu50",
-            "Mu55",
+            # CascadeMu100
+            # HighPtTkMu100
         ],
         "2022EE": [
             "IsoMu24",
-            "IsoMu27",
-            "Mu27",
             "Mu50",
-            "Mu55",
+        ],
+        "2023": [
+            "IsoMu24",            
+            "Mu50",
         ],
     }
 
@@ -96,6 +116,9 @@ class TriggerProcessor(processor.ProcessorABC):
             "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
         ],
         "2022EE": [
+            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
+        ],
+        "2023": [
             "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
         ],
     }
@@ -290,6 +313,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         leading_muon = ak.pad_none(muons[muon_selector], 1, axis=1)[:, 0]
         nmuons = ak.sum(muon_selector, axis=1)
 
+        # TODO: Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
         fatjet_selector = (
