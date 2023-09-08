@@ -37,8 +37,9 @@ logger.setLevel(logging.INFO)
 
 # how to check for prescales
 # e.g. https://cmsoms.cern.ch/cms/triggers/prescale?cms_run=368566&cms_run_sequence=GLOBAL-RUN
-#  here look at Index 2 2p3E34 column 
+#  here look at Index 2 2p3E34 column
 #  1=active, 0=disabled, N=1 in N events kept
+
 
 class TriggerProcessor(processor.ProcessorABC):
     HLTs = {
@@ -71,12 +72,12 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet270_270_MassSD30",
         ],
         "2023": [
-            "PFHT280_QuadPFJet30_PNet2BTagMean0p55", 
+            "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
             "PFHT1050",
-            "AK8PFJet230_SoftDropMass40_PNetBB0p06", # un-prescaled
-            "AK8PFJet230_SoftDropMass40_PNetBB0p10", # un-prescaled
-            # "AK8PFJet250_SoftDropMass40_PNetBB0p06", # un-prescaled 
-            # "AK8PFJet250_SoftDropMass40_PNetBB0p10", # un-prescaled 
+            "AK8PFJet230_SoftDropMass40_PNetBB0p06",  # un-prescaled
+            "AK8PFJet230_SoftDropMass40_PNetBB0p10",  # un-prescaled
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p06", # un-prescaled
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p10", # un-prescaled
             # "AK8PFJet275_SoftDropMass40_PNetBB0p06",
             # "AK8PFJet275_SoftDropMass40_PNetBB0p10",
             "AK8PFJet425_SoftDropMass40",
@@ -86,9 +87,9 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet270_270_MassSD30",
             # https://hlt-config-editor-confdbv3.app.cern.ch/open?cfg=%2Ffrozen%2F2023%2F2e34%2Fv1.2%2FHLT%2FV1&db=offline-run3
             # https://twiki.cern.ch/twiki/bin/viewauth/CMS/B2GTrigger#2023_online_menus
-            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p50", # main? un-prescaled
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p50",  # main? un-prescaled
             "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p53",
-            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p55", # backup?
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p55",  # backup?
             "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p60",
         ],
     }
@@ -106,7 +107,7 @@ class TriggerProcessor(processor.ProcessorABC):
             "Mu50",
         ],
         "2023": [
-            "IsoMu24",            
+            "IsoMu24",
             "Mu50",
         ],
     }

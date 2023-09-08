@@ -80,7 +80,7 @@ def gen_selection_HHbbbb(
     jets["HiggsMatch"] = ak.any(jets.metric_table(bs) < 0.4, axis=2)
     # index of higgs to which the jet is closest to
     jets["HiggsMatchIndex"] = ak.mask(
-        np.floor(ak.argmin(jets.metric_table(bs), axis=2)/2), jets["HiggsMatch"] == 1
+        np.floor(ak.argmin(jets.metric_table(bs), axis=2) / 2), jets["HiggsMatch"] == 1
     )
     ak4JetVars = {
         f"ak4Jet{var}": pad_val(jets[var], num_jets, axis=1)
