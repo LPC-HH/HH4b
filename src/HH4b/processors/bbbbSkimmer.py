@@ -216,7 +216,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
 
-        num_fatjets = 3 # number to save
+        num_fatjets = 3  # number to save
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = good_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, year, isData, self.jecs)
@@ -354,7 +354,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             cut = np.prod(
                 pad_val(
                     (pts > self.preselection["fatjet_pt"]),
-                    num_fatjets_cut, 
+                    num_fatjets_cut,
                     False,
                     axis=1,
                 ),
