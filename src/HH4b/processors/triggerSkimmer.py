@@ -10,7 +10,7 @@ from coffea.analysis_tools import PackedSelection
 from hist import Hist
 
 from .utils import add_selection, P4, pad_val
-from .objects import get_ak8jets
+from .objects import get_ak8jets, good_ak4jets
 
 import warnings
 
@@ -109,18 +109,6 @@ class TriggerProcessor(processor.ProcessorABC):
         "2023": [
             "IsoMu24",
             "Mu50",
-        ],
-    }
-
-    egamma_HLTs = {
-        "2022": [
-            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
-        ],
-        "2022EE": [
-            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
-        ],
-        "2023": [
-            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
         ],
     }
 
@@ -314,9 +302,11 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         leading_muon = ak.pad_none(muons[muon_selector], 1, axis=1)[:, 0]
         nmuons = ak.sum(muon_selector, axis=1)
 
-        # TODO: Apply JECs from JME recommendations instead of MINI/NANOAOD
+        # Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
+        fatjets = get_jec_jets(events, fatjets, year, isData, jecs=None)
+
         fatjet_selector = (
             (fatjets.pt > self.preselection["fatjet_pt"])
             & (np.abs(fatjets.eta) < self.preselection["fatjet_eta"])
@@ -341,6 +331,12 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         # add at least one fat jet selection
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
+
+        # add ht variable
+        jets = get_jec_jets(events, events.Jet, year, isData, jecs=None, fatjets=False)
+        jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
+        ht = ak.sum(jets.pt, axis=1)
+        skimmed_events["ht"] = ht
 
         # trigger objects
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'
@@ -417,94 +413,3 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
     def postprocess(self, accumulator):
         return accumulator
-
-
-class ResolvedTriggerSkimmer(TriggerProcessor):
-    """
-    Note: to be used with NanoAOD that has PNet AK4 scores
-    """
-
-    def __init__(self):
-        super(TriggerProcessor, self).__init__()
-
-        self.skim_vars = {
-            "Jet": {
-                **P4,
-            },
-            "FatJet": {
-                **P4,
-                "msoftdrop": "Msd",
-                "Txbb": "PNetXbb",
-                "Txjj": "PNetXjj",
-                "particleNet_mass": "PNetMass",
-            },
-        }
-
-        self.preselection = {
-            "muon_pt": 10,
-            "muon_eta": 2.4,
-            "muon_id": "medium",
-            "muon_dz": 0.5,
-            "muon_dxy": 0.2,
-            "muon_iso": 0.20,
-            "electron_pt": 25,
-            "electron_eta": 2.5,
-            "electron_mvaIso": 0.80,
-        }
-
-    @property
-    def accumulator(self):
-        return self._accumulator
-
-    def process(self, events):
-        """Returns processed information for trigger studies"""
-
-        year = events.metadata["dataset"][:4]
-
-        selection = PackedSelection()
-
-        cutflow = OrderedDict()
-        cutflow["all"] = len(events)
-
-        selection_args = (selection, cutflow, True)
-
-        # save variables
-        skimmed_events = {}
-
-        HLTs = self.HLTs[year]
-        zeros = np.zeros(len(events), dtype="bool")
-        HLT_vars = {
-            trigger: (
-                events.HLT[trigger].to_numpy().astype(int)
-                if trigger in events.HLT.fields
-                else zeros
-            )
-            for trigger in HLTs
-        }
-
-        skimmed_events = {**HLT_vars, **{"run": events.run.to_numpy()}}
-
-        # muon and electron
-        muons = events.Muon
-        muon_selector = (
-            (muons[f"{self.preselection['muon_id']}Id"])
-            & (muons.pt > self.preselection["muon_pt"])
-            & (np.abs(muons.eta) < self.preselection["muon_eta"])
-            & (muons.pfIsoId >= self.preselection["muon_pfIsoId"])
-            & (np.abs(muons.dz) < self.preselection["muon_dz"])
-            & (np.abs(muons.dxy) < self.preselection["muon_dxy"])
-            & (muons.pfRelIso04_all < self.preselection["muon_iso"])
-        )
-        nmuons = ak.sum(muon_selector, axis=1)
-
-        veto_muon_selector = (muons.pt > 10) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
-
-        electrons = events.Electron
-        electron_selector = (
-            (electrons.pt > self.preselection["electron_pt"])
-            & (np.abs(electrons.eta) < self.preselection["electron_eta"])
-            & (electrons.mvaFall17V2Iso_WP80)
-        )
-        nelectrons = ak.sum(electron_selector, axis=1)
-
-        veto_electron_selector = (electrons.pt > 15) & (electrons.mvaFall17V2Iso_WP90)
