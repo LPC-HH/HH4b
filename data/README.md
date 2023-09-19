@@ -53,8 +53,10 @@ eval `scram runtime -sh`
 scram b
 ```
 
+Reference: PFNano from JME also has an available recipe: https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
+
 Note: At some point, we	will switch to ReReco (Partial,	for ABCD)
-https://cms-pdmv.cern.ch/pmp/historical?r=27Jun2023
+https://cms-pdmv-prod.web.cern.ch/pmp/historical?r=27Jun2023&showDoneRequestsList=true
 Run3_2022_rereco, 124X_dataRun3_v15
 
 2022-ABCDPrompt
