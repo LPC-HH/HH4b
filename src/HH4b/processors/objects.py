@@ -6,6 +6,8 @@ from coffea.nanoevents.methods.base import NanoEventsArray
 from .corrections import get_jetveto
 import awkward as ak
 
+# https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
+
 muon_selection = {
     "pt": 30,
     "eta": 2.4,

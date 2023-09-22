@@ -31,6 +31,7 @@ from .corrections import (
     get_jec_jets,
     get_jmsr,
     get_jetveto_event,
+    add_trig_weights,
 )
 from .common import LUMI, jec_shifts, jmsr_shifts
 from .objects import good_ak4jets, good_ak8jets, good_muons, good_electrons
@@ -105,6 +106,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet425_SoftDropMass40",
                 ],
             },
+            # semi-leptonic tt to validate PNet
             "1leptop": {
                 "2022": [
                     "Ele30_WPTight_Gsf",
@@ -128,7 +130,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                 ],
             },
         }
-        HLTs["hadtop"] = HLTs["signal"]
 
         self.HLTs = HLTs[region]
 
@@ -137,9 +138,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # analysis region
         """
-        signal:
-        hadtop:
-        1leptop:
+        signal: 
+        1leptop: semi-leptonic tt to validate PNet
         """
         self._region = region
 
@@ -211,12 +211,13 @@ class bbbbSkimmer(processor.ProcessorABC):
         #########################
         num_jets = 6
         # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
-        jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
         jets, jec_shifted_jetvars = get_jec_jets(
-            events, jets, year, isData, self.jecs, fatjets=False
+            events, events.Jet, year, isData, self.jecs, fatjets=False
         )
+        jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
 
-        num_fatjets = 3
+        num_fatjets = 3  # number to save
+        num_fatjets_cut = 2  # number to consider for selection
         fatjets = good_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, year, isData, self.jecs)
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
@@ -353,7 +354,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             cut = np.prod(
                 pad_val(
                     (pts > self.preselection["fatjet_pt"]),
-                    num_fatjets,
+                    num_fatjets_cut,
                     False,
                     axis=1,
                 ),
@@ -368,7 +369,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         for shift in jmsr_shifted_vars["msoftdrop"]:
             msds = jmsr_shifted_vars["msoftdrop"][shift]
             cut = np.prod(
-                pad_val(msds > self.preselection["fatjet_msd"], num_fatjets, False, axis=1),
+                pad_val(msds > self.preselection["fatjet_msd"], num_fatjets_cut, False, axis=1),
                 axis=1,
             )
             cuts.append(cut)
@@ -395,6 +396,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy())
             add_VJets_kFactors(weights, events.GenPart, dataset)
+            add_trig_weights(weights, fatjets, year, num_fatjets_cut)
 
             # if dataset.startswith("TTTo"):
             #     # TODO: need to add uncertainties and rescale yields (?)
@@ -417,8 +419,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                     add_scalevar_7pt(weights, [])
             """
 
-            # add_trig_effs(weights, fatjets, year, num_fatjets)
-
             # xsec and luminosity and normalization
             # this still needs to be normalized with the acceptance of the pre-selection (done in post processing)
             if dataset in self.XSECS:
@@ -429,13 +429,16 @@ class bbbbSkimmer(processor.ProcessorABC):
                 weight_norm = 1
 
             systematics = [""]
-            # systematics = ["", "notrigeffs"]
-
             if self._systematics:
                 systematics += list(weights.variations)
 
             # TODO: need to be careful about the sum of gen weights used for the LHE/QCDScale uncertainties
             logger.debug("weights ", weights._weights.keys())
+
+            # TEMP: save each individual weight
+            for key in self.weights._weights.keys():
+                skimmed_events[f"single_weight_{key}"] = weights.partial_weight([key])
+
             for systematic in systematics:
                 if systematic in weights.variations:
                     weight = weights.weight(modifier=systematic)
@@ -443,9 +446,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                 elif systematic == "":
                     weight = weights.weight()
                     weight_name = "weight"
-                elif systematic == "notrigeffs":
-                    weight = weights.partial_weight(exclude=["trig_effs"])
-                    weight_name = "weight_noTrigEffs"
 
                 # includes genWeight (or signed genWeight)
                 skimmed_events[weight_name] = weight * weight_norm

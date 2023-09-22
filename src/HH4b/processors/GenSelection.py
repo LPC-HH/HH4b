@@ -1,7 +1,7 @@
 """
 Gen selection functions for skimmer.
 
-Author(s): Raghav Kansal, Cristina Mantilla Suarez, Melissa Quinnan
+Author(s): Raghav Kansal, Cristina Mantilla Suarez
 """
 
 import numpy as np
@@ -74,17 +74,17 @@ def gen_selection_HHbbbb(
     bs = ak.flatten(higgs_children[is_bb], axis=2)
     GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
 
-    # match jets to bb
+    # match jets to each b-quark
     num_jets = 6
-    # is the jet matched to the Higgs?
-    jets["HiggsMatch"] = ak.any(jets.metric_table(higgs) < 0.4, axis=2)
+    # is the jet matched to the Higgs decay products?
+    jets["HiggsMatch"] = ak.any(jets.metric_table(bs) < 0.4, axis=2)
     # index of higgs to which the jet is closest to
     jets["HiggsMatchIndex"] = ak.mask(
-        ak.argmin(jets.metric_table(higgs), axis=2), jets["HiggsMatch"] == 1
+        np.floor(ak.argmin(jets.metric_table(bs), axis=2) / 2), jets["HiggsMatch"] == 1
     )
     ak4JetVars = {
         f"ak4Jet{var}": pad_val(jets[var], num_jets, axis=1)
-        for var in ["HiggsMatch", "HiggsMatchIndex"]
+        for var in ["HiggsMatch", "HiggsMatchIndex", "hadronFlavour"]
     }
 
     # match fatjets to bb
