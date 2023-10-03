@@ -99,4 +99,7 @@ cmsDriver.py --python_filename test_nanoTuples_mc2023.py --eventcontent NANOAODS
 
 ## Cross sections
 
-TO-DO
+Reference: 
+https://xsdb-temp.app.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=30&searchQuery=energy%3D13.6 
+
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/MATRIXCrossSectionsat13p6TeV
