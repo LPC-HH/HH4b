@@ -39,9 +39,6 @@ def get_fileset(
     get_num_files: bool = False,
     coffea_casa: str = False,
 ):
-    # redirector = "root://cmsxrootd.fnal.gov//"
-    redirector = "root://cmsxrootd-site.fnal.gov//"
-    # redirector = "root://cmseos.fnal.gov//"
 
     with open(f"data/nanoindex_{version}.json", "r") as f:
         full_fileset_nano = json.load(f)
@@ -72,7 +69,7 @@ def get_fileset(
 
             for subsample, fnames in sample_set.items():
                 fnames = fnames[starti:] if endi < 0 else fnames[starti:endi]
-                sample_fileset[f"{year}_{subsample}"] = [redirector + fname for fname in fnames]
+                sample_fileset[f"{year}_{subsample}"] = fnames
 
             fileset = {**fileset, **sample_fileset}
 

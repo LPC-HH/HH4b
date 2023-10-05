@@ -2,6 +2,7 @@ import os
 import getpass
 import re
 import json
+import subprocess
 from rucio.client import Client
 from collections import defaultdict
 
