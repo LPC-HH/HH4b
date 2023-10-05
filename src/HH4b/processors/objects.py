@@ -126,7 +126,7 @@ def get_ak8jets(fatjets: FatJetArray):
             / (
                 fatjets.particleNetMD_Xbb
                 + fatjets.particleNetMD_Xcc
-            + fatjets.particleNetMD_Xqq
+                + fatjets.particleNetMD_Xqq
                 + fatjets.particleNetMD_QCD
             ),
             nan=-1.0,

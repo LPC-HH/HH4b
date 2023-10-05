@@ -1,9 +1,11 @@
 import json
 import subprocess
 from dbs.apis.dbsClient import DbsApi
+
 dbs = DbsApi("https://cmsweb.cern.ch/dbs/prod/global/DBSReader")
 
 import os
+
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
 qcd_bins = [
@@ -47,6 +49,7 @@ qcd_ht_bins_run2 = [
     "2000toInf",
 ]
 
+
 def get_v9():
     return {
         "2018": {
@@ -62,7 +65,7 @@ def get_v9():
                     f"QCD_HT-{qbin}": f"/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
                     for qbin in qcd_ht_bins_run2
                 },
-            }
+            },
         }
     }
 
@@ -496,7 +499,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v9"]: # , "v10", "v11", "v11_private"]:
+for version in ["v9"]:  # , "v10", "v11", "v11_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
@@ -507,6 +510,7 @@ for version in ["v9"]: # , "v10", "v11", "v11_private"]:
                 else:
                     from rucio import get_proxy_path
                     import requests
+
                     proxy = get_proxy_path()
                     link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
                     r = requests.get(
@@ -519,10 +523,10 @@ for version in ["v9"]: # , "v10", "v11", "v11_private"]:
                         if fj["is_file_valid"] == 0:
                             print(f"ERROR: File not valid on DAS: {f['name']}")
                         else:
-                            print(fj['logical_file_name'])
-                            #self.fileslist_redirector.append(fj['logical_file_name'])
-                            #self.metadata["nevents"] += fj['event_count']
-                            #self.metadata["size"] += fj['file_size']
+                            print(fj["logical_file_name"])
+                            # self.fileslist_redirector.append(fj['logical_file_name'])
+                            # self.metadata["nevents"] += fj['event_count']
+                            # self.metadata["size"] += fj['file_size']
                     # files = [ifile["logical_file_name"] for ifile in dbs.listFiles(dataset=dataset)]
                 index[year][sample][sname] = files
 

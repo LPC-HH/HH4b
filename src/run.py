@@ -18,6 +18,7 @@ from coffea import processor
 
 import run_utils
 
+
 def run_dask(p: processor, fileset: dict, args):
     """Run processor on using dask via lpcjobqueue"""
     import time
@@ -26,13 +27,10 @@ def run_dask(p: processor, fileset: dict, args):
 
     tic = time.time()
     cluster = LPCCondorCluster(
-        ship_env=True,
-        shared_temp_directory="/tmp",
-        transfer_input_files="src/HH4b",
-        memory="12GB"
+        ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="12GB"
     )
     cluster.adapt(minimum=1, maximum=250)
-    
+
     local_dir = os.path.abspath(".")
     local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet"))
     if os.path.isdir(local_parquet_dir):
@@ -41,12 +39,14 @@ def run_dask(p: processor, fileset: dict, args):
 
     with Client(cluster) as client:
         from datetime import datetime
+
         print(datetime.now())
         print("Waiting for at least one worker...")  # noqa
         client.wait_for_workers(1)
         print(datetime.now())
 
         from dask.distributed import performance_report
+
         with performance_report(filename="dask-report.html"):
             for sample, files in fileset.items():
                 outfile = f"{local_parquet_dir}/{args.year}_dask_{sample}.parquet"
@@ -56,8 +56,10 @@ def run_dask(p: processor, fileset: dict, args):
                 else:
                     print("Begin running " + sample)
                     print(datetime.now())
-                    uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
-                    
+                    uproot.open.defaults[
+                        "xrootd_handler"
+                    ] = uproot.source.xrootd.MultithreadedXRootDSource
+
                     executor = processor.DaskExecutor(status=True, client=client)
                     run = processor.Runner(
                         executor=executor,
@@ -66,16 +68,18 @@ def run_dask(p: processor, fileset: dict, args):
                         chunksize=args.chunksize,
                     )
                     out, metrics = run({sample: files}, "Events", processor_instance=p)
-                    
+
                     import pandas as pd
+
                     pddf = pd.concat(
                         [pd.DataFrame(v.value) for k, v in out["array"].items()],
                         axis=1,
-                    keys=list(out["array"].keys()),
+                        keys=list(out["array"].keys()),
                     )
-                    
+
                     import pyarrow.parquet as pq
                     import pyarrow as pa
+
                     table = pa.Table.from_pandas(pddf)
                     pq.write_table(table, outfile)
 
@@ -168,7 +172,9 @@ def run(p: processor, fileset: dict, args):
 
 
 def main(args):
-    p = run_utils.get_processor(args.processor, args.save_systematics, args.save_hist, args.save_array, args.region)
+    p = run_utils.get_processor(
+        args.processor, args.save_systematics, args.save_hist, args.save_array, args.region
+    )
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
