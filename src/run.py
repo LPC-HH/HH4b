@@ -60,12 +60,13 @@ def run_dask(p: processor, fileset: dict, args):
                         "xrootd_handler"
                     ] = uproot.source.xrootd.MultithreadedXRootDSource
 
-                    executor = processor.DaskExecutor(status=True, client=client)
+                    executor = processor.DaskExecutor(status=True, client=client, retries=2)
                     run = processor.Runner(
                         executor=executor,
                         savemetrics=True,
                         schema=processor.NanoAODSchema,
                         chunksize=args.chunksize,
+                        skipbadfiles=1
                     )
                     out, metrics = run({sample: files}, "Events", processor_instance=p)
 
