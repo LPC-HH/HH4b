@@ -116,21 +116,26 @@ def good_ak4jets(
 
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
-    fatjets["Txbb"] = ak.nan_to_num(
-        fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
-        nan=-1.0,
-    )
-    fatjets["Txjj"] = ak.nan_to_num(
-        (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
-        / (
-            fatjets.particleNetMD_Xbb
-            + fatjets.particleNetMD_Xcc
+    if "particleNetMD_Xbb" in fatjets.fields:
+        fatjets["Txbb"] = ak.nan_to_num(
+            fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
+            nan=-1.0,
+        )
+        fatjets["Txjj"] = ak.nan_to_num(
+            (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
+            / (
+                fatjets.particleNetMD_Xbb
+                + fatjets.particleNetMD_Xcc
             + fatjets.particleNetMD_Xqq
-            + fatjets.particleNetMD_QCD
-        ),
-        nan=-1.0,
-    )
+                + fatjets.particleNetMD_QCD
+            ),
+            nan=-1.0,
+        )
+    else:
+        fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
+        fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+
     return fatjets
 
 

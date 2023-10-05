@@ -50,13 +50,6 @@ class matchingSkimmer(processor.ProcessorABC):
             **P4,
             "btagDeepB": "btagDeepB",
             "btagDeepFlavB": "btagDeepFlavB",
-            # in nanov11_private
-            "btagPNetProb": "btagPNetProb",
-            "btagPNetProbbb": "btagPNetProbbb",
-            "btagPNetProbc": "btagPNetProbc",
-            "btagPNetProbuds": "btagPNetProbuds",
-            "btagPNetProbg": "btagPNetProbg",
-            "btagPNetBvsAll": "btagPNetBvsAll",
             # TODO: add hadron flavour
             # TODO: add matched_fj_idx
         },
@@ -120,6 +113,18 @@ class matchingSkimmer(processor.ProcessorABC):
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
+        btag_vars = {} 
+        if year != "2018":
+            # for now, only in v11_private
+            btag_vars = {
+                "btagPNetProb": "btagPNetProb",
+                "btagPNetProbbb": "btagPNetProbbb",
+                "btagPNetProbc": "btagPNetProbc",
+                "btagPNetProbuds": "btagPNetProbuds",
+                "btagPNetProbg": "btagPNetProbg",
+                "btagPNetBvsAll": "btagPNetBvsAll",
+            }
+
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset
 
@@ -156,9 +161,10 @@ class matchingSkimmer(processor.ProcessorABC):
         skimmed_events = {}
 
         # Jet variables
+        jet_vars = {**self.skim_vars["Jet"], **btag_vars}
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
-            for (var, key) in self.skim_vars["Jet"].items()
+            for (var, key) in jet_vars.items()
         }
 
         # FatJet variables
