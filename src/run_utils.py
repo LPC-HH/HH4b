@@ -39,7 +39,6 @@ def get_fileset(
     get_num_files: bool = False,
     coffea_casa: str = False,
 ):
-
     with open(f"data/nanoindex_{version}.json", "r") as f:
         full_fileset_nano = json.load(f)
 

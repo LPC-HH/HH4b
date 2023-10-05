@@ -15,9 +15,7 @@ from utils import ShapeVar
 
 var_to_shapevar = {
     # var must match key in events dictionary (i.e. as saved in parquet file)
-    "DijetMass": ShapeVar(
-        var="DijetMass", label=r"$m^{jj}$ (GeV)", bins=[30, 600, 4000]
-    ),
+    "DijetMass": ShapeVar(var="DijetMass", label=r"$m^{jj}$ (GeV)", bins=[30, 600, 4000]),
     "ak8FatJetPt0": ShapeVar(
         var="ak8FatJetPt0", label=r"$p_T^0$ (GeV)", bins=[30, 300, 1500], significance_dir="right"
     ),
@@ -28,7 +26,9 @@ var_to_shapevar = {
         var="ak8FatJetPNetMass0", label=r"$m_{reg}^{0}$ (GeV)", bins=[20, 50, 250]
     ),
     "ak8FatJetPNetXbb0": ShapeVar(
-        var="ak8FatJetPNetXbb0", label=r"$TX_{bb}^{0}$", bins=[50, 0., 1],
+        var="ak8FatJetPNetXbb0",
+        label=r"$TX_{bb}^{0}$",
+        bins=[50, 0.0, 1],
     ),
 }
 
@@ -121,11 +121,11 @@ def postprocess(years):
     # e.g. https://github.com/rkansal47/HHbbVV/blob/main/src/HHbbVV/postprocessing/postprocessing.py#L80
     filters = [
         [
-            #[
+            # [
             #    ("('HLT_AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35', '0')", "==", 1),
             #    ("('HLT_AK8PFJet425_SoftDropMass40', '0')", "==", 1),
-            #],
-            #("('HLT_AK8PFJet425_SoftDropMass40', '0')", "==", 1),
+            # ],
+            # ("('HLT_AK8PFJet425_SoftDropMass40', '0')", "==", 1),
             ("('ak8FatJetPt', '0')", ">=", 300),
             ("('ak8FatJetPt', '1')", ">=", 250),
             ("('ak8FatJetMsd', '0')", ">=", 60),
@@ -141,7 +141,7 @@ def postprocess(years):
         ("DijetMass", 1),
         ("ak8FatJetPt", 2),
         ("ak8FatJetPNetXbb", 2),
-        #"single_weight_trigsf_2jet"
+        # "single_weight_trigsf_2jet"
         # ("ak8FatJetPNetMass", 2),
     ]
     # reformat into ("column name", "idx") format for reading multiindex columns
@@ -156,7 +156,7 @@ def postprocess(years):
         for input_dir, samples in dirs.items():
             events_dict = {
                 **events_dict,
-                **utils.load_samples(input_dir, samples, year, filters, columns)
+                **utils.load_samples(input_dir, samples, year, filters, columns),
             }
 
         samples_loaded = list(events_dict.keys())

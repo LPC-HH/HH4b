@@ -1,6 +1,7 @@
 import json
 import subprocess
 import warnings
+
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 import os
@@ -524,18 +525,16 @@ for version in ["v9", "v10", "v11", "v11_private"]:
                         if fj["is_file_valid"] == 0:
                             print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
                         else:
-                            files.append(fj['logical_file_name'])
-                            #self.metadata["nevents"] += fj['event_count']
-                            #self.metadata["size"] += fj['file_size']
+                            files.append(fj["logical_file_name"])
+                            # self.metadata["nevents"] += fj['event_count']
+                            # self.metadata["size"] += fj['file_size']
                     # Now query rucio to get the concrete dataset passing the sites filtering options
                     sites_cfg = {
                         "whitelist_sites": None,
                         "blacklist_sites": None,
                         "regex_sites": None,
                     }
-                    files_rucio, sites = get_dataset_files(
-                        dataset, **sites_cfg, output="first"
-                    )
+                    files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
                     index[year][sample][sname] = files_rucio
 
     with open(f"nanoindex_{version}.json", "w") as f:
