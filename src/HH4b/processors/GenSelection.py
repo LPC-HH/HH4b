@@ -84,10 +84,10 @@ def gen_selection_HHbbbb(
     matched_to_higgs = jets.metric_table(higgs) < 0.5
 
     # require 1 b matched to the jet (but not necessarily matched to the Higgs)
-    is_matched = (num_b_matched == 1)
+    is_matched = num_b_matched == 1
     is_jet_matched = ak.any(is_matched, axis=2)
     jets["HiggsMatch"] = is_jet_matched
-    
+
     # index of the higgs to which the jet is closest to
     # This line in particular is taking ak.argmin (index of the b quark that is closest to the jet)
     # we take np.floor of the number divided by 2 to get the index of the higgs

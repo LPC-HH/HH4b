@@ -1,10 +1,10 @@
 import json
 import subprocess
-
 import warnings
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 import os
+
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
 qcd_bins = [
@@ -48,6 +48,7 @@ qcd_ht_bins_run2 = [
     "2000toInf",
 ]
 
+
 def get_v9():
     return {
         "2018": {
@@ -63,7 +64,7 @@ def get_v9():
                     f"QCD_HT-{qbin}": f"/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
                     for qbin in qcd_ht_bins_run2
                 },
-            }
+            },
         }
     }
 
@@ -509,6 +510,7 @@ for version in ["v9", "v10", "v11", "v11_private"]:
                     from rucio_utils import get_proxy_path
                     from rucio_utils import get_dataset_files
                     import requests
+
                     proxy = get_proxy_path()
                     link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
                     r = requests.get(

@@ -120,7 +120,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         self._region = region
 
         self._accumulator = processor.dict_accumulator({})
-        
+
         # save arrays (for dask accumulator)
         self._save_array = save_array
 
@@ -169,7 +169,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         isSignal = "HHTobbbb" in dataset
 
         if isSignal:
-            # take only signs of gen-weights for HH samples 
+            # take only signs of gen-weights for HH samples
             # TODO: corss check
             gen_weights = np.sign(events["genWeight"])
         elif not isData:
@@ -197,10 +197,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
 
-        num_fatjets = 2 # number to save
+        num_fatjets = 2  # number to save
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = good_ak8jets(events.FatJet)
-        fatjets, jec_shifted_fatjetvars = get_jec_jets(events, fatjets, year, isData, self.jecs, fatjets=True, applyData=False)
+        fatjets, jec_shifted_fatjetvars = get_jec_jets(
+            events, fatjets, year, isData, self.jecs, fatjets=True, applyData=False
+        )
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         # Sort fatjets by PNXbb
@@ -288,10 +290,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         else:
             eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
             pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
-        pileupVars = {
-            **pileupVars, 
-            **{"nPV": events.PV["npvs"].to_numpy()}
-        }
+        pileupVars = {**pileupVars, **{"nPV": events.PV["npvs"].to_numpy()}}
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
@@ -304,16 +303,16 @@ class bbbbSkimmer(processor.ProcessorABC):
             **ak8FatJetVars,
             **fatDijetVars,
             # **leptonVars,
-            **eventVars, 
-            **pileupVars, 
-            **otherVars
+            **eventVars,
+            **pileupVars,
+            **otherVars,
         }
 
         ######################
         # Selection
         ######################
 
-        # OR-ing HLT triggers 
+        # OR-ing HLT triggers
         for trigger in self.HLTs[year]:
             if trigger not in events.HLT.fields:
                 logger.warning(f"Missing HLT {trigger}!")
@@ -459,7 +458,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     column = "".join(str(k) for k in key)
                 output[column] = processor.column_accumulator(df[key].values)
             return {
-                "array": output, 
+                "array": output,
                 "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
             }
         else:

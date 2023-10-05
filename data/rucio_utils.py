@@ -12,11 +12,12 @@ os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 From https://github.com/PocketCoffea/PocketCoffea
 """
 
+
 def get_proxy_path() -> str:
-    '''
+    """
     Checks if the VOMS proxy exists and if it is valid
     for at least 1 hour.
-    If it exists, returns the path of it'''
+    If it exists, returns the path of it"""
     try:
         subprocess.run("voms-proxy-info -exists -hours 1", shell=True, check=True)
     except subprocess.CalledProcessError:
@@ -25,9 +26,7 @@ def get_proxy_path() -> str:
         )
 
     # Now get the path of the certificate
-    proxy = subprocess.check_output(
-        "voms-proxy-info -path", shell=True, text=True
-    ).strip()
+    proxy = subprocess.check_output("voms-proxy-info -path", shell=True, text=True).strip()
     return proxy
 
 
@@ -38,7 +37,7 @@ def get_rucio_client():
             auth_host="https://cms-rucio-auth.cern.ch",
             account=getpass.getuser(),
             creds={"client_cert": get_proxy_path(), "client_key": get_proxy_path()},
-            auth_type='x509',
+            auth_type="x509",
         )
         return nativeClient
 
@@ -86,14 +85,14 @@ def get_xrootd_sites_map():
 def _get_pfn_for_site(path, rules):
     if isinstance(rules, dict):
         for rule, pfn in rules.items():
-            if m:=re.match(rule, path):
+            if m := re.match(rule, path):
                 grs = m.groups()
                 for i in range(len(grs)):
                     pfn = pfn.replace(f"${i+1}", grs[i])
                 return pfn
-    else: 
-        return rules + "/"+ path
-    
+    else:
+        return rules + "/" + path
+
 
 def get_dataset_files(
     dataset,
@@ -102,7 +101,7 @@ def get_dataset_files(
     regex_sites=None,
     output="first",
 ):
-    '''
+    """
     This function queries the Rucio server to get information about the location
     of all the replicas of the files in a CMS dataset.
 
@@ -113,7 +112,7 @@ def get_dataset_files(
 
     The function can return all the possible sites for each file (`output="all"`)
     or the first site found for each file (`output="first"`, by default)
-    '''
+    """
     sites_xrootd_prefix = get_xrootd_sites_map()
     client = get_rucio_client()
     outsites = []
@@ -140,9 +139,7 @@ def get_dataset_files(
                     found = True
 
             if not found:
-                raise Exception(
-                    f"No SITE available in the whitelist for file {filedata['name']}"
-                )
+                raise Exception(f"No SITE available in the whitelist for file {filedata['name']}")
         else:
             possible_sites = list(rses.keys())
             if blacklist_sites:
@@ -166,7 +163,9 @@ def get_dataset_files(
                             or site not in sites_xrootd_prefix
                         ):
                             continue
-                        outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
+                        outfile.append(
+                            _get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site])
+                        )
                         outsite.append(site)
                         found = True
                 else:

@@ -97,7 +97,9 @@ def get_processor(
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
-        return bbbbSkimmer(xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array)
+        return bbbbSkimmer(
+            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array
+        )
 
 
 def parse_common_args(parser):

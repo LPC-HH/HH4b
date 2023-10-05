@@ -113,7 +113,7 @@ class matchingSkimmer(processor.ProcessorABC):
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
-        btag_vars = {} 
+        btag_vars = {}
         if year != "2018":
             # for now, only in v11_private
             btag_vars = {
@@ -163,8 +163,7 @@ class matchingSkimmer(processor.ProcessorABC):
         # Jet variables
         jet_vars = {**self.skim_vars["Jet"], **btag_vars}
         ak4JetVars = {
-            f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
-            for (var, key) in jet_vars.items()
+            f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1) for (var, key) in jet_vars.items()
         }
 
         # FatJet variables
