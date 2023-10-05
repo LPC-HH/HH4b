@@ -1,0 +1,42 @@
+{
+    "2022EE":
+        {
+            "JetMET": {
+             "subsamples": [
+                "Run2022F",
+                "Run2022G"
+             ],
+             "files_per_job": 5
+            },
+            "TT": {
+              "subsamples": [
+                "TTto2L2Nu",
+                "TTto4Q", "TTtoLNu2Q"
+              ],
+              "files_per_job": 5
+            },
+            "Diboson": {
+              "subsamples": ["WW","WZ","ZZ"],
+              "files_per_job": 5
+            },
+            "Hbb": {
+              "subsamples": ["VBFHto2B_M-125_dipoleRecoilOn"],
+              "files_per_job": 5
+            },
+            "VJets": {
+              "files_per_job": 5
+            },
+            "QCD": {
+              "subsamples": [
+                # "QCD_PT-15to30", "QCD_PT-30to50", "QCD_PT-50to80", "QCD_PT-80to120",
+                "QCD_PT-120to170", 
+                "QCD_PT-170to300", "QCD_PT-300to470", "QCD_PT-470to600",
+                "QCD_PT-600to800", "QCD_PT-800to1000", 
+                "QCD_PT-1000to1400", 
+                "QCD_PT-1400to1800",
+                "QCD_PT-1800to2400", "QCD_PT-2400to3200", "QCD_PT-3200"
+              ],
+              "files_per_job": 2
+            }
+        }
+}
