@@ -34,7 +34,7 @@ from .corrections import (
     add_trig_weights,
 )
 from .common import LUMI, jec_shifts, jmsr_shifts
-from .objects import good_ak4jets, good_ak8jets, good_muons, good_electrons
+from .objects import *
 from . import common
 
 
@@ -209,8 +209,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
 
         num_leptons = 2
-        muons = good_muons(events.Muon)
-        electrons = good_electrons(events.Electron)
+        veto_muon_sel = good_muons(events.Muon, selection=veto_muon_selection_run2_bbbb)
+        veto_electron_sel = good_electrons(events.Electron, selection=veto_electron_selection_run2_bbbb)
+        #muons = events.Muon[good_muons(events.Muon)]
+        #electrons = events.Electron[good_electrons(events.Electron)]
 
         #########################
         # Save / derive variables
@@ -274,12 +276,14 @@ class bbbbSkimmer(processor.ProcessorABC):
                 }
 
         # lepton variables
+        """
         lepton_skim = {"Muon": muons, "Electron": electrons}
         leptonVars = {
             f"{label}{key}": pad_val(obj[var], num_leptons, axis=1)
             for (label, obj) in lepton_skim.items()
             for (var, key) in self.skim_vars[label].items()
         }
+        """
 
         eventVars = {
             key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events
@@ -359,6 +363,9 @@ class bbbbSkimmer(processor.ProcessorABC):
             cuts.append(cut)
 
         add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
+
+        # veto leptons
+        add_selection("0lep", (ak.sum(veto_muon_sel, axis=1)==0) & (ak.sum(veto_electron_sel, axis=1)==0), *selection_args)
 
         # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations
 
