@@ -8,10 +8,12 @@ plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
 
 import matplotlib.ticker as mticker
+
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 
 import matplotlib as mpl
+
 mpl.rcParams["font.size"] = 20
 mpl.rcParams["lines.linewidth"] = 2
 mpl.rcParams["grid.color"] = "#CCCCCC"
@@ -59,6 +61,7 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$",
 }
 
+
 def plot_hists(
     year,
     hists,
@@ -78,7 +81,7 @@ def plot_hists(
         h = hists[var]
 
         samples = [h.axes[0].value(i) for i in range(len(h.axes[0].edges))]
-        
+
         data = h[{"Sample": "data"}]
 
         signals = ["hh4b"]
@@ -166,9 +169,7 @@ def plot_hists(
             f"{h.axes[-1].label}"
         )  # assumes the variable to be plotted is at the last axis
         rax.set_ylabel("Data/MC", fontsize=20)
-        hep.cms.lumitext(
-            "%.1f " % luminosity + r"fb$^{-1}$ (13 TeV)", ax=ax, fontsize=20
-        )
+        hep.cms.lumitext("%.1f " % luminosity + r"fb$^{-1}$ (13 TeV)", ax=ax, fontsize=20)
         hep.cms.text("Work in Progress", ax=ax, fontsize=15)
 
         # add legend
@@ -182,18 +183,18 @@ def plot_hists(
             bkg_yield = hists[first_key][{"Sample": bkg_label}].sum().value
             order_dic[label_by_sample[bkg_label]] = bkg_yield
         print(order_dic)
-            
+
         summ = [order_dic[label] for label in labels[: len(bkg_labels)]]
-        
+
         # get indices of labels arranged by yield
         order = []
         for i in range(len(summ)):
             order.append(np.argmax(np.array(summ)))
             summ[np.argmax(np.array(summ))] = -100
-            
+
         legend_handles = [handles[-1]] + [handles[i] for i in order] + handles[len(bkg) : -1]
         legend_labels = [labels[-1]] + [labels[i] for i in order] + labels[len(bkg) : -1]
-        
+
         ax.legend(
             [legend_handles[idx] for idx in range(len(legend_handles))],
             [legend_labels[idx] for idx in range(len(legend_labels))],
@@ -206,7 +207,7 @@ def plot_hists(
         if logy:
             ax.set_yscale("log")
             ax.set_ylim(1e-1)
-            
+
         outpath = "plots"
         if not os.path.exists(outpath):
             os.makedirs(outpath)

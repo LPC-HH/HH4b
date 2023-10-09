@@ -104,9 +104,7 @@ def get_nevents(pickles_path, year, sample_name):
     file_name = out_pickles[0]
     with open(f"{pickles_path}/{file_name}", "rb") as file:
         out_dict = pickle.load(file)
-        nevents = out_dict[year][sample_name][
-            "nevents"
-        ]  # index by year, then sample name
+        nevents = out_dict[year][sample_name]["nevents"]  # index by year, then sample name
 
     for file_name in out_pickles[1:]:
         with open(f"{pickles_path}/{file_name}", "rb") as file:
@@ -214,21 +212,15 @@ def load_samples(
                 if not_empty:
                     if "weight_noxsec" in events:
                         if np.all(events["weight"] == events["weight_noxsec"]):
-                            logging.warning(
-                                f"{sample} has not been scaled by its xsec and lumi"
-                            )
+                            logging.warning(f"{sample} has not been scaled by its xsec and lumi")
 
                     events["weight_nonorm"] = events["weight"]
 
                     if "weight_noTrigEffs" in events and not np.all(
-                        np.isclose(
-                            events["weight"], events["weight_noTrigEffs"], rtol=1e-5
-                        )
+                        np.isclose(events["weight"], events["weight_noTrigEffs"], rtol=1e-5)
                     ):
                         events["finalWeight"] = events["weight"] / n_events
-                        events["finalWeight_noTrigEffs"] = (
-                            events["weight_noTrigEffs"] / n_events
-                        )
+                        events["finalWeight_noTrigEffs"] = events["weight_noTrigEffs"] / n_events
                     else:
                         events["weight"] /= n_events
                         events["finalWeight"] = events["weight"]
@@ -255,8 +247,7 @@ def add_to_cutflow(
     cutflow: pd.DataFrame,
 ):
     cutflow[key] = [
-        np.sum(events_dict[sample][weight_key]).squeeze()
-        for sample in list(cutflow.index)
+        np.sum(events_dict[sample][weight_key]).squeeze() for sample in list(cutflow.index)
     ]
 
 
@@ -440,11 +431,7 @@ def singleVarHistNoMask(
     """
     samples = list(events_dict.keys())
 
-    h = (
-        Hist.new.StrCat(samples, name="Sample")
-        .Reg(*bins, name=var, label=label)
-        .Weight()
-    )
+    h = Hist.new.StrCat(samples, name="Sample").Reg(*bins, name=var, label=label).Weight()
 
     for sample in samples:
         events = events_dict[sample]
@@ -680,9 +667,7 @@ def getSignalPlotScaleFactor(
     if selection is None:
         data_sum = np.sum(events_dict[data_key][weight_key])
         for sig_key in sig_keys:
-            sig_scale_dict[sig_key] = data_sum / np.sum(
-                events_dict[sig_key][weight_key]
-            )
+            sig_scale_dict[sig_key] = data_sum / np.sum(events_dict[sig_key][weight_key])
     else:
         data_sum = np.sum(events_dict[data_key][weight_key][selection[data_key]])
         for sig_key in sig_keys:
@@ -727,9 +712,7 @@ def rebin_hist(h, axis_name, edges):
         edges[0] > ax.edges[0] and not np.isclose(edges[0], ax.edges[0])
     )
     flow = overflow or underflow
-    new_ax = hist.axis.Variable(
-        edges, name=ax.name, overflow=overflow, underflow=underflow
-    )
+    new_ax = hist.axis.Variable(edges, name=ax.name, overflow=overflow, underflow=underflow)
     axes = list(h.axes)
     axes[ax_idx] = new_ax
 
@@ -752,9 +735,9 @@ def rebin_hist(h, axis_name, edges):
     # Take is used because reduceat sums i:len(array) for the last entry, in the case
     # where the final bin isn't the same between the initial and rebinned histogram, you
     # want to drop this value. Add tolerance of 1/2 min bin width to avoid numeric issues
-    hnew.values(flow=flow)[...] = np.add.reduceat(
-        h.values(flow=flow), edge_idx, axis=ax_idx
-    ).take(indices=range(new_ax.size + underflow + overflow), axis=ax_idx)
+    hnew.values(flow=flow)[...] = np.add.reduceat(h.values(flow=flow), edge_idx, axis=ax_idx).take(
+        indices=range(new_ax.size + underflow + overflow), axis=ax_idx
+    )
     if hnew._storage_type() == hist.storage.Weight():
         hnew.variances(flow=flow)[...] = np.add.reduceat(
             h.variances(flow=flow), edge_idx, axis=ax_idx
