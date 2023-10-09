@@ -8,6 +8,7 @@ Author(s): Cristina Mantilla Suarez, Raghav Kansal
 
 import pickle
 import os
+import yaml
 import argparse
 
 import numpy as np
@@ -27,14 +28,12 @@ def run_dask(p: processor, fileset: dict, args):
 
     tic = time.time()
     cluster = LPCCondorCluster(
-        ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="12GB"
+        ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
     )
     cluster.adapt(minimum=1, maximum=250)
 
     local_dir = os.path.abspath(".")
-    local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet"))
-    if os.path.isdir(local_parquet_dir):
-        os.system(f"rm -rf {local_parquet_dir}")
+    local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet_dask"))
     os.system(f"mkdir {local_parquet_dir}")
 
     with Client(cluster) as client:
@@ -180,12 +179,28 @@ def main(args):
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
     else:
+        if args.yaml:
+            with open(args.yaml, "r") as file:
+                samples_to_submit = yaml.safe_load(file)
+            try:
+                samples_to_submit = samples_to_submit[args.year]
+            except:
+                raise KeyError(f"Year {args.year} not present in yaml dictionary")
+
+            samples = samples_to_submit.keys()
+            subsamples = []
+            for sample in samples:
+                subsamples.extend(samples_to_submit[sample].get("subsamples", []))
+        else:
+            samples = args.samples
+            subsamples = args.subsamples
+
         fileset = run_utils.get_fileset(
             args.processor,
             args.year,
             args.nano_version,
-            args.samples,
-            args.subsamples,
+            samples,
+            subsamples,
             args.starti,
             args.endi,
         )
@@ -218,6 +233,7 @@ if __name__ == "__main__":
         default="files",
         help="sample name of files being run on, if --files option used",
     )
+    parser.add_argument("--yaml", default=None, help="yaml file", type=str)
 
     args = parser.parse_args()
 

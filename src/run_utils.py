@@ -92,7 +92,7 @@ def get_processor(
     elif processor == "matching":
         from HH4b.processors import matchingSkimmer
 
-        return matchingSkimmer()
+        return matchingSkimmer(xsecs=xsecs)
 
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
