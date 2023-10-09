@@ -70,7 +70,7 @@ xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 """
 Cross Sections for 13 TeV.
 """
-xsecs["QCD_HT-50to100-13TeV"] = 2.486e+08
+xsecs["QCD_HT-50to100-13TeV"] = 2.486e08
 xsecs["QCD_HT-100to200-13TeV"] = 27990000.0
 xsecs["QCD_HT-200to300-13TeV"] = 1712000
 xsecs["QCD_HT-300to500-13TeV"] = 347700
@@ -80,14 +80,22 @@ xsecs["QCD_HT-1000to1500-13TeV"] = 1118.0
 xsecs["QCD_HT-1500to2000-13TeV"] = 108.5
 xsecs["QCD_HT-2000toInf-13TeV"] = 21.94
 
-xsecs["GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = 31.05e-3 * 5.824e-01 * 5.824e-01
-xsecs["GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = 0.069725 * 5.824e-01 * 5.824e-01
-xsecs["GluGlutoHHto4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = 0.013124 * 5.824e-01 * 5.824e-01
-xsecs["GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = 0.091172 * 5.824e-01 * 5.824e-01
+xsecs["GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = (
+    31.05e-3 * 5.824e-01 * 5.824e-01
+)
+xsecs["GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = (
+    0.069725 * 5.824e-01 * 5.824e-01
+)
+xsecs["GluGlutoHHto4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = (
+    0.013124 * 5.824e-01 * 5.824e-01
+)
+xsecs["GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = (
+    0.091172 * 5.824e-01 * 5.824e-01
+)
 
-xsecs["TTToHadronic_13TeV"] = 670.3*1.24088*0.667*0.667
-xsecs["TTTo2L2Nu_13TeV"] = 670.3*1.24088*0.333*0.333
-xsecs["TTToSemiLeptonic_13TeV"] = 670.3*1.24088*2*(0.667*0.333)
+xsecs["TTToHadronic_13TeV"] = 670.3 * 1.24088 * 0.667 * 0.667
+xsecs["TTTo2L2Nu_13TeV"] = 670.3 * 1.24088 * 0.333 * 0.333
+xsecs["TTToSemiLeptonic_13TeV"] = 670.3 * 1.24088 * 2 * (0.667 * 0.333)
 
 xsecs["WJetsToQQ_HT-200to400_13TeV"] = 2549.0
 xsecs["WJetsToQQ_HT-400to600_13TeV"] = 277.0

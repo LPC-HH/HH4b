@@ -34,12 +34,14 @@ gen_selection_dict = {
 }
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 MIN_JETS = 4
 MAX_JETS = 4
 HIGGS_MASS = 125.0
+
 
 class matchingSkimmer(processor.ProcessorABC):
     """
@@ -64,9 +66,11 @@ class matchingSkimmer(processor.ProcessorABC):
     JET_ASSIGNMENTS = {}
     for nj in range(MIN_JETS, MAX_JETS + 1):
         a = list(itertools.combinations(range(nj), 2))
-        b = np.array([(i, j) for i, j in itertools.combinations(a, 2) if len(set(i + j)) == MIN_JETS])
+        b = np.array(
+            [(i, j) for i, j in itertools.combinations(a, 2) if len(set(i + j)) == MIN_JETS]
+        )
         JET_ASSIGNMENTS[nj] = b
-        
+
     def __init__(self, xsecs={}):
         super(matchingSkimmer, self).__init__()
 
@@ -113,7 +117,7 @@ class matchingSkimmer(processor.ProcessorABC):
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         btag_vars = {
-            "btagDeepB": "btagDeepB", 
+            "btagDeepB": "btagDeepB",
             "btagDeepFlavB": "btagDeepFlavB",
         }
         # if year != "2018":
@@ -157,13 +161,8 @@ class matchingSkimmer(processor.ProcessorABC):
         jets = jets[ak.argsort(jets.btagDeepFlavB, ascending=False)]
 
         # vbf jets
-        vbf_jets = jets[
-            (jets.pt > 25) 
-            & ( 
-                ((jets.pt < 50) & (jets.puId >=6)) | (jets.pt >=50) 
-            )
-        ]
-        
+        vbf_jets = jets[(jets.pt > 25) & (((jets.pt < 50) & (jets.puId >= 6)) | (jets.pt >= 50))]
+
         # jets p4 corrected by bjet energy regression
         jets_p4 = bregcorr(jets)
 
@@ -173,7 +172,9 @@ class matchingSkimmer(processor.ProcessorABC):
         fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
 
         veto_muon_sel = good_muons(events.Muon, selection=veto_muon_selection_run2_bbbb)
-        veto_electron_sel = good_electrons(events.Electron, selection=veto_electron_selection_run2_bbbb)
+        veto_electron_sel = good_electrons(
+            events.Electron, selection=veto_electron_selection_run2_bbbb
+        )
 
         #########################
         # Save / derive variables
@@ -182,15 +183,18 @@ class matchingSkimmer(processor.ProcessorABC):
 
         # Jet variables
         ak4JetVars = {
-            **{f"ak4Jet{key}": pad_val(getattr(jets_p4, var), num_jets, axis=1) for (var, key) in P4.items()},
-            **{f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1) for (var, key) in btag_vars.items()},
+            **{
+                f"ak4Jet{key}": pad_val(getattr(jets_p4, var), num_jets, axis=1)
+                for (var, key) in P4.items()
+            },
+            **{
+                f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
+                for (var, key) in btag_vars.items()
+            },
         }
 
         # assignment variables
-        ak4JetVars = {
-            **ak4JetVars,
-            **self.getJetAssignmentVars(ak4JetVars)
-        }
+        ak4JetVars = {**ak4JetVars, **self.getJetAssignmentVars(ak4JetVars)}
 
         # FatJet variables
         ak8FatJetVars = {
@@ -213,7 +217,7 @@ class matchingSkimmer(processor.ProcessorABC):
                 f"ak4GenJet{key}": pad_val(events.GenJet[var], num_jets, axis=1)
                 for (var, key) in self.skim_vars["GenJet"].items()
             }
-            
+
             ak8GenJetVars = {
                 f"ak8GenJet{key}": pad_val(events.GenJetAK8[var], num_fatjets, axis=1)
                 for (var, key) in self.skim_vars["GenJet"].items()
@@ -246,7 +250,11 @@ class matchingSkimmer(processor.ProcessorABC):
         # require at least two ak4 jets with Medium DeepJetM score (0.2783 for 2018)
         add_selection("2ak4_b", ak.sum(jets.btagDeepFlavB > 0.2783, axis=1) >= 2, *selection_args)
         # veto leptons
-        add_selection("0lep", (ak.sum(veto_muon_sel, axis=1)==0) & (ak.sum(veto_electron_sel, axis=1)==0), *selection_args)
+        add_selection(
+            "0lep",
+            (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
+            *selection_args,
+        )
 
         ######################
         # Weights
@@ -289,10 +297,10 @@ class matchingSkimmer(processor.ProcessorABC):
 
     def getJetAssignmentVars(self, ak4JetVars, method="dhh"):
         """
-        Calculates Jet assignment variables 
+        Calculates Jet assignment variables
         based on: https://github.com/cjmikkels/spanet_hh_test/blob/main/src/models/test_baseline.py
         """
-        
+
         # just consider top 4 jets (already sorted by b-jet score)
         nj = 4
         jets = vector.array(
@@ -305,7 +313,7 @@ class matchingSkimmer(processor.ProcessorABC):
         )
 
         # get array of dijets for each possible higgs combination
-        jj = (jets[:, self.JET_ASSIGNMENTS[nj][:, :, 0]] + jets[:, self.JET_ASSIGNMENTS[nj][:, :, 1]])
+        jj = jets[:, self.JET_ASSIGNMENTS[nj][:, :, 0]] + jets[:, self.JET_ASSIGNMENTS[nj][:, :, 1]]
         mjj = jj.M
 
         if method == "chi2":
@@ -317,16 +325,18 @@ class matchingSkimmer(processor.ProcessorABC):
 
             # compute \delta d
             k = 125 / 120
-            delta_d = np.absolute(mjj_sorted[:, :, 0] - k * mjj_sorted[:, :, 1]) / np.sqrt(1 + k**2)
+            delta_d = np.absolute(mjj_sorted[:, :, 0] - k * mjj_sorted[:, :, 1]) / np.sqrt(
+                1 + k**2
+            )
 
             # take combination with smallest distance to the diagonal
             index_mindhh = ak.argmin(delta_d, axis=-1)
-            
-            # except, if |dhh^1 - dhh^2| < 30 GeV 
+
+            # except, if |dhh^1 - dhh^2| < 30 GeV
             # this is when the pairing method starts to make mistakes
             d_sorted = ak.sort(delta_d, ascending=False)
             is_dhh_tooclose = (d_sorted[:, 0] - d_sorted[:, 1]) < 30
-                        
+
             # order dijets with the highest sum pt in their own event CoM frame
             # CoM frame of dijets
             cm = jj[:, :, 0] + jj[:, :, 1]
@@ -342,30 +352,28 @@ class matchingSkimmer(processor.ProcessorABC):
         first_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 0, :]
         first_bb_j1 = jets[np.arange(len(jets.pt)), first_bb_pair[:, 0]]
         first_bb_j2 = jets[np.arange(len(jets.pt)), first_bb_pair[:, 1]]
-        first_bb_dijet = (first_bb_j1 + first_bb_j2)
+        first_bb_dijet = first_bb_j1 + first_bb_j2
 
         second_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 1, :]
         second_bb_j1 = jets[np.arange(len(jets.pt)), second_bb_pair[:, 0]]
         second_bb_j2 = jets[np.arange(len(jets.pt)), second_bb_pair[:, 1]]
-        second_bb_dijet = (second_bb_j1 + second_bb_j2)
+        second_bb_dijet = second_bb_j1 + second_bb_j2
 
-        # TODO: sort by dijet pt 
+        # TODO: sort by dijet pt
         # TODO: do this in the indices already)
-        #dijets_pt = np.stack([first_bb_dijet.pt, second_bb_dijet.pt], axis=1)
-        #dijets_pt_index = np.argsort(-dijets_pt, axis=1)
+        # dijets_pt = np.stack([first_bb_dijet.pt, second_bb_dijet.pt], axis=1)
+        # dijets_pt_index = np.argsort(-dijets_pt, axis=1)
 
         jetAssignmentDict = {
             # FIXME: sort by dijet pt
             "ak4DijetPt0": first_bb_dijet.pt,
-            #"ak4DijetEta0": first_bb_dijet.eta,
-            #"ak4DijetPhi0": first_bb_dijet.phi,
-            #"ak4DijetMass0": first_bb_dijet.mass,
+            # "ak4DijetEta0": first_bb_dijet.eta,
+            # "ak4DijetPhi0": first_bb_dijet.phi,
+            # "ak4DijetMass0": first_bb_dijet.mass,
             "ak4DijetPt1": second_bb_dijet.pt,
-            #"ak4DijetEta1": second_bb_dijet.eta,
-            #"ak4DijetPhi1": second_bb_dijet.phi,
-            #"ak4DijetMass1": second_bb_dijet.mass,
+            # "ak4DijetEta1": second_bb_dijet.eta,
+            # "ak4DijetPhi1": second_bb_dijet.phi,
+            # "ak4DijetMass1": second_bb_dijet.mass,
             "ak4DijetDeltaR": first_bb_dijet.deltaR(second_bb_dijet),
         }
         return jetAssignmentDict
-        
-        

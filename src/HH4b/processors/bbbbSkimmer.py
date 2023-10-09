@@ -210,9 +210,11 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         num_leptons = 2
         veto_muon_sel = good_muons(events.Muon, selection=veto_muon_selection_run2_bbbb)
-        veto_electron_sel = good_electrons(events.Electron, selection=veto_electron_selection_run2_bbbb)
-        #muons = events.Muon[good_muons(events.Muon)]
-        #electrons = events.Electron[good_electrons(events.Electron)]
+        veto_electron_sel = good_electrons(
+            events.Electron, selection=veto_electron_selection_run2_bbbb
+        )
+        # muons = events.Muon[good_muons(events.Muon)]
+        # electrons = events.Electron[good_electrons(events.Electron)]
 
         #########################
         # Save / derive variables
@@ -365,7 +367,11 @@ class bbbbSkimmer(processor.ProcessorABC):
         add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
 
         # veto leptons
-        add_selection("0lep", (ak.sum(veto_muon_sel, axis=1)==0) & (ak.sum(veto_electron_sel, axis=1)==0), *selection_args)
+        add_selection(
+            "0lep",
+            (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
+            *selection_args,
+        )
 
         # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations
 

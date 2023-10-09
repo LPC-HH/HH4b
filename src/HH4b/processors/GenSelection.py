@@ -131,7 +131,14 @@ def gen_selection_HHbbbb(
     num_fatjets = 3
     ak8FatJetVars = {
         f"ak8FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
-        for var in ["HiggsMatch", "HiggsMatchIndex", "NumBMatchedH1", "NumBMatchedH2", "MaxdRH1", "MaxdRH2"]
+        for var in [
+            "HiggsMatch",
+            "HiggsMatchIndex",
+            "NumBMatchedH1",
+            "NumBMatchedH2",
+            "MaxdRH1",
+            "MaxdRH2",
+        ]
     }
 
     return {**GenHiggsVars, **GenbVars, **ak4JetVars, **ak8FatJetVars}

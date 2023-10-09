@@ -48,7 +48,7 @@ veto_muon_selection_run2_bbbb = {
 }
 
 veto_electron_selection_run2_bbbb = {
-    "pt": 15, 
+    "pt": 15,
     "eta": 2.4,
     "miniPFRelIso_all": 0.15,
     "id": "cutBased:4",
@@ -71,10 +71,7 @@ ak8_selection = {
 def base_muons(muons: MuonArray):
     # base selection of muons (ref. VBF HH4b boosted Run2)
     sel = (
-        (muons.pt >= 5) 
-        & (abs(muons.eta) <= 2.4) 
-        & (abs(muons.dxy) < 0.05) 
-        & (abs(muons.dz) < 0.2)
+        (muons.pt >= 5) & (abs(muons.eta) <= 2.4) & (abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.2)
     )
     return muons[sel]
 
@@ -116,13 +113,13 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
     )
     if "barrel_dxy" in selection.keys() and "endcap_dxy" in selection.keys():
         sel = sel & (
-            ((abs(electrons.dxy) < selection["barrel_dxy"]) & (abs(electrons.eta) < 1.2)) 
+            ((abs(electrons.dxy) < selection["barrel_dxy"]) & (abs(electrons.eta) < 1.2))
             | ((abs(electrons.dxy) < selection["endcap_dxy"]) & (abs(electrons.eta) >= 1.2))
         )
     if "barrel_dz" in selection.keys() and "endcap_dz" in selection.keys():
         sel = sel & (
             ((abs(electrons.dz) < selection["barrel_dz"]) & (abs(electrons.eta) < 1.2))
-            | ((abs(electrons.dz) < selection["endcap_dz"]) &(abs(electrons.eta) >= 1.2))
+            | ((abs(electrons.dz) < selection["endcap_dz"]) & (abs(electrons.eta) >= 1.2))
         )
     return sel
 
@@ -146,11 +143,10 @@ def good_ak4jets(
 
     return jets[goodjets]
 
+
 # apply ak4 b-jet regression
-def bregcorr(
-    jets: JetArray
-):
-    # pt correction for b-jet energy regression  
+def bregcorr(jets: JetArray):
+    # pt correction for b-jet energy regression
     return ak.zip(
         {
             "pt": jets.pt * jets.bRegCorr,
@@ -160,6 +156,7 @@ def bregcorr(
         },
         with_name="PtEtaPhiELorentzVector",
     )
+
 
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
