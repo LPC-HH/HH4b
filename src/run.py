@@ -65,7 +65,7 @@ def run_dask(p: processor, fileset: dict, args):
                         savemetrics=True,
                         schema=processor.NanoAODSchema,
                         chunksize=args.chunksize,
-                        skipbadfiles=1
+                        skipbadfiles=1,
                     )
                     out, metrics = run({sample: files}, "Events", processor_instance=p)
 
