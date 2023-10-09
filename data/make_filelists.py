@@ -1,8 +1,12 @@
 import json
 import subprocess
-from dbs.apis.dbsClient import DbsApi
+import warnings
 
-dbs = DbsApi("https://cmsweb.cern.ch/dbs/prod/global/DBSReader")
+warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+
+import os
+
+os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
 qcd_bins = [
     # "0to80",
@@ -34,6 +38,51 @@ qcd_ht_bins = [
     "1500to2000",
     "2000",
 ]
+
+qcd_ht_bins_run2 = [
+    "200to300",
+    "300to500",
+    "500to700",
+    "700to1000",
+    "1000to1500",
+    "1500to2000",
+    "2000toInf",
+]
+
+
+def get_v9():
+    return {
+        "2018": {
+            "HH": {
+                # ~ 100k events
+                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "GluGlutoHHto4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+            },
+            "QCD": {
+                **{
+                    f"QCD_HT-{qbin}-13TeV": f"/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                    for qbin in qcd_ht_bins_run2
+                },
+            },
+            "TTbar": {
+                "TTToHadronic_13TeV": "/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "TTTo2L2Nu_13TeV": "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "TTToSemiLeptonic_13TeV": "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+            },
+            "VJets": {
+                "WJetsToQQ_HT-200to400_13TeV": "/WJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-400to600_13TeV": "/WJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-600to800_13TeV": "/WJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-800toInf_13TeV": "/WJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-200to400_13TeV": "/ZJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-400to600_13TeV": "/ZJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-600to800_13TeV": "/ZJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-800toInf_13TeV": "/ZJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+            },
+        }
+    }
 
 
 def get_v10():
@@ -132,11 +181,6 @@ def get_v11():
                 "Zto2Q-4Jets_HT-800": "/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
             },
             "HH": {
-                # ~ 100k events
-                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8_Run2018": "/GluGluToHHTo4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
-                "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8_Run2018": "/GluGluToHHTo4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
-                "GluGlutoHHto4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8_Run2018": "/GluGluToHHTo4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
-                "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8_Run2018": "/GluGluToHHTo4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
                 # 1M
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM",
             },
@@ -470,7 +514,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v10", "v11", "v11_private"]:
+for version in ["v9", "v10", "v11", "v11_private"]
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
@@ -478,9 +522,41 @@ for version in ["v10", "v11", "v11_private"]:
             for sname, dataset in sdict.items():
                 if "private" in version:
                     files = eos_rec_search(dataset, ".root", [])
+                    files = [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
+                    index[year][sample][sname] = files
                 else:
-                    files = [ifile["logical_file_name"] for ifile in dbs.listFiles(dataset=dataset)]
-                index[year][sample][sname] = files
+                    from rucio_utils import get_proxy_path
+                    from rucio_utils import get_dataset_files
+                    import requests
+
+                    proxy = get_proxy_path()
+                    link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
+                    r = requests.get(
+                        link,
+                        cert=proxy,
+                        verify=False,
+                    )
+                    filesjson = r.json()
+                    files = []
+                    for fj in filesjson:
+                        if fj["is_file_valid"] == 0:
+                            print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
+                        else:
+                            files.append(fj["logical_file_name"])
+                            # self.metadata["nevents"] += fj['event_count']
+                            # self.metadata["size"] += fj['file_size']
+                    # Now query rucio to get the concrete dataset passing the sites filtering options
+                    sites_cfg = {
+                        "whitelist_sites": None,
+                        "blacklist_sites": None,
+                        "regex_sites": None,
+                    }
+                    #if "Run2022G" in dataset or "Run2022F" in dataset:
+                    #    sites_cfg["blacklist_sites"] = ["T1_US_FNAL_Disk","T2_DE_DESY","T3_KR_KNU"]
+                    files_rucio, sites = get_dataset_files(
+                        dataset, **sites_cfg, output="first"
+                    )
+                    index[year][sample][sname] = files_rucio
 
     with open(f"nanoindex_{version}.json", "w") as f:
         json.dump(index, f, indent=4)
