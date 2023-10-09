@@ -61,9 +61,24 @@ def get_v9():
             },
             "QCD": {
                 **{
-                    f"QCD_HT-{qbin}": f"/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                    f"QCD_HT-{qbin}-13TeV": f"/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
                     for qbin in qcd_ht_bins_run2
                 },
+            },
+            "TTbar": {
+                "TTToHadronic_13TeV": "/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "TTTo2L2Nu_13TeV": "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+                "TTToSemiLeptonic_13TeV": "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
+            },
+            "VJets": {
+                "WJetsToQQ_HT-200to400_13TeV": "/WJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-400to600_13TeV": "/WJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-600to800_13TeV": "/WJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "WJetsToQQ_HT-800toInf_13TeV": "/WJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-200to400_13TeV": "/ZJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-400to600_13TeV": "/ZJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-600to800_13TeV": "/ZJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
+                "ZJetsToQQ_HT-800toInf_13TeV": "/ZJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM",
             },
         }
     }
@@ -487,7 +502,7 @@ def eos_rec_search(startdir, suffix, dirs):
     donedirs = [[] for d in dirlook]
     for di, d in enumerate(dirlook):
         if d.endswith(suffix):
-            donedirs[di].append(f"root://cmsxrootd-site.fnal.gov/{startdir}/{d}")
+            donedirs[di].append(startdir + "/" + d)
         elif d == "log":
             continue
         else:
@@ -498,7 +513,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v9", "v10", "v11", "v11_private"]:
+for version in ["v9", "v10", "v11", "v11_private"]
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
@@ -506,6 +521,8 @@ for version in ["v9", "v10", "v11", "v11_private"]:
             for sname, dataset in sdict.items():
                 if "private" in version:
                     files = eos_rec_search(dataset, ".root", [])
+                    files = [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
+                    index[year][sample][sname] = files
                 else:
                     from rucio_utils import get_proxy_path
                     from rucio_utils import get_dataset_files
@@ -533,6 +550,8 @@ for version in ["v9", "v10", "v11", "v11_private"]:
                         "blacklist_sites": None,
                         "regex_sites": None,
                     }
+                    #if "Run2022G" in dataset or "Run2022F" in dataset:
+                    #    sites_cfg["blacklist_sites"] = ["T1_US_FNAL_Disk","T2_DE_DESY","T3_KR_KNU"]
                     files_rucio, sites = get_dataset_files(
                         dataset, **sites_cfg, output="first"
                     )
