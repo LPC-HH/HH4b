@@ -54,7 +54,6 @@ def get_v9():
     return {
         "2018": {
             "HH": {
-                # ~ 100k events
                 "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
                 "GluGlutoHHto4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/GluGluToHHTo4B_cHHH2p45_TuneCP5_PSWeights_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM",
@@ -100,6 +99,49 @@ def get_v9():
         }
     }
 
+path_hqu = "/store/group/lpcjme/NanoAOD/NanoAODv9-ParticleNetAK4/2018"
+def get_v9_private():
+    return {
+        "2018": {
+            "HH": {
+                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": f"{path_hqu}/mc/GluGluToHHTo4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+                "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8": f"{path_hqu}/mc/GluGluToHHTo4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+                "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8": f"{path_hqu}/mc/GluGluToHHTo4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+            },
+            "Hbb": {
+                "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8":  f"{path_hqu}/mc/GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8",
+                "VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8",
+                "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8":  f"{path_hqu}/mc/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8",
+            },
+            "Diboson": {
+                "ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8": f"{path_hqu}/mc/ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8",
+            },
+            "QCD": {
+                **{
+                    f"QCD_HT-{qbin}-13TeV": f"{path_hqu}/mc/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8"
+                    for qbin in qcd_ht_bins_run2
+                },
+            },
+            "TTbar": {
+                "TTToHadronic_13TeV": f"{path_hqu}/mc/TTToHadronic_TuneCP5_13TeV-powheg-pythia8",
+                "TTTo2L2Nu_13TeV": f"{path_hqu}/mc/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
+                "TTToSemiLeptonic_13TeV": f"{path_hqu}/mc/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8",
+            },
+            "VJets": {
+                "WJetsToQQ_HT-200to400_13TeV": f"{path_hqu}/mc/WJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-400to600_13TeV": f"{path_hqu}/mc/WJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-600to800_13TeV": f"{path_hqu}/mc/WJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-800toInf_13TeV": f"{path_hqu}/mc/WJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-200to400_13TeV": f"{path_hqu}/mc/ZJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-400to600_13TeV": f"{path_hqu}/mc/ZJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-600to800_13TeV": f"{path_hqu}/mc/ZJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-800toInf_13TeV": f"{path_hqu}/mc/ZJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
+            },
+        }
+    }
 
 def get_v10():
     return {
@@ -530,7 +572,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v9", "v10", "v11", "v11_private"]:
+for version in ["v9", "v10", "v11", "v11_private", "v9_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
