@@ -59,7 +59,9 @@ def run_dask(p: processor, fileset: dict, args):
                         "xrootd_handler"
                     ] = uproot.source.xrootd.MultithreadedXRootDSource
 
-                    executor = processor.DaskExecutor(status=True, client=client, retries=2, treereduction=2)
+                    executor = processor.DaskExecutor(
+                        status=True, client=client, retries=2, treereduction=2
+                    )
                     run = processor.Runner(
                         executor=executor,
                         savemetrics=True,

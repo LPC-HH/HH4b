@@ -227,8 +227,8 @@ class matchingSkimmer(processor.ProcessorABC):
             **skimmed_events,
             **ak4JetVars,
             **ak8FatJetVars,
-            #**ak4GenJetVars,
-            #**ak8GenJetVars,
+            # **ak4GenJetVars,
+            # **ak8GenJetVars,
         }
 
         ######################
