@@ -30,7 +30,7 @@ def run_dask(p: processor, fileset: dict, args):
     cluster = LPCCondorCluster(
         ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
     )
-    cluster.adapt(minimum=1, maximum=300)
+    cluster.adapt(minimum=1, maximum=350)
 
     local_dir = os.path.abspath(".")
     local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet_dask"))
@@ -64,7 +64,7 @@ def run_dask(p: processor, fileset: dict, args):
                         executor=executor,
                         savemetrics=True,
                         schema=processor.NanoAODSchema,
-                        chunksize=20000,
+                        chunksize=10000,
                         # chunksize=args.chunksize,
                         skipbadfiles=1,
                     )
