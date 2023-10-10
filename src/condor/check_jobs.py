@@ -24,7 +24,7 @@ parser.add_argument(
     default="trigger",
     help="which processor",
     type=str,
-    choices=["trigger", "skimmer", "input", "ttsfs"],
+    choices=["trigger_boosted", "skimmer", "matching"],
 )
 
 parser.add_argument("--tag", default="", help="tag for jobs", type=str)
@@ -41,7 +41,7 @@ run_utils.add_bool_arg(
 args = parser.parse_args()
 
 
-eosdir = f"/eos/uscms/store/user/{args.user}/HH4b/{args.processor}/{args.tag}/{args.year}/"
+eosdir = f"/eos/uscms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
 
 samples = listdir(eosdir)
 jdls = [
