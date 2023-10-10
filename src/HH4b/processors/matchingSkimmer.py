@@ -227,8 +227,8 @@ class matchingSkimmer(processor.ProcessorABC):
             **skimmed_events,
             **ak4JetVars,
             **ak8FatJetVars,
-            **ak4GenJetVars,
-            **ak8GenJetVars,
+            #**ak4GenJetVars,
+            #**ak8GenJetVars,
         }
 
         ######################
@@ -367,13 +367,13 @@ class matchingSkimmer(processor.ProcessorABC):
         jetAssignmentDict = {
             # FIXME: sort by dijet pt
             "ak4DijetPt0": first_bb_dijet.pt,
-            # "ak4DijetEta0": first_bb_dijet.eta,
-            # "ak4DijetPhi0": first_bb_dijet.phi,
-            # "ak4DijetMass0": first_bb_dijet.mass,
+            "ak4DijetEta0": first_bb_dijet.eta,
+            "ak4DijetPhi0": first_bb_dijet.phi,
+            "ak4DijetMass0": first_bb_dijet.mass,
             "ak4DijetPt1": second_bb_dijet.pt,
-            # "ak4DijetEta1": second_bb_dijet.eta,
-            # "ak4DijetPhi1": second_bb_dijet.phi,
-            # "ak4DijetMass1": second_bb_dijet.mass,
+            "ak4DijetEta1": second_bb_dijet.eta,
+            "ak4DijetPhi1": second_bb_dijet.phi,
+            "ak4DijetMass1": second_bb_dijet.mass,
             "ak4DijetDeltaR": first_bb_dijet.deltaR(second_bb_dijet),
         }
         return jetAssignmentDict
