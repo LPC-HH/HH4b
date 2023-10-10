@@ -30,7 +30,7 @@ def run_dask(p: processor, fileset: dict, args):
     cluster = LPCCondorCluster(
         ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
     )
-    cluster.adapt(minimum=1, maximum=250)
+    cluster.adapt(minimum=1, maximum=300)
 
     local_dir = os.path.abspath(".")
     local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet_dask"))
@@ -59,12 +59,13 @@ def run_dask(p: processor, fileset: dict, args):
                         "xrootd_handler"
                     ] = uproot.source.xrootd.MultithreadedXRootDSource
 
-                    executor = processor.DaskExecutor(status=True, client=client, retries=2)
+                    executor = processor.DaskExecutor(status=True, client=client, retries=2, treereduction=2)
                     run = processor.Runner(
                         executor=executor,
                         savemetrics=True,
                         schema=processor.NanoAODSchema,
-                        chunksize=args.chunksize,
+                        chunksize=20000,
+                        # chunksize=args.chunksize,
                         skipbadfiles=1,
                     )
                     out, metrics = run({sample: files}, "Events", processor_instance=p)
