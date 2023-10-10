@@ -85,8 +85,9 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     preselection = {
-        "fatjet_pt": 200,
-        "fatjet_msd": 50,
+        "fatjet_pt": 300,
+        "fatjet_msd": 60,
+        "Txbb0": 0.8,
     }
 
     jecs = common.jecs
@@ -314,6 +315,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             **otherVars,
         }
 
+
         ######################
         # Selection
         ######################
@@ -373,14 +375,17 @@ class bbbbSkimmer(processor.ProcessorABC):
             *selection_args,
         )
 
-        # TODO: dijet mass: check if dijet mass cut passes in any of the JEC or JMC variations
 
-        # Txbb pre-selection cut
-        # txbb_cut = (
-        #     ak8FatJetVars["ak8FatJetParticleNetMD_Txbb"]
-        #     >= self.preselection["bbFatJetParticleNetMD_Txbb"]
-        # )
-        # add_selection("ak8bb_txbb", txbb_cut, *selection_args)
+        # TODO: Txbb pre-selection cut on leading jet
+        """
+        txbb_cut = (
+            ak8FatJetVars["ak8FatJetPNetXbb"][:, 0]
+            >= self.preselection["Txbb0"]
+        )
+        add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
+        """
+
+        # TODO: add met filters
 
         ######################
         # Weights
