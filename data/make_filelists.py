@@ -609,11 +609,9 @@ for version in ["v9", "v10", "v11", "v11_private", "v9_private"]:
                         "blacklist_sites": None,
                         "regex_sites": None,
                     }
-                    #if "Run2022G" in dataset or "Run2022F" in dataset:
+                    # if "Run2022G" in dataset or "Run2022F" in dataset:
                     #    sites_cfg["blacklist_sites"] = ["T1_US_FNAL_Disk","T2_DE_DESY","T3_KR_KNU"]
-                    files_rucio, sites = get_dataset_files(
-                        dataset, **sites_cfg, output="first"
-                    )
+                    files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
                     index[year][sample][sname] = files_rucio
 
     with open(f"nanoindex_{version}.json", "w") as f:

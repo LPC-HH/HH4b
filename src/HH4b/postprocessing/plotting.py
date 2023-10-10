@@ -74,13 +74,12 @@ def plot_hists(
     year,
     hists,
     vars_to_plot,
-    luminosity, # float (fb)
+    luminosity,  # float (fb)
     add_data=True,
     add_data_over_mc=True,
-    mult_factor = 1, # multiplicative factor for signal
-    logy=True
+    mult_factor=1,  # multiplicative factor for signal
+    logy=True,
 ):
-
     if add_data_over_mc and not add_data:
         add_data_over_mc = False
 
@@ -94,7 +93,7 @@ def plot_hists(
 
         samples = [h.axes[0].value(i) for i in range(len(h.axes[0].edges))]
 
-        signals = ["hh4b","hh4b-kl0","hh4b-kl2p45","hh4b-kl5"]
+        signals = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
         signal_labels = [label for label in samples if label in signals]
         signal = [h[{"Sample": label}] for label in signal_labels]
         signal_mult = [s * mult_factor for s in signal]
@@ -143,8 +142,8 @@ def plot_hists(
             bkg_bins.append(bins)
 
         hep.histplot(
-            #bkg_hists,
-            #bkg_bins[0],
+            # bkg_hists,
+            # bkg_bins[0],
             bkg,
             ax=ax,
             stack=True,
@@ -172,8 +171,8 @@ def plot_hists(
         tot_err[tot_val_zero_mask] = 0
 
         # plot bkg uncertainty
-        #print(tot.values().shape)
-        #print(tot.axes[0].edges.shape)
+        # print(tot.values().shape)
+        # print(tot.axes[0].edges.shape)
         ax.stairs(
             values=tot.values() + tot_err,
             baseline=tot.values() - tot_err,
@@ -221,7 +220,7 @@ def plot_hists(
                 #     tot_signal = tot_signal + signal[i]
 
             # plot the total signal (w/o scaling)
-            #hep.histplot(tot_signal, ax=ax, label="Total signal", linewidth=3, color="tab:red")
+            # hep.histplot(tot_signal, ax=ax, label="Total signal", linewidth=3, color="tab:red")
 
             # add MC stat errors for total signal
             # ax.stairs(
@@ -229,7 +228,7 @@ def plot_hists(
             #     baseline=tot_signal.values() - np.sqrt(tot_signal.values()),
             #    edges=sig.axes[0].edges,
             #   **errps,
-            #)
+            # )
 
         ax.set_ylabel("Events")
         ax.set_xlabel("")
