@@ -17,20 +17,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import run_utils
 
 
-def add_bool_arg(parser, name, help, default=False, no_name=None):
-    """Add a boolean command line argument for argparse"""
-    varname = "_".join(name.split("-"))  # change hyphens to underscores
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("--" + name, dest=varname, action="store_true", help=help)
-    if no_name is None:
-        no_name = "no-" + name
-        no_help = "don't " + help
-    else:
-        no_help = help
-    group.add_argument("--" + no_name, dest=varname, action="store_false", help=no_help)
-    parser.set_defaults(**{varname: default})
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
@@ -64,7 +50,6 @@ if __name__ == "__main__":
             args.samples = [sample]
             args.subsamples = sdict.get("subsamples", [])
             args.files_per_job = sdict["files_per_job"]
-            args.njets = sdict.get("njets", 2)
             args.maxchunks = sdict.get("maxchunks", 0)
             args.chunksize = sdict.get("chunksize", 10000)
             args.tag = tag

@@ -11,6 +11,9 @@ from hist import Hist
 
 from .utils import add_selection, P4, pad_val
 from .objects import get_ak8jets, good_ak4jets
+from .corrections import (
+    get_jec_jets,
+)
 
 import warnings
 
@@ -268,6 +271,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         """Returns processed information for trigger studies"""
 
         year = events.metadata["dataset"][:4]
+        isData = not hasattr(events, "genWeight")
 
         selection = PackedSelection()
 
@@ -305,7 +309,9 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         # Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
-        fatjets = get_jec_jets(events, fatjets, year, isData, jecs=None)
+        fatjets = get_jec_jets(
+            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True
+        )
 
         fatjet_selector = (
             (fatjets.pt > self.preselection["fatjet_pt"])
@@ -333,10 +339,12 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
 
         # add ht variable
-        jets = get_jec_jets(events, events.Jet, year, isData, jecs=None, fatjets=False)
+        jets = get_jec_jets(
+            events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True
+        )
         jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         ht = ak.sum(jets.pt, axis=1)
-        skimmed_events["ht"] = ht
+        # skimmed_events["ht"] = ht.to_numpy()
 
         # trigger objects
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'

@@ -74,29 +74,71 @@ def gen_selection_HHbbbb(
     bs = ak.flatten(higgs_children[is_bb], axis=2)
     GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
 
+    bs_unflat = higgs_children[is_bb]
+    b_h1 = higgs_children[is_bb][:, 0]
+    b_h2 = higgs_children[is_bb][:, 1]
+
     # match jets to each b-quark
-    num_jets = 6
-    # is the jet matched to the Higgs decay products?
-    jets["HiggsMatch"] = ak.any(jets.metric_table(bs) < 0.4, axis=2)
-    # index of higgs to which the jet is closest to
+    matched_to_bs = jets.metric_table(bs_unflat) < 0.4
+    num_b_matched = ak.sum(matched_to_bs, axis=2)
+    matched_to_higgs = jets.metric_table(higgs) < 0.5
+
+    # require 1 b matched to the jet (but not necessarily matched to the Higgs)
+    is_matched = num_b_matched == 1
+    is_jet_matched = ak.any(is_matched, axis=2)
+    jets["HiggsMatch"] = is_jet_matched
+
+    # index of the higgs to which the jet is closest to
+    # This line in particular is taking ak.argmin (index of the b quark that is closest to the jet)
+    # we take np.floor of the number divided by 2 to get the index of the higgs
+    #  e.g. if it is matched to b quarks 0 or 1 => HiggsMatchIndex = 0
+    #  e.g. if it is matched to b quarks 2 or 3 => HiggsMatchIndex = 1
     jets["HiggsMatchIndex"] = ak.mask(
         np.floor(ak.argmin(jets.metric_table(bs), axis=2) / 2), jets["HiggsMatch"] == 1
     )
+
+    num_jets = 6
     ak4JetVars = {
         f"ak4Jet{var}": pad_val(jets[var], num_jets, axis=1)
         for var in ["HiggsMatch", "HiggsMatchIndex", "hadronFlavour"]
     }
 
     # match fatjets to bb
-    num_fatjets = 3
-    fatjets["HiggsMatch"] = ak.any(fatjets.metric_table(higgs) < 0.8, axis=2)
+    num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
+    matched_to_higgs = fatjets.metric_table(higgs) < 0.8
+
+    # require 2 bs matched to the jet
+    is_matched = matched_to_higgs
+    is_fatjet_matched = ak.any(is_matched, axis=2)
+
+    fatjets["HiggsMatch"] = is_fatjet_matched
     fatjets["HiggsMatchIndex"] = ak.mask(
         ak.argmin(fatjets.metric_table(higgs), axis=2), fatjets["HiggsMatch"] == 1
     )
-    fatjets["NumBMatched"] = ak.sum(fatjets.metric_table(bs) < 0.8, axis=2)
+    fatjets["NumBMatchedH1"] = ak.sum(fatjets.metric_table(b_h1) < 0.8, axis=2)
+    fatjets["NumBMatchedH2"] = ak.sum(fatjets.metric_table(b_h2) < 0.8, axis=2)
+    fatjets["MaxdRH1"] = ak.max(fatjets.metric_table(b_h1), axis=2)
+    fatjets["MaxdRH2"] = ak.max(fatjets.metric_table(b_h2), axis=2)
+
+    # print("h1 ",fatjets.metric_table(b_h1) < 0.8)
+    # print("h1sum ", ak.sum(fatjets.metric_table(b_h1) < 0.8, axis=2))
+    # print("bsdr ",fatjets.metric_table(bs_unflat))
+    # print("bs ",fatjets.metric_table(bs_unflat) < 0.8)
+    # print("numb ",num_b_matched)
+    # print("drhiggs", fatjets.metric_table(higgs) < 0.8)
+    # print(fatjets["HiggsMatchIndex"])
+
+    num_fatjets = 3
     ak8FatJetVars = {
         f"ak8FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
-        for var in ["HiggsMatch", "HiggsMatchIndex", "NumBMatched"]
+        for var in [
+            "HiggsMatch",
+            "HiggsMatchIndex",
+            "NumBMatchedH1",
+            "NumBMatchedH2",
+            "MaxdRH1",
+            "MaxdRH2",
+        ]
     }
 
     return {**GenHiggsVars, **GenbVars, **ak4JetVars, **ak8FatJetVars}
