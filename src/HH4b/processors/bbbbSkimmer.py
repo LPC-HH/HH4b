@@ -37,6 +37,8 @@ from .common import LUMI, jec_shifts, jmsr_shifts
 from .objects import *
 from . import common
 
+import time
+
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
@@ -163,6 +165,9 @@ class bbbbSkimmer(processor.ProcessorABC):
     def process(self, events: ak.Array):
         """Runs event processor for different types of jets"""
 
+        start = time.time()
+        print("Starting")
+
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
@@ -216,6 +221,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         # muons = events.Muon[good_muons(events.Muon)]
         # electrons = events.Electron[good_electrons(events.Electron)]
+
+        print("Objects", f"{time.time() - start:.2f}")
 
         #########################
         # Save / derive variables
@@ -289,7 +296,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         """
 
         eventVars = {
-            key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events
+            key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events.fields
         }
 
         if isData:
@@ -297,6 +304,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         else:
             eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
             pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
+
         pileupVars = {**pileupVars, **{"nPV": events.PV["npvs"].to_numpy()}}
 
         otherVars = {
@@ -314,6 +322,8 @@ class bbbbSkimmer(processor.ProcessorABC):
             **pileupVars,
             **otherVars,
         }
+
+        print("Vars", f"{time.time() - start:.2f}")
 
         ######################
         # Selection
@@ -384,6 +394,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         """
 
         # TODO: add met filters
+
+        print("Selection", f"{time.time() - start:.2f}")
 
         ######################
         # Weights
@@ -464,8 +476,12 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         df = self.to_pandas(skimmed_events)
 
+        print("To Pandas", f"{time.time() - start:.2f}")
+
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(df, fname)
+
+        print("Dump table", f"{time.time() - start:.2f}")
 
         if self._save_array:
             output = {}
@@ -473,6 +489,8 @@ class bbbbSkimmer(processor.ProcessorABC):
                 if isinstance(key, tuple):
                     column = "".join(str(k) for k in key)
                 output[column] = processor.column_accumulator(df[key].values)
+
+            print("Save Array", f"{time.time() - start:.2f}")
             return {
                 "array": output,
                 "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
