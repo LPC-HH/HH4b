@@ -315,7 +315,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             **otherVars,
         }
 
-
         ######################
         # Selection
         ######################
@@ -391,7 +390,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
             *selection_args,
         )
-
 
         # TODO: Txbb pre-selection cut on leading jet
         """

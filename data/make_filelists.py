@@ -99,7 +99,10 @@ def get_v9():
         }
     }
 
+
 path_hqu = "/store/group/lpcjme/NanoAOD/NanoAODv9-ParticleNetAK4/2018"
+
+
 def get_v9_private():
     return {
         "2018": {
@@ -109,12 +112,12 @@ def get_v9_private():
                 "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8": f"{path_hqu}/mc/GluGluToHHTo4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8",
             },
             "Hbb": {
-                "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8":  f"{path_hqu}/mc/GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8",
+                "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8": f"{path_hqu}/mc/GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8",
                 "VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8",
                 "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
                 "WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
                 "ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
-                "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8":  f"{path_hqu}/mc/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8",
+                "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": f"{path_hqu}/mc/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8",
             },
             "Diboson": {
                 "ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8": f"{path_hqu}/mc/ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8",
@@ -142,6 +145,7 @@ def get_v9_private():
             },
         }
     }
+
 
 def get_v10():
     return {
