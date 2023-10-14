@@ -2073,6 +2073,21 @@
                 "root://dcache-cms-xrootd.desy.de:1094//store/mc/Run3Summer22EENanoAODv11/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/40000/bdd96750-c8cf-4898-8117-99172cf09f5c.root"
             ]
         },
+        "HH": {
+            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": [
+                "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/d00363f4-0cac-410d-8fc7-bb6f60ccb6cd.root",
+                "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ee9ea1b0-ee93-46b1-b2b9-164cf499ef22.root"
+            ],
+            "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": [
+                "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/2550000/3a36fbef-8b49-43f3-b697-7ab50ad61157.root"
+            ],
+            "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": [
+                "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/08ce86f8-2371-4ac0-a032-f42b2c31a26d.root"
+            ],
+            "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": [
+                "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff50a677-99ec-4148-9c88-648dad33766b.root"
+            ]
+        },
         "HHH6b": {
             "HHHTo6B_c3_0_d4_0": [
                 "root://eoscms.cern.ch//eos/cms//store/mc/Run3Summer22EENanoAODv11/HHHTo6B_c3_0_d4_0_TuneCP5_13p6TeV_amcatnlo-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/70000/0018c830-20c6-4b5e-95c2-7f2f67604be5.root",
@@ -4331,6 +4346,8 @@
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/2830000/f5b09b37-e20d-4785-a552-f1c40e6da40d.root",
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/2830000/fad49dc7-eec0-41e8-82a1-6511d4957cff.root",
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/2830000/ff330486-39ea-4f25-aed5-8c472a153617.root",
+                "root://ccxrdcms.in2p3.fr:1094/pnfs/in2p3.fr/data/cms/disk/data//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/50000/7f20990d-b962-44bb-8381-8f11fd906adb.root",
+                "root://ccxrdcms.in2p3.fr:1094/pnfs/in2p3.fr/data/cms/disk/data//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/50000/f0399f5d-16c7-4af1-9b77-d867cfdb1723.root",
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/60000/0191da39-ff05-4bfa-91bd-ce40a6acb626.root",
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/60000/05fbcd40-4abc-480f-a107-0bcf8cc0da2d.root",
                 "root://eos.grid.vbc.ac.at:1094//eos/vbc/experiments/cms//store/mc/Run3Summer22EENanoAODv11/QCDB-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v2/60000/06f1c05f-9923-40c9-a370-c6b19457cf21.root",
