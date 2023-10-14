@@ -3,7 +3,6 @@ cachetools==5.3.1
 coffea==0.7.21
 colorama==0.4.6
 correctionlib==2.2.2
-dbs==0.1.5
 hist==2.7.1
 numpy==1.23.5
 pandas==2.0.3
