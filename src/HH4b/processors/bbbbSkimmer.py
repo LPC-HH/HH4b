@@ -353,12 +353,12 @@ class bbbbSkimmer(processor.ProcessorABC):
             "BadPFMuonDzFilter",
             "eeBadScFilter",
             "ecalBadCalibFilter"
-            ]
+        ]
         metfilters = np.ones(len(events), dtype="bool")
         metfilterkey = "data" if isData else "mc"
         for mf in met_filters:
             if mf in events.Flag.fields:
-            metfilters = metfilters & events.Flag[mf]
+                metfilters = metfilters & events.Flag[mf]
         add_selection("met_filters", metfilters, *selection_args)
 
         # jet veto map for 2022
