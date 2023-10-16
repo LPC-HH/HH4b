@@ -23,7 +23,7 @@ from hist import Hist
 
 import warnings
 
-from hh_vars import samples, data_key
+from hh_vars import samples, data_key, jec_shifts, jmsr_shifts
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
@@ -446,7 +446,6 @@ def check_get_jec_var(var, jshift):
 
 def _var_selection(
     events: pd.DataFrame,
-    bb_mask: pd.DataFrame,
     var: str,
     brange: List[float],
     MAX_VAL: float = CUT_MAX_VAL,
@@ -460,7 +459,7 @@ def _var_selection(
 
     # OR the different vars
     for var in cut_vars:
-        vals = get_feat(events, var, bb_mask)
+        vals = get_feat(events, var)
 
         if rmin == -CUT_MAX_VAL:
             sels.append(vals < rmax)
@@ -481,8 +480,7 @@ def _var_selection(
 def make_selection(
     var_cuts: Dict[str, List[float]],
     events_dict: Dict[str, pd.DataFrame],
-    bb_masks: Dict[str, pd.DataFrame],
-    weight_key: str = "finalWeight",
+    weight_key: str = "weight",
     prev_cutflow: dict = None,
     selection: Dict[str, np.ndarray] = None,
     jshift: str = "",
@@ -526,7 +524,6 @@ def make_selection(
     cutflow = {}
 
     for sample, events in events_dict.items():
-        bb_mask = bb_masks[sample]
         if sample not in cutflow:
             cutflow[sample] = {}
 
@@ -546,7 +543,7 @@ def make_selection(
                 sels = []
                 selstrs = []
                 for brange in branges:
-                    sel, selstr = _var_selection(events, bb_mask, var, brange, MAX_VAL)
+                    sel, selstr = _var_selection(events, var, brange, MAX_VAL)
                     sels.append(sel)
                     selstrs.append(selstr)
 
@@ -562,7 +559,7 @@ def make_selection(
                     weight_key,
                 )
             else:
-                sel, selstr = _var_selection(events, bb_mask, var, branges, MAX_VAL)
+                sel, selstr = _var_selection(events, var, branges, MAX_VAL)
                 add_selection(
                     selstr,
                     sel,

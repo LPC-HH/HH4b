@@ -1,3 +1,7 @@
+# in pb^-1
+LUMI = {"2022EE": 20700}
+
+# sample key -> list of samples
 samples = {
     "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
     "qcd": [
@@ -61,3 +65,7 @@ data_key = "data"
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb"]
 bg_keys = ["qcd", "ttbar", "diboson", "vjets"] + hbb_bg_keys
 sig_keys = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
+
+# TODO
+jec_shifts = {}
+jmsr_shifts = {}
