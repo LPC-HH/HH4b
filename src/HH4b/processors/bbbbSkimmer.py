@@ -352,7 +352,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "ecalBadCalibFilter",
         ]
         metfilters = np.ones(len(events), dtype="bool")
         metfilterkey = "data" if isData else "mc"

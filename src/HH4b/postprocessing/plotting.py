@@ -82,7 +82,7 @@ def plot_hists(
     density=False,
     stack=True,
     bbox_to_anchor=(1.05, 1),
-    energy=13.6
+    energy=13.6,
 ):
     if add_data_over_mc and not add_data:
         add_data_over_mc = False
@@ -153,7 +153,7 @@ def plot_hists(
                 "edgecolor": "black",
             }
         else:
-             bkg_args = {
+            bkg_args = {
                 "histtype": "step",
             }
 
@@ -259,7 +259,9 @@ def plot_hists(
             ax.set_xlabel(f"{h.axes[-1].label}")
 
         if luminosity:
-            hep.cms.lumitext("%.1f " % luminosity + r"fb$^{-1}$" + f"({energy} TeV)", ax=ax, fontsize=20)
+            hep.cms.lumitext(
+                "%.1f " % luminosity + r"fb$^{-1}$" + f"({energy} TeV)", ax=ax, fontsize=20
+            )
             hep.cms.text("Internal", ax=ax, fontsize=15)
 
         # add legend
@@ -281,17 +283,16 @@ def plot_hists(
             order.append(np.argmax(np.array(summ)))
             summ[np.argmax(np.array(summ))] = -100
 
-        #print(labels)
-        #print(labels[-1])
+        # print(labels)
+        # print(labels[-1])
         if add_data:
             legend_handles = [handles[-1]] + [handles[i] for i in order] + handles[len(bkg) : -1]
             legend_labels = [labels[-1]] + [labels[i] for i in order] + labels[len(bkg) : -1]
             loc = "upper left"
         else:
-            legend_handles = [handles[i] for i in order] + handles[len(bkg):]
-            legend_labels = [labels[i] for i in order] + labels[len(bkg):]
+            legend_handles = [handles[i] for i in order] + handles[len(bkg) :]
+            legend_labels = [labels[i] for i in order] + labels[len(bkg) :]
             loc = "best"
-            
 
         ax.legend(
             [legend_handles[idx] for idx in range(len(legend_handles))],
