@@ -6,7 +6,7 @@ import click
 import pickle, json
 import utils
 import plotting
-from hh_vars import samples, data_key, bg_keys, sig_keys
+from hh_vars import years, samples, data_key, bg_keys, sig_keys, sig_keys_ggf, sig_keys_vbf
 
 from copy import deepcopy
 import logging
@@ -27,6 +27,23 @@ from dataclasses import dataclass, field
 class Region:
     cuts: Dict = None
     label: str = None
+
+
+@dataclass
+class Syst:
+    samples: List[str] = None
+    years: List[str] = field(default_factory=lambda: years)
+    label: str = None
+
+
+weight_shifts = {
+    "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
+    # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
+    # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
+    # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
+    # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
+    # "top_pt": ["ttbar"],
+}
 
 
 var_to_shapevar = {
@@ -60,65 +77,8 @@ var_to_shapevar = {
 )
 def postprocess(years):
     # TODO: set this as a yaml file
-    dirs = {
-        "/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": {
-            "qcd": [
-                "QCD_PT-120to170",
-                "QCD_PT-170to300",
-                "QCD_PT-470to600",
-                "QCD_PT-600to800",
-                "QCD_PT-800to1000",
-                "QCD_PT-1000to1400",
-                "QCD_PT-1400to1800",
-                "QCD_PT-1800to2400",
-                "QCD_PT-2400to3200",
-                "QCD_PT-3200",
-            ],
-            "data": [
-                "Run2022F",
-                "Run2022G",
-            ],
-            "ttbar": [
-                "TTtoLNu2Q",
-                "TTto4Q",
-                "TTto2L2Nu",
-            ],
-            "gghtobb": [
-                "GluGluHto2B_PT-200_M-125",
-            ],
-            "vbfhtobb": [
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "vhtobb": [
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_WtoLNu_M-125",
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WminusH_Hto2B_WtoLNu_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2L_M-125",
-                "ggZH_Hto2B_Zto2Nu_M-125",
-            ],
-            "tthtobb": [
-                "ttHto2B_M-125",
-            ],
-            "diboson": [
-                "ZZ",
-                "WW",
-                "WZ",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
-        }
-    }
+    dirs = {"/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": samples}
+
     samples_to_fill = [
         "data",
         "qcd",
