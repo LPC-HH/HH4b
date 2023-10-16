@@ -5,6 +5,7 @@ test.ipynb
 **/.DS_Store
 outfiles
 plots
+cards
 docker_stderror
 *.jdl
 *.sh
