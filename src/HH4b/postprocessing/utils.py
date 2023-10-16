@@ -23,6 +23,8 @@ from hist import Hist
 
 import warnings
 
+from hh_vars import samples, data_key
+
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
 
@@ -129,34 +131,16 @@ def check_selector(sample: str, selector: Union[str, List[str]]):
     return False
 
 
-def _hem_cleaning(sample, events):
-    if "ak8FatJetEta" not in events:
-        warnings.warn("Can't do HEM cleaning!")
-        return events
-
-    if sample.startswith("JetHT") or sample.startswith("SingleMuon"):
-        if sample.endswith("2018C") or sample.endswith("2018D"):
-            hem_cut = np.any(
-                (events["ak8FatJetEta"] > -3.2)
-                & (events["ak8FatJetEta"] < -1.3)
-                & (events["ak8FatJetPhi"] > -1.57)
-                & (events["ak8FatJetPhi"] < -0.87),
-                axis=1,
-            )
-            print(f"Removing {np.sum(hem_cut)} events")
-            return events[~hem_cut]
-        else:
-            return events
-    else:
-        hem_cut = np.any(
-            (events["ak8FatJetEta"] > -3.2)
-            & (events["ak8FatJetEta"] < -1.3)
-            & (events["ak8FatJetPhi"] > -1.57)
-            & (events["ak8FatJetPhi"] < -0.87),
-            axis=1,
-        ) & (np.random.rand(len(events)) < 0.632)
-        print(f"Removing {np.sum(hem_cut)} events")
-        return events[~hem_cut]
+def format_columns(columns: List):
+    """
+    Reformat input of (`column name`, `num columns`) into (`column name`, `idx`) format for
+    reading multiindex columns
+    """
+    ret_columns = []
+    for key, num_columns in columns:
+        for i in range(num_columns):
+            ret_columns.append(f"('{key}', '{i}')")
+    return ret_columns
 
 
 def load_samples(
@@ -165,7 +149,7 @@ def load_samples(
     year: str,
     filters: List = None,
     columns: List = None,
-    data_key: str = "data",
+    columns_mc: List = None,
 ) -> Dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -198,10 +182,11 @@ def load_samples(
                 logging.warning(f"No parquet file for {sample}")
                 continue
 
+            load_columns = columns if label == data_key else columns_mc
+
             print(f"Loading {sample}")
-            print(f"{data_dir}/{year}/{sample}/parquet")
             events = pd.read_parquet(
-                f"{data_dir}/{year}/{sample}/parquet", filters=filters, columns=columns
+                f"{data_dir}/{year}/{sample}/parquet", filters=filters, columns=load_columns
             )
             not_empty = len(events) > 0
             pickles_path = f"{data_dir}/{year}/{sample}/pickles"
@@ -215,17 +200,7 @@ def load_samples(
                             logging.warning(f"{sample} has not been scaled by its xsec and lumi")
 
                     events["weight_nonorm"] = events["weight"]
-
-                    if "weight_noTrigEffs" in events and not np.all(
-                        np.isclose(events["weight"], events["weight_noTrigEffs"], rtol=1e-5)
-                    ):
-                        events["finalWeight"] = events["weight"] / n_events
-                        events["finalWeight_noTrigEffs"] = events["weight_noTrigEffs"] / n_events
-                    else:
-                        events["weight"] /= n_events
-                        events["finalWeight"] = events["weight"]
-            else:
-                events["finalWeight"] = events["weight"]
+                    events["weight"] /= n_events
 
             if not_empty:
                 events_dict[label].append(events)

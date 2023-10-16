@@ -1,5 +1,9 @@
+from typing import List, Dict
 from hist.intervals import ratio_uncertainty
+from hh_vars import LUMI, data_key, sig_keys, hbb_bg_keys
 
+import hist
+from hist import Hist
 import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
@@ -32,6 +36,7 @@ errps = {
     "linewidth": 0,
     "alpha": 0.4,
 }
+
 data_err_opts = {
     "linestyle": "none",
     "marker": ".",
@@ -69,6 +74,8 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$",
 }
 
+bg_order = ["ttbar", "qcd"]
+
 
 def plot_hists(
     year,
@@ -93,8 +100,7 @@ def plot_hists(
 
         samples = [h.axes[0].value(i) for i in range(len(h.axes[0].edges))]
 
-        signals = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
-        signal_labels = [label for label in samples if label in signals]
+        signal_labels = [label for label in samples if label in sig_keys]
         signal = [h[{"Sample": label}] for label in signal_labels]
         signal_mult = [s * mult_factor for s in signal]
 
@@ -283,3 +289,355 @@ def plot_hists(
             os.makedirs(outpath)
 
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
+
+
+def _combine_hbb_bgs(hists, bg_keys):
+    # skip this if no hbb bg keys specified
+    if len(set(bg_keys) & set(hbb_bg_keys)) == 0:
+        return hists, bg_keys
+
+    # combine all hbb backgrounds into a single "Hbb" background for plotting
+    hbb_hists = []
+    for key in hbb_bg_keys:
+        if key in bg_keys:
+            hbb_hists.append(hists[key, ...])
+            bg_keys.remove(key)
+
+    if "Hbb" not in bg_keys:
+        bg_keys.append("Hbb")
+
+    hbb_hist = sum(hbb_hists)
+
+    # have to recreate hist with "Hbb" sample included
+    h = Hist(
+        hist.axis.StrCategory(list(hists.axes[0]) + ["Hbb"], name="Sample"),
+        *hists.axes[1:],
+        storage="weight",
+    )
+
+    for i, sample in enumerate(hists.axes[0]):
+        h.view()[i] = hists[sample, ...].view()
+
+    h.view()[-1] = hbb_hist
+
+    return h, bg_keys
+
+
+def _process_samples(sig_keys, bg_keys, bg_colours, sig_scale_dict, variation):
+    # set up samples, colours and labels
+    bg_keys = [key for key in bg_order if key in bg_keys]
+    bg_colours = [colours[bg_colours[sample]] for sample in bg_keys]
+    bg_labels = deepcopy(bg_keys)
+
+    if sig_scale_dict is None:
+        sig_scale_dict = OrderedDict([(sig_key, 1.0) for sig_key in sig_keys])
+    else:
+        sig_scale_dict = deepcopy(sig_scale_dict)
+
+    sig_labels = OrderedDict()
+    for sig_key, sig_scale in sig_scale_dict.items():
+        label = sig_key if sig_key not in sample_label_map else sample_label_map[sig_key]
+
+        if sig_scale == 1:
+            label = label
+        elif sig_scale <= 100:
+            label = f"{label} $\\times$ {sig_scale:.0f}"
+        else:
+            label = f"{label} $\\times$ {sig_scale:.1e}"
+
+        sig_labels[sig_key] = label
+
+    # set up systematic variations if needed
+    if variation is not None:
+        wshift, shift, wsamples = variation
+        skey = {"up": " Up", "down": " Down"}[shift]
+
+        for i, key in enumerate(bg_keys):
+            if key in wsamples:
+                bg_keys[i] += f"_{wshift}_{shift}"
+                bg_labels[i] += skey
+
+        for sig_key in list(sig_scale_dict.keys()):
+            if sig_key in wsamples:
+                new_key = f"{sig_key}_{wshift}_{shift}"
+                sig_scale_dict[new_key] = sig_scale_dict[sig_key]
+                sig_labels[new_key] = sig_labels[sig_key] + skey
+                del sig_scale_dict[sig_key], sig_labels[sig_key]
+
+    return bg_keys, bg_colours, bg_labels, sig_scale_dict, sig_labels
+
+
+def _divide_bin_widths(hists, data_err):
+    """Divide histograms by bin widths"""
+    edges = hists.axes[1].edges
+    bin_widths = edges[1:] - edges[:-1]
+
+    if data_err is None:
+        data_err = (
+            np.abs(poisson_interval(hists[data_key, ...]) - hists[data_key, ...]) / bin_widths
+        )
+
+    hists = hists / bin_widths[np.newaxis, :]
+    return hists, data_err
+
+
+def _fill_error(ax, edges, down, up, scale=1):
+    ax.fill_between(
+        np.repeat(edges, 2)[1:-1],
+        np.repeat(down, 2) * scale,
+        np.repeat(up, 2) * scale,
+        color="black",
+        alpha=0.2,
+        hatch="//",
+        linewidth=0,
+    )
+
+
+def _asimov_significance(s, b):
+    """Asimov estimate of discovery significance (with no systematic uncertainties).
+    See e.g. https://www.pp.rhul.ac.uk/~cowan/atlas/cowan_atlas_15feb11.pdf.
+    Or for more explanation: https://www.pp.rhul.ac.uk/~cowan/stat/cowan_munich16.pdf
+    """
+    return np.sqrt(2 * ((s + b) * np.log(1 + (s / b)) - s))
+
+
+def ratioHistPlot(
+    hists: Hist,
+    year: str,
+    sig_keys: List[str],
+    bg_keys: List[str],
+    sig_colours: List[str] = sig_colours,
+    bg_colours: Dict[str, str] = bg_colours,
+    sig_err: Union[ArrayLike, str] = None,
+    data_err: Union[ArrayLike, bool, None] = None,
+    title: str = None,
+    blind_region: list = None,
+    name: str = "",
+    sig_scale_dict: OrderedDict[str, float] = None,
+    ylim: int = None,
+    show: bool = True,
+    variation: Tuple = None,
+    plot_data: bool = True,
+    bg_order: List[str] = bg_order,
+    log: bool = False,
+    ratio_ylims: List[float] = [0, 2],
+    divide_bin_width: bool = False,
+    plot_significance: bool = False,
+    significance_dir: str = "right",
+    axrax: Tuple = None,
+):
+    """
+    Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
+    scaled) with a data/mc ratio plot below
+
+    Args:
+        hists (Hist): input histograms per sample to plot
+        year (str): datataking year
+        sig_keys (List[str]): signal keys
+        bg_keys (List[str]): background keys
+        sig_colours (Dict[str, str], optional): dictionary of colours per signal. Defaults to sig_colours.
+        bg_colours (Dict[str, str], optional): dictionary of colours per background. Defaults to bg_colours.
+        sig_err (Union[ArrayLike, str], optional): plot error on signal.
+          if string, will take up down shapes from the histograms (assuming they're saved as "{sig_key}_{sig_err}_{up/down}")
+          if 1D Array, will take as error per bin
+        data_err (Union[ArrayLike, bool, None], optional): plot error on data.
+          if True, will plot poisson error per bin
+          if array, will plot given errors per bin
+        title (str, optional): plot title. Defaults to None.
+        blind_region (list): [min, max] range of values which should be blinded in the plot
+          i.e. Data set to 0 in those bins
+        name (str): name of file to save plot
+        sig_scale_dict (Dict[str, float]): if scaling signals in the plot, dictionary of factors
+          by which to scale each signal
+        ylim (optional): y-limit on plot
+        show (bool): show plots or not
+        variation (Tuple): Tuple of
+          (wshift: name of systematic e.g. pileup, shift: up or down, wsamples: list of samples which are affected by this)
+        plot_data (bool): plot data
+        bg_order (List[str]): order in which to plot backgrounds
+        ratio_ylims (List[float]): y limits on the ratio plots
+        plot_significance (bool): plot Asimov significance below ratio plot
+        significance_dir (str): "Direction" for significance. i.e. a > cut ("right"), a < cut ("left"), or per-bin ("bin").
+        axrax (Tuple): optionally input ax and rax instead of creating new ones
+    """
+
+    # copy hists and bg_keys so input objects are not changed
+    hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
+    hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
+
+    bg_keys, bg_colours, bg_labels, sig_scale_dict, sig_labels = _process_samples(
+        sig_keys, bg_keys, bg_colours, sig_scale_dict, variation
+    )
+
+    pre_divide_hists = hists
+    if divide_bin_width:
+        hists, data_err = _divide_bin_widths(hists, data_err)
+
+    # set up plots
+    if axrax is not None:
+        if plot_significance:
+            raise RuntimeError("Significance plots with input axes not implemented yet.")
+
+        ax, rax = axrax
+        ax.sharex(rax)
+    elif plot_significance:
+        fig, (ax, rax, sax) = plt.subplots(
+            3, 1, figsize=(12, 18), gridspec_kw=dict(height_ratios=[3, 1, 1], hspace=0), sharex=True
+        )
+    else:
+        fig, (ax, rax) = plt.subplots(
+            2, 1, figsize=(12, 14), gridspec_kw=dict(height_ratios=[3, 1], hspace=0), sharex=True
+        )
+
+    # plot histograms
+    y_label = r"Events / Bin Width (GeV$^{-1}$)" if divide_bin_width else "Events"
+    ax.set_ylabel(y_label)
+
+    # background samples
+    hep.histplot(
+        [hists[sample, :] for sample in bg_keys],
+        ax=ax,
+        histtype="fill",
+        stack=True,
+        label=bg_labels,
+        color=bg_colours,
+    )
+
+    # signal samples
+    if len(sig_scale_dict):
+        hep.histplot(
+            [hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
+            ax=ax,
+            histtype="step",
+            label=list(sig_labels.values()),
+            color=sig_colours[: len(sig_keys)],
+        )
+
+    # plot signal errors
+    if type(sig_err) == str:
+        scolours = {"down": colours["lightred"], "up": colours["darkred"]}
+        for skey, shift in [("Up", "up"), ("Down", "down")]:
+            hep.histplot(
+                [
+                    hists[f"{sig_key}_{sig_err}_{shift}", :] * sig_scale
+                    for sig_key, sig_scale in sig_scale_dict.items()
+                ],
+                yerr=0,
+                ax=ax,
+                histtype="step",
+                label=[f"{sig_key} {skey}" for sig_key in sig_scale_dict],
+                alpha=0.6,
+                color=sig_colours[: len(sig_keys)],
+            )
+    elif sig_err is not None:
+        for sig_key, sig_scale in sig_scale_dict.items():
+            _fill_error(
+                ax,
+                hists.axes[1].edges,
+                hists[sig_key, :].values() * (1 - sig_err),
+                hists[sig_key, :].values() * (1 + sig_err),
+                sig_scale,
+            )
+
+    # plot data
+    if plot_data:
+        hep.histplot(
+            hists[data_key, :],
+            ax=ax,
+            yerr=data_err,
+            histtype="errorbar",
+            label=data_key,
+            color="black",
+        )
+
+    if log:
+        ax.set_yscale("log")
+
+    ax.legend()
+
+    y_lowlim = 0 if not log else 1e-3
+    if ylim is not None:
+        ax.set_ylim([y_lowlim, ylim])
+    else:
+        ax.set_ylim(y_lowlim)
+
+    # plot ratio below
+    if plot_data:
+        bg_tot = sum([pre_divide_hists[sample, :] for sample in bg_keys])
+        yerr = ratio_uncertainty(pre_divide_hists[data_key, :].values(), bg_tot.values(), "poisson")
+
+        hep.histplot(
+            pre_divide_hists[data_key, :] / (bg_tot.values() + 1e-5),
+            yerr=yerr,
+            ax=rax,
+            histtype="errorbar",
+            color="black",
+            capsize=4,
+        )
+    else:
+        rax.set_xlabel(hists.axes[1].label)
+
+    rax.set_ylabel("Data/MC")
+    rax.set_ylim(ratio_ylims)
+    rax.grid()
+
+    if plot_significance:
+        bg_tot = sum([pre_divide_hists[sample, :] for sample in bg_keys]).values()
+        sigs = [pre_divide_hists[sig_key, :].values() for sig_key in sig_scale_dict]
+
+        if significance_dir == "left":
+            bg_tot = np.cumsum(bg_tot[::-1])[::-1]
+            sigs = [np.cumsum(sig[::-1])[::-1] for sig in sigs]
+            sax.set_ylabel(r"Asimov Sign. for $\leq$ Cuts")
+        elif significance_dir == "right":
+            bg_tot = np.cumsum(bg_tot)
+            sigs = [np.cumsum(sig) for sig in sigs]
+            sax.set_ylabel(r"Asimov Sign. for $\geq$ Cuts")
+        elif significance_dir == "bin":
+            sax.set_ylabel("Asimov Sign. per Bin")
+        else:
+            raise RuntimeError(
+                'Invalid value for ``significance_dir``. Options are ["left", "right", "bin"].'
+            )
+
+        edges = pre_divide_hists.axes[1].edges
+        hep.histplot(
+            [(_asimov_significance(sig, bg_tot), edges) for sig in sigs],
+            ax=sax,
+            histtype="step",
+            label=[
+                sig_key if sig_key not in sample_label_map else sample_label_map[sig_key]
+                for sig_key in sig_scale_dict
+            ],
+            color=sig_colours[: len(sig_keys)],
+        )
+
+        sax.legend(fontsize=12)
+        sax.set_yscale("log")
+        sax.set_ylim([1e-7, 10])
+        sax.set_xlabel(hists.axes[1].label)
+
+    if title is not None:
+        ax.set_title(title, y=1.08)
+
+    if year == "all":
+        hep.cms.label(
+            "Work in Progress",
+            data=True,
+            lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
+            year=None,
+            ax=ax,
+        )
+    else:
+        hep.cms.label(
+            "Work in Progress", data=True, lumi=f"{LUMI[year] / 1e3:.0f}", year=year, ax=ax
+        )
+
+    if axrax is None:
+        if len(name):
+            plt.savefig(name, bbox_inches="tight")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
