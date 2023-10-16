@@ -62,10 +62,30 @@ samples = {
 }
 
 data_key = "data"
+qcd_key = "qcd"
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb"]
-bg_keys = ["qcd", "ttbar", "diboson", "vjets"] + hbb_bg_keys
-sig_keys = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
+bg_keys = [qcd_key, "ttbar", "diboson", "vjets"] + hbb_bg_keys
+sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
+sig_keys_vbf = []  # TODO
+sig_keys = sig_keys_ggf + sig_keys_vbf
 
 # TODO
-jec_shifts = {}
-jmsr_shifts = {}
+jecs = {
+    # "JES": "JES_jes",
+    # "JER": "JER",
+}
+
+jmsr = {
+    # "JMS": "JMS",
+    # "JMR": "JMR",
+}
+
+jec_shifts = []
+for key in jecs:
+    for shift in ["up", "down"]:
+        jec_shifts.append(f"{key}_{shift}")
+
+jmsr_shifts = []
+for key in jmsr:
+    for shift in ["up", "down"]:
+        jmsr_shifts.append(f"{key}_{shift}")
