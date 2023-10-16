@@ -104,8 +104,6 @@ args = parser.parse_args()
 CMS_PARAMS_LABEL = "CMS_bbWW_hadronic"
 qcd_data_key = "qcd_datadriven"
 
-if args.nTF is None:
-    args.nTF = [1, 2] if args.resonant else [0]
 
 # (name in templates, name in cards)
 mc_samples = OrderedDict(
@@ -202,7 +200,7 @@ corr_year_shape_systs = {
 }
 
 uncorr_year_shape_systs = {
-    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
     "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
     "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
@@ -373,7 +371,7 @@ def fill_regions(
                 # set mc stat uncs
                 logging.info("setting autoMCStats for %s in %s" % (sample_name, region))
 
-                # tie MC stats parameters together in blinded and "unblinded" region in nonresonant
+                # tie MC stats parameters together in blinded and "unblinded" region
                 stats_sample_name = f"{CMS_PARAMS_LABEL}_{region}_{card_name}"
                 sample.autoMCStats(
                     sample_name=stats_sample_name,
@@ -528,7 +526,8 @@ def alphabet_fit(
         # was integer, and numpy complained about subtracting float from it
         initial_qcd = failCh.getObservation().astype(float)
         for sample in failCh:
-            if args.resonant and sample.sampletype == rl.Sample.SIGNAL:
+            # don't subtract signals (#TODO: do we want to subtract SM signal?)
+            if sample.sampletype == rl.Sample.SIGNAL:
                 continue
             logging.debug("subtracting %s from qcd" % sample._name)
             initial_qcd -= sample.getExpectation(nominal=True)
@@ -627,8 +626,8 @@ def main(args):
 
     # [mH(bb)]
     shape_vars = [
-        ShapeVar(name=axis.name, bins=axis.edges, order=args.nTF[i])
-        for i, axis in enumerate(sample_templates.axes[1:])
+        ShapeVar(name=axis.name, bins=axis.edges, order=args.nTF)
+        for _, axis in enumerate(sample_templates.axes[1:])
     ]
 
     os.makedirs(args.cards_dir, exist_ok=True)
