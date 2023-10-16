@@ -1,3 +1,11 @@
+"""
+Common variables
+
+Authors: Raghav Kansal, Cristina Suarez
+"""
+
+years = ["2022EE"]
+
 # in pb^-1
 LUMI = {"2022EE": 20700}
 

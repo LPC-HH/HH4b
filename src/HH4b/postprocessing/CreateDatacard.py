@@ -429,7 +429,7 @@ def fill_regions(
                 )
 
                 effect_up, effect_down = get_effect_updown(
-                    values_nominal, values_up, values_down, mask, logger
+                    values_nominal, values_up, values_down, mask, logger, args.epsilon
                 )
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
@@ -458,7 +458,7 @@ def fill_regions(
                     )
 
                     effect_up, effect_down = get_effect_updown(
-                        values_nominal, values_up, values_down, mask, logger
+                        values_nominal, values_up, values_down, mask, logger, args.epsilon
                     )
                     sample.setParamEffect(
                         shape_systs_dict[f"{skey}_{year}"], effect_up, effect_down

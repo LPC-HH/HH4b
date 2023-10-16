@@ -189,7 +189,7 @@ def _shape_checks(values_up, values_down, values_nominal, effect_up, effect_down
         logger.warning("Up and Down vary norm in the same direction")
 
 
-def get_effect_updown(values_nominal, values_up, values_down, mask, logger):
+def get_effect_updown(values_nominal, values_up, values_down, mask, logger, epsilon):
     effect_up = np.ones_like(values_nominal)
     effect_down = np.ones_like(values_nominal)
 
@@ -202,8 +202,8 @@ def get_effect_updown(values_nominal, values_up, values_down, mask, logger):
     zero_up = values_up == 0
     zero_down = values_down == 0
 
-    effect_up[mask_up & zero_up] = values_nominal[mask_up & zero_up] * args.epsilon
-    effect_down[mask_down & zero_down] = values_nominal[mask_down & zero_down] * args.epsilon
+    effect_up[mask_up & zero_up] = values_nominal[mask_up & zero_up] * epsilon
+    effect_down[mask_down & zero_down] = values_nominal[mask_down & zero_down] * epsilon
 
     _shape_checks(values_up, values_down, values_nominal, effect_up, effect_down, logger)
 
