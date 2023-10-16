@@ -49,23 +49,6 @@ git clone https://github.com/LPC-HH/HH4b/
 pip install -e .
 ```
 
-
-### Condor
-
-The script `src/condor/submit.py` manually splits up the files into condor jobs:
-
-e.g. `TAG=23Jul13`
-```bash
-# will need python3 (can use either CMSSW >= 11_2_0 or via miniconda/mamba)
-python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20 --submit
-```
-
-Alternatively, jobs can be submitted from a yaml file:
-
-```bash
-python src/condor/submit_from_yaml.py --processor skimmer --tag $TAG --yaml src/condor/submit_configs/${YAML}.yaml 
-```
-
 ### Running locally
 
 To test locally first (recommended), can do e.g.:
@@ -73,38 +56,12 @@ To test locally first (recommended), can do e.g.:
 ```bash
 mkdir outfiles
 python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
-```
-
-## Processors
-
-### triggerSkmimer
-
-Applies a muon pre-selection.
-
-To test locally:
-
-```bash
+python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
 python -W ignore src/run.py  --year 2022 --processor trigger_boosted --samples Muon --subsamples Run2022C --nano_version v11_private --starti 0 --endi 1
 ```
 
-And to submit all jobs, e.g. for 2022:
-
-```bash
-python src/condor/submit.py --year 2022 --processor trigger_boosted --tag $TAG --submit
-```
-
-### bbbbSkimmer
-
-Applies pre-selection cuts and saves unbinned branches as parquet and root files.
-
-Parquet and pickle files will be saved in the eos directory of specified user at path `~/eos/HH4b/skimmer/<tag>/<sample_name>/<parquet or root or pickles>`. 
+Parquet and pickle files will be saved.
 Pickles are in the format `{'nevents': int, 'cutflow': Dict[str, int]}`.
-
-To test locally:
-
-```bash
-python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
-```
 
 Or on a specific file(s):
 
@@ -114,6 +71,14 @@ python -W ignore src/run.py --processor skimmer --year 2023 --files $FILE --file
 ```
 
 #### Jobs
+
+The script `src/condor/submit.py` manually splits up the files into condor jobs:
+
+On a full dataset:
+e.g. `TAG=23Jul13`
+```
+python src/condor/submit.py --processor skimmer --tag $TAG --files-per-job 20 --submit
+```
 
 On a specific sample:
 
@@ -133,24 +98,27 @@ To Submit (if not using the --submit flag):
 nohup bash -c 'for i in condor/'"${TAG}"'/*.jdl; do condor_submit $i; done' &> tmp/submitout.txt &
 ```
 
+### Dask
 
-### matchingSkimmer
-
-Output is very similar to bbbbSkimmer.
-
-
-To test locally:
-
-```bash
-python -W ignore src/run.py --processor matching --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
+Log in with ssh tunneling:
+```
+ssh -L 8787:localhost:8787 cmslpc-sl7.fnal.gov
 ```
 
-To submit:
+Run the `./shell` script as setup above via lpcjobqueue:
+```
+./shell coffeateam/coffea-dask:0.7.21-fastjet-3.4.0.1-g6238ea8
+```
 
-```bash
-python src/condor/submit.py --processor matching --tag $TAG --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG
-``````
+Renew your grid certificate:
+```
+voms-proxy-init --rfc --voms cms -valid 192:00
+```
 
+Run the job submssion script:
+```
+python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/skimmer_23_10_02.yaml --processor skimmer --nano-version v11 --region signal --save-array --executor dask > dask.out 2>&1
+```
 
 ## Condor Scripts
 
@@ -162,12 +130,9 @@ Check that all jobs completed by going through output files:
 for year in 2016APV 2016 2017 2018; do python src/condor/check_jobs.py --tag $TAG --processor trigger (--submit) --year $year; done
 ```
 
-nohup version:
-
-(Do `condor_q | awk '{ print $9}' | grep -o '[^ ]*\.sh' > running_jobs.txt` first to get a list of jobs which are running.)
-
-```bash
-nohup bash -c 'for year in 2016APV 2016 2017 2018; do python src/condor/check_jobs.py --year $year --tag '"${TAG}"' --processor skimmer --submit --check-running; done' &> tmp/submitout.txt &
+e.g.
+```
+python src/condor/check_jobs.py --year 2018 --tag Oct9 --processor matching --check-running --user cmantill --submit-missing
 ```
 
 ### Combine pickles
@@ -177,3 +142,5 @@ Combine all output pickles into one:
 ```bash
 for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --tag $TAG --processor trigger --r --year $year; done
 ```
+
+ python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/skimmer_23_10_02.yaml --processor skimmer --nano-version v11 --region signal --save-array --executor dask > dask.out 2>&1

@@ -6,6 +6,8 @@ from coffea.nanoevents.methods.base import NanoEventsArray
 from .corrections import get_jetveto
 import awkward as ak
 
+# https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
+
 muon_selection = {
     "pt": 30,
     "eta": 2.4,
@@ -34,15 +36,35 @@ veto_electron_selection = {
     "id": "mvaFall17V2noIso_WP90",
 }
 
+veto_muon_selection_run2_bbbb = {
+    "pt": 10,
+    "eta": 2.4,
+    "miniPFRelIso_all": 0.15,
+    "id": "loose",
+    "barrel_dxy": 0.05,
+    "barrel_dz": 0.10,
+    "endcap_dxy": 0.10,
+    "endcap_dz": 0.20,
+}
+
+veto_electron_selection_run2_bbbb = {
+    "pt": 15,
+    "eta": 2.4,
+    "miniPFRelIso_all": 0.15,
+    "id": "cutBased:4",
+    "barrel_dxy": 0.05,
+    "barrel_dz": 0.10,
+    "endcap_dxy": 0.10,
+    "endcap_dz": 0.20,
+}
+
 ak4_selection = {
     "eta": 4.7,
-    # "id": "Tight",
     # "pt": 50
 }
 
 ak8_selection = {
     "eta": 2.5,
-    # "id": "Tight",
 }
 
 
@@ -73,7 +95,7 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
         & (muons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
         & (muons[f"{selection['id']}Id"])
     )
-    return muons[sel]
+    return sel
 
 
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
@@ -89,7 +111,17 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
         & (electrons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
         & id_selection
     )
-    return electrons[sel]
+    if "barrel_dxy" in selection.keys() and "endcap_dxy" in selection.keys():
+        sel = sel & (
+            ((abs(electrons.dxy) < selection["barrel_dxy"]) & (abs(electrons.eta) < 1.2))
+            | ((abs(electrons.dxy) < selection["endcap_dxy"]) & (abs(electrons.eta) >= 1.2))
+        )
+    if "barrel_dz" in selection.keys() and "endcap_dz" in selection.keys():
+        sel = sel & (
+            ((abs(electrons.dz) < selection["barrel_dz"]) & (abs(electrons.eta) < 1.2))
+            | ((abs(electrons.dz) < selection["endcap_dz"]) & (abs(electrons.eta) >= 1.2))
+        )
+    return sel
 
 
 # ak4 jet definition
@@ -112,23 +144,42 @@ def good_ak4jets(
     return jets[goodjets]
 
 
+# apply ak4 b-jet regression
+def bregcorr(jets: JetArray):
+    # pt correction for b-jet energy regression
+    return ak.zip(
+        {
+            "pt": jets.pt * jets.bRegCorr,
+            "eta": jets.eta,
+            "phi": jets.phi,
+            "energy": jets.energy * jets.bRegCorr,
+        },
+        with_name="PtEtaPhiELorentzVector",
+    )
+
+
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
-    fatjets["Txbb"] = ak.nan_to_num(
-        fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
-        nan=-1.0,
-    )
-    fatjets["Txjj"] = ak.nan_to_num(
-        (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
-        / (
-            fatjets.particleNetMD_Xbb
-            + fatjets.particleNetMD_Xcc
-            + fatjets.particleNetMD_Xqq
-            + fatjets.particleNetMD_QCD
-        ),
-        nan=-1.0,
-    )
+    if "particleNetMD_Xbb" in fatjets.fields:
+        fatjets["Txbb"] = ak.nan_to_num(
+            fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
+            nan=-1.0,
+        )
+        fatjets["Txjj"] = ak.nan_to_num(
+            (fatjets.particleNetMD_Xbb + fatjets.particleNetMD_Xcc + fatjets.particleNetMD_Xqq)
+            / (
+                fatjets.particleNetMD_Xbb
+                + fatjets.particleNetMD_Xcc
+                + fatjets.particleNetMD_Xqq
+                + fatjets.particleNetMD_QCD
+            ),
+            nan=-1.0,
+        )
+    else:
+        fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
+        fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+
     return fatjets
 
 

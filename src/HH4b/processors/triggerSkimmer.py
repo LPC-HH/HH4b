@@ -10,7 +10,10 @@ from coffea.analysis_tools import PackedSelection
 from hist import Hist
 
 from .utils import add_selection, P4, pad_val
-from .objects import get_ak8jets
+from .objects import get_ak8jets, good_ak4jets
+from .corrections import (
+    get_jec_jets,
+)
 
 import warnings
 
@@ -35,14 +38,16 @@ logger.setLevel(logging.INFO)
 #  https://indico.cern.ch/event/1233757/contributions/5281432/attachments/2598122/4485548/HLTforHHto4b_MKolosova.pdf
 #  https://indico.cern.ch/event/1251452/contributions/5288361/attachments/2602604/4494289/HLTforGluGluHHTo4b_Semiresolved_MKolosova_01March2023.pdf
 
+# how to check for prescales
+# e.g. https://cmsoms.cern.ch/cms/triggers/prescale?cms_run=368566&cms_run_sequence=GLOBAL-RUN
+#  here look at Index 2 2p3E34 column
+#  1=active, 0=disabled, N=1 in N events kept
+
 
 class TriggerProcessor(processor.ProcessorABC):
     HLTs = {
         "2022": [
-            "QuadPFJet70_50_40_30",
-            "QuadPFJet70_50_40_30_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
-            "QuadPFJet70_50_45_35_PFBTagParticleNet_2BTagSum0p65",
             "PFHT1050",
             "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",  # prescaled for fraction of 2022
             "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",  # un-prescaled
@@ -56,10 +61,7 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet270_270_MassSD30",
         ],
         "2022EE": [
-            "QuadPFJet70_50_40_30",
-            "QuadPFJet70_50_40_30_PFBTagParticleNet_2BTagSum0p65",
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
-            "QuadPFJet70_50_45_35_PFBTagParticleNet_2BTagSum0p65",
             "PFHT1050",
             "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
             "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -72,31 +74,44 @@ class TriggerProcessor(processor.ProcessorABC):
             "AK8DiPFJet260_260_MassSD30",
             "AK8DiPFJet270_270_MassSD30",
         ],
+        "2023": [
+            "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
+            "PFHT1050",
+            "AK8PFJet230_SoftDropMass40_PNetBB0p06",  # un-prescaled
+            "AK8PFJet230_SoftDropMass40_PNetBB0p10",  # un-prescaled
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p06", # un-prescaled
+            # "AK8PFJet250_SoftDropMass40_PNetBB0p10", # un-prescaled
+            # "AK8PFJet275_SoftDropMass40_PNetBB0p06",
+            # "AK8PFJet275_SoftDropMass40_PNetBB0p10",
+            "AK8PFJet425_SoftDropMass40",
+            # "AK8DiPFJet250_250_MassSD30", # inactive
+            "AK8DiPFJet250_250_MassSD50",
+            "AK8DiPFJet260_260_MassSD30",
+            "AK8DiPFJet270_270_MassSD30",
+            # https://hlt-config-editor-confdbv3.app.cern.ch/open?cfg=%2Ffrozen%2F2023%2F2e34%2Fv1.2%2FHLT%2FV1&db=offline-run3
+            # https://twiki.cern.ch/twiki/bin/viewauth/CMS/B2GTrigger#2023_online_menus
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p50",  # main? un-prescaled
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p53",
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p55",  # backup?
+            "AK8PFJet220_SoftDropMass40_PNetBB0p06_DoubleAK4PFJet60_30_PNet2BTagMean0p60",
+        ],
     }
 
+    # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2022
     muon_HLTs = {
         "2022": [
             "IsoMu24",
-            "IsoMu27",
-            "Mu27",
             "Mu50",
-            "Mu55",
+            # CascadeMu100
+            # HighPtTkMu100
         ],
         "2022EE": [
             "IsoMu24",
-            "IsoMu27",
-            "Mu27",
             "Mu50",
-            "Mu55",
         ],
-    }
-
-    egamma_HLTs = {
-        "2022": [
-            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
-        ],
-        "2022EE": [
-            "Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ",
+        "2023": [
+            "IsoMu24",
+            "Mu50",
         ],
     }
 
@@ -256,6 +271,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         """Returns processed information for trigger studies"""
 
         year = events.metadata["dataset"][:4]
+        isData = not hasattr(events, "genWeight")
 
         selection = PackedSelection()
 
@@ -290,8 +306,13 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         leading_muon = ak.pad_none(muons[muon_selector], 1, axis=1)[:, 0]
         nmuons = ak.sum(muon_selector, axis=1)
 
+        # Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
+        fatjets = get_jec_jets(
+            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True
+        )
+
         fatjet_selector = (
             (fatjets.pt > self.preselection["fatjet_pt"])
             & (np.abs(fatjets.eta) < self.preselection["fatjet_eta"])
@@ -316,6 +337,14 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         # add at least one fat jet selection
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
+
+        # add ht variable
+        jets = get_jec_jets(
+            events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True
+        )
+        jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
+        ht = ak.sum(jets.pt, axis=1)
+        # skimmed_events["ht"] = ht.to_numpy()
 
         # trigger objects
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'
@@ -392,94 +421,3 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
     def postprocess(self, accumulator):
         return accumulator
-
-
-class ResolvedTriggerSkimmer(TriggerProcessor):
-    """
-    Note: to be used with NanoAOD that has PNet AK4 scores
-    """
-
-    def __init__(self):
-        super(TriggerProcessor, self).__init__()
-
-        self.skim_vars = {
-            "Jet": {
-                **P4,
-            },
-            "FatJet": {
-                **P4,
-                "msoftdrop": "Msd",
-                "Txbb": "PNetXbb",
-                "Txjj": "PNetXjj",
-                "particleNet_mass": "PNetMass",
-            },
-        }
-
-        self.preselection = {
-            "muon_pt": 10,
-            "muon_eta": 2.4,
-            "muon_id": "medium",
-            "muon_dz": 0.5,
-            "muon_dxy": 0.2,
-            "muon_iso": 0.20,
-            "electron_pt": 25,
-            "electron_eta": 2.5,
-            "electron_mvaIso": 0.80,
-        }
-
-    @property
-    def accumulator(self):
-        return self._accumulator
-
-    def process(self, events):
-        """Returns processed information for trigger studies"""
-
-        year = events.metadata["dataset"][:4]
-
-        selection = PackedSelection()
-
-        cutflow = OrderedDict()
-        cutflow["all"] = len(events)
-
-        selection_args = (selection, cutflow, True)
-
-        # save variables
-        skimmed_events = {}
-
-        HLTs = self.HLTs[year]
-        zeros = np.zeros(len(events), dtype="bool")
-        HLT_vars = {
-            trigger: (
-                events.HLT[trigger].to_numpy().astype(int)
-                if trigger in events.HLT.fields
-                else zeros
-            )
-            for trigger in HLTs
-        }
-
-        skimmed_events = {**HLT_vars, **{"run": events.run.to_numpy()}}
-
-        # muon and electron
-        muons = events.Muon
-        muon_selector = (
-            (muons[f"{self.preselection['muon_id']}Id"])
-            & (muons.pt > self.preselection["muon_pt"])
-            & (np.abs(muons.eta) < self.preselection["muon_eta"])
-            & (muons.pfIsoId >= self.preselection["muon_pfIsoId"])
-            & (np.abs(muons.dz) < self.preselection["muon_dz"])
-            & (np.abs(muons.dxy) < self.preselection["muon_dxy"])
-            & (muons.pfRelIso04_all < self.preselection["muon_iso"])
-        )
-        nmuons = ak.sum(muon_selector, axis=1)
-
-        veto_muon_selector = (muons.pt > 10) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
-
-        electrons = events.Electron
-        electron_selector = (
-            (electrons.pt > self.preselection["electron_pt"])
-            & (np.abs(electrons.eta) < self.preselection["electron_eta"])
-            & (electrons.mvaFall17V2Iso_WP80)
-        )
-        nelectrons = ak.sum(electron_selector, axis=1)
-
-        veto_electron_selector = (electrons.pt > 15) & (electrons.mvaFall17V2Iso_WP90)

@@ -8,6 +8,7 @@ Author(s): Cristina Mantilla Suarez, Raghav Kansal
 
 import pickle
 import os
+import yaml
 import argparse
 
 import numpy as np
@@ -17,6 +18,77 @@ from coffea import nanoevents
 from coffea import processor
 
 import run_utils
+
+
+def run_dask(p: processor, fileset: dict, args):
+    """Run processor on using dask via lpcjobqueue"""
+    import time
+    from distributed import Client
+    from lpcjobqueue import LPCCondorCluster
+
+    tic = time.time()
+    cluster = LPCCondorCluster(
+        ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
+    )
+    cluster.adapt(minimum=1, maximum=350)
+
+    local_dir = os.path.abspath(".")
+    local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet_dask"))
+    os.system(f"mkdir {local_parquet_dir}")
+
+    with Client(cluster) as client:
+        from datetime import datetime
+
+        print(datetime.now())
+        print("Waiting for at least one worker...")  # noqa
+        client.wait_for_workers(1)
+        print(datetime.now())
+
+        from dask.distributed import performance_report
+
+        with performance_report(filename="dask-report.html"):
+            for sample, files in fileset.items():
+                outfile = f"{local_parquet_dir}/{args.year}_dask_{sample}.parquet"
+                if os.path.isfile(outfile):
+                    print("File " + outfile + " already exists. Skipping.")
+                    continue
+                else:
+                    print("Begin running " + sample)
+                    print(datetime.now())
+                    uproot.open.defaults[
+                        "xrootd_handler"
+                    ] = uproot.source.xrootd.MultithreadedXRootDSource
+
+                    executor = processor.DaskExecutor(
+                        status=True, client=client, retries=2, treereduction=2
+                    )
+                    run = processor.Runner(
+                        executor=executor,
+                        savemetrics=True,
+                        schema=processor.NanoAODSchema,
+                        chunksize=10000,
+                        # chunksize=args.chunksize,
+                        skipbadfiles=1,
+                    )
+                    out, metrics = run({sample: files}, "Events", processor_instance=p)
+
+                    import pandas as pd
+
+                    pddf = pd.concat(
+                        [pd.DataFrame(v.value) for k, v in out["array"].items()],
+                        axis=1,
+                        keys=list(out["array"].keys()),
+                    )
+
+                    import pyarrow.parquet as pq
+                    import pyarrow as pa
+
+                    table = pa.Table.from_pandas(pddf)
+                    pq.write_table(table, outfile)
+
+                    filehandler = open(f"{local_parquet_dir}/{args.year}_dask_{sample}.pkl", "wb")
+                    pickle.dump(out["pkl"], filehandler)
+                    filehandler.close()
 
 
 def run(p: processor, fileset: dict, args):
@@ -103,23 +175,44 @@ def run(p: processor, fileset: dict, args):
 
 
 def main(args):
-    p = run_utils.get_processor(args.processor, args.save_systematics, args.save_hist, args.region)
+    p = run_utils.get_processor(
+        args.processor, args.save_systematics, args.save_hist, args.save_array, args.region
+    )
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
     else:
+        if args.yaml:
+            with open(args.yaml, "r") as file:
+                samples_to_submit = yaml.safe_load(file)
+            try:
+                samples_to_submit = samples_to_submit[args.year]
+            except:
+                raise KeyError(f"Year {args.year} not present in yaml dictionary")
+
+            samples = samples_to_submit.keys()
+            subsamples = []
+            for sample in samples:
+                subsamples.extend(samples_to_submit[sample].get("subsamples", []))
+        else:
+            samples = args.samples
+            subsamples = args.subsamples
+
         fileset = run_utils.get_fileset(
             args.processor,
             args.year,
             args.nano_version,
-            args.samples,
-            args.subsamples,
+            samples,
+            subsamples,
             args.starti,
             args.endi,
         )
 
     print(f"Running on fileset {fileset}")
-    run(p, fileset, args)
+    if args.executor == "dask":
+        run_dask(p, fileset, args)
+    else:
+        run(p, fileset, args)
 
 
 if __name__ == "__main__":
@@ -143,6 +236,7 @@ if __name__ == "__main__":
         default="files",
         help="sample name of files being run on, if --files option used",
     )
+    parser.add_argument("--yaml", default=None, help="yaml file", type=str)
 
     args = parser.parse_args()
 

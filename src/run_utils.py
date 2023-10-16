@@ -39,8 +39,6 @@ def get_fileset(
     get_num_files: bool = False,
     coffea_casa: str = False,
 ):
-    redirector = "root://cmsxrootd.fnal.gov//"
-
     with open(f"data/nanoindex_{version}.json", "r") as f:
         full_fileset_nano = json.load(f)
 
@@ -70,7 +68,7 @@ def get_fileset(
 
             for subsample, fnames in sample_set.items():
                 fnames = fnames[starti:] if endi < 0 else fnames[starti:endi]
-                sample_fileset[f"{year}_{subsample}"] = [redirector + fname for fname in fnames]
+                sample_fileset[f"{year}_{subsample}"] = fnames
 
             fileset = {**fileset, **sample_fileset}
 
@@ -81,6 +79,7 @@ def get_processor(
     processor: str,
     save_systematics: bool = None,
     save_hist: bool = False,
+    save_array: bool = False,
     region: str = None,
 ):
     # define processor
@@ -92,12 +91,14 @@ def get_processor(
     elif processor == "matching":
         from HH4b.processors import matchingSkimmer
 
-        return matchingSkimmer()
+        return matchingSkimmer(xsecs=xsecs)
 
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
-        return bbbbSkimmer(xsecs=xsecs, save_systematics=save_systematics, region=region)
+        return bbbbSkimmer(
+            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array
+        )
 
 
 def parse_common_args(parser):
@@ -110,13 +111,13 @@ def parse_common_args(parser):
     )
 
     parser.add_argument(
-        "--year", help="year", type=str, default="2022", choices=["2022", "2022EE", "2023"]
+        "--year", help="year", type=str, default="2022", choices=["2018", "2022", "2022EE", "2023"]
     )
     parser.add_argument(
         "--nano-version",
         type=str,
         required=True,
-        choices=["v10", "v11", "v11_private", "v12"],
+        choices=["v9", "v10", "v11", "v11_private", "v12"],
         help="NanoAOD version",
     )
     parser.add_argument(
@@ -133,9 +134,10 @@ def parse_common_args(parser):
     )
 
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
-    parser.add_argument("--chunksize", default=10000, help="chunk size", type=int)
+    parser.add_argument("--chunksize", default=20000, help="chunk size", type=int)
     parser.add_argument("--region", help="region", default="signal", choices=["signal"], type=str)
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
+    add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
     add_bool_arg(
         parser,
         "save-hist",
