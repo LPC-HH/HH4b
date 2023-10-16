@@ -50,6 +50,15 @@ jdls = [
     if jdl.endswith(".jdl")
 ]
 
+jdl_dict = {}
+for sample in samples:
+    x = [int(jdl[:-4].split("_")[-1])
+         for jdl in jdls
+         if jdl.split("_")[0] == args.year and "_".join(jdl.split("_")[1:-1]) == sample
+     ]
+    if len(x)>0: jdl_dict[sample] = np.sort(x)[-1]+1
+
+"""
 jdl_dict = {
     sample: np.sort(
         [
@@ -61,7 +70,7 @@ jdl_dict = {
     + 1
     for sample in samples
 }
-
+"""
 
 def print_red(s):
     return print(f"{Fore.RED}{s}{Style.RESET_ALL}")
@@ -86,7 +95,8 @@ for sample in samples:
     if args.processor != "trigger":
         if not exists(f"{eosdir}/{sample}/parquet"):
             print_red(f"No parquet directory for {sample}!")
-
+            if sample not in jdl_dict.keys(): continue
+            
             for i in range(jdl_dict[sample]):
                 if f"{args.year}_{sample}_{i}" in running_jobs:
                     print(f"Job #{i} for sample {sample} is running.")
