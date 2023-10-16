@@ -45,9 +45,9 @@ color_by_sample = {
     "tthtobb": "cadetblue",
     "vhtobb": "tab:cyan",
     "hh4b": "lime",
-    "hh4b-kl0": "salmon",
-    "hh4b-kl2p45": "brown",
-    "hh4b-kl5": "chocolate",
+    "hh4b-kl0": "fuchsia",
+    "hh4b-kl2p45": "red",
+    "hh4b-kl5": "cyan",
     "ttbar": "royalblue",
     "qcd": "yellow",
     "diboson": "orchid",
@@ -74,13 +74,19 @@ def plot_hists(
     year,
     hists,
     vars_to_plot,
-    luminosity,  # float (fb)
+    luminosity=None,  # float (fb)
     add_data=True,
     add_data_over_mc=True,
     mult_factor=1,  # multiplicative factor for signal
     logy=True,
+    density=False,
+    stack=True,
+    bbox_to_anchor=(1.05, 1),
+    energy=13.6
 ):
     if add_data_over_mc and not add_data:
+        add_data_over_mc = False
+    if density:
         add_data_over_mc = False
 
     for var in vars_to_plot:
@@ -141,20 +147,28 @@ def plot_hists(
             bkg_hists.append(hist_values)
             bkg_bins.append(bins)
 
+        if stack:
+            bkg_args = {
+                "histtype": "fill",
+                "edgecolor": "black",
+            }
+        else:
+             bkg_args = {
+                "histtype": "step",
+            }
+
         hep.histplot(
-            # bkg_hists,
-            # bkg_bins[0],
             bkg,
             ax=ax,
-            stack=True,
+            stack=stack,
             edges=True,
             sort="yield",
             w2method=None,
-            edgecolor="black",
             linewidth=1,
-            histtype="fill",
+            density=density,
             label=[label_by_sample[bkg_label] for bkg_label in bkg_labels],
             color=[color_by_sample[bkg_label] for bkg_label in bkg_labels],
+            **bkg_args,
         )
 
         # sum all the background
@@ -173,30 +187,14 @@ def plot_hists(
         # plot bkg uncertainty
         # print(tot.values().shape)
         # print(tot.axes[0].edges.shape)
-        ax.stairs(
-            values=tot.values() + tot_err,
-            baseline=tot.values() - tot_err,
-            edges=tot.axes[0].edges,
-            **errps,
-            label="Stat. unc.",
-        )
-
-        # plot data/mc ratio
-        if add_data_over_mc:
-            data_val = data.values()
-            data_val[tot_val_zero_mask] = 1
-            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
-
-            hep.histplot(
-                data_val / tot_val,
-                tot.axes[0].edges,
-                yerr=yerr,
-                ax=rax,
-                histtype="errorbar",
-                color="k",
-                capsize=4,
+        if not density:
+            ax.stairs(
+                values=tot.values() + tot_err,
+                baseline=tot.values() - tot_err,
+                edges=tot.axes[0].edges,
+                **errps,
+                label="Stat. unc.",
             )
-            rax.grid()
 
         # plot signal
         if len(signal) > 0:
@@ -206,11 +204,13 @@ def plot_hists(
                 lab_sig_mult = f"{mult_factor} * {label_by_sample[signal_labels[i]]}"
                 if mult_factor == 1:
                     lab_sig_mult = f"{label_by_sample[signal_labels[i]]}"
+                # print(lab_sig_mult)
                 hep.histplot(
                     sig,
                     ax=ax,
                     label=lab_sig_mult,
-                    linewidth=3,
+                    linewidth=1,
+                    density=density,
                     color=color_by_sample[signal_labels[i]],
                 )
 
@@ -230,6 +230,23 @@ def plot_hists(
             #   **errps,
             # )
 
+        # plot data/mc ratio
+        if add_data_over_mc:
+            data_val = data.values()
+            data_val[tot_val_zero_mask] = 1
+            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
+
+            hep.histplot(
+                data_val / tot_val,
+                tot.axes[0].edges,
+                yerr=yerr,
+                ax=rax,
+                histtype="errorbar",
+                color="k",
+                capsize=4,
+            )
+            rax.grid()
+
         ax.set_ylabel("Events")
         ax.set_xlabel("")
 
@@ -241,8 +258,9 @@ def plot_hists(
         else:
             ax.set_xlabel(f"{h.axes[-1].label}")
 
-        hep.cms.lumitext("%.1f " % luminosity + r"fb$^{-1}$ (13 TeV)", ax=ax, fontsize=20)
-        hep.cms.text("Work in Progress", ax=ax, fontsize=15)
+        if luminosity:
+            hep.cms.lumitext("%.1f " % luminosity + r"fb$^{-1}$" + f"({energy} TeV)", ax=ax, fontsize=20)
+            hep.cms.text("Internal", ax=ax, fontsize=15)
 
         # add legend
         handles, labels = ax.get_legend_handles_labels()
@@ -263,15 +281,23 @@ def plot_hists(
             order.append(np.argmax(np.array(summ)))
             summ[np.argmax(np.array(summ))] = -100
 
-        legend_handles = [handles[-1]] + [handles[i] for i in order] + handles[len(bkg) : -1]
-        legend_labels = [labels[-1]] + [labels[i] for i in order] + labels[len(bkg) : -1]
+        #print(labels)
+        #print(labels[-1])
+        if add_data:
+            legend_handles = [handles[-1]] + [handles[i] for i in order] + handles[len(bkg) : -1]
+            legend_labels = [labels[-1]] + [labels[i] for i in order] + labels[len(bkg) : -1]
+            loc = "upper left"
+        else:
+            legend_handles = [handles[i] for i in order] + handles[len(bkg):]
+            legend_labels = [labels[i] for i in order] + labels[len(bkg):]
+            loc = "best"
+            
 
         ax.legend(
             [legend_handles[idx] for idx in range(len(legend_handles))],
             [legend_labels[idx] for idx in range(len(legend_labels))],
-            bbox_to_anchor=(1.05, 1),
-            loc="upper left",
-            # title=
+            bbox_to_anchor=bbox_to_anchor,
+            loc=loc,
         )
 
         if logy:
