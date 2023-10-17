@@ -240,6 +240,25 @@ class matchingSkimmer(processor.ProcessorABC):
         #     jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
         #     add_selection("ak4_jetveto", jetveto, *selection_args)
 
+        # met filter selection
+        met_filters = [
+            "goodVertices",
+            "globalSuperTightHalo2016Filter",
+            "HBHENoiseFilter",
+            "HBHENoiseIsoFilter",
+            "EcalDeadCellTriggerPrimitiveFilter",
+            "BadPFMuonFilter",
+            "BadPFMuonDzFilter",
+            "eeBadScFilter",
+            "ecalBadCalibFilter",
+        ]
+        metfilters = np.ones(len(events), dtype="bool")
+        metfilterkey = "data" if isData else "mc"
+        for mf in met_filters:
+            if mf in events.Flag.fields:
+                metfilters = metfilters & events.Flag[mf]
+        add_selection("met_filters", metfilters, *selection_args)
+
         # do not apply selection for gen studies
         # apply_selection = False
         apply_selection = True
@@ -366,6 +385,8 @@ class matchingSkimmer(processor.ProcessorABC):
 
         jetAssignmentDict = {
             # FIXME: sort by dijet pt
+            "ak4Pair0": first_bb_pair,
+            "ak4Pair1": second_bb_pair,
             "ak4DijetPt0": first_bb_dijet.pt,
             "ak4DijetEta0": first_bb_dijet.eta,
             "ak4DijetPhi0": first_bb_dijet.phi,

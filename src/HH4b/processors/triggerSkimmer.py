@@ -344,7 +344,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         )
         jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         ht = ak.sum(jets.pt, axis=1)
-        # skimmed_events["ht"] = ht.to_numpy()
+        skimmed_events["ht"] = ht.to_numpy()
 
         # trigger objects
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'

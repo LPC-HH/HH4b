@@ -256,9 +256,9 @@ def _is_int(s: str) -> bool:
 
 def get_feat(events: pd.DataFrame, feat: str):
     if feat in events:
-        return events[feat].values.squeeze()
+        return np.nan_to_num(events[feat].values.squeeze(), -1)
     elif _is_int(feat[-1]):
-        return events[feat[:-1]].values[:, int(feat[-1])].squeeze()
+        return np.nan_to_num(events[feat[:-1]].values[:, int(feat[-1])].squeeze(), -1)
 
 
 def get_feat_first(events: pd.DataFrame, feat: str):

@@ -344,6 +344,23 @@ class bbbbSkimmer(processor.ProcessorABC):
         # apply trigger to both data and simulation
         add_selection("trigger", HLT_triggered, *selection_args)
 
+        # # temporary metfilters https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
+        met_filters = [
+            "goodVertices",
+            "globalSuperTightHalo2016Filter",
+            "EcalDeadCellTriggerPrimitiveFilter",
+            "BadPFMuonFilter",
+            "BadPFMuonDzFilter",
+            "eeBadScFilter",
+            "ecalBadCalibFilter",
+        ]
+        metfilters = np.ones(len(events), dtype="bool")
+        metfilterkey = "data" if isData else "mc"
+        for mf in met_filters:
+            if mf in events.Flag.fields:
+                metfilters = metfilters & events.Flag[mf]
+        add_selection("met_filters", metfilters, *selection_args)
+
         # jet veto map for 2022
         if year == "2022" and isData:
             jetveto = get_jetveto_event(jets, year, events.run.to_numpy())

@@ -27,6 +27,19 @@ xsecs["QCD_PT-1800to2400"] = 0.1148
 xsecs["QCD_PT-2400to3200"] = 0.007542
 xsecs["QCD_PT-3200"] = 0.0002331
 
+# QCD-HT (obtained by Cristina manually with genXsecAnalyzer
+# QCDB-4Jets_HT*
+# these numbers seem unusually high - xcheck
+xsecs["QCDB_HT-40to100"] = 12950000.0
+xsecs["QCDB_HT-100to200"] = 1195000.0
+xsecs["QCDB_HT-200to400"] = 100600.0
+xsecs["QCDB_HT-400to600"] = 4938.0
+xsecs["QCDB_HT-600to800"] = 654.0
+xsecs["QCDB_HT-800to1000"] = 139.0
+xsecs["QCDB_HT-1000to1500"] = 55.15
+xsecs["QCDB_HT-1500to2000"] = 4729
+xsecs["QCDB_HT-2000"] = 0.8673
+
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667
@@ -55,7 +68,13 @@ xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB
 
 # Di-Higgs
 # TO- XCHECK
-xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"] = 34.43e-3 * BR_HBB * BR_HBB
+xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"] = 34.43e-3 * BR_HBB * BR_HBB  # 0.02964 in xsecdb
+xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 34.43e-3 * BR_HBB * BR_HBB
+xsecs["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = (
+    0.06648 * BR_HBB * BR_HBB
+)  # from xsecdb
+xsecs["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 0.01252 * BR_HBB * BR_HBB
+xsecs["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 0.08664 * BR_HBB * BR_HBB
 
 # V+Jets
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
