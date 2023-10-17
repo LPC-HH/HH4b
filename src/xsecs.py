@@ -14,7 +14,9 @@ BR_HBB = 0.5809
 xsecs = {}
 
 # QCD
-xsecs["QCD_PT-80to120"] = 2534000.0
+xsecs["QCD_PT-30to50"] = 112800000.0
+xsecs["QCD_PT-50to80"] = 16660000.0
+xsecs["QCD_PT-80to120"] = 2507000.0
 xsecs["QCD_PT-120to170"] = 441100.0
 xsecs["QCD_PT-170to300"] = 113400.0
 xsecs["QCD_PT-300to470"] = 7707.0
@@ -42,14 +44,26 @@ xsecs["QCDB_HT-2000"] = 0.8673
 
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
-xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667
-xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333
-xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)
+# cross check these?
+# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
+xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667 # = 410.89  (762.1)
+xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333 # = 102.41 (404.0)
+xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333) # =410.28 (96.9)
 
 # Diboson
-xsecs["WW"] = 80.23
-xsecs["WZ"] = 29.1
-xsecs["ZZ"] = 12.75
+xsecs["WW"] = 80.23 #  173.4 (116.8 at NNLO)
+xsecs["WZ"] = 29.1 # 54.3
+xsecs["ZZ"] = 12.75 #  16.7
+xsecs["ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 2.36
+xsecs["ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 4.48
+xsecs["ZZto4L_TuneCP5_13p6TeV_powheg-pythia8"] = 0.170
+xsecs["ZZto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 0.674
+xsecs["WZtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 12.368
+xsecs["WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 3.696
+xsecs["WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8"] = 1.786
+xsecs["WWto4Q_TuneCP5_13p6TeV_powheg-pythia8"] = 78.79
+xsecs["WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 76.16
+xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
 
 # Higgs
 # SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
