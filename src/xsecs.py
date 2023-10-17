@@ -46,14 +46,14 @@ xsecs["QCDB_HT-2000"] = 0.8673
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
 # cross check these?
 # https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
-xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667 # = 410.89  (762.1)
-xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333 # = 102.41 (404.0)
-xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333) # =410.28 (96.9)
+xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1)
+xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (404.0)
+xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # =410.28 (96.9)
 
 # Diboson
-xsecs["WW"] = 80.23 #  173.4 (116.8 at NNLO)
-xsecs["WZ"] = 29.1 # 54.3
-xsecs["ZZ"] = 12.75 #  16.7
+xsecs["WW"] = 80.23  #  173.4 (116.8 at NNLO)
+xsecs["WZ"] = 29.1  # 54.3
+xsecs["ZZ"] = 12.75  #  16.7
 xsecs["ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 2.36
 xsecs["ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 4.48
 xsecs["ZZto4L_TuneCP5_13p6TeV_powheg-pythia8"] = 0.170
