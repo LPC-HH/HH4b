@@ -101,7 +101,7 @@ add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 args = parser.parse_args()
 
 
-CMS_PARAMS_LABEL = "CMS_bbWW_hadronic"
+CMS_PARAMS_LABEL = "CMS_bbbb_hadronic"
 qcd_data_key = "qcd_datadriven"
 
 
