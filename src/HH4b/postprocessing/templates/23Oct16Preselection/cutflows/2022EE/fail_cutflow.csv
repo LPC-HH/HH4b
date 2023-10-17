@@ -1,0 +1,41 @@
+,Preselection,ak8FatJetPNetXbb0 < 0.985,ak8FatJetPNetXbb1 < 0.985,100 ≤ ak8FatJetPNetMass1 < 150
+hh4b,27.058588958908313,"0    10.048828
+dtype: float64","0    10.048828
+dtype: float64","0    7.582049
+dtype: float64"
+qcd,185490.11047315874,"0    166286.442925
+dtype: float64","0    166286.442925
+dtype: float64","0    69153.209861
+dtype: float64"
+data,812475.0,"0    743725.0
+dtype: float64","0    743725.0
+dtype: float64","0    290896.0
+dtype: float64"
+ttbar,79335.39225133436,"0    72903.224986
+dtype: float64","0    72903.224986
+dtype: float64","0    31212.339359
+dtype: float64"
+gghtobb,271.24317424808413,"0    138.854664
+dtype: float64","0    138.854664
+dtype: float64","0    89.371475
+dtype: float64"
+vbfhtobb,36.60109271462042,"0    15.129036
+dtype: float64","0    15.129036
+dtype: float64","0    9.401496
+dtype: float64"
+vhtobb,120.26493066553205,"0    61.469496
+dtype: float64","0    61.469496
+dtype: float64","0    34.279024
+dtype: float64"
+tthtobb,199.99120200387642,"0    158.289701
+dtype: float64","0    158.289701
+dtype: float64","0    72.853094
+dtype: float64"
+diboson,401.2657403449839,"0    281.642703
+dtype: float64","0    281.642703
+dtype: float64","0    67.801397
+dtype: float64"
+vjets,16509.495162369767,"0    12625.742661
+dtype: float64","0    12625.742661
+dtype: float64","0    4165.472243
+dtype: float64"
