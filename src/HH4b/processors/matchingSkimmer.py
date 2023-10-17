@@ -155,8 +155,8 @@ class matchingSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         num_jets = 6
-        # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
+
         # sort by b
         jets = jets[ak.argsort(jets.btagDeepFlavB, ascending=False)]
 
@@ -194,8 +194,12 @@ class matchingSkimmer(processor.ProcessorABC):
         }
 
         # assignment variables
-        ak4JetVars = {**ak4JetVars, **self.getJetAssignmentVars(ak4JetVars)}
-
+        ak4JetVars = {
+            **ak4JetVars, 
+            **self.getJetAssignmentVars(ak4JetVars),
+            **self.getJetAssignmentVars(ak4JetVars, method="chi2"),
+        }
+        
         # FatJet variables
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
@@ -338,6 +342,14 @@ class matchingSkimmer(processor.ProcessorABC):
         if method == "chi2":
             chi2 = ak.sum(np.square(mjj - HIGGS_MASS), axis=-1)
             index = ak.argmin(chi2, axis=-1)
+
+            first_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 0, :]
+            second_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 1, :]
+            return {
+                "ak4Pair0chi2": first_bb_pair,
+                "ak4Pair1chi2": second_bb_pair,
+            }
+
         elif method == "dhh":
             # https://github.com/UF-HH/bbbbAnalysis/blob/master/src/OfflineProducerHelper.cc#L4109
             mjj_sorted = ak.sort(mjj, ascending=False)
@@ -378,13 +390,34 @@ class matchingSkimmer(processor.ProcessorABC):
         second_bb_j2 = jets[np.arange(len(jets.pt)), second_bb_pair[:, 1]]
         second_bb_dijet = second_bb_j1 + second_bb_j2
 
-        # TODO: sort by dijet pt
-        # TODO: do this in the indices already)
-        # dijets_pt = np.stack([first_bb_dijet.pt, second_bb_dijet.pt], axis=1)
-        # dijets_pt_index = np.argsort(-dijets_pt, axis=1)
-
+        # stack pairs
+        bb_pairs = np.stack([first_bb_pair, second_bb_pair], axis=1)
+        
+        # sort by dijet pt
+        bbs_jjpt = np.concatenate(
+            [first_bb_dijet.pt.reshape(-1, 1), second_bb_dijet.pt.reshape(-1, 1)], axis=1
+        )
+        sort_by_jjpt = np.argsort(bbs_jjpt, axis=-1)[:, ::-1]
+        
+        bb_pairs_sorted = np.array(
+        [
+            [bb_pair_e[sort_e[0]], bb_pair_e[sort_e[1]]]
+            for bb_pair_e, sort_e in zip(bb_pairs, sort_by_jjpt)
+        ]
+        )
+        
+        first_bb_pair_sort = bb_pairs_sorted[:, 0]
+        second_bb_pair_sort = bb_pairs_sorted[:, 1]
+        
+        first_bb_j1 = jets[np.arange(len(jets.pt)), first_bb_pair_sort[:, 0]]
+        first_bb_j2 = jets[np.arange(len(jets.pt)), first_bb_pair_sort[:, 1]]
+        first_bb_dijet = first_bb_j1 + first_bb_j2
+        
+        second_bb_j1 = jets[np.arange(len(jets.pt)), second_bb_pair_sort[:, 0]]
+        second_bb_j2 = jets[np.arange(len(jets.pt)), second_bb_pair_sort[:, 1]]
+        second_bb_dijet = second_bb_j1 + second_bb_j2
+        
         jetAssignmentDict = {
-            # FIXME: sort by dijet pt
             "ak4Pair0": first_bb_pair,
             "ak4Pair1": second_bb_pair,
             "ak4DijetPt0": first_bb_dijet.pt,
