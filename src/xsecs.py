@@ -68,9 +68,11 @@ xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB
 
 # Di-Higgs
 # TO- XCHECK
-xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"] = 34.43e-3 * BR_HBB * BR_HBB # 0.02964 in xsecdb
+xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"] = 34.43e-3 * BR_HBB * BR_HBB  # 0.02964 in xsecdb
 xsecs["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 34.43e-3 * BR_HBB * BR_HBB
-xsecs["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 0.06648 * BR_HBB * BR_HBB # from xsecdb
+xsecs["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = (
+    0.06648 * BR_HBB * BR_HBB
+)  # from xsecdb
 xsecs["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 0.01252 * BR_HBB * BR_HBB
 xsecs["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"] = 0.08664 * BR_HBB * BR_HBB
 
