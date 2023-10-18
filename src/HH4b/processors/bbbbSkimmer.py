@@ -210,7 +210,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, fajet, year, isData, self.jecs, fatjets=True, applyData=True, dataset=dataset
+            events, fatjets, year, isData, self.jecs, fatjets=True, applyData=True, dataset=dataset
         )
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
