@@ -198,8 +198,9 @@ class bbbbSkimmer(processor.ProcessorABC):
         #########################
         num_jets = 6
         # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
+        # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
         jets, jec_shifted_jetvars = get_jec_jets(
-            events, events.Jet, year, isData, self.jecs, fatjets=False, applyData=True
+            events, events.Jet, year, isData, self.jecs, fatjets=False, applyData=True, dataset=dataset
         )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy())
         jets = jets[jets_sel]
@@ -207,8 +208,9 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         num_fatjets = 2  # number to save
         num_fatjets_cut = 2  # number to consider for selection
+        fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, events.FatJet, year, isData, self.jecs, fatjets=True, applyData=True
+            events, fajet, year, isData, self.jecs, fatjets=True, applyData=True, dataset=dataset
         )
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
@@ -385,8 +387,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # jet veto maps
         if (year=="2022" or year == "2022EE"):
-            jetveto = get_jetveto_event(jets, year, events.run.to_numpy())
-            add_selection("ak4_jetveto", jetveto, *selection_args)
+            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy())
+            add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations
         cuts = []

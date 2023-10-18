@@ -176,6 +176,7 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
+        fatjets["particleNet_mass"] = fatjets.particleNet_massCorr
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
 
     return fatjets
@@ -183,6 +184,5 @@ def get_ak8jets(fatjets: FatJetArray):
 
 # ak8 jet definition
 def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
-    fatjets = get_ak8jets(fatjets)
     sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
     return sel
