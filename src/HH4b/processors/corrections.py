@@ -64,6 +64,7 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
+    # TODO: fix prompt when switching to re-reco 23Sep datasets
     year = get_Prompt_year(year) if year == "2022" else year
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -476,7 +477,8 @@ def get_jmsr(
 def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
     # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    # for samples related to RunEFG, it is recommended to utilize the vetomap that has been derived for RunEFG
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE","")))
 
     j, nj = ak.flatten(jets), ak.num(jets)
 
@@ -501,7 +503,7 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
 
 
 def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
 
     j, nj = ak.flatten(jets), ak.num(jets)
 
@@ -511,10 +513,12 @@ def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
         return ak.unflatten(veto, nj)
 
     event_veto = (
+        # Run CD
         (run >= FirstRun_2022C)
         & (run <= LastRun_2022D)
         & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
     ) | (
+        # RunE
         (run >= FirstRun_2022E)
         & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
     )
