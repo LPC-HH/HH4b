@@ -616,7 +616,7 @@ def eos_rec_search(startdir, suffix, dirs):
     return dirs + donedir
 
 
-for version in ["v9", "v10", "v11", "v11_private", "v9_private"]:
+for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
