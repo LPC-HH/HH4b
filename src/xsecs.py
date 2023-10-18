@@ -14,13 +14,14 @@ BR_HBB = 0.5809
 xsecs = {}
 
 # QCD
+# also see https://indico.cern.ch/event/1324651/contributions/5576411/attachments/2713143/4711677/2023_09_14_PPD_DijetsAndPairedDijets_JECAndMCNeeds.pdf page 22
 xsecs["QCD_PT-30to50"] = 112800000.0
 xsecs["QCD_PT-50to80"] = 16660000.0
 xsecs["QCD_PT-80to120"] = 2507000.0
 xsecs["QCD_PT-120to170"] = 441100.0
 xsecs["QCD_PT-170to300"] = 113400.0
-xsecs["QCD_PT-300to470"] = 7707.0
-xsecs["QCD_PT-470to600"] = 628.8
+xsecs["QCD_PT-300to470"] = 7589.0
+xsecs["QCD_PT-470to600"] = 626.4
 xsecs["QCD_PT-600to800"] = 178.6
 xsecs["QCD_PT-800to1000"] = 30.57
 xsecs["QCD_PT-1000to1400"] = 8.92
@@ -42,13 +43,27 @@ xsecs["QCDB_HT-1000to1500"] = 55.15
 xsecs["QCDB_HT-1500to2000"] = 4729
 xsecs["QCDB_HT-2000"] = 0.8673
 
+xsecs["QCD_HT-40to70"] = 311600000.0
+xsecs["QCD_HT-70to100"] = 58520000.0
+xsecs["QCD_HT-100to200"] = 25220000.0
+xsecs["QCD_HT-200to400"] = 1963000.0
+xsecs["QCD_HT-400to600"] = 94870.0
+xsecs["QCD_HT-600to800"] = 13420.0
+xsecs["QCD_HT-800to1000"] = 2992.0
+xsecs["QCD_HT-1000to1200"] = 879.1
+xsecs["QCD_HT-1200to1500"] = 384.5
+xsecs["QCD_HT-1500to2000"] = 125.5
+xsecs["QCD_HT-2000"] = 25.78 
+
+xsecs["QCD_PT-15to7000"] = 1440000000.0
+
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
 # cross check these?
 # https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1)
 xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (404.0)
-xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # =410.28 (96.9)
+xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (96.9)
 
 # Diboson
 xsecs["WW"] = 80.23  #  173.4 (116.8 at NNLO)

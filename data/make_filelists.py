@@ -28,6 +28,8 @@ qcd_bins = [
 ]
 
 qcd_ht_bins = [
+    "40to70",
+    "70to100",
     "40to100",
     "100to200",
     "200to400",
@@ -35,6 +37,8 @@ qcd_ht_bins = [
     "600to800",
     "800to1000",
     "1000to1500",
+    "1000to1200",
+    "1200to1500",
     "1500to2000",
     "2000",
 ]
@@ -218,6 +222,11 @@ def get_v11():
                     f"QCDB_HT-{qbin}": f"/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM"
                     for qbin in qcd_ht_bins
                 },
+                **{
+                    f"QCD_HT-{qbin}": f"/QCD-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM"
+                    for qbin in qcd_ht_bins
+                },
+                "QCD_PT-15to7000": "/QCD_PT-15to7000_TuneCP5_Flat2018_13p6TeV_pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM",
             },
             "TT": {
                 "TTto4Q": "/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v1/NANOAODSIM",
@@ -246,17 +255,16 @@ def get_v11():
                 # 1M
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM",
             },
-            # ReReco should be 27Jun2023...
-            # "JetMET": {
-            #     "Run2022C_single":
-            #     "Run2022C":
-            #     "Run2022D":
-            # },
-            # "Muon": {
-            #     "Run2022C_single":
-            #     "Run2022C":
-            #     "Run2022D":
-            # },
+            "JetMET": {
+                "Run2022C_single": "/JetHT/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022C": "/JetMET/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022D": "/JetMET/Run2022D-22Sep2023-v1/NANOAOD",
+            },
+            "Muon": {
+                "Run2022C_single": "/SingleMuon/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022C": "/Muon/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022D": "/Muon/Run2022D-22Sep2023-v1/NANOAOD",
+            },
         },
         # MC campaign post EE+ leak
         "2022EE": {
@@ -303,6 +311,12 @@ def get_v11():
                     f"QCDB_HT-{qbin}": f"/QCDB-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM"
                     for qbin in qcd_ht_bins
                 },
+                **{
+                    f"QCD_HT-{qbin}": f"/QCD-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3\
+_2022_realistic_postEE_v1-v2/NANOAODSIM"
+                    for qbin in qcd_ht_bins
+                },
+                "QCD_PT-15to7000": "/QCD_PT-15to7000_TuneCP5_Flat2018_13p6TeV_pythia8/Run3Summer22EENanoAODv11-EpsilonPU_126X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM",
             },
             "TT": {
                 "TTto4Q": "/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
@@ -329,48 +343,18 @@ def get_v11():
             },
             # Prompt-Reco
             "JetMET": {
-                # "Run2022E": This needs to be re-reco
+                # "Run2022E": "/JetMET/Run2022E-22Sep2023-v1/NANOAOD", # in production
+                # "Run2022F": "/JetMET/Run2022F-22Sep2023-v1/NANOAOD", # in production
+                # "Run2022G": "/JetMET/Run2022G-22Sep2023-v1/NANOAOD", # in production
                 "Run2022F": "/JetMET/Run2022F-PromptNanoAODv11_v1-v2/NANOAOD",
                 "Run2022G": "/JetMET/Run2022G-PromptNanoAODv11_v1-v2/NANOAOD",
             },
             "Muon": {
-                # "Run2022E": This needs to be re-reco
+                # "Run2022E": "/Muon/Run2022E-22Sep2023-v1/NANOAOD",
+                # "Run2022F": "/Muon/Run2022F-22Sep2023-v1/NANOAOD", # in production
+                # "Run2022G": "/Muon/Run2022G-22Sep2023-v1/NANOAOD",
                 "Run2022F": "/Muon/Run2022F-PromptNanoAODv11_v1-v2/NANOAOD",
                 "Run2022G": "/Muon/Run2022G-PromptNanoAODv11_v1-v2/NANOAOD",
-            },
-        },
-        "2023": {
-            "JetMET": {
-                "Run2023B-v1_0": "/JetMET0/Run2023B-PromptNanoAODv11p9_v1-v1/NANOAOD",
-                "Run2023C-v1_0": "/JetMET0/Run2023C-PromptMiniAOD_v1_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v2_0": "/JetMET0/Run2023C-PromptMiniAOD_v2_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v3_0": "/JetMET0/Run2023C-PromptMiniAOD_v3_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v4_0": "/JetMET0/Run2023C-PromptMiniAOD_v4_NanoAODv12-v1/NANOAOD",
-                "Run2023D-v1_0": "/JetMET0/Run2023D-PromptReco-v1/NANOAOD",
-                "Run2023D-v2_0": "/JetMET0/Run2023D-PromptReco-v2/NANOAOD",
-                "Run2023B-v1_1": "/JetMET1/Run2023B-PromptNanoAODv11p9_v1-v1/NANOAOD",
-                "Run2023C-v1_1": "/JetMET1/Run2023C-PromptMiniAOD_v1_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v2_1": "/JetMET1/Run2023C-PromptMiniAOD_v2_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v3_1": "/JetMET1/Run2023C-PromptMiniAOD_v3_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v4_1": "/JetMET1/Run2023C-PromptMiniAOD_v4_NanoAODv12-v1/NANOAOD",
-                "Run2023D-v1_1": "/JetMET1/Run2023D-PromptReco-v1/NANOAOD",
-                "Run2023D-v2_1": "/JetMET1/Run2023D-PromptReco-v2/NANOAOD",
-            },
-            "Muon": {
-                "Run2023B-v1_0": "/Muon0/Run2023B-PromptNanoAODv11p9_v1-v2/NANOAOD",
-                "Run2023C-v1_0": "/Muon0/Run2023C-PromptMiniAOD_v1_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v2_0": "/Muon0/Run2023C-PromptMiniAOD_v2_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v3_0": "/Muon0/Run2023C-PromptMiniAOD_v2_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v4_0": "/Muon0/Run2023C-PromptMiniAOD_v3_NanoAODv12-v1/NANOAOD",
-                "Run2023D-v1_0": "/Muon0/Run2023D-PromptReco-v1/NANOAOD",
-                "Run2023D-v2_0": "/Muon0/Run2023D-PromptReco-v2/NANOAOD",
-                "Run2023B-v1_1": "/Muon1/Run2023B-PromptNanoAODv11p9_v1-v2/NANOAOD",
-                "Run2023C-v1_1": "/Muon1/Run2023C-PromptMiniAOD_v1_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v2_1": "/Muon1/Run2023C-PromptMiniAOD_v2_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v3_1": "/Muon1/Run2023C-PromptMiniAOD_v3_NanoAODv12-v1/NANOAOD",
-                "Run2023C-v4_1": "/Muon1/Run2023C-PromptReco-v4/NANOAOD",
-                "Run2023D-v1_1": "/Muon1/Run2023D-PromptReco-v1/NANOAOD",
-                "Run2023D-v2_1": "/Muon1/Run2023D-PromptReco-v2/NANOAOD",
             },
         },
     }
@@ -542,14 +526,59 @@ def get_v11_private():
 
 def get_v12():
     return {
+        "2022": {
+            "Muon": {
+                "Run2022C_single": "/SingleMuon/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022C": "/Muon/Run2022C-22Sep2023-v1/NANOAOD",
+                "Run2022D": "/Muon/Run2022D-22Sep2023-v1/NANOAOD",
+            }
+        },
+        "2022EE": {
+            "Muon": {
+                "Run2022E": "/Muon/Run2022E-22Sep2023-v1/NANOAOD",                                                                                                                                         
+                # "Run2022F": "/Muon/Run2022F-22Sep2023-v1/NANOAOD", # in production
+                "Run2022G": "/Muon/Run2022G-22Sep2023-v1/NANOAOD",  
+            }
+        },
         "2023": {
             "JetMET": {
-                "Run2023C_0_v2": "/JetMET0/Run2023C-PromptNanoAODv12_v2-v2/NANOAOD",
-                "Run2023C_0_v3": "/JetMET0/Run2023C-PromptNanoAODv12_v3-v1/NANOAOD",
-                "Run2023C_0_v4": "/JetMET0/Run2023C-PromptNanoAODv12_v4-v1/NANOAOD",
-                "Run2023C_1_v2": "/JetMET1/Run2023C-PromptNanoAODv12_v2-v4/NANOAOD",
-                "Run2023C_1_v3": "/JetMET1/Run2023C-PromptNanoAODv12_v3-v1/NANOAOD",
-                "Run2023C_1_v4": "/JetMET1/Run2023C-PromptNanoAODv12_v4-v1/NANOAOD",
+                "Run2023C-v1_0": "/JetMET0/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                "Run2023C-v2_0": "/JetMET0/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v3_0": "/JetMET0/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                "Run2023C-v4_0": "/JetMET0/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                "Run2023D-v1_0": "/JetMET0/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                "Run2023D-v2_0": "/JetMET0/Run2023D-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v1_1": "/JetMET1/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                "Run2023C-v2_1": "/JetMET1/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v3_1": "/JetMET1/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                "Run2023C-v4_1": "/JetMET1/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                "Run2023D-v1_1": "/JetMET1/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                "Run2023D-v2_1": "/JetMET1/Run2023D-22Sep2023_v2-v1/NANOAOD",
+            },
+            # should use Muon0+Muon1
+            # https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2FMuon*%2F*2023C*-22Sep2023_v*-*%2FNANOAOD
+            # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of partical rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
+            "Muon": {
+                "Run2023C-v1_0": "/Muon0/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                "Run2023C-v2_0": "/Muon0/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v3_0": "/Muon0/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                "Run2023C-v4_0": "/Muon0/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                "Run2023D-v1_0": "/Muon0/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                "Run2023D-v2_0": "/Muon0/Run2023D-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v1_1": "/Muon1/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                "Run2023C-v2_1": "/Muon1/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v3_1": "/Muon1/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                "Run2023C-v4_1": "/Muon1/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                "Run2023D-v1_1": "/Muon1/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                "Run2023D-v2_1": "/Muon1/Run2023D-22Sep2023_v2-v1/NANOAOD",
+            },
+            "MuonEG": {
+                "Run2023C-v1_0": "/MuonEG/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                "Run2023C-v2_0": "/MuonEG/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                "Run2023C-v3_0": "/MuonEG/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                "Run2023C-v4_0": "/MuonEG/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                "Run2023D-v1_0": "/MuonEG/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                "Run2023D-v2_0": "/MuonEG/Run2023D-22Sep2023_v2-v1/NANOAOD",
             },
         },
     }
