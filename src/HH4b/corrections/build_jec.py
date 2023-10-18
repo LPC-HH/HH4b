@@ -74,7 +74,7 @@ jet_factory = {
         files=[
             "Winter22Run3_RunC_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Winter22Run3_RunC_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
-            # "Winter22Run3_RunC_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            "Winter22Run3_RunC_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
             # having some trouble with Winter22Run3_V1_DATA_PtResolution_AK4PFPuppi.jr.txt.gz
             # File "/uscms/home/cmantill/nobackup/miniconda3/envs/coffea-env/lib/python3.8/site-packages/coffea/lookup_tools/txt_converters.py", line 220, in _build_standard_jme_lookup
             # ValueError: structure imposed by 'counts' does not fit in the array or partition at axis=0
@@ -87,7 +87,7 @@ jet_factory = {
             "Winter22Run3_RunD_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Winter22Run3_RunD_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             # "Winter22Run3_RunD_V2_DATA_L3Absolute_AK4PFPuppi.jec.txt.gz",
-            # "Winter22Run3_RunD_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            "Winter22Run3_RunD_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EENOJER_runF": jet_factory_factory(
@@ -95,7 +95,7 @@ jet_factory = {
             "Summer22EEPrompt22_RunF_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer22EEPrompt22_RunF_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             # "Summer22EEPrompt22_RunF_V1_DATA_L3Absolute_AK4PFPuppi.jec.txt.gz"
-            # "Summer22EEPrompt22_RunF_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            "Summer22EEPrompt22_RunF_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EENOJER_runG": jet_factory_factory(
@@ -103,7 +103,7 @@ jet_factory = {
             "Summer22EEPrompt22_RunG_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer22EEPrompt22_RunG_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             # "Summer22EEPrompt22_RunG_V1_DATA_L3Absolute_AK4PFPuppi.jec.txt.gz",
-            # "Summer22EEPrompt22_RunG_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            "Summer22EEPrompt22_RunG_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
 }
@@ -147,7 +147,7 @@ fatjet_factory = {
         files=[
             "Winter22Run3_RunC_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Winter22Run3_RunC_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
-            # "Winter22Run3_RunC_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            "Winter22Run3_RunC_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022NOJER_runD": jet_factory_factory(
@@ -155,7 +155,7 @@ fatjet_factory = {
             "Winter22Run3_RunD_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Winter22Run3_RunD_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             # "Winter22Run3_RunD_V2_DATA_L3Absolute_AK8PFPuppi.jec.txt.gz",
-            # "Winter22Run3_RunD_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            "Winter22Run3_RunD_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EENOJER_runF": jet_factory_factory(
@@ -163,7 +163,7 @@ fatjet_factory = {
             "Summer22EEPrompt22_RunF_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer22EEPrompt22_RunF_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             # "Summer22EEPrompt22_RunF_V1_DATA_L3Absolute_AK8PFPuppi.jec.txt.gz"
-            # "Summer22EEPrompt22_RunF_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            "Summer22EEPrompt22_RunF_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EENOJER_runG": jet_factory_factory(
@@ -171,7 +171,7 @@ fatjet_factory = {
             "Summer22EEPrompt22_RunG_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer22EEPrompt22_RunG_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             # "Summer22EEPrompt22_RunG_V1_DATA_L3Absolute_AK8PFPuppi.jec.txt.gz",
-            # "Summer22EEPrompt22_RunG_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            "Summer22EEPrompt22_RunG_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
 }
