@@ -69,26 +69,24 @@ ak8_selection = {
 
 
 def base_muons(muons: MuonArray):
-    # base selection of muons (ref. VBF HH4b boosted Run2)
+    # base selection of muons 
     sel = (
-        (muons.pt >= 5) & (abs(muons.eta) <= 2.4) & (abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.2)
+        (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
     )
-    return muons[sel]
+    return sel
 
 
 def base_electrons(electrons: ElectronArray):
-    # base selection of electrons (ref. VBF HH4b boosted Run2)
+    # base selection of electrons
     sel = (
         (electrons.pt >= 7)
         & (abs(electrons.eta) <= 2.5)
-        & (abs(electrons.dxy) < 0.05)
-        & (abs(electrons.dz) < 0.2)
     )
-    return electrons[sel]
+    return sel
 
 
 def good_muons(muons: MuonArray, selection: Dict = muon_selection):
-    muons = base_muons(muons)
+    muons = muons[base_muons(muons)]
     sel = (
         (muons.pt >= selection["pt"])
         & (abs(muons.eta) <= selection["eta"])
@@ -99,7 +97,7 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
 
 
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
-    electrons = base_electrons(electrons)
+    electrons = electrons[base_electrons(electrons)]
     if "cutBased" in selection["id"]:
         wp = selection["id"].split(":")[1]
         id_selection = electrons["cutBased"] >= electrons[wp]
@@ -126,22 +124,22 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
 
 # ak4 jet definition
 def good_ak4jets(
-    jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
+    jets: JetArray, year: str, run: np.ndarray, selection: Dict = ak4_selection
 ):
-    # FIXME: check PuID WP and JetIDWP for Run3
+    # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
-    goodjets = (
+    sel = (
         (jets.isTight)
-        # & ((jets.pt < 50) & (jets.puId >=6)) | (jets.pt >=50)
         & (abs(jets.eta) < selection["eta"])
     )
-    if year == "2022" and isData:
-        jet_veto = get_jetveto(jets, year, run)
-        goodjets = goodjets & ~(jet_veto)
 
-    return jets[goodjets]
+    if (year == "2022" or year=="2022EE"):
+        jet_veto = get_jetveto(jets, year, run)
+        jet_veto = jet_veto & (jets.pt > 15)
+        sel = sel & ~jet_veto
+    return sel
 
 
 # apply ak4 b-jet regression
@@ -187,4 +185,4 @@ def get_ak8jets(fatjets: FatJetArray):
 def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
     fatjets = get_ak8jets(fatjets)
     sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
-    return fatjets[sel]
+    return sel
