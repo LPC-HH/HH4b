@@ -531,14 +531,20 @@ def get_v12():
                 "Run2022C_single": "/SingleMuon/Run2022C-22Sep2023-v1/NANOAOD",
                 "Run2022C": "/Muon/Run2022C-22Sep2023-v1/NANOAOD",
                 "Run2022D": "/Muon/Run2022D-22Sep2023-v1/NANOAOD",
-            }
+            },
         },
         "2022EE": {
+            "QCD": {
+                **{
+                    f"QCD_PT-{qbin}": f"/QCD_PT-{qbin}_TuneCP5_13p6TeV_pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM"
+                    for qbin in qcd_bins
+                },
+            },
             "Muon": {
-                "Run2022E": "/Muon/Run2022E-22Sep2023-v1/NANOAOD",                                                                                                                                         
+                "Run2022E": "/Muon/Run2022E-22Sep2023-v1/NANOAOD",
                 # "Run2022F": "/Muon/Run2022F-22Sep2023-v1/NANOAOD", # in production
                 "Run2022G": "/Muon/Run2022G-22Sep2023-v1/NANOAOD",  
-            }
+            },
         },
         "2023": {
             "JetMET": {
