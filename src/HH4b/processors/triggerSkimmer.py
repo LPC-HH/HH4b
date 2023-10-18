@@ -13,6 +13,7 @@ from .utils import add_selection, P4, pad_val
 from .objects import get_ak8jets, good_ak4jets
 from .corrections import (
     get_jec_jets,
+    get_jetveto_event,
 )
 
 import warnings
@@ -270,7 +271,8 @@ class BoostedTriggerSkimmer(TriggerProcessor):
     def process(self, events):
         """Returns processed information for trigger studies"""
 
-        year = events.metadata["dataset"][:4]
+        year = events.metadata["dataset"].split("_")[0]
+        dataset = "_".join(events.metadata["dataset"].split("_")[1:])
         isData = not hasattr(events, "genWeight")
 
         selection = PackedSelection()
@@ -310,7 +312,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
         fatjets = get_jec_jets(
-            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True
+            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True, dataset=dataset
         )
 
         fatjet_selector = (
@@ -340,13 +342,18 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         # add ht variable
         jets = get_jec_jets(
-            events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True
+            events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True, dataset=dataset
         )
-        jets = good_ak4jets(jets, year, events.run.to_numpy(), isData)
+        jets = jets[good_ak4jets(jets, year, events.run.to_numpy())]
         ht = ak.sum(jets.pt, axis=1)
         skimmed_events["ht"] = ht.to_numpy()
 
+        if (year=="2022" or year == "2022EE"):
+            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy())
+            add_selection("ak4_jetveto", jetveto_selection, *selection_args)
+
         # trigger objects
+        """
         # fields: 'pt', 'eta', 'phi', 'l1pt', 'l1pt_2', 'l2pt', 'id', 'l1iso', 'l1charge', 'filterBits'
         fatjet_obj = events.TrigObj[(events.TrigObj.id == 6)]
         jet_obj = events.TrigObj[(events.TrigObj.id == 1)]
@@ -373,7 +380,8 @@ class BoostedTriggerSkimmer(TriggerProcessor):
             ),
         }
         skimmed_events = {**skimmed_events, **trigObjFatJetVars}
-
+        """
+        
         # reshape and apply selections
         sel_all = selection.all(*selection.names)
 
@@ -416,7 +424,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
                 events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
             )
             self.dump_table(df, fname)
-
+            
             return {}
 
     def postprocess(self, accumulator):

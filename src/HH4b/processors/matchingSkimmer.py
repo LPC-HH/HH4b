@@ -155,7 +155,8 @@ class matchingSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         num_jets = 6
-        jets = good_ak4jets(events.Jet, year, events.run.to_numpy(), isData)
+        jets = events.Jet
+        jets = jets[good_ak4jets(jets, year, events.run.to_numpy())]
 
         # sort by b
         jets = jets[ak.argsort(jets.btagDeepFlavB, ascending=False)]
@@ -167,7 +168,8 @@ class matchingSkimmer(processor.ProcessorABC):
         jets_p4 = bregcorr(jets)
 
         num_fatjets = 3
-        fatjets = good_ak8jets(events.FatJet)
+        fatjets = get_ak8jets(events.FatJet)
+        fatjets = fatjets[good_ak8jets(fatjets)]
         # sort by bb
         fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
 
