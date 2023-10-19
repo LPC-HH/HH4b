@@ -433,7 +433,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # Txbb pre-selection cut on leading jet
-        txbb_cut = ak8FatJetVars["ak8FatJetPNetXbb"][:, 0] >= self.preselection["Txbb0"]
+        txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
 
         # print("Selection", f"{time.time() - start:.2f}")
