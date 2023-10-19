@@ -3,7 +3,7 @@
 # Golden JSON
 LUMI = {  # in pb^-1
     "2018": 59830.0,
-    # 38480.0 (recorded) vs 34308.4 (golden json)
+    # 5.0707 + 3.0063
     "2022": 7971.4,
     # "2022EE": 26337.0,
     # 2022EE minus E run

@@ -36,8 +36,10 @@ package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
 # Important Run3 start of Run
 FirstRun_2022C = 355794
+FirstRun_2022D = 357487
 LastRun_2022D = 359021
 FirstRun_2022E = 359022
+LastRun_2022F = 362180
 
 """
 CorrectionLib files are available from: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration - synced daily
@@ -64,6 +66,7 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
+    # TODO: fix prompt when switching to re-reco 23Sep datasets
     year = get_Prompt_year(year) if year == "2022" else year
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -349,6 +352,7 @@ def get_jec_jets(
     jecs: Dict[str, str] = None,
     fatjets: bool = True,
     applyData: bool = False,
+    dataset: str = None,
 ) -> FatJetArray:
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
@@ -360,25 +364,31 @@ def get_jec_jets(
     else:
         jet_factory = ak4jet_factory
 
-    if applyData:
-        apply_jecs = not ak.any(jets.pt)
-    else:
-        # do not apply JECs to data
-        apply_jecs = not (not ak.any(jets.pt) or isData)
-
     import cachetools
 
     jec_cache = cachetools.Cache(np.inf)
 
     if isData:
-        # FIXME: Using RunC or RunF as placeholders
-        # TODO: use run array to determine which correction to use
-        if year == "2022EE":
+        if year == "2022EE" and (dataset == "Run2022F" or dataset == "Run2022E"):
             corr_key = f"{year}NOJER_runF"
-        else:
+        elif year == "2022EE" and dataset == "Run2022G":
+            corr_key = f"{year}NOJER_runG"
+        elif year == "2022" and dataset == "Run2022C":
             corr_key = f"{year}NOJER_runC"
+        elif year == "2022" and dataset == "Run2022D":
+            corr_key = f"{year}NOJER_runD"
+        else:
+            print(dataset, year)
+            print("warning, no valid dataset for 2022 corrections, JECs won't be applied to data")
+            applyData = False
     else:
         corr_key = f"{year}mc"
+
+    if applyData:
+        apply_jecs = not ak.any(jets.pt)
+    else:
+        # do not apply JECs to data
+        apply_jecs = not (not ak.any(jets.pt) or isData)
 
     # fatjet_factory.build gives an error if there are no jets in event
     if apply_jecs:
@@ -473,10 +483,11 @@ def get_jmsr(
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.
 # apply to both Data and MC
 # https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444?u=anmalara
-def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
+def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    # for samples related to RunEFG, it is recommended to utilize the vetomap that has been derived for RunEFG
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
 
     j, nj = ak.flatten(jets), ak.num(jets)
 
@@ -485,23 +496,32 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
         veto = cset[csetstr].evaluate("jetvetomap", np.array(j.eta), j_phi)
         return ak.unflatten(veto, nj)
 
-    jet_veto = (
-        # RunCD
-        (
-            (run >= FirstRun_2022C)
-            & (run <= LastRun_2022D)
-            & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
+    if isData:
+        jet_veto = (
+            # RunCD
+            (
+                (run >= FirstRun_2022C)
+                & (run <= LastRun_2022D)
+                & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
+            )
+            |
+            # RunE (and later?)
+            ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
         )
-        |
-        # RunE
-        ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
-    )
+    else:
+        if year == "2022":
+            jet_veto = get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0
+        else:
+            jet_veto = get_veto(j, nj, "Winter22Run3_RunE_V1") > 0
 
     return jet_veto
 
 
-def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray, isData: bool):
+    """
+    Get event selection that rejects events with jets in the veto map
+    """
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
 
     j, nj = ak.flatten(jets), ak.num(jets)
 
@@ -510,16 +530,28 @@ def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
         veto = cset[csetstr].evaluate("jetvetomap_eep", np.array(j.eta), j_phi)
         return ak.unflatten(veto, nj)
 
-    event_veto = (
-        (run >= FirstRun_2022C)
-        & (run <= LastRun_2022D)
-        & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
-    ) | (
-        (run >= FirstRun_2022E)
-        & (ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
-    )
+    if isData:
+        event_sel = (
+            # Run CD
+            (run >= FirstRun_2022C)
+            & (run <= LastRun_2022D)
+            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
+        ) | (
+            # RunE
+            (run >= FirstRun_2022E)
+            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
+        )
+    else:
+        if year == "2022":
+            event_sel = ~(
+                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1)
+            )
+        else:
+            event_sel = ~(
+                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1)
+            )
 
-    return event_veto
+    return event_sel
 
 
 def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets: int = 2):

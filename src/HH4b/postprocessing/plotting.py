@@ -84,6 +84,7 @@ color_by_sample = {
     "hh4b-kl5": "cyan",
     "ttbar": colours["darkblue"],
     "qcd": colours["canary"],
+    "qcd-ht": colours["canary"],
     "diboson": "orchid",
     "vjets": colours["green"],
 }
@@ -94,6 +95,7 @@ label_by_sample = {
     "tthtobb": "ttH(bb)",
     "vhtobb": "VH(bb)",
     "qcd": "Multijet",
+    "qcd-ht": "Multijet HT bin",
     "hh4b": r"HH 4b ($\kappa_{\lambda}=1$)",
     "hh4b-kl2p45": r"HH 4b ($\kappa_{\lambda}=2.45$)",
     "hh4b-kl5": r"HH 4b ($\kappa_{\lambda}=5$)",
@@ -228,7 +230,7 @@ def plot_hists(
                 values=tot.values() + tot_err,
                 baseline=tot.values() - tot_err,
                 edges=tot.axes[0].edges,
-                **errps,
+                **ps,
                 label="Stat. unc.",
             )
 
@@ -443,7 +445,7 @@ def ratioHistPlot(
     title: str = None,
     blind_region: list = None,
     name: str = "",
-    sig_scale_dict: OrderedDict[str, float] = None,
+    sig_scale_dict=None,
     ylim: int = None,
     show: bool = True,
     variation: Tuple = None,
