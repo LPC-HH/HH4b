@@ -429,7 +429,7 @@ def singleVarHistNoMask(
 def add_selection(name, sel, selection, cutflow, events, weight_key):
     """Adds selection to PackedSelection object and the cutflow"""
     selection.add(name, sel)
-    cutflow[name] = np.sum(events[weight_key][selection.all(*selection.names)])
+    cutflow[name] = np.sum(get_feat(events, weight_key)[selection.all(*selection.names)])
 
 
 def check_get_jec_var(var, jshift):
