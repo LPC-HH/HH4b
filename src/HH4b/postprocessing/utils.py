@@ -361,9 +361,9 @@ def singleVarHist(
             fill_var = var
 
         # TODO: add b1, b2 assignment if needed
-        # print("fill var ", fill_var)
+        print("fill var ", fill_var)
         fill_data = {var: get_feat(events, fill_var)}
-
+        print(fill_data)
         weight = events[weight_key].values.squeeze()
 
         if selection is not None:
