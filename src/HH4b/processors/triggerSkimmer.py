@@ -342,14 +342,21 @@ class BoostedTriggerSkimmer(TriggerProcessor):
 
         # add ht variable
         jets = get_jec_jets(
-            events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True, dataset=dataset
+            events,
+            events.Jet,
+            year,
+            isData,
+            jecs=None,
+            fatjets=False,
+            applyData=True,
+            dataset=dataset,
         )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
         skimmed_events["ht"] = ht.to_numpy()
 
-        if (year=="2022" or year == "2022EE"):
+        if year == "2022" or year == "2022EE":
             jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
@@ -382,7 +389,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         }
         skimmed_events = {**skimmed_events, **trigObjFatJetVars}
         """
-        
+
         # reshape and apply selections
         sel_all = selection.all(*selection.names)
 
@@ -425,7 +432,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
                 events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
             )
             self.dump_table(df, fname)
-            
+
             return {}
 
     def postprocess(self, accumulator):

@@ -445,7 +445,7 @@ def ratioHistPlot(
     title: str = None,
     blind_region: list = None,
     name: str = "",
-    sig_scale_dict = None,
+    sig_scale_dict=None,
     ylim: int = None,
     show: bool = True,
     variation: Tuple = None,

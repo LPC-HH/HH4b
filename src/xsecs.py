@@ -53,7 +53,7 @@ xsecs["QCD_HT-800to1000"] = 2992.0
 xsecs["QCD_HT-1000to1200"] = 879.1
 xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
-xsecs["QCD_HT-2000"] = 25.78 
+xsecs["QCD_HT-2000"] = 25.78
 
 xsecs["QCD_PT-15to7000"] = 1440000000.0
 

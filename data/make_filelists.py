@@ -543,7 +543,7 @@ def get_v12():
             "Muon": {
                 "Run2022E": "/Muon/Run2022E-22Sep2023-v1/NANOAOD",
                 # "Run2022F": "/Muon/Run2022F-22Sep2023-v1/NANOAOD", # in production
-                "Run2022G": "/Muon/Run2022G-22Sep2023-v1/NANOAOD",  
+                "Run2022G": "/Muon/Run2022G-22Sep2023-v1/NANOAOD",
             },
         },
         "2023": {

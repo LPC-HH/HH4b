@@ -365,16 +365,17 @@ def get_jec_jets(
         jet_factory = ak4jet_factory
 
     import cachetools
+
     jec_cache = cachetools.Cache(np.inf)
 
     if isData:
-        if year == "2022EE" and (dataset=="Run2022F" or dataset=="Run2022E"):
+        if year == "2022EE" and (dataset == "Run2022F" or dataset == "Run2022E"):
             corr_key = f"{year}NOJER_runF"
-        elif year == "2022EE" and dataset=="Run2022G":
+        elif year == "2022EE" and dataset == "Run2022G":
             corr_key = f"{year}NOJER_runG"
-        elif year == "2022" and dataset=="Run2022C":
+        elif year == "2022" and dataset == "Run2022C":
             corr_key = f"{year}NOJER_runC"
-        elif year == "2022" and dataset=="Run2022D":
+        elif year == "2022" and dataset == "Run2022D":
             corr_key = f"{year}NOJER_runD"
         else:
             print(dataset, year)
@@ -486,7 +487,7 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
     # for samples related to RunEFG, it is recommended to utilize the vetomap that has been derived for RunEFG
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE","")))
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
 
     j, nj = ak.flatten(jets), ak.num(jets)
 
@@ -508,14 +509,10 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
             ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
         )
     else:
-        if year=="2022":
-            jet_veto = (
-                get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0
-            )
+        if year == "2022":
+            jet_veto = get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0
         else:
-            jet_veto = (
-                get_veto(j, nj, "Winter22Run3_RunE_V1") > 0
-            )
+            jet_veto = get_veto(j, nj, "Winter22Run3_RunE_V1") > 0
 
     return jet_veto
 
@@ -545,13 +542,13 @@ def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray, isData: bool):
             & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
         )
     else:
-        if year=="2022":
-            event_sel = (
-                ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
+        if year == "2022":
+            event_sel = ~(
+                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1)
             )
         else:
-            event_sel = (
-                ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
+            event_sel = ~(
+                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1)
             )
 
     return event_sel

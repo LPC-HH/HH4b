@@ -200,7 +200,14 @@ class bbbbSkimmer(processor.ProcessorABC):
         # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
         jets, jec_shifted_jetvars = get_jec_jets(
-            events, events.Jet, year, isData, self.jecs, fatjets=False, applyData=True, dataset=dataset
+            events,
+            events.Jet,
+            year,
+            isData,
+            self.jecs,
+            fatjets=False,
+            applyData=True,
+            dataset=dataset,
         )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
@@ -388,7 +395,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         # add_selection("met_filters", metfilters, *selection_args)
 
         # jet veto maps
-        if (year=="2022" or year == "2022EE"):
+        if year == "2022" or year == "2022EE":
             jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
@@ -424,12 +431,9 @@ class bbbbSkimmer(processor.ProcessorABC):
             (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
             *selection_args,
         )
-        
+
         # Txbb pre-selection cut on leading jet
-        txbb_cut = (
-            ak8FatJetVars["ak8FatJetPNetXbb"][:, 0]
-            >= self.preselection["Txbb0"]
-        )
+        txbb_cut = ak8FatJetVars["ak8FatJetPNetXbb"][:, 0] >= self.preselection["Txbb0"]
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
 
         # print("Selection", f"{time.time() - start:.2f}")
@@ -445,7 +449,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
             add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy())
 
-            #add_VJets_kFactors(weights, events.GenPart, dataset)
+            # add_VJets_kFactors(weights, events.GenPart, dataset)
 
             add_trig_weights(weights, fatjets, year, num_fatjets_cut)
 
@@ -535,7 +539,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
             }
         else:
-            # print("Return ", f"{time.time() - start:.2f}") 
+            # print("Return ", f"{time.time() - start:.2f}")
             return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
 
     def postprocess(self, accumulator):

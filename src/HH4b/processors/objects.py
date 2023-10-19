@@ -69,19 +69,14 @@ ak8_selection = {
 
 
 def base_muons(muons: MuonArray):
-    # base selection of muons 
-    sel = (
-        (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
-    )
+    # base selection of muons
+    sel = (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
     return sel
 
 
 def base_electrons(electrons: ElectronArray):
     # base selection of electrons
-    sel = (
-        (electrons.pt >= 7)
-        & (abs(electrons.eta) <= 2.5)
-    )
+    sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
     return sel
 
 
@@ -130,12 +125,9 @@ def good_ak4jets(
     # PuID might only be needed for forward region (WIP)
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
-    sel = (
-        (jets.isTight)
-        & (abs(jets.eta) < selection["eta"])
-    )
+    sel = (jets.isTight) & (abs(jets.eta) < selection["eta"])
 
-    if (year == "2022" or year=="2022EE"):
+    if year == "2022" or year == "2022EE":
         jet_veto = get_jetveto(jets, year, run, isData)
         jet_veto = jet_veto & (jets.pt > 15)
         sel = sel & ~jet_veto
