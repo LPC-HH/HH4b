@@ -166,7 +166,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         """Runs event processor for different types of jets"""
 
         start = time.time()
-        # print("Starting")
+        print("Starting")
 
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
@@ -235,7 +235,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         # muons = events.Muon[good_muons(events.Muon)]
         # electrons = events.Electron[good_electrons(events.Electron)]
 
-        # print("Objects", f"{time.time() - start:.2f}")
+        print("Objects", f"{time.time() - start:.2f}")
 
         #########################
         # Save / derive variables
@@ -356,7 +356,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             **HLTVars,
         }
 
-        # print("Vars", f"{time.time() - start:.2f}")
+        print("Vars", f"{time.time() - start:.2f}")
 
         ######################
         # Selection
@@ -436,7 +436,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
 
-        # print("Selection", f"{time.time() - start:.2f}")
+        print("Selection", f"{time.time() - start:.2f}")
 
         ######################
         # Weights
@@ -519,12 +519,12 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         df = self.to_pandas(skimmed_events)
 
-        # print("To Pandas", f"{time.time() - start:.2f}")
+        print("To Pandas", f"{time.time() - start:.2f}")
 
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(df, fname)
 
-        # print("Dump table", f"{time.time() - start:.2f}")
+        print("Dump table", f"{time.time() - start:.2f}")
 
         if self._save_array:
             output = {}
@@ -539,7 +539,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
             }
         else:
-            # print("Return ", f"{time.time() - start:.2f}")
+            print("Return ", f"{time.time() - start:.2f}")
             return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
 
     def postprocess(self, accumulator):
