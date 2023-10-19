@@ -124,7 +124,7 @@ def good_electrons(electrons: ElectronArray, selection: Dict = electron_selectio
 
 # ak4 jet definition
 def good_ak4jets(
-    jets: JetArray, year: str, run: np.ndarray, selection: Dict = ak4_selection
+    jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
 ):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
@@ -136,7 +136,7 @@ def good_ak4jets(
     )
 
     if (year == "2022" or year=="2022EE"):
-        jet_veto = get_jetveto(jets, year, run)
+        jet_veto = get_jetveto(jets, year, run, isData)
         jet_veto = jet_veto & (jets.pt > 15)
         sel = sel & ~jet_veto
     return sel

@@ -482,7 +482,7 @@ def get_jmsr(
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.
 # apply to both Data and MC
 # https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444?u=anmalara
-def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
+def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
     # for samples related to RunEFG, it is recommended to utilize the vetomap that has been derived for RunEFG
@@ -495,22 +495,32 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray):
         veto = cset[csetstr].evaluate("jetvetomap", np.array(j.eta), j_phi)
         return ak.unflatten(veto, nj)
 
-    jet_veto = (
-        # RunCD
-        (
-            (run >= FirstRun_2022C)
-            & (run <= LastRun_2022D)
-            & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
+    if isData:
+        jet_veto = (
+            # RunCD
+            (
+                (run >= FirstRun_2022C)
+                & (run <= LastRun_2022D)
+                & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
+            )
+            |
+            # RunE (and later?)
+            ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
         )
-        |
-        # RunE
-        ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
-    )
+    else:
+        if year=="2022":
+            jet_veto = (
+                get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0
+            )
+        else:
+            jet_veto = (
+                get_veto(j, nj, "Winter22Run3_RunE_V1") > 0
+            )
 
     return jet_veto
 
 
-def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
+def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     """
     Get event selection that rejects events with jets in the veto map
     """
@@ -523,16 +533,26 @@ def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray):
         veto = cset[csetstr].evaluate("jetvetomap_eep", np.array(j.eta), j_phi)
         return ak.unflatten(veto, nj)
 
-    event_sel = (
-        # Run CD
-        (run >= FirstRun_2022C)
-        & (run <= LastRun_2022D)
-        & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
-    ) | (
-        # RunE
-        (run >= FirstRun_2022E)
-        & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
-    )
+    if isData:
+        event_sel = (
+            # Run CD
+            (run >= FirstRun_2022C)
+            & (run <= LastRun_2022D)
+            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
+        ) | (
+            # RunE
+            (run >= FirstRun_2022E)
+            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
+        )
+    else:
+        if year=="2022":
+            event_sel = (
+                ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
+            )
+        else:
+            event_sel = (
+                ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
+            )
 
     return event_sel
 

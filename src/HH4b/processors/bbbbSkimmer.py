@@ -202,7 +202,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         jets, jec_shifted_jetvars = get_jec_jets(
             events, events.Jet, year, isData, self.jecs, fatjets=False, applyData=True, dataset=dataset
         )
-        jets_sel = good_ak4jets(jets, year, events.run.to_numpy())
+        jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
@@ -270,12 +270,14 @@ class bbbbSkimmer(processor.ProcessorABC):
                     ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
 
         # JMSR variables
+        """
         for var in ["msoftdrop", "particleNet_mass"]:
             key = self.skim_vars["FatJet"][var]
             for shift, vals in jmsr_shifted_vars[var].items():
                 # overwrite saved mass vars with corrected ones
                 label = "" if shift == "" else "_" + shift
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
+        """
 
         # dijet variables
         """
@@ -387,7 +389,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # jet veto maps
         if (year=="2022" or year == "2022EE"):
-            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy())
+            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations

@@ -344,12 +344,13 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         jets = get_jec_jets(
             events, events.Jet, year, isData, jecs=None, fatjets=False, applyData=True, dataset=dataset
         )
-        jets = jets[good_ak4jets(jets, year, events.run.to_numpy())]
+        jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
+        jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
         skimmed_events["ht"] = ht.to_numpy()
 
         if (year=="2022" or year == "2022EE"):
-            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy())
+            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
         # trigger objects
