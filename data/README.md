@@ -7,10 +7,12 @@ Use CMSSW_11_2_0 or later, and run `pip3 install dbs3-client --user`.
 
 PDMV recommendations: https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis
 
+```
 Campaign CMSSW 
+--------------
 Run3Winter22 CMSSW_12_2_X POG studies
 Run3Summer22 CMSSW_12_4_X 2022 data analysis
-
+```
 Some instructions on custom nano here: https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
 
 ### Recipe for NanoAODv12
@@ -58,6 +60,10 @@ Reference: PFNano from JME also has an available recipe: https://github.com/cms-
 Note: At some point, we	will switch to ReReco (Partial,	for ABCD)
 https://cms-pdmv-prod.web.cern.ch/pmp/historical?r=27Jun2023&showDoneRequestsList=true
 Run3_2022_rereco, 124X_dataRun3_v15
+
+Another link tracking nano:
+https://cmsweb.cern.ch/das/request?view=list&limit=150&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2F*%2F*-22Sep2023-*%2FNANOAOD
+
 
 2022-ABCDPrompt
 ```
