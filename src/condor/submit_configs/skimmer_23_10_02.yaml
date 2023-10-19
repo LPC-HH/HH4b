@@ -7,7 +7,7 @@
                 "Run2022C",
                 "Run2022D"
              ],
-             "files_per_job": 20
+             "files_per_job": 8
             },
             "TT": {
               "subsamples": [
@@ -49,7 +49,7 @@
                 "QCD_PT-2400to3200", 
                 "QCD_PT-3200",
               ],
-              "files_per_job": 8
+              "files_per_job": 4
             }
         },
     "2022EE":
@@ -60,7 +60,7 @@
                 "Run2022F",
                 "Run2022G"
              ],
-             "files_per_job": 20
+             "files_per_job": 8
             },
             "TT": {
               "subsamples": [
@@ -111,7 +111,7 @@
                 "QCD_HT-1500to2000",
                 "QCD_HT-2000",
               ],
-              "files_per_job": 8
+              "files_per_job": 4
             }
         },
 }
