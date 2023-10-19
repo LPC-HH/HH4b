@@ -492,8 +492,9 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):
-        j_phi = np.clip(np.array(j.eta), -3.1415, 3.1415)
-        veto = cset[csetstr].evaluate("jetvetomap", np.array(j.eta), j_phi)
+        j_phi = np.clip(np.array(j.phi), -3.1415, 3.1415)
+        j_eta = np.clip(np.array(j.eta), -4.7, 4.7)
+        veto = cset[csetstr].evaluate("jetvetomap", j_eta, j_phi)
         return ak.unflatten(veto, nj)
 
     if isData:
@@ -526,8 +527,9 @@ def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):
-        j_phi = np.clip(np.array(j.eta), -3.1415, 3.1415)
-        veto = cset[csetstr].evaluate("jetvetomap_eep", np.array(j.eta), j_phi)
+        j_phi = np.clip(np.array(j.phi), -3.1415, 3.1415)
+        j_eta = np.clip(np.array(j.eta), -4.7, 4.7)
+        veto = cset[csetstr].evaluate("jetvetomap_eep", j_eta, j_phi)
         return ak.unflatten(veto, nj)
 
     if isData:
