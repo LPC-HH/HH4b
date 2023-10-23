@@ -189,18 +189,44 @@ def postprocess(years):
         )
 
 
-def _get_fill_data(events: pd.DataFrame, shape_vars: List[ShapeVar], jshift: str = ""):
+def _get_fill_data(
+    events: pd.DataFrame,
+    bb_mask: Dict[str, pd.DataFrame],
+    shape_vars: List[ShapeVar],
+    jshift: str = "",
+):
     return {
         shape_var.var: utils.get_feat(
             events,
             shape_var.var if jshift == "" else utils.check_get_jec_var(shape_var.var, jshift),
+            bb_mask,
         )
         for shape_var in shape_vars
     }
 
 
+def bb_assignment(events_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    """
+    Creates a dataframe of masks for getting leading and sub-leading jets in Txbb score.
+
+    Returns:
+        Dict[str, pd.DataFrame]: ``bb_masks`` dict of boolean masks for each sample,
+          of shape ``[num_events, 2]``.
+
+    """
+    bb_masks = {}
+
+    for sample, events in events_dict.items():
+        txbb = events["ak8FatJetPNetXbb"]
+        bb_mask = txbb[0] >= txbb[1]
+        bb_masks[sample] = pd.concat((bb_mask, ~bb_mask), axis=1)
+
+    return bb_masks
+
+
 def get_templates(
     events_dict: Dict[str, pd.DataFrame],
+    bb_masks: Dict[str, pd.DataFrame],
     year: str,
     sig_keys: List[str],
     selection_regions: Dict[str, Region],
@@ -249,7 +275,7 @@ def get_templates(
 
         # make selection, taking JEC/JMC variations into account
         sel, cf = utils.make_selection(
-            region.cuts, events_dict, prev_cutflow=prev_cutflow, jshift=jshift
+            region.cuts, events_dict, bb_masks, prev_cutflow=prev_cutflow, jshift=jshift
         )
 
         if template_dir != "":
@@ -266,6 +292,7 @@ def get_templates(
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
+            sig_bb_mask = bb_masks[sig_key][sel[sig_key]]
 
             # # TODO: ParticleNetMD Txbb
             # if pass_region:
@@ -300,8 +327,9 @@ def get_templates(
             if not len(events):
                 continue
 
+            bb_mask = bb_masks[sample][sel[sample]]
             fill_data = _get_fill_data(
-                events, shape_vars, jshift=jshift if sample != data_key else None
+                events, bb_mask, shape_vars, jshift=jshift if sample != data_key else None
             )
             weight = events[weight_key].values.squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)

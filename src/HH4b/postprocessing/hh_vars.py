@@ -9,21 +9,10 @@ years = ["2022EE"]
 # in pb^-1
 LUMI = {"2022EE": 20700}
 
-# sample key -> list of samples
+# sample key -> list of samples or selectors
 samples = {
     "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
-    "qcd": [
-        "QCD_PT-120to170",
-        "QCD_PT-170to300",
-        "QCD_PT-470to600",
-        "QCD_PT-600to800",
-        "QCD_PT-800to1000",
-        "QCD_PT-1000to1400",
-        "QCD_PT-1400to1800",
-        "QCD_PT-1800to2400",
-        "QCD_PT-2400to3200",
-        "QCD_PT-3200",
-    ],
+    "qcd": ["QCD_HT"],
     "data": [
         "Run2022F",
         "Run2022G",

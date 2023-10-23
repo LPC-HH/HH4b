@@ -106,7 +106,7 @@ label_by_sample = {
     "data": "Data",
 }
 
-bg_order = ["qcd", "ttbar", "vjets", "diboson", "gghtobb", "tthtobb", "vhtobb", "vbfhtobb"]
+bg_order = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
 
 
 def plot_hists(
@@ -442,6 +442,7 @@ def ratioHistPlot(
     bg_keys: List[str],
     sig_err: Union[ArrayLike, str] = None,
     data_err: Union[ArrayLike, bool, None] = None,
+    sortyield: bool = False,
     title: str = None,
     blind_region: list = None,
     name: str = "",
@@ -514,6 +515,8 @@ def ratioHistPlot(
             2, 1, figsize=(12, 14), gridspec_kw=dict(height_ratios=[4, 1], hspace=0.07), sharex=True
         )
 
+    plt.rcParams.update({"font.size": 28})
+
     # plot histograms
     ax.set_ylabel("Events")
 
@@ -522,7 +525,7 @@ def ratioHistPlot(
         [hists[sample, :] for sample in bg_keys],
         ax=ax,
         histtype="fill",
-        sort="yield",
+        sort="yield" if sortyield else None,
         stack=True,
         edgecolor="black",
         linewidth=1,
