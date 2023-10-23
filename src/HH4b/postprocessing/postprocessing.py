@@ -51,25 +51,25 @@ txbb_cut = 0.985
 selection_regions = {
     "pass": Region(
         cuts={
-            "ak8FatJetPNetXbb0": [txbb_cut, CUT_MAX_VAL],
-            "ak8FatJetPNetXbb1": [txbb_cut, CUT_MAX_VAL],
-            "ak8FatJetPNetMass1": [100, 150],
+            "bb0FatJetPNetXbb": [txbb_cut, CUT_MAX_VAL],
+            "bb1FatJetPNetXbb": [txbb_cut, CUT_MAX_VAL],
+            "bb0FatJetPNetMass": [100, 150],
         },
         label="Pass",
     ),
     "fail": Region(
         cuts={
-            "ak8FatJetPNetXbb0": [-CUT_MAX_VAL, txbb_cut],
-            "ak8FatJetPNetXbb1": [-CUT_MAX_VAL, txbb_cut],
-            "ak8FatJetPNetMass1": [100, 150],
+            "bb0FatJetPNetXbb": [-CUT_MAX_VAL, txbb_cut],
+            "bb1FatJetPNetXbb": [-CUT_MAX_VAL, txbb_cut],
+            "bb0FatJetPNetMass": [100, 150],
         },
         label="Fail",
     ),
 }
 
 fit_shape_var = ShapeVar(
-    "ak8FatJetPNetMass0",
-    r"$m^{1}_\mathrm{Reg}$ (GeV)",
+    "bb1FatJetPNetMass",
+    r"$m^{j2}_\mathrm{Reg}$ (GeV)",
     [20, 60, 260],
     reg=True,
     blind_window=[100, 150],
