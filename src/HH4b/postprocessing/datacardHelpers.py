@@ -95,7 +95,6 @@ def sum_templates(template_dict: Dict, years: List[str]):
         thists = []
 
         for year in years:
-            # temporary solution for case where 2018 templates don't have L1 prefiring in their axis
             thists.append(template_dict[year][region])
 
         combined[region] = sum(thists)
