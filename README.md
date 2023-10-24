@@ -10,7 +10,7 @@
 <!-- Search for two boosted (high transverse momentum) Higgs bosons (H) decaying to four beauty quarks (b). The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
 
 
-- [HH4b](#hh4b)- [HH4b](#hh4b)
+- [HH4b](#hh4b)
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
     - [Running locally](#running-locally)
@@ -19,6 +19,11 @@
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
+  - [Post-processing](#post-processing)
+    - [Create Datacard](#create-datacard)
+  - [Combine](#combine)
+    - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
+    - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
 
 
 ## Instructions for running coffea processors
