@@ -385,7 +385,7 @@ def get_jec_jets(
         corr_key = f"{year}mc"
 
     if applyData:
-        apply_jecs = not ak.any(jets.pt)
+        apply_jecs = ak.any(jets.pt)
     else:
         # do not apply JECs to data
         apply_jecs = not (not ak.any(jets.pt) or isData)
