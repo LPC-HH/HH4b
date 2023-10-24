@@ -12,7 +12,8 @@ LUMI = {"2022EE": 20700}
 # sample key -> list of samples or selectors
 samples = {
     "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
-    "qcd": ["QCD_HT"],
+    # "qcd": ["QCD_HT"],
+    "qcd": ["QCD_PT"],
     "data": [
         "Run2022F",
         "Run2022G",
