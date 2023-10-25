@@ -133,7 +133,7 @@ def run(p: processor, fileset: dict, args):
     run = processor.Runner(
         executor=executor,
         savemetrics=True,
-        schema=nanoevents.PFNanoAODSchema,
+        schema=nanoevents.NanoAODSchema,
         chunksize=args.chunksize,
         maxchunks=None if args.maxchunks == 0 else args.maxchunks,
     )
