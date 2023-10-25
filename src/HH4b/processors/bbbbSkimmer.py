@@ -87,7 +87,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     preselection = {
-        "fatjet_pt": 200,
+        "fatjet_pt": 300,
         "fatjet_msd": 60,
         "Txbb0": 0.8,
     }
@@ -375,7 +375,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # apply trigger to both data and simulation
-        # add_selection("trigger", HLT_triggered, *selection_args)
+        add_selection("trigger", HLT_triggered, *selection_args)
 
         # temporary metfilters https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
         met_filters = [
@@ -423,7 +423,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 axis=1,
             )
             cuts.append(cut)
-        # add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
+        add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
 
         # veto leptons
         add_selection(
