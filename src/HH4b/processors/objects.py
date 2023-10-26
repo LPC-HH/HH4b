@@ -81,7 +81,6 @@ def base_electrons(electrons: ElectronArray):
 
 
 def good_muons(muons: MuonArray, selection: Dict = muon_selection):
-    muons = muons[base_muons(muons)]
     sel = (
         (muons.pt >= selection["pt"])
         & (abs(muons.eta) <= selection["eta"])
@@ -92,7 +91,6 @@ def good_muons(muons: MuonArray, selection: Dict = muon_selection):
 
 
 def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
-    electrons = electrons[base_electrons(electrons)]
     if "cutBased" in selection["id"]:
         wp = selection["id"].split(":")[1]
         id_selection = electrons["cutBased"] >= electrons[wp]
