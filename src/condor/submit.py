@@ -57,9 +57,9 @@ def main(args):
     os.system(f"mkdir -p {logdir}")
 
     # copy processor version to local directory
-    if processor == "trigger_boosted":
+    if args.processor == "trigger_boosted":
         os.system(f"cp HH4b/src/HH4b/processors/triggerSkimmer.py {local_dir}") 
-    elif processor == "matching":
+    elif args.processor == "matching":
         os.system(f"cp HH4b/src/HH4b/processors/matchingSkimmer.py {local_dir}")
     else:
         os.system(f"cp HH4b/src/HH4b/processors/bbbbSkimmer.py {local_dir}")
