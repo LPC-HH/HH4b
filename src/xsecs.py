@@ -30,6 +30,8 @@ xsecs["QCD_PT-1800to2400"] = 0.1148
 xsecs["QCD_PT-2400to3200"] = 0.007542
 xsecs["QCD_PT-3200"] = 0.0002331
 
+xsecs["QCD_PT-15to7000"] = 1440000000.0
+
 # QCD-HT (obtained by Cristina manually with genXsecAnalyzer
 # QCDB-4Jets_HT*
 # these numbers seem unusually high - xcheck
@@ -54,8 +56,6 @@ xsecs["QCD_HT-1000to1200"] = 879.1
 xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
 xsecs["QCD_HT-2000"] = 25.78
-
-xsecs["QCD_PT-15to7000"] = 1440000000.0
 
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
