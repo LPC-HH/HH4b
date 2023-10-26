@@ -760,13 +760,19 @@ def get_files(dataset, version):
         )
         filesjson = r.json()
         files = []
+        not_valid = []
         for fj in filesjson:
             if fj["is_file_valid"] == 0:
                 print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
+                not_valid.append(fj['logical_file_name'])
             else:
                 files.append(fj["logical_file_name"])
                 # self.metadata["nevents"] += fj['event_count']
                 # self.metadata["size"] += fj['file_size']
+        
+        if dataset == "WplusH_Hto2B_Wto2Q_M-125" and year == "2022EE":
+            not_valid = ["/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"]
+
         if len(files) == 0:
             print(f"Found 0 files for sample {dataset}!")
             return []
@@ -777,16 +783,21 @@ def get_files(dataset, version):
             "blacklist_sites": None,
             "regex_sites": None,
         }
-        if "QCD_HT-1200to1500" in dataset and year == "2022EE":
-            sites_cfg["blacklist_sites"] = ["T2_FR_IPHC"]
+        sites_cfg["blacklist_sites"] = ["T2_FR_IPHC"]
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
-        return files_rucio
+
+        # Get rid of invalid files
+        files_valid = [f for f in files_rucio if f not in not_valid]
+
+        return files_valid
 
 
-for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
+#for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
+for version in ["v11"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
+        if year=="2022": continue
         for sample, sdict in ydict.items():
             for sname, dataset in sdict.items():
                 if isinstance(dataset, list):
