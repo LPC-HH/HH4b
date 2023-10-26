@@ -10,16 +10,12 @@
 <!-- Search for two boosted (high transverse momentum) Higgs bosons (H) decaying to four beauty quarks (b). The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
 
 
-- [HH4b](#hh4b)
+- [HH4b](#hh4b)- [HH4b](#hh4b)
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
-    - [Condor](#condor)
     - [Running locally](#running-locally)
-  - [Processors](#processors)
-    - [triggerSkmimer](#triggerskmimer)
-    - [bbbbSkimmer](#bbbbskimmer)
       - [Jobs](#jobs)
-    - [matchingSkimmer](#matchingskimmer)
+    - [Dask](#dask)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
@@ -144,3 +140,43 @@ for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --ta
 ```
 
  python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/skimmer_23_10_02.yaml --processor skimmer --nano-version v11 --region signal --save-array --executor dask > dask.out 2>&1
+
+
+## Post-processing
+
+### Create Datacard
+
+Need `root==6.22.6`, and `square_coef` branch of https://github.com/rkansal47/rhalphalib installed (`pip install -e . --user` after checking out the branch).
+
+```bash
+python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
+```
+
+## Combine
+
+### CMSSW + Combine Quickstart
+
+```bash
+cmsrel CMSSW_11_3_4
+cd CMSSW_11_3_4/src
+cmsenv
+# need my fork until regex for float parameters is merged and released
+git clone -b regex-float-parameters https://github.com/rkansal47/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
+# Important: this scram has to be run from src dir
+scramv1 b clean; scramv1 b
+```
+
+I also add the combine folder to my PATH in my .bashrc for convenience:
+
+```
+export PATH="$PATH:/uscms_data/d1/rkansal/hh4b/HH4b/src/HH4b/combine"
+```
+
+### Run fits and diagnostics locally
+
+All via the below script, with a bunch of options (see script):
+
+```bash
+run_blinded_hh4b.sh --workspace --bfit --limits
+```

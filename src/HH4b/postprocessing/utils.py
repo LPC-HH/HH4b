@@ -254,9 +254,12 @@ def _is_int(s: str) -> bool:
         return False
 
 
-def get_feat(events: pd.DataFrame, feat: str):
+def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
     if feat in events:
         return np.nan_to_num(events[feat].values.squeeze(), -1)
+    elif feat.startswith("bb"):
+        assert bb_mask is not None, "No bb mask given!"
+        return events["ak8" + feat[3:]].values[bb_mask ^ (int(feat[2]) == 1)].squeeze()
     elif _is_int(feat[-1]):
         return np.nan_to_num(events[feat[:-1]].values[:, int(feat[-1])].squeeze(), -1)
 
@@ -361,9 +364,7 @@ def singleVarHist(
             fill_var = var
 
         # TODO: add b1, b2 assignment if needed
-        print("fill var ", fill_var)
         fill_data = {var: get_feat(events, fill_var)}
-        print(fill_data)
         weight = events[weight_key].values.squeeze()
 
         if selection is not None:
@@ -446,6 +447,7 @@ def check_get_jec_var(var, jshift):
 
 def _var_selection(
     events: pd.DataFrame,
+    bb_mask: pd.DataFrame,
     var: str,
     brange: List[float],
     MAX_VAL: float = CUT_MAX_VAL,
@@ -459,7 +461,7 @@ def _var_selection(
 
     # OR the different vars
     for var in cut_vars:
-        vals = get_feat(events, var)
+        vals = get_feat(events, var, bb_mask)
 
         if rmin == -CUT_MAX_VAL:
             sels.append(vals < rmax)
@@ -480,6 +482,7 @@ def _var_selection(
 def make_selection(
     var_cuts: Dict[str, List[float]],
     events_dict: Dict[str, pd.DataFrame],
+    bb_masks: Dict[str, pd.DataFrame],
     weight_key: str = "weight",
     prev_cutflow: dict = None,
     selection: Dict[str, np.ndarray] = None,
@@ -543,7 +546,7 @@ def make_selection(
                 sels = []
                 selstrs = []
                 for brange in branges:
-                    sel, selstr = _var_selection(events, var, brange, MAX_VAL)
+                    sel, selstr = _var_selection(events, bb_masks[sample], var, brange, MAX_VAL)
                     sels.append(sel)
                     selstrs.append(selstr)
 
@@ -559,7 +562,7 @@ def make_selection(
                     weight_key,
                 )
             else:
-                sel, selstr = _var_selection(events, var, branges, MAX_VAL)
+                sel, selstr = _var_selection(events, bb_masks[sample], var, branges, MAX_VAL)
                 add_selection(
                     selstr,
                     sel,
