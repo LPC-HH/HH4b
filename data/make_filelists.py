@@ -770,7 +770,7 @@ def get_files(dataset, version):
                 # self.metadata["nevents"] += fj['event_count']
                 # self.metadata["size"] += fj['file_size']
         
-        if dataset == "WplusH_Hto2B_Wto2Q_M-125" and year == "2022EE":
+        if "WplusH_Hto2B_Wto2Q_M-125" in dataset and year == "2022EE":
             not_valid = ["/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"]
 
         if len(files) == 0:
@@ -787,17 +787,23 @@ def get_files(dataset, version):
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
 
         # Get rid of invalid files
-        files_valid = [f for f in files_rucio if f not in not_valid]
+        files_valid = []
+        for f in files_rucio:
+            invalid=False
+            for nf in not_valid:
+                if nf in f: 
+                    invalid=True
+                    break
+            if not invalid:
+                files_valid.append(f)
 
         return files_valid
 
 
-#for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
-for version in ["v11"]:
+for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
-        if year=="2022": continue
         for sample, sdict in ydict.items():
             for sname, dataset in sdict.items():
                 if isinstance(dataset, list):
