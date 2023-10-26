@@ -32,11 +32,11 @@
               "files_per_job": 20
             },
             "VJets": {
-              "files_per_job": 20
+              "files_per_job": 4
             },
             "QCD": {
               "subsamples": [
-                # "QCD_PT-15to30", "QCD_PT-30to50", "QCD_PT-50to80", "QCD_PT-80to120",
+                "QCD_PT-80to120",
                 "QCD_PT-120to170", 
                 "QCD_PT-170to300", 
                 "QCD_PT-300to470", 
@@ -48,6 +48,15 @@
                 "QCD_PT-1800to2400", 
                 "QCD_PT-2400to3200", 
                 "QCD_PT-3200",
+                "QCD_HT-100to200",
+                "QCD_HT-200to400",
+                "QCD_HT-400to600",
+                "QCD_HT-600to800",
+                "QCD_HT-800to1000",
+                "QCD_HT-1000to1200",
+                "QCD_HT-1200to1500",
+                "QCD_HT-1500to2000",
+                "QCD_HT-2000",
               ],
               "files_per_job": 4
             }
@@ -85,11 +94,11 @@
               "files_per_job": 20
             },
             "VJets": {
-              "files_per_job": 20
+              "files_per_job": 4
             },
             "QCD": {
               "subsamples": [
-                # "QCD_PT-15to30", "QCD_PT-30to50", "QCD_PT-50to80", "QCD_PT-80to120",
+                "QCD_PT-80to120",
                 "QCD_PT-120to170",
                 "QCD_PT-170to300",
                 "QCD_PT-300to470",
