@@ -204,7 +204,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             events.Jet,
             year,
             isData,
-            self.jecs,
+            jecs=self.jecs,
             fatjets=False,
             applyData=True,
             dataset=dataset,
@@ -217,7 +217,14 @@ class bbbbSkimmer(processor.ProcessorABC):
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
-            events, fatjets, year, isData, self.jecs, fatjets=True, applyData=True, dataset=dataset
+            events,
+            fatjets,
+            year,
+            isData,
+            jecs=self.jecs,
+            fatjets=True,
+            applyData=True,
+            dataset=dataset,
         )
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
@@ -256,12 +263,14 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["Jet"].items()
         }
 
+        """
         # Jet JEC variables
         for var in ["pt"]:
             key = self.skim_vars["Jet"][var]
             for shift, vals in jec_shifted_jetvars[var].items():
                 if shift != "":
                     ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+        """
 
         # FatJet variables
         ak8FatJetVars = {
@@ -269,12 +278,14 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["FatJet"].items()
         }
 
+        """
         # FatJet JEC variables
         for var in ["pt"]:
             key = self.skim_vars["FatJet"][var]
             for shift, vals in jec_shifted_fatjetvars[var].items():
                 if shift != "":
                     ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
+        """
 
         # JMSR variables
         """
@@ -400,19 +411,23 @@ class bbbbSkimmer(processor.ProcessorABC):
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
         # pt cuts: check if fatjet passes pt cut in any of the JEC variations
-        cuts = []
-        for pts in jec_shifted_fatjetvars["pt"].values():
-            cut = np.prod(
-                pad_val(
-                    (pts > self.preselection["fatjet_pt"]),
-                    num_fatjets_cut,
-                    False,
+        if jec_shifted_fatjetvars:
+            cuts = []
+            for pts in jec_shifted_fatjetvars["pt"].values():
+                cut = np.prod(
+                    pad_val(
+                        (pts > self.preselection["fatjet_pt"]),
+                        num_fatjets_cut,
+                        False,
+                        axis=1,
+                    ),
                     axis=1,
-                ),
-                axis=1,
-            )
-            cuts.append(cut)
-        add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
+                )
+                cuts.append(cut)
+            add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
+        else:
+            cut = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1)
+            add_selection("ak8_pt", cut, *selection_args)
 
         # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
         cuts = []
