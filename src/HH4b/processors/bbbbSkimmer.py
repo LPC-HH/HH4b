@@ -185,12 +185,19 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         n_events = len(events) if isData else np.sum(gen_weights)
 
-        selection = PackedSelection()
-        weights = Weights(len(events), storeIndividual=True)
-
         cutflow = OrderedDict()
         cutflow["all"] = n_events
 
+        # preselection = (
+        #     (ak.count(events.FatJet.pt, axis=1) >= 2)
+        #     * (ak.all(events.FatJet.pt[:, :2] >= 200, axis=1))
+        # )
+        # events = events[preselection]
+        # gen_weights = gen_weights[preselection] if gen_weights is not None else gen_weights
+        # cutflow["2jetpreselection"] = len(events) if isData else np.sum(gen_weights)
+
+        selection = PackedSelection()
+        weights = Weights(len(events), storeIndividual=True)
         selection_args = (selection, cutflow, isData, gen_weights)
 
         #########################
@@ -209,6 +216,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             applyData=True,
             dataset=dataset,
         )
+        print("AK4 jets JECs", f"{time.time() - start:.2f}")
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
@@ -219,6 +227,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
             events, fatjets, year, isData, self.jecs, fatjets=True, applyData=True, dataset=dataset
         )
+        print("AK8 jets JECs", f"{time.time() - start:.2f}")
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
 
@@ -443,7 +452,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         ######################
 
         if isData:
-            skimmed_events["weight"] = np.ones(n_events)
+            skimmed_events["weight"] = np.ones(len(events))
         else:
             weights.add("genweight", gen_weights)
 
@@ -519,12 +528,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         df = self.to_pandas(skimmed_events)
 
-        print("To Pandas", f"{time.time() - start:.2f}")
-
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(df, fname)
-
-        print("Dump table", f"{time.time() - start:.2f}")
 
         if self._save_array:
             output = {}
