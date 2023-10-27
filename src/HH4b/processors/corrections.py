@@ -334,13 +334,14 @@ except:
     print("Failed loading compiled JECs")
 
 
-def _add_jec_variables(jets: JetArray, event_rho: ak.Array) -> JetArray:
+def _add_jec_variables(jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
     """add variables needed for JECs"""
     jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
     jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
-    # gen pT needed for smearing
-    jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+    if not isData:
+        # gen pT needed for smearing
+        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     return jets
 
 
@@ -393,12 +394,12 @@ def get_jec_jets(
     # fatjet_factory.build gives an error if there are no jets in event
     if apply_jecs:
         jets = jet_factory[corr_key].build(
-            _add_jec_variables(jets, events.Rho.fixedGridRhoFastjetAll), jec_cache
+            _add_jec_variables(jets, events.Rho.fixedGridRhoFastjetAll, isData), jec_cache
         )
 
     # return only jets if no jecs given
-    if jecs is None:
-        return jets
+    if jecs is None or isData:
+        return jets, None
 
     jec_shifted_vars = {}
 
