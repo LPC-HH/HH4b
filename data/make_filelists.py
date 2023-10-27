@@ -764,14 +764,16 @@ def get_files(dataset, version):
         for fj in filesjson:
             if fj["is_file_valid"] == 0:
                 print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
-                not_valid.append(fj['logical_file_name'])
+                not_valid.append(fj["logical_file_name"])
             else:
                 files.append(fj["logical_file_name"])
                 # self.metadata["nevents"] += fj['event_count']
                 # self.metadata["size"] += fj['file_size']
-        
+
         if "WplusH_Hto2B_Wto2Q_M-125" in dataset and year == "2022EE":
-            not_valid = ["/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"]
+            not_valid = [
+                "/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"
+            ]
 
         if len(files) == 0:
             print(f"Found 0 files for sample {dataset}!")
@@ -789,10 +791,10 @@ def get_files(dataset, version):
         # Get rid of invalid files
         files_valid = []
         for f in files_rucio:
-            invalid=False
+            invalid = False
             for nf in not_valid:
-                if nf in f: 
-                    invalid=True
+                if nf in f:
+                    invalid = True
                     break
             if not invalid:
                 files_valid.append(f)

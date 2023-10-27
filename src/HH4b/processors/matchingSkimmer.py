@@ -161,10 +161,7 @@ class matchingSkimmer(processor.ProcessorABC):
         #########################
         # Object definitions
         #########################
-        veto_muon_sel = good_muons(
-            events.Muon, 
-            selection=veto_muon_selection_run2_bbbb
-        )
+        veto_muon_sel = good_muons(events.Muon, selection=veto_muon_selection_run2_bbbb)
         veto_electron_sel = good_electrons(
             events.Electron, selection=veto_electron_selection_run2_bbbb
         )
@@ -220,7 +217,9 @@ class matchingSkimmer(processor.ProcessorABC):
         num_jets_outside = 4
         ak4JetVarsOutsideFJ = {
             **{
-                f"ak4JetOutside{key}": pad_val(getattr(jets_p4_outside_fj, var), num_jets_outside, axis=1)
+                f"ak4JetOutside{key}": pad_val(
+                    getattr(jets_p4_outside_fj, var), num_jets_outside, axis=1
+                )
                 for (var, key) in P4.items()
             },
         }
@@ -255,9 +254,7 @@ class matchingSkimmer(processor.ProcessorABC):
             }
             ak4JetVars = {
                 **ak4JetVars,
-                **{
-                    "ak4JetGenJetIdx":  pad_val(getattr(jets, "genJetIdx"), num_jets, axis=1)
-                }
+                **{"ak4JetGenJetIdx": pad_val(getattr(jets, "genJetIdx"), num_jets, axis=1)},
             }
 
         skimmed_events = {
@@ -363,7 +360,7 @@ class matchingSkimmer(processor.ProcessorABC):
                 "M": ak4JetVars[f"{name}Mass"],
             },
         )
-        
+
         if ak8Vars:
             fatjet_0 = vector.array(
                 {
@@ -373,7 +370,7 @@ class matchingSkimmer(processor.ProcessorABC):
                     "M": ak8Vars["ak8FatJetMass"][:, 0],
                 },
             )
-        
+
         # get array of dijets for each possible higgs combination
         jj = jets[:, self.JET_ASSIGNMENTS[nj][:, :, 0]] + jets[:, self.JET_ASSIGNMENTS[nj][:, :, 1]]
         mjj = jj.M
@@ -388,9 +385,9 @@ class matchingSkimmer(processor.ProcessorABC):
                 "ak4Pair0chi2": first_bb_pair,
                 "ak4Pair1chi2": second_bb_pair,
             }
-            
+
         # TODO: add dR
-        #elif method == "dr":
+        # elif method == "dr":
 
         elif method == "dhh":
             # https://github.com/UF-HH/bbbbAnalysis/blob/master/src/OfflineProducerHelper.cc#L4109
@@ -434,7 +431,7 @@ class matchingSkimmer(processor.ProcessorABC):
 
         # stack pairs
         bb_pairs = np.stack([first_bb_pair, second_bb_pair], axis=1)
-        
+
         # sort by deltaR with leading fatjet
         bbs_dRfj = np.concatenate(
             [
@@ -445,21 +442,21 @@ class matchingSkimmer(processor.ProcessorABC):
         )
         # sort from larger dR to smaller
         sort_by_dR = np.argsort(-bbs_dRfj, axis=-1)
-        
+
         bb_pairs_sorted = np.array(
             [
                 [bb_pair_e[sort_e[0]], bb_pair_e[sort_e[1]]]
                 for bb_pair_e, sort_e in zip(bb_pairs, sort_by_dR)
             ]
         )
-        
+
         first_bb_pair_sort = bb_pairs_sorted[:, 0]
         second_bb_pair_sort = bb_pairs_sorted[:, 1]
-        
+
         first_bb_j1 = jets[np.arange(len(jets.pt)), first_bb_pair_sort[:, 0]]
         first_bb_j2 = jets[np.arange(len(jets.pt)), first_bb_pair_sort[:, 1]]
         first_bb_dijet = first_bb_j1 + first_bb_j2
-        
+
         second_bb_j1 = jets[np.arange(len(jets.pt)), second_bb_pair_sort[:, 0]]
         second_bb_j2 = jets[np.arange(len(jets.pt)), second_bb_pair_sort[:, 1]]
         second_bb_dijet = second_bb_j1 + second_bb_j2
