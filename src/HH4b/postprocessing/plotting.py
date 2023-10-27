@@ -22,7 +22,7 @@ formatter.set_powerlimits((-3, 3))
 
 import matplotlib as mpl
 
-mpl.rcParams["font.size"] = 20
+mpl.rcParams["font.size"] = 28
 mpl.rcParams["lines.linewidth"] = 2
 mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
@@ -515,8 +515,6 @@ def ratioHistPlot(
             2, 1, figsize=(12, 14), gridspec_kw=dict(height_ratios=[4, 1], hspace=0.07), sharex=True
         )
 
-    plt.rcParams.update({"font.size": 28})
-
     # plot histograms
     ax.set_ylabel("Events")
 
@@ -667,7 +665,6 @@ def ratioHistPlot(
         hep.cms.label(
             "Work in Progress", data=True, lumi=f"{LUMI[year] / 1e3:.0f}", year=year, ax=ax
         )
-    plt.rcParams.update({"font.size": 28})
 
     if axrax is None:
         if len(name):
