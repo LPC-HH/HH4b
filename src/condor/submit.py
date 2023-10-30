@@ -119,6 +119,9 @@ def main(args):
                     "save_systematics": "--save-systematics"
                     if args.save_systematics
                     else "--no-save-systematics",
+                    "apply_selection": "--apply-selection"
+                    if args.apply_selection
+                    else "--no-apply-selection",
                     "region": f"--region {args.region}" if "skimmer" in args.processor else "",
                 }
                 write_template(sh_templ, localsh, sh_args)
