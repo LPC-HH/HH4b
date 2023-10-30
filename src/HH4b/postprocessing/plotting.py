@@ -515,6 +515,8 @@ def ratioHistPlot(
             2, 1, figsize=(12, 14), gridspec_kw=dict(height_ratios=[4, 1], hspace=0.07), sharex=True
         )
 
+    plt.rcParams.update({"font.size": 28})
+
     # plot histograms
     ax.set_ylabel("Events")
 
