@@ -6,6 +6,8 @@ from coffea.nanoevents.methods.base import NanoEventsArray
 from .corrections import get_jetveto
 import awkward as ak
 
+import time
+
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
 muon_selection = {
@@ -36,28 +38,6 @@ veto_electron_selection = {
     "id": "mvaFall17V2noIso_WP90",
 }
 
-veto_muon_selection_run2_bbbb = {
-    "pt": 10,
-    "eta": 2.4,
-    "miniPFRelIso_all": 0.15,
-    "id": "loose",
-    "barrel_dxy": 0.05,
-    "barrel_dz": 0.10,
-    "endcap_dxy": 0.10,
-    "endcap_dz": 0.20,
-}
-
-veto_electron_selection_run2_bbbb = {
-    "pt": 15,
-    "eta": 2.4,
-    "miniPFRelIso_all": 0.15,
-    "id": "cutBased:4",
-    "barrel_dxy": 0.05,
-    "barrel_dz": 0.10,
-    "endcap_dxy": 0.10,
-    "endcap_dz": 0.20,
-}
-
 ak4_selection = {
     "eta": 4.7,
     # "pt": 50
@@ -79,39 +59,30 @@ def base_electrons(electrons: ElectronArray):
     sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
     return sel
 
-
-def good_muons(muons: MuonArray, selection: Dict = muon_selection):
+def veto_muons(muons: MuonArray):
     sel = (
-        (muons.pt >= selection["pt"])
-        & (abs(muons.eta) <= selection["eta"])
-        & (muons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
-        & (muons[f"{selection['id']}Id"])
+        (muons.pt >= 10)
+        & (abs(muons.eta) <= 2.4)
+        & (muons.miniPFRelIso_all <= 0.15)
+        & (muons.looseId)
     )
     return sel
 
-
-def good_electrons(electrons: ElectronArray, selection: Dict = electron_selection):
-    if "cutBased" in selection["id"]:
-        wp = selection["id"].split(":")[1]
-        id_selection = electrons["cutBased"] >= electrons[wp]
-    else:
-        id_selection = electrons[selection["id"]]
+def veto_electrons(electrons: ElectronArray):
     sel = (
-        (electrons.pt >= selection["pt"])
-        & (abs(electrons.eta) <= selection["eta"])
-        & (electrons.miniPFRelIso_all <= selection["miniPFRelIso_all"])
-        & id_selection
+        (electrons.pt >= 15)
+        & (abs(electrons.eta) <= 2.4)
+        & (electrons.miniPFRelIso_all <= 0.15)
+        & electrons.cutBased >= electrons.LOOSE
+        & (
+            ((abs(electrons.dxy) < 0.05) & (abs(electrons.eta) < 1.2))
+            | ((abs(electrons.dxy) < 0.10) & (abs(electrons.eta) >= 1.2))
+        )
+        & (
+            ((abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
+            | ((abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
+        )
     )
-    if "barrel_dxy" in selection.keys() and "endcap_dxy" in selection.keys():
-        sel = sel & (
-            ((abs(electrons.dxy) < selection["barrel_dxy"]) & (abs(electrons.eta) < 1.2))
-            | ((abs(electrons.dxy) < selection["endcap_dxy"]) & (abs(electrons.eta) >= 1.2))
-        )
-    if "barrel_dz" in selection.keys() and "endcap_dz" in selection.keys():
-        sel = sel & (
-            ((abs(electrons.dz) < selection["barrel_dz"]) & (abs(electrons.eta) < 1.2))
-            | ((abs(electrons.dz) < selection["endcap_dz"]) & (abs(electrons.eta) >= 1.2))
-        )
     return sel
 
 
