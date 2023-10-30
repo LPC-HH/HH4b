@@ -59,6 +59,7 @@ def base_electrons(electrons: ElectronArray):
     sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
     return sel
 
+
 def veto_muons(muons: MuonArray):
     sel = (
         (muons.pt >= 10)
@@ -68,20 +69,16 @@ def veto_muons(muons: MuonArray):
     )
     return sel
 
+
 def veto_electrons(electrons: ElectronArray):
-    sel = (
-        (electrons.pt >= 15)
-        & (abs(electrons.eta) <= 2.4)
-        & (electrons.miniPFRelIso_all <= 0.15)
-        & electrons.cutBased >= electrons.LOOSE
-        & (
-            ((abs(electrons.dxy) < 0.05) & (abs(electrons.eta) < 1.2))
-            | ((abs(electrons.dxy) < 0.10) & (abs(electrons.eta) >= 1.2))
-        )
-        & (
-            ((abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
-            | ((abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
-        )
+    sel = (electrons.pt >= 15) & (abs(electrons.eta) <= 2.4) & (
+        electrons.miniPFRelIso_all <= 0.15
+    ) & electrons.cutBased >= electrons.LOOSE & (
+        ((abs(electrons.dxy) < 0.05) & (abs(electrons.eta) < 1.2))
+        | ((abs(electrons.dxy) < 0.10) & (abs(electrons.eta) >= 1.2))
+    ) & (
+        ((abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
+        | ((abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
     )
     return sel
 

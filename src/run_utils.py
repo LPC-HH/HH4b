@@ -140,7 +140,9 @@ def parse_common_args(parser):
     parser.add_argument("--region", help="region", default="signal", choices=["signal"], type=str)
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
     parser.add_argument("--apply-selection", dest="apply_selection", action="store_true", help=help)
-    parser.add_argument("--no-apply-selection", dest="apply_selection", action="store_false", help=help)
+    parser.add_argument(
+        "--no-apply-selection", dest="apply_selection", action="store_false", help=help
+    )
     add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
     add_bool_arg(
         parser,

@@ -229,7 +229,7 @@ class matchingSkimmer(processor.ProcessorABC):
             )
             for trigger in HLTs
         }
-        
+
         # Jet variables
         num_jets = 6
         ak4JetVars = {
@@ -240,11 +240,13 @@ class matchingSkimmer(processor.ProcessorABC):
             f"ak4JetOutside{key}": pad_val(jets_outside_fj[var], num_jets, axis=1)
             for (var, key) in self.skim_vars["Jet"].items()
         }
-        for (var, key) in P4.items():
+        for var, key in P4.items():
             ak4JetVars[f"ak4Jet{key}"] = pad_val(getattr(jets_p4, var), num_jets, axis=1)
-            ak4JetVarsOutsideFJ[f"ak4JetOutside{key}"] = pad_val(getattr(jets_p4_outside_fj, var), num_jets, axis=1)
+            ak4JetVarsOutsideFJ[f"ak4JetOutside{key}"] = pad_val(
+                getattr(jets_p4_outside_fj, var), num_jets, axis=1
+            )
         skimmed_events["ht"] = ht.to_numpy()
-            
+
         print("AK4Vars", f"{time.time() - start:.2f}")
 
         # FatJet variables

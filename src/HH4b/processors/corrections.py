@@ -63,6 +63,7 @@ def get_Prompt_year(year: str) -> str:
 def get_UL_year(year: str) -> str:
     return f"{year}_UL"
 
+
 def get_pog_json(obj: str, year: str) -> str:
     try:
         pog_json = pog_jsons[obj]
@@ -77,7 +78,7 @@ def get_pog_json(obj: str, year: str) -> str:
 
 def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
     # TODO: Switch to official recommendation when and if any
-    if year=="2018":
+    if year == "2018":
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
         y = year
     else:
@@ -91,7 +92,7 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
         "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
         "2022EE_Prompt": "Collisions_2022_PromptReco_goldenJSON",
     }
-    
+
     values = {}
 
     # evaluate and clip up to 10 to avoid large weights
@@ -365,8 +366,8 @@ def get_jec_jets(
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
-    
-    if year=="2018":
+
+    if year == "2018":
         return jets, None
 
     jec_vars = ["pt"]  # variables we are saving that are affected by JECs
@@ -578,7 +579,9 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
     Give number of jets in pre-selection to obtain event weight
     """
     if year == "2018":
-        with open(f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl", "rb") as filehandler:
+        with open(
+            f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl", "rb"
+        ) as filehandler:
             combined = pickle.load(filehandler)
 
         # sum over TH4q bins
@@ -587,7 +590,7 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
         ak8TrigEffsLookup = dense_lookup(
             np.nan_to_num(effs_txbb.view(flow=False), 0), np.squeeze(effs_txbb.axes.edges)
         )
-        
+
         fj_trigeffs = ak8TrigEffsLookup(
             pad_val(fatjets.Txbb, num_jets, axis=1),
             pad_val(fatjets.pt, num_jets, axis=1),
@@ -595,7 +598,7 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
         )
 
         combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
-        
+
         weights.add("trig_effs", combined_trigEffs)
         return
 
