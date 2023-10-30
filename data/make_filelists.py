@@ -782,11 +782,15 @@ def get_files(dataset, version):
         # Now query rucio to get the concrete dataset passing the sites filtering options
         sites_cfg = {
             "whitelist_sites": None,
-            "blacklist_sites": None,
+            "blacklist_sites": ["T2_FR_IPHC"],
             "regex_sites": None,
         }
-        sites_cfg["blacklist_sites"] = ["T2_FR_IPHC"]
+        # append mit for now..
+        sites_cfg["blacklist_sites"].append("T2_US_MIT")
+        if "QCD-4Jets_HT-600to800" in dataset:
+            sites_cfg["blacklist_sites"].append("T3_KR_KNU")
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
+        print(dataset, sites)
 
         # Get rid of invalid files
         files_valid = []
@@ -803,6 +807,7 @@ def get_files(dataset, version):
 
 
 for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
+#for version in ["v11"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
