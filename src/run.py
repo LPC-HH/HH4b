@@ -176,7 +176,7 @@ def run(p: processor, fileset: dict, args):
 
 def main(args):
     p = run_utils.get_processor(
-        args.processor, args.save_systematics, args.save_hist, args.save_array, args.region
+        args.processor, args.save_systematics, args.save_hist, args.save_array, args.region, args.apply_selection
     )
 
     if len(args.files):
