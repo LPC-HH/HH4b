@@ -482,7 +482,7 @@ def _var_selection(
 def make_selection(
     var_cuts: Dict[str, List[float]],
     events_dict: Dict[str, pd.DataFrame],
-    bb_masks: Dict[str, pd.DataFrame],
+    bb_masks: Dict[str, pd.DataFrame] = None,
     weight_key: str = "weight",
     prev_cutflow: dict = None,
     selection: Dict[str, np.ndarray] = None,
@@ -537,6 +537,8 @@ def make_selection(
         else:
             selection[sample] = PackedSelection()
 
+        bb_mask = bb_masks[sample] if bb_masks is not None else bb_masks
+
         for var, branges in var_cuts.items():
             if jshift != "" and sample != data_key:
                 var = check_get_jec_var(var, jshift)
@@ -546,7 +548,7 @@ def make_selection(
                 sels = []
                 selstrs = []
                 for brange in branges:
-                    sel, selstr = _var_selection(events, bb_masks[sample], var, brange, MAX_VAL)
+                    sel, selstr = _var_selection(events, bb_mask, var, brange, MAX_VAL)
                     sels.append(sel)
                     selstrs.append(selstr)
 
@@ -562,7 +564,7 @@ def make_selection(
                     weight_key,
                 )
             else:
-                sel, selstr = _var_selection(events, bb_masks[sample], var, branges, MAX_VAL)
+                sel, selstr = _var_selection(events, bb_mask, var, branges, MAX_VAL)
                 add_selection(
                     selstr,
                     sel,
