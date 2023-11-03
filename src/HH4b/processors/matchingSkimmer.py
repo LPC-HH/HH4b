@@ -203,21 +203,21 @@ class matchingSkimmer(processor.ProcessorABC):
         # HLT variables
         HLTs = {
             "2018": [
-                "HLT_PFHT330PT30_QuadPFJet_75_60_45_40_TriplePFBTagDeepCSV_4p5",
-                "HLT_PFHT1050",
-                "HLT_PFJet500",
-                "HLT_AK8PFJet500",
-                "HLT_AK8PFJet400_TrimMass30",
-                "HLT_AK8PFHT800_TrimMass50",
-                "HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4",
-                "HLT_QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1",
-                "HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2",
-                "HLT_PFHT400_SixPFJet32_DoublePFBTagDeepCSV_2p94",
-                "HLT_PFHT450_SixPFJet36_PFBTagDeepCSV_1p59",
-                "HLT_AK8PFJet330_TrimMass30_PFAK8BTagDeepCSV_p17",
-                "HLT_QuadPFJet98_83_71_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1",
-                "HLT_QuadPFJet98_83_71_15_PFBTagDeepCSV_1p3_VBF2",
-                "HLT_PFMET100_PFMHT100_IDTight_CaloBTagDeepCSV_3p1",
+                "PFHT330PT30_QuadPFJet_75_60_45_40_TriplePFBTagDeepCSV_4p5",
+                "PFHT1050",
+                "PFJet500",
+                "AK8PFJet500",
+                "AK8PFJet400_TrimMass30",
+                "AK8PFHT800_TrimMass50",
+                "AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4",
+                "QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1",
+                "QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2",
+                "PFHT400_SixPFJet32_DoublePFBTagDeepCSV_2p94",
+                "PFHT450_SixPFJet36_PFBTagDeepCSV_1p59",
+                "AK8PFJet330_TrimMass30_PFAK8BTagDeepCSV_p17",
+                "QuadPFJet98_83_71_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1",
+                "QuadPFJet98_83_71_15_PFBTagDeepCSV_1p3_VBF2",
+                "PFMET100_PFMHT100_IDTight_CaloBTagDeepCSV_3p1",
             ]
         }[year]
         zeros = np.zeros(len(events), dtype="bool")
