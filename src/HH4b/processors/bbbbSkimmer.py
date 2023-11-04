@@ -379,7 +379,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # apply trigger to both data and simulation
         apply_trigger = True
-        if year=="2018" and not isData:
+        if year == "2018" and not isData:
             apply_trigger = False
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
