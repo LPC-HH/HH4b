@@ -70,7 +70,7 @@ selection_regions = {
 fit_shape_var = ShapeVar(
     "bb1FatJetPNetMass",
     r"$m^{j2}_\mathrm{Reg}$ (GeV)",
-    [20, 60, 260],
+    [19, 60, 250],
     reg=True,
     blind_window=[100, 150],
 )

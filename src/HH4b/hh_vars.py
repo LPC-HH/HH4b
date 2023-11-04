@@ -7,7 +7,7 @@ Authors: Raghav Kansal, Cristina Suarez
 years = ["2022EE"]
 
 # in pb^-1
-LUMI = {"2022EE": 20700}
+LUMI = {"2022": 7971.4, "2022EE": 20700}
 
 # sample key -> list of samples or selectors
 samples = {

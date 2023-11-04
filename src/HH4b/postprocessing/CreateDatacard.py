@@ -98,6 +98,7 @@ parser.add_argument(
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
+add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 args = parser.parse_args()
 
 
@@ -171,6 +172,15 @@ nuisance_params = {
     #     prior="lnN", samples=all_mc, diff_regions=True
     # ),
 }
+
+# add temporary uncertainties
+if args.temp_uncs:
+    temp_nps = {
+        "lumi_pileup": Syst(prior="lnN", samples=all_mc, value=1.04),
+        "signal_eff": Syst(prior="lnN", samples=sig_keys, value=1.1, pass_only=True),
+        "top_mistag": Syst(prior="lnN", samples=["ttbar"], value=1.1, pass_only=True),
+    }
+    nuisance_params = {**nuisance_params, **temp_nps}
 
 nuisance_params_dict = {
     param: rl.NuisanceParameter(param, syst.prior) for param, syst in nuisance_params.items()
