@@ -67,7 +67,7 @@ samples = {
     "2022EE": {
         **common_samples,
         "data": [
-            #"Run2022E",
+            # "Run2022E",
             "Run2022F",
             "Run2022G",
         ],
