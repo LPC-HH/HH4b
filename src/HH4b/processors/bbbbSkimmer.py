@@ -102,6 +102,21 @@ class bbbbSkimmer(processor.ProcessorABC):
         # HLT selection
         HLTs = {
             "signal": {
+                "2018": [
+                    "PFJet500",
+                    #
+                    "AK8PFJet500",
+                    #
+                    "AK8PFJet360_TrimMass30",
+                    "AK8PFJet380_TrimMass30",
+                    "AK8PFJet400_TrimMass30",
+                    "AK8PFHT750_TrimMass50",
+                    "AK8PFHT800_TrimMass50",
+                    #
+                    "PFHT1050",
+                    #
+                    "AK8PFJet330_TrimMass30_PFAK8BTagCSV_p17_v",
+                ],
                 "2022": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
@@ -228,19 +243,11 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
-
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
-        # Sort fatjets by PNXbb
-        # fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
-
         num_leptons = 2
-        veto_muon_sel = good_muons(events.Muon, selection=veto_muon_selection_run2_bbbb)
-        veto_electron_sel = good_electrons(
-            events.Electron, selection=veto_electron_selection_run2_bbbb
-        )
-        # muons = events.Muon[good_muons(events.Muon)]
-        # electrons = events.Electron[good_electrons(events.Electron)]
+        veto_muon_sel = veto_muons(events.Muon)
+        veto_electron_sel = veto_electrons(events.Electron)
 
         print("Objects", f"{time.time() - start:.2f}")
 
@@ -288,14 +295,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         """
 
         # JMSR variables
-        """
         for var in ["msoftdrop", "particleNet_mass"]:
             key = self.skim_vars["FatJet"][var]
             for shift, vals in jmsr_shifted_vars[var].items():
                 # overwrite saved mass vars with corrected ones
                 label = "" if shift == "" else "_" + shift
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
-        """
 
         # dijet variables
         """
@@ -311,16 +316,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                     **fatDijetVars,
                     **self.getFatDijetVars(ak8FatJetVars, mass_shift=label),
                 }
-        """
-
-        # lepton variables
-        """
-        lepton_skim = {"Muon": muons, "Electron": electrons}
-        leptonVars = {
-            f"{label}{key}": pad_val(obj[var], num_leptons, axis=1)
-            for (label, obj) in lepton_skim.items()
-            for (var, key) in self.skim_vars[label].items()
-        }
         """
 
         eventVars = {
@@ -357,10 +352,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         skimmed_events = {
             **genVars,
-            # **ak4JetVars,
             **ak8FatJetVars,
-            # **fatDijetVars,
-            # **leptonVars,
             **eventVars,
             **pileupVars,
             **otherVars,
@@ -386,7 +378,11 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # apply trigger to both data and simulation
-        add_selection("trigger", HLT_triggered, *selection_args)
+        apply_trigger = True
+        if year == "2018" and not isData:
+            apply_trigger = False
+        if apply_trigger:
+            add_selection("trigger", HLT_triggered, *selection_args)
 
         # temporary metfilters https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
         met_filters = [

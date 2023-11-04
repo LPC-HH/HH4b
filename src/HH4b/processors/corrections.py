@@ -60,6 +60,10 @@ def get_Prompt_year(year: str) -> str:
     return f"{year}_Prompt"
 
 
+def get_UL_year(year: str) -> str:
+    return f"{year}_UL"
+
+
 def get_pog_json(obj: str, year: str) -> str:
     try:
         pog_json = pog_jsons[obj]
@@ -68,18 +72,23 @@ def get_pog_json(obj: str, year: str) -> str:
 
     # TODO: fix prompt when switching to re-reco 23Sep datasets
     year = get_Prompt_year(year) if year == "2022" else year
+    year = get_UL_year(year) if year == "2018" else year
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
 def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
     # TODO: Switch to official recommendation when and if any
-    # cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-
-    cset = correctionlib.CorrectionSet.from_file(
-        package_path + "/corrections/2022_puWeights.json.gz"
-    )
+    if year == "2018":
+        cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+        y = year
+    else:
+        cset = correctionlib.CorrectionSet.from_file(
+            package_path + "/corrections/2022_puWeights.json.gz"
+        )
+        y = get_Prompt_year(year)
 
     year_to_corr = {
+        "2018": "Collisions18_UltraLegacy_goldenJSON",
         "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
         "2022EE_Prompt": "Collisions_2022_PromptReco_goldenJSON",
     }
@@ -87,7 +96,6 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
     values = {}
 
     # evaluate and clip up to 10 to avoid large weights
-    y = get_Prompt_year(year)
     values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
     values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
     values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
@@ -359,6 +367,9 @@ def get_jec_jets(
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
 
+    if year == "2018":
+        return jets, None
+
     jec_vars = ["pt"]  # variables we are saving that are affected by JECs
     if fatjets:
         jet_factory = fatjet_factory
@@ -424,21 +435,25 @@ jmsValues = {}
 jmrValues = {}
 
 jmrValues["msoftdrop"] = {
+    "2018": [1.09, 1.04, 1.14],
     "2022": [1.09, 1.04, 1.14],
     "2022EE": [1.09, 1.04, 1.14],
 }
 
 jmsValues["msoftdrop"] = {
+    "2018": [0.982, 0.978, 0.986],
     "2022": [0.982, 0.978, 0.986],
     "2022EE": [0.982, 0.978, 0.986],
 }
 
 jmrValues["particleNet_mass"] = {
+    "2018": [1.031, 1.006, 1.075],
     "2022": [1.031, 1.006, 1.075],
     "2022EE": [1.031, 1.006, 1.075],
 }
 
 jmsValues["particleNet_mass"] = {
+    "2018": [0.994, 0.993, 1.001],
     "2022": [0.994, 0.993, 1.001],
     "2022EE": [0.994, 0.993, 1.001],
 }
@@ -563,6 +578,29 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
 
     Give number of jets in pre-selection to obtain event weight
     """
+    if year == "2018":
+        with open(
+            f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl", "rb"
+        ) as filehandler:
+            combined = pickle.load(filehandler)
+
+        # sum over TH4q bins
+        effs_txbb = combined["num"][:, sum, :, :] / combined["den"][:, sum, :, :]
+
+        ak8TrigEffsLookup = dense_lookup(
+            np.nan_to_num(effs_txbb.view(flow=False), 0), np.squeeze(effs_txbb.axes.edges)
+        )
+
+        fj_trigeffs = ak8TrigEffsLookup(
+            pad_val(fatjets.Txbb, num_jets, axis=1),
+            pad_val(fatjets.pt, num_jets, axis=1),
+            pad_val(fatjets.msoftdrop, num_jets, axis=1),
+        )
+
+        combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
+
+        weights.add("trig_effs", combined_trigEffs)
+        return
 
     # TODO: replace year
     year = "2022EE"
