@@ -10,7 +10,7 @@ years = ["2022EE"]
 LUMI = {"2022": 7971.4, "2022EE": 20700}
 
 # sample key -> list of samples or selectors
-samples = {
+common_samples = {
     "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
     "qcd": ["QCD_HT"],
     # "qcd": ["QCD_PT"],
@@ -56,6 +56,25 @@ samples = {
         "Zto2Q-4Jets_HT-600to800",
         "Zto2Q-4Jets_HT-800",
     ],
+}
+
+samples = {
+    "2022": {
+        **common_samples,
+        "data": [
+            "Run2022C",
+            "Run2022C_single",
+            "Run2022D",
+        ],
+    },
+    "2022EE": {
+        **common_samples,
+        "data": [
+            # "Run2022E",
+            "Run2022F",
+            "Run2022G",
+        ],
+    },
 }
 
 data_key = "data"

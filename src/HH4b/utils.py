@@ -120,7 +120,10 @@ def get_cutflow(pickles_path, year, sample_name):
 
 def get_nevents(pickles_path, year, sample_name):
     """Adds up nevents over all pickles in ``pickles_path`` directory"""
-    out_pickles = listdir(pickles_path)
+    try:
+        out_pickles = listdir(pickles_path)
+    except:
+        return None
 
     file_name = out_pickles[0]
     with open(f"{pickles_path}/{file_name}", "rb") as file:
@@ -213,7 +216,7 @@ def load_samples(
             if label != data_key:
                 n_events = get_nevents(pickles_path, year, sample)
 
-                if not_empty:
+                if not_empty and n_events is not None:
                     if "weight_noxsec" in events:
                         if np.all(events["weight"] == events["weight_noxsec"]):
                             logging.warning(f"{sample} has not been scaled by its xsec and lumi")
