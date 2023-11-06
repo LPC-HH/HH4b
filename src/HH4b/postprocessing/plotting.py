@@ -662,10 +662,16 @@ def ratioHistPlot(
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
             ax=ax,
+            com="13.6",
         )
     else:
         hep.cms.label(
-            "Work in Progress", data=True, lumi=f"{LUMI[year] / 1e3:.0f}", year=year, ax=ax
+            "Work in Progress",
+            data=True,
+            lumi=f"{LUMI[year] / 1e3:.0f}",
+            year=year,
+            ax=ax,
+            com="13.6",
         )
 
     if axrax is None:
