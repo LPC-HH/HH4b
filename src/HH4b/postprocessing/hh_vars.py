@@ -15,8 +15,7 @@ samples = {
     "qcd": ["QCD_HT"],
     # "qcd": ["QCD_PT"],
     "data": [
-        "Run2022F",
-        "Run2022G",
+        "Run2022",
     ],
     "ttbar": [
         "TTto2L2Nu",
