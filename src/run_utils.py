@@ -81,6 +81,7 @@ def get_processor(
     save_hist: bool = False,
     save_array: bool = False,
     region: str = None,
+    apply_selection: bool = None,
 ):
     # define processor
     if processor == "trigger_boosted":
@@ -91,7 +92,8 @@ def get_processor(
     elif processor == "matching":
         from HH4b.processors import matchingSkimmer
 
-        return matchingSkimmer(xsecs=xsecs)
+        print(apply_selection)
+        return matchingSkimmer(xsecs=xsecs, apply_selection=apply_selection)
 
     elif processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
@@ -137,6 +139,10 @@ def parse_common_args(parser):
     parser.add_argument("--chunksize", default=20000, help="chunk size", type=int)
     parser.add_argument("--region", help="region", default="signal", choices=["signal"], type=str)
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
+    parser.add_argument("--apply-selection", dest="apply_selection", action="store_true", help=help)
+    parser.add_argument(
+        "--no-apply-selection", dest="apply_selection", action="store_false", help=help
+    )
     add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
     add_bool_arg(
         parser,

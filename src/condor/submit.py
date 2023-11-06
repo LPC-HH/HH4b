@@ -56,6 +56,14 @@ def main(args):
     logdir = local_dir + "/logs"
     os.system(f"mkdir -p {logdir}")
 
+    # copy processor version to local directory
+    if args.processor == "trigger_boosted":
+        os.system(f"cp HH4b/src/HH4b/processors/triggerSkimmer.py {local_dir}")
+    elif args.processor == "matching":
+        os.system(f"cp HH4b/src/HH4b/processors/matchingSkimmer.py {local_dir}")
+    else:
+        os.system(f"cp HH4b/src/HH4b/processors/bbbbSkimmer.py {local_dir}")
+
     # and condor directory
     print("Condor work dir: " + local_dir)
     os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
@@ -111,6 +119,9 @@ def main(args):
                     "save_systematics": "--save-systematics"
                     if args.save_systematics
                     else "--no-save-systematics",
+                    "apply_selection": "--apply-selection"
+                    if args.apply_selection
+                    else "--no-apply-selection",
                     "region": f"--region {args.region}" if "skimmer" in args.processor else "",
                 }
                 write_template(sh_templ, localsh, sh_args)
