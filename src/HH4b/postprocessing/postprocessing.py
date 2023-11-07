@@ -9,19 +9,19 @@ from pathlib import Path
 import click
 import hist
 import pandas as pd
-import plotting
-import utils
-from hh_vars import (
+from hist import Hist
+
+from HH4b import plotting, utils
+from HH4b.hh_vars import (
     bg_keys,
     data_key,
     samples,
     sig_keys,
     years,
 )
-from hist import Hist
 
 # define ShapeVar (label and bins for a given variable)
-from utils import CUT_MAX_VAL, ShapeVar
+from HH4b.utils import CUT_MAX_VAL, ShapeVar
 
 
 @dataclass

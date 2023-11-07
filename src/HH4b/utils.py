@@ -17,8 +17,9 @@ from pathlib import Path
 import hist
 import numpy as np
 import pandas as pd
-from hh_vars import data_key, jec_shifts, jmsr_shifts
 from hist import Hist
+
+from .hh_vars import data_key, jec_shifts, jmsr_shifts
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0

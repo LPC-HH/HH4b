@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
-from hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
 from hist import Hist
 from hist.intervals import ratio_uncertainty
 from numpy.typing import ArrayLike
+
+from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")

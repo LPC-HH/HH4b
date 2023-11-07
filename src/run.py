@@ -15,7 +15,7 @@ import uproot
 import yaml
 from coffea import nanoevents, processor
 
-import run_utils
+from HH4b import run_utils
 
 
 def run_dask(p: processor, fileset: dict, args):

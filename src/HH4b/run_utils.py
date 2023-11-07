@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from xsecs import xsecs
+from HH4b.xsecs import xsecs
 
 
 def add_bool_arg(parser, name, help, default=False, no_name=None):
