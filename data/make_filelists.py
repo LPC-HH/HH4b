@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
+import os
 import subprocess
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
-
-import os
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
@@ -259,7 +261,6 @@ def get_v11():
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM",
                 "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv11-126X_mcRun3_2022_realistic_v2-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv10-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
@@ -517,7 +518,7 @@ def get_v12():
             },
             # should use Muon0+Muon1
             # https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2FMuon*%2F*2023C*-22Sep2023_v*-*%2FNANOAOD
-            # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of partical rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
+            # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of particle rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
             "Muon": {
                 "Run2023C-v1_0": "/Muon0/Run2023C-22Sep2023_v1-v1/NANOAOD",
                 "Run2023C-v2_0": "/Muon0/Run2023C-22Sep2023_v2-v1/NANOAOD",
@@ -744,66 +745,66 @@ def eos_rec_search(startdir, suffix, dirs):
 def get_files(dataset, version):
     if "private" in version:
         files = eos_rec_search(dataset, ".root", [])
-        files = [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
-        return files
-    else:
-        from rucio_utils import get_proxy_path
-        from rucio_utils import get_dataset_files
-        import requests
+        return [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
 
-        proxy = get_proxy_path()
-        link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
-        r = requests.get(
-            link,
-            cert=proxy,
-            verify=False,
-        )
-        filesjson = r.json()
-        files = []
-        not_valid = []
-        for fj in filesjson:
-            if fj["is_file_valid"] == 0:
-                print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
-                not_valid.append(fj["logical_file_name"])
-            else:
-                files.append(fj["logical_file_name"])
-                # self.metadata["nevents"] += fj['event_count']
-                # self.metadata["size"] += fj['file_size']
+    import requests
+    from rucio_utils import get_dataset_files, get_proxy_path
 
-        if "WplusH_Hto2B_Wto2Q_M-125" in dataset and year == "2022EE":
-            not_valid = [
-                "/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"
-            ]
+    proxy = get_proxy_path()
+    link = (
+        f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
+    )
+    r = requests.get(
+        link,
+        cert=proxy,
+        verify=False,
+    )
+    filesjson = r.json()
+    files = []
+    not_valid = []
+    for fj in filesjson:
+        if fj["is_file_valid"] == 0:
+            print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
+            not_valid.append(fj["logical_file_name"])
+        else:
+            files.append(fj["logical_file_name"])
+            # self.metadata["nevents"] += fj['event_count']
+            # self.metadata["size"] += fj['file_size']
 
-        if len(files) == 0:
-            print(f"Found 0 files for sample {dataset}!")
-            return []
+    if "WplusH_Hto2B_Wto2Q_M-125" in dataset and year == "2022EE":
+        not_valid = [
+            "/store/mc/Run3Summer22EENanoAODv11/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/126X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff739627-b8b6-46be-8432-eef281ffe178.root"
+        ]
 
-        # Now query rucio to get the concrete dataset passing the sites filtering options
-        sites_cfg = {
-            "whitelist_sites": None,
-            "blacklist_sites": ["T2_FR_IPHC"],
-            "regex_sites": None,
-        }
-        # append mit for now..
-        sites_cfg["blacklist_sites"].append("T2_US_MIT")
-        if "QCD-4Jets_HT-600to800" in dataset:
-            sites_cfg["blacklist_sites"].append("T3_KR_KNU")
-        files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
-        print(dataset, sites)
+    if len(files) == 0:
+        print(f"Found 0 files for sample {dataset}!")
+        return []
 
-        # Get rid of invalid files
-        files_valid = []
-        for f in files_rucio:
-            invalid = False
-            for nf in not_valid:
-                if nf in f:
-                    invalid = True
-                    break
-            if not invalid:
-                files_valid.append(f)
+    # Now query rucio to get the concrete dataset passing the sites filtering options
+    sites_cfg = {
+        "whitelist_sites": None,
+        "blacklist_sites": ["T2_FR_IPHC"],
+        "regex_sites": None,
+    }
+    # append mit for now..
+    sites_cfg["blacklist_sites"].append("T2_US_MIT")
+    if "QCD-4Jets_HT-600to800" in dataset:
+        sites_cfg["blacklist_sites"].append("T3_KR_KNU")
+    files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
+    print(dataset, sites)
 
-        return files_valid
+    # Get rid of invalid files
+    files_valid = []
+    for f in files_rucio:
+        invalid = False
+        for nf in not_valid:
+            if nf in f:
+                invalid = True
+                break
+        if not invalid:
+            files_valid.append(f)
+
+    return files_valid
 
 
 for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
@@ -821,5 +822,5 @@ for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
                 else:
                     index[year][sample][sname] = get_files(dataset, version)
 
-    with open(f"nanoindex_{version}.json", "w") as f:
+    with Path(f"nanoindex_{version}.json").open("w") as f:
         json.dump(index, f, indent=4)

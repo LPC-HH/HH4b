@@ -1,6 +1,8 @@
 # TODO: Check if this is correct for available datasets
 
 # Golden JSON
+from __future__ import annotations
+
 LUMI = {  # in pb^-1
     "2018": 59830.0,
     # 5.0707 + 3.0063

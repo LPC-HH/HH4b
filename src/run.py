@@ -1,46 +1,43 @@
-#!/usr/bin/python
-
 """
 Runs coffea processors on the LPC via either condor or dask.
 
 Author(s): Cristina Mantilla Suarez, Raghav Kansal
 """
+from __future__ import annotations
 
-import pickle
-import os
-import yaml
 import argparse
+import os
+import pickle
+from pathlib import Path
 
 import numpy as np
 import uproot
-
-from coffea import nanoevents
-from coffea import processor
+import yaml
+from coffea import nanoevents, processor
 
 import run_utils
 
 
 def run_dask(p: processor, fileset: dict, args):
     """Run processor on using dask via lpcjobqueue"""
-    import time
+
     from distributed import Client
     from lpcjobqueue import LPCCondorCluster
 
-    tic = time.time()
     cluster = LPCCondorCluster(
         ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
     )
     cluster.adapt(minimum=1, maximum=350)
 
-    local_dir = os.path.abspath(".")
-    local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet_dask"))
-    os.system(f"mkdir {local_parquet_dir}")
+    local_dir = Path().resolve()
+    local_parquet_dir = local_dir / "outparquet_dask"
+    local_parquet_dir.mkdir(exist_ok=True)
 
     with Client(cluster) as client:
         from datetime import datetime
 
         print(datetime.now())
-        print("Waiting for at least one worker...")  # noqa
+        print("Waiting for at least one worker...")
         client.wait_for_workers(1)
         print(datetime.now())
 
@@ -49,46 +46,45 @@ def run_dask(p: processor, fileset: dict, args):
         with performance_report(filename="dask-report.html"):
             for sample, files in fileset.items():
                 outfile = f"{local_parquet_dir}/{args.year}_dask_{sample}.parquet"
-                if os.path.isfile(outfile):
+                if Path(outfile).is_dir():
                     print("File " + outfile + " already exists. Skipping.")
                     continue
-                else:
-                    print("Begin running " + sample)
-                    print(datetime.now())
-                    uproot.open.defaults[
-                        "xrootd_handler"
-                    ] = uproot.source.xrootd.MultithreadedXRootDSource
 
-                    executor = processor.DaskExecutor(
-                        status=True, client=client, retries=2, treereduction=2
-                    )
-                    run = processor.Runner(
-                        executor=executor,
-                        savemetrics=True,
-                        schema=processor.NanoAODSchema,
-                        chunksize=10000,
-                        # chunksize=args.chunksize,
-                        skipbadfiles=1,
-                    )
-                    out, metrics = run({sample: files}, "Events", processor_instance=p)
+                print("Begin running " + sample)
+                print(datetime.now())
+                uproot.open.defaults[
+                    "xrootd_handler"
+                ] = uproot.source.xrootd.MultithreadedXRootDSource
 
-                    import pandas as pd
+                executor = processor.DaskExecutor(
+                    status=True, client=client, retries=2, treereduction=2
+                )
+                run = processor.Runner(
+                    executor=executor,
+                    savemetrics=True,
+                    schema=processor.NanoAODSchema,
+                    chunksize=10000,
+                    # chunksize=args.chunksize,
+                    skipbadfiles=1,
+                )
+                out, metrics = run({sample: files}, "Events", processor_instance=p)
 
-                    pddf = pd.concat(
-                        [pd.DataFrame(v.value) for k, v in out["array"].items()],
-                        axis=1,
-                        keys=list(out["array"].keys()),
-                    )
+                import pandas as pd
 
-                    import pyarrow.parquet as pq
-                    import pyarrow as pa
+                pddf = pd.concat(
+                    [pd.DataFrame(v.value) for k, v in out["array"].items()],
+                    axis=1,
+                    keys=list(out["array"].keys()),
+                )
 
-                    table = pa.Table.from_pandas(pddf)
-                    pq.write_table(table, outfile)
+                import pyarrow as pa
+                import pyarrow.parquet as pq
 
-                    filehandler = open(f"{local_parquet_dir}/{args.year}_dask_{sample}.pkl", "wb")
-                    pickle.dump(out["pkl"], filehandler)
-                    filehandler.close()
+                table = pa.Table.from_pandas(pddf)
+                pq.write_table(table, outfile)
+
+                with Path(f"{local_parquet_dir}/{args.year}_dask_{sample}.pkl").open("wb") as f:
+                    pickle.dump(out["pkl"], f)
 
 
 def run(p: processor, fileset: dict, args):
@@ -115,13 +111,13 @@ def run(p: processor, fileset: dict, args):
 
     if save_parquet or save_root:
         # these processors store intermediate files in the "./outparquet" local directory
-        local_dir = os.path.abspath(".")
-        local_parquet_dir = os.path.abspath(os.path.join(".", "outparquet"))
+        local_dir = Path().resolve()
+        local_parquet_dir = local_dir / "outparquet"
 
-        if os.path.isdir(local_parquet_dir):
+        if local_parquet_dir.is_dir():
             os.system(f"rm -rf {local_parquet_dir}")
 
-        os.system(f"mkdir {local_parquet_dir}")
+        local_parquet_dir.mkdir()
 
     uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
 
@@ -140,17 +136,17 @@ def run(p: processor, fileset: dict, args):
 
     out, metrics = run(fileset, "Events", processor_instance=p)
 
-    filehandler = open(f"{outdir}/{args.starti}-{args.endi}.pkl", "wb")
     print(out)
-    pickle.dump(out, filehandler)
-    filehandler.close()
+
+    with Path(f"{outdir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
+        pickle.dump(out, f)
 
     # need to combine all the files from these processors before transferring to EOS
     # otherwise it will complain about too many small files
     if save_parquet or save_root:
         import pandas as pd
-        import pyarrow.parquet as pq
         import pyarrow as pa
+        import pyarrow.parquet as pq
 
         pddf = pd.read_parquet(local_parquet_dir)
 
@@ -188,12 +184,12 @@ def main(args):
         fileset = {f"{args.year}_{args.files_name}": args.files}
     else:
         if args.yaml:
-            with open(args.yaml, "r") as file:
+            with Path(args.yaml).open() as file:
                 samples_to_submit = yaml.safe_load(file)
             try:
                 samples_to_submit = samples_to_submit[args.year]
-            except:
-                raise KeyError(f"Year {args.year} not present in yaml dictionary")
+            except Exception as e:
+                raise KeyError(f"Year {args.year} not present in yaml dictionary") from e
 
             samples = samples_to_submit.keys()
             subsamples = []
