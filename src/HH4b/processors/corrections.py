@@ -458,7 +458,7 @@ def get_jmsr(
         if isData:
             tdict[""] = mass
         else:
-            rng = np.random.Generator(seed)
+            rng = np.random.default_rng(seed)
             smearing = rng.normal(size=mass.shape)
             # scale to JMR nom, down, up (minimum at 0)
             jmr_nom, jmr_down, jmr_up = (

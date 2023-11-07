@@ -57,12 +57,14 @@ Changelog = "https://github.com/LPC-HH/HH4b/releases"
 
 [tool.hatch]
 version.source = "vcs"
-build.hooks.vcs.version-file = "src/hh4b/_version.py"
+build.hooks.vcs.version-file = "src/HH4b/_version.py"
 envs.default.dependencies = [
   "pytest",
   "pytest-cov",
 ]
 
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
