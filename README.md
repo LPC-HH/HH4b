@@ -13,6 +13,9 @@ four beauty quarks (b).
 <!-- The majority of the analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries. -->
 
 - [HH4b](#hh4b)
+  - [Setting up package](#setting-up-package)
+    - [Creating a virtual environment](#creating-a-virtual-environment)
+    - [Installing package](#installing-package)
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
     - [Running locally](#running-locally)
@@ -27,6 +30,35 @@ four beauty quarks (b).
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
 
+## Setting up package
+
+### Creating a virtual environment
+
+First, create a virtual environment (mamba is recommended):
+
+````bash
+```bash
+# Download the mamba setup script (change if needed for your machine https://github.com/conda-forge/miniforge#mambaforge)
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
+# Install: (the mamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
+./Mambaforge-Linux-x86_64.sh  # follow instructions in the installation
+mamba create -n hh4b python=3.10
+mamba activate hh4b
+````
+
+### Installing package
+
+```bash
+# Clone the repository
+git clone https://github.com/LPC-HH/HH4b.git
+cd HH4b
+# Perform an editable installation
+pip install -e .
+# for committing to the repository
+pip install pre-commit
+pre-commit install
+```
+
 ## Instructions for running coffea processors
 
 ### Setup
@@ -40,7 +72,7 @@ For running locally:
 wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
 # Install: (the mamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
 ./Mambaforge-Linux-x86_64.sh  # follow instructions in the installation
-mamba create -n hh4b python=3.9
+mamba create -n hh4b python=3.10
 mamba activate hh4b
 pip install coffea
 ```
