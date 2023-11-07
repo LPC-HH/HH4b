@@ -463,7 +463,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         else:
             weights.add("genweight", gen_weights)
 
-            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy())
+            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
 
             # add_VJets_kFactors(weights, events.GenPart, dataset)
 
@@ -509,6 +509,8 @@ class bbbbSkimmer(processor.ProcessorABC):
             # TEMP: save each individual weight
             for key in weights._weights.keys():
                 skimmed_events[f"single_weight_{key}"] = weights.partial_weight([key])
+                if key=="pileup":
+                    print(f"single_weight_{key}", skimmed_events[f"single_weight_{key}"])
 
             for systematic in systematics:
                 if systematic in weights.variations:

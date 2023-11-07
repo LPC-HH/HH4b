@@ -77,13 +77,14 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
-    values = {}
-
+def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str = None):
     # clip nPU from 0 to 100
-    nPU = np.clip(nPU, 0, 100)
+    nPU = np.clip(nPU, 0, 99)
+    # print(list(nPU))
 
     if year == "2018":
+        values = {}
+
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
         y = year
         year_to_corr = {
@@ -94,35 +95,56 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
         values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
         values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
 
+        weights.add("pileup", values["nominal"], values["up"], values["down"])
+
     # TODO: Switch to official recommendation when and if any
     else:
-        # pileup profile from data
-        path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
-        pileup_profile = uproot.open(path_pileup)["pileup"]
-        pileup_profile = pileup_profile.to_numpy()[0]
-        # normalise
-        pileup_profile /= pileup_profile.sum()
+        if "Pu60" in dataset or "Pu70" in dataset:
+            # pileup profile from data
+            path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
+            pileup_profile = uproot.open(path_pileup)["pileup"]
+            pileup_profile = pileup_profile.to_numpy()[0]
+            # normalise
+            pileup_profile /= pileup_profile.sum()
 
-        pileup_MC = np.histogram(nPU, bins=100, range=(0, 100))[0].astype("float64")
-        # avoid division by zero later
-        pileup_MC[pileup_MC == 0.] = 1
-        # normalise
-        pileup_MC /= pileup_MC.sum()
+            # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
+            # pileup profile from MC
+            if "Pu60" in dataset:
+                pu_name = "Pu60"
+            else:
+                pu_name = "Pu70"
+            path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
+            pileup_MC = np.load(path_pileup_dataset)
+            
+            # avoid division by 0 (?)
+            pileup_MC[pileup_MC == 0.] = 1
 
-        pileup_correction = pileup_profile / pileup_MC
-        # remove large MC reweighting factors to prevent artifacts
-        pileup_correction[pileup_correction > 10] = 10
+            print("Data profile  ",np.round(pileup_profile, 3))
+            print("MC profile ", np.round(pileup_MC, 3))
 
-        sf = pileup_correction[nPU]
-        sfup, sfdown = None, None
+            pileup_correction = pileup_profile / pileup_MC
+            print("correction ", np.round(pileup_correction, 2))
 
-        values["nominal"] = sf
-        # FIXME: No uncertainties included
-        values["up"] = sf
-        values["down"] = sf
+            # remove large MC reweighting factors to prevent artifacts
+            pileup_correction[pileup_correction > 10] = 10
+            
+            print("correction ", np.round(pileup_correction, 2))
 
-    # add weights
-    weights.add("pileup", values["nominal"], values["up"], values["down"])
+            sf = pileup_correction[nPU]
+            print("sf ",sf)
+
+            # no uncertainties
+            weights.add("pileup", sf)
+            
+        else:
+            y = year.replace("EE", "")
+            cset = correctionlib.CorrectionSet.from_file(
+                package_path + f"/corrections/{y}_puWeights.json.gz"
+            )
+            name = f"Collisions_{y}_PromptReco_goldenJSON"
+            nominal = np.clip(cset[name].evaluate(nPU, "nominal"), 0, 10)
+            weights.add("pileup", nominal)
+
 
 
 def get_vpt(genpart, check_offshell=False):
