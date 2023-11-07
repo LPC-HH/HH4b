@@ -16,6 +16,7 @@ import gzip
 import pickle
 import correctionlib
 import awkward as ak
+import uproot
 
 from coffea import util as cutil
 from coffea.analysis_tools import Weights
@@ -77,30 +78,50 @@ def get_pog_json(obj: str, year: str) -> str:
 
 
 def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
-    # TODO: Switch to official recommendation when and if any
+    values = {}
+
+    # clip nPU from 0 to 100
+    nPU = np.clip(nPU, 0, 100)
+
     if year == "2018":
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
         y = year
+        year_to_corr = {
+            "2018": "Collisions18_UltraLegacy_goldenJSON",
+        }
+        # evaluate and clip up to 10 to avoid large weights                                             
+        values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
+        values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
+        values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
+
+    # TODO: Switch to official recommendation when and if any
     else:
-        cset = correctionlib.CorrectionSet.from_file(
-            package_path + "/corrections/2022_puWeights.json.gz"
-        )
-        y = get_Prompt_year(year)
+        # pileup profile from data
+        path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
+        pileup_profile = uproot.open(path_pileup)["pileup"]
+        pileup_profile = pileup_profile.to_numpy()[0]
+        # normalise
+        pileup_profile /= pileup_profile.sum()
 
-    year_to_corr = {
-        "2018": "Collisions18_UltraLegacy_goldenJSON",
-        "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
-        "2022EE_Prompt": "Collisions_2022_PromptReco_goldenJSON",
-    }
+        pileup_MC = np.histogram(nPU, bins=100, range=(0, 100))[0].astype("float64")
+        # avoid division by zero later
+        pileup_MC[pileup_MC == 0.] = 1
+        # normalise
+        pileup_MC /= pileup_MC.sum()
 
-    values = {}
+        pileup_correction = pileup_profile / pileup_MC
+        # remove large MC reweighting factors to prevent artifacts
+        pileup_correction[pileup_correction > 10] = 10
 
-    # evaluate and clip up to 10 to avoid large weights
-    values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
-    values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
-    values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
+        sf = pileup_correction[nPU]
+        sfup, sfdown = None, None
 
-    # add weights (for now only the nominal weight)
+        values["nominal"] = sf
+        # FIXME: No uncertainties included
+        values["up"] = sf
+        values["down"] = sf
+
+    # add weights
     weights.add("pileup", values["nominal"], values["up"], values["down"])
 
 
