@@ -11,11 +11,11 @@ from collections import OrderedDict
 
 import awkward as ak
 import numpy as np
-import objects
 import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
+from . import objects
 from .common import LUMI
 from .GenSelection import gen_selection_HHbbbb
 from .utils import P4, add_selection, dump_table, pad_val, to_pandas

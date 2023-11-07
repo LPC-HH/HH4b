@@ -10,12 +10,11 @@ from collections import OrderedDict
 
 import awkward as ak
 import numpy as np
-import objects
 import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
-from . import common
+from . import common, objects
 from .common import LUMI
 from .corrections import (
     add_pileup_weight,
