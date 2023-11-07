@@ -16,6 +16,7 @@ four beauty quarks (b).
   - [Setting up package](#setting-up-package)
     - [Creating a virtual environment](#creating-a-virtual-environment)
     - [Installing package](#installing-package)
+    - [Troubleshooting](#troubleshooting)
   - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
     - [Setup](#setup)
     - [Running locally](#running-locally)
@@ -57,6 +58,17 @@ pip install -e .
 # for committing to the repository
 pip install pre-commit
 pre-commit install
+```
+
+### Troubleshooting
+
+- If your default `python` in your environment is not Python 3, make sure to use
+  `pip3` and `python3` commands instead.
+
+- You may also need to upgrade `pip` to perform the editable installation:
+
+```bash
+python3 -m pip install -e .
 ```
 
 ## Instructions for running coffea processors
