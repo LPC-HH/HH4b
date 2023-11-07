@@ -10,6 +10,9 @@ https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
 
 ## Pileup reweighting
 
+No official recommendation:
+https://cms-talk.web.cern.ch/t/pu-reweighing-in-2022mc/28786/9
+
 - Following https://gitlab.cern.ch/HiggsDNA-project/HiggsDNA/-/merge_requests/47
 - Updated with https://gitlab.cern.ch/HiggsDNA-project/HiggsDNA/-/merge_requests/74
 
