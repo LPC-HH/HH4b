@@ -28,7 +28,7 @@ def pylint(session: nox.Session) -> None:
     # This needs to be installed into the package environment, and is slower
     # than a pre-commit check
     session.install(".", "pylint")
-    session.run("pylint", "hh4b", *session.posargs)
+    session.run("pylint", "HH4b", *session.posargs)
 
 
 @nox.session
@@ -93,7 +93,7 @@ def build_api_docs(session: nox.Session) -> None:
         "--module-first",
         "--no-toc",
         "--force",
-        "../src/hh4b",
+        "../src/HH4b",
     )
 
 
