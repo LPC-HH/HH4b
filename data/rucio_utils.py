@@ -139,7 +139,7 @@ def get_dataset_files(
                     found = True
 
             if not found:
-                raise Exception(f"No SITE available in the whitelist for file {filedata['name']}")
+                print(f"No SITE available in the whitelist for file {filedata['name']}")
         else:
             possible_sites = list(rses.keys())
             if blacklist_sites:
@@ -148,7 +148,7 @@ def get_dataset_files(
                 )
 
             if len(possible_sites) == 0:
-                raise Exception(f"No SITE available for file {filedata['name']}")
+                print(f"No SITE available for file {filedata['name']}")
 
             # now check for regex
             for site in possible_sites:
@@ -184,7 +184,7 @@ def get_dataset_files(
                     found = True
 
         if not found:
-            raise Exception(f"No SITE available for file {filedata['name']}")
+            print(f"No SITE available for file {filedata['name']}")
         else:
             if output == "all":
                 outfiles.append(outfile)
