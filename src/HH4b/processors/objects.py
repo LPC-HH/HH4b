@@ -10,44 +10,6 @@ import time
 
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
-muon_selection = {
-    "pt": 30,
-    "eta": 2.4,
-    "miniPFRelIso_all": 0.2,
-    "id": "tight",
-}
-
-electron_selection = {
-    "pt": 35,
-    "eta": 2.5,
-    "miniPFRelIso_all": 0.2,
-    "id": "cutBased:4",
-}
-
-veto_muon_selection = {
-    "pt": 15,
-    "eta": 2.4,
-    "miniPFRelIso_all": 0.4,
-    "id": "loose",
-}
-
-veto_electron_selection = {
-    "pt": 20,
-    "eta": 2.5,
-    "miniPFRelIso_all": 0.4,
-    "id": "mvaFall17V2noIso_WP90",
-}
-
-ak4_selection = {
-    "eta": 4.7,
-    # "pt": 50
-}
-
-ak8_selection = {
-    "eta": 2.5,
-}
-
-
 def base_muons(muons: MuonArray):
     # base selection of muons
     sel = (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
@@ -59,39 +21,60 @@ def base_electrons(electrons: ElectronArray):
     sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
     return sel
 
+def veto_muons_run2(muons: MuonArray):
+    sel = (
+        (muons.pt >= 30)
+        & (abs(muons.eta) <= 2.4)
+        & (muons.tightId)
+        & (muons.miniPFRelIso_all <= 0.2)
+    )
+    return sel
+
+def veto_electrons_run2(electrons: ElectronArray):
+    sel = (
+        (electrons.pt >= 35)
+        & (abs(electrons.eta) <= 2.5)
+        & (electrons.cutBased>3)
+        & (electrons.miniPFRelIso_all <= 0.2)
+    )
+    return sel
 
 def veto_muons(muons: MuonArray):
     sel = (
         (muons.pt >= 10)
         & (abs(muons.eta) <= 2.4)
-        & (muons.miniPFRelIso_all <= 0.15)
         & (muons.looseId)
+        & (muons.pfRelIso04_all < 0.15)
+    )
+    sel = sel & (
+        ( (abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.10) & (abs(muons.eta) < 1.2) )
+        | ( (abs(muons.dxy) < 0.10) & (abs(muons.dz) < 0.20) & (abs(muons.eta) >= 1.2) )
     )
     return sel
 
-
 def veto_electrons(electrons: ElectronArray):
-    sel = (electrons.pt >= 15) & (abs(electrons.eta) <= 2.4) & (
-        electrons.miniPFRelIso_all <= 0.15
-    ) & electrons.cutBased >= electrons.LOOSE & (
-        ((abs(electrons.dxy) < 0.05) & (abs(electrons.eta) < 1.2))
-        | ((abs(electrons.dxy) < 0.10) & (abs(electrons.eta) >= 1.2))
-    ) & (
-        ((abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
-        | ((abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
+    sel = (
+        (electrons.pt >= 15)
+        & (abs(electrons.eta) <= 2.4)
+        & (electrons.mvaIso_WP90)
+        & (electrons.pfRelIso03_all < 0.15)
+    )
+    sel = sel & (
+        ( (abs(electrons.dxy) < 0.05) & (abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2) )
+        | ( (abs(electrons.dxy) < 0.10) & (abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2) )
     )
     return sel
 
 
 # ak4 jet definition
 def good_ak4jets(
-    jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
+    jets: JetArray, year: str, run: np.ndarray, isData: bool
 ):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
-    sel = (jets.isTight) & (abs(jets.eta) < selection["eta"])
+    sel = (jets.isTight) & (abs(jets.eta) < 4.7)
 
     if year == "2022" or year == "2022EE":
         jet_veto = get_jetveto(jets, year, run, isData)
@@ -141,6 +124,6 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
-    sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
+def good_ak8jets(fatjets: FatJetArray):
+    sel = (abs(fatjets.eta) < 2.5) & (fatjets.isTight)
     return sel

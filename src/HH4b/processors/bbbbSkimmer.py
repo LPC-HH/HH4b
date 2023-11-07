@@ -188,10 +188,11 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset
+        # isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
 
         if isSignal:
             # take only signs of gen-weights for HH samples
-            # TODO: corss check
+            # TODO: cross check
             gen_weights = np.sign(events["genWeight"])
         elif not isData:
             gen_weights = events["genWeight"].to_numpy()
@@ -246,8 +247,12 @@ class bbbbSkimmer(processor.ProcessorABC):
         jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         num_leptons = 2
-        veto_muon_sel = veto_muons(events.Muon)
-        veto_electron_sel = veto_electrons(events.Electron)
+        if year=="2018":
+            veto_muon_sel = veto_muons_run2(events.Muon)
+            veto_electron_sel = veto_electrons_run2(events.Electron)
+        else:
+            veto_muon_sel = veto_muons(events.Muon)
+            veto_electron_sel = veto_electrons(events.Electron)
 
         print("Objects", f"{time.time() - start:.2f}")
 
