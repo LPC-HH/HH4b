@@ -1,12 +1,15 @@
-from typing import Dict
+from __future__ import annotations
 
-import numpy as np
-from coffea.nanoevents.methods.nanoaod import JetArray, FatJetArray, MuonArray, ElectronArray
-from coffea.nanoevents.methods.base import NanoEventsArray
-from .corrections import get_jetveto
 import awkward as ak
+import numpy as np
+from coffea.nanoevents.methods.nanoaod import (
+    ElectronArray,
+    FatJetArray,
+    JetArray,
+    MuonArray,
+)
 
-import time
+from .corrections import get_jetveto
 
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
@@ -50,28 +53,25 @@ ak8_selection = {
 
 def base_muons(muons: MuonArray):
     # base selection of muons
-    sel = (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
-    return sel
+    return (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
 
 
 def base_electrons(electrons: ElectronArray):
     # base selection of electrons
-    sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
-    return sel
+    return (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
 
 
 def veto_muons(muons: MuonArray):
-    sel = (
+    return (
         (muons.pt >= 10)
         & (abs(muons.eta) <= 2.4)
         & (muons.miniPFRelIso_all <= 0.15)
         & (muons.looseId)
     )
-    return sel
 
 
 def veto_electrons(electrons: ElectronArray):
-    sel = (electrons.pt >= 15) & (abs(electrons.eta) <= 2.4) & (
+    return (electrons.pt >= 15) & (abs(electrons.eta) <= 2.4) & (
         electrons.miniPFRelIso_all <= 0.15
     ) & electrons.cutBased >= electrons.LOOSE & (
         ((abs(electrons.dxy) < 0.05) & (abs(electrons.eta) < 1.2))
@@ -80,12 +80,11 @@ def veto_electrons(electrons: ElectronArray):
         ((abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
         | ((abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
     )
-    return sel
 
 
 # ak4 jet definition
 def good_ak4jets(
-    jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: Dict = ak4_selection
+    jets: JetArray, year: str, run: np.ndarray, isData: bool, selection: dict = ak4_selection
 ):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
@@ -97,6 +96,7 @@ def good_ak4jets(
         jet_veto = get_jetveto(jets, year, run, isData)
         jet_veto = jet_veto & (jets.pt > 15)
         sel = sel & ~jet_veto
+
     return sel
 
 
@@ -141,6 +141,5 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray, selection: Dict = ak8_selection):
-    sel = (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)
-    return sel
+def good_ak8jets(fatjets: FatJetArray, selection: dict = ak8_selection):
+    return (abs(fatjets.eta) < selection["eta"]) & (fatjets.isTight)

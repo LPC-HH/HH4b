@@ -1,9 +1,11 @@
 {
-    "2018":
+  "2018":
+    {
+      "HH":
         {
-            "HH": {
-              "subsamples": ["GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8"]
-              "files_per_job": 1
-            },
-        }
+          "subsamples":
+            ["GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8"],
+          "files_per_job": 1,
+        },
+    },
 }
