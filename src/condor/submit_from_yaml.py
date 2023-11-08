@@ -3,19 +3,15 @@ Runs the submit script but with samples specified in a yaml file.
 
 Author(s): Raghav Kansal, Cristina Mantilla Suarez
 """
+from __future__ import annotations
 
-import os
-import sys
 import argparse
+from pathlib import Path
 
 import submit
 import yaml
 
-# needed to import run_utils from parent directory
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
-import run_utils
-
+from HH4b import run_utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -36,7 +32,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with open(args.yaml, "r") as file:
+    with Path(args.yaml).open() as file:
         samples_to_submit = yaml.safe_load(file)
 
     args.script = "run.py"

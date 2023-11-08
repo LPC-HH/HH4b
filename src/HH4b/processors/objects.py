@@ -1,26 +1,27 @@
-from typing import Dict
+from __future__ import annotations
 
-import numpy as np
-from coffea.nanoevents.methods.nanoaod import JetArray, FatJetArray, MuonArray, ElectronArray
-from coffea.nanoevents.methods.base import NanoEventsArray
-from .corrections import get_jetveto
 import awkward as ak
+import numpy as np
+from coffea.nanoevents.methods.nanoaod import (
+    ElectronArray,
+    FatJetArray,
+    JetArray,
+    MuonArray,
+)
 
-import time
+from .corrections import get_jetveto
 
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
 
 def base_muons(muons: MuonArray):
     # base selection of muons
-    sel = (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
-    return sel
+    return (muons.pt >= 5) & (abs(muons.eta) <= 2.4)
 
 
 def base_electrons(electrons: ElectronArray):
     # base selection of electrons
-    sel = (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
-    return sel
+    return (electrons.pt >= 7) & (abs(electrons.eta) <= 2.5)
 
 
 def veto_muons_run2(muons: MuonArray):
@@ -80,6 +81,7 @@ def good_ak4jets(jets: JetArray, year: str, run: np.ndarray, isData: bool):
         jet_veto = get_jetveto(jets, year, run, isData)
         jet_veto = jet_veto & (jets.pt > 15)
         sel = sel & ~jet_veto
+
     return sel
 
 

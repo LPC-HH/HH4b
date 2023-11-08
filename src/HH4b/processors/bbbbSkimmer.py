@@ -2,14 +2,17 @@
 Skimmer for bbbb analysis with FatJets.
 Author(s): Raghav Kansal, Cristina Suarez
 """
+from __future__ import annotations
 
-import numpy as np
+import logging
+import time
+from collections import OrderedDict
+
 import awkward as ak
-import pandas as pd
-
-from coffea import processor
-from coffea.analysis_tools import Weights, PackedSelection
+import numpy as np
 import vector
+from coffea import processor
+from coffea.analysis_tools import PackedSelection, Weights
 
 import pathlib
 import pickle
@@ -23,15 +26,11 @@ from .GenSelection import gen_selection_HHbbbb, gen_selection_Hbb
 from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
 from .corrections import (
     add_pileup_weight,
-    add_VJets_kFactors,
-    add_top_pt_weight,
-    add_ps_weight,
-    add_pdf_weight,
-    add_scalevar_7pt,
+    add_trig_weights,
     get_jec_jets,
     # get_jmsr,
     get_jetveto_event,
-    add_trig_weights,
+    get_jmsr,
 )
 from .common import LUMI
 from .common import jec_shifts, jmsr_shifts
@@ -44,9 +43,6 @@ import time
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
 
-
-import logging
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -58,7 +54,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     """
 
     # key is name in nano files, value will be the name in the skimmed output
-    skim_vars = {
+    skim_vars = {  # noqa: RUF012
         "Jet": {
             **P4,
         },
@@ -85,7 +81,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         },
     }
 
-    preselection = {
+    preselection = {  # noqa: RUF012
         "fatjet_pt": 300,
         "fatjet_msd": 40,
         "fatjet_mreg": 40,
@@ -104,7 +100,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     ):
         super(bbbbSkimmer, self).__init__()
 
-        self.XSECS = xsecs  # in pb
+        self.XSECS = xsecs if xsecs is not None else {}  # in pb
 
         # HLT selection
         HLTs = {
@@ -142,7 +138,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         self._nano_version = nano_version
 
         """
-        signal: 
+        signal:
         """
         self._region = region
 
@@ -152,35 +148,6 @@ class bbbbSkimmer(processor.ProcessorABC):
         self._save_array = save_array
 
         logger.info(f"Running skimmer with systematics {self._systematics}")
-
-    def to_pandas(self, events: Dict[str, np.array]):
-        """
-        Convert our dictionary of numpy arrays into a pandas data frame
-        Uses multi-index columns for numpy arrays with >1 dimension
-        (e.g. FatJet arrays with two columns)
-        """
-        return pd.concat(
-            [pd.DataFrame(v) for k, v in events.items()],
-            axis=1,
-            keys=list(events.keys()),
-        )
-
-    def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None) -> None:
-        """
-        Saves pandas dataframe events to './outparquet'
-        """
-        import pyarrow.parquet as pq
-        import pyarrow as pa
-
-        local_dir = os.path.abspath(os.path.join(".", "outparquet"))
-        if odir_str:
-            local_dir += odir_str
-        os.system(f"mkdir -p {local_dir}")
-
-        # need to write with pyarrow as pd.to_parquet doesn't support different types in
-        # multi-index column names
-        table = pa.Table.from_pandas(pddf)
-        pq.write_table(table, f"{local_dir}/{fname}")
 
     @property
     def accumulator(self):
@@ -234,13 +201,13 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
+        jets_sel = objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
         num_fatjets = 2  # number to save
         num_fatjets_cut = 2  # number to consider for selection
-        fatjets = get_ak8jets(events.FatJet)
+        fatjets = objects.get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = get_jec_jets(
             events,
             fatjets,
@@ -253,7 +220,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        fatjets_sel = good_ak8jets(fatjets)
+        fatjets_sel = objects.good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
 
         # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
@@ -345,7 +312,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
             pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
 
-        pileupVars = {**pileupVars, **{"nPV": events.PV["npvs"].to_numpy()}}
+        pileupVars = {**pileupVars, "nPV": events.PV["npvs"].to_numpy()}
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
@@ -377,6 +344,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         skimmed_events = {
             **genVars,
+            **ak4JetVars,
             **ak8FatJetVars,
             **eventVars,
             **pileupVars,
@@ -420,7 +388,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "ecalBadCalibFilter",
         ]
         metfilters = np.ones(len(events), dtype="bool")
-        metfilterkey = "data" if isData else "mc"
+        # metfilterkey = "data" if isData else "mc"
         for mf in met_filters:
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
@@ -505,10 +473,10 @@ class bbbbSkimmer(processor.ProcessorABC):
                 systematics += list(weights.variations)
 
             # TODO: need to be careful about the sum of gen weights used for the LHE/QCDScale uncertainties
-            logger.debug("weights ", weights._weights.keys())
+            logger.debug("weights", extra=weights._weights.keys())
 
             # TEMP: save each individual weight
-            for key in weights._weights.keys():
+            for key in weights._weights:
                 skimmed_events[f"single_weight_{key}"] = weights.partial_weight([key])
 
             for systematic in systematics:
@@ -534,35 +502,37 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (key, value) in skimmed_events.items()
         }
 
-        df = self.to_pandas(skimmed_events)
+        dataframe = to_pandas(skimmed_events)
 
         print("To Pandas", f"{time.time() - start:.2f}")
 
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-        self.dump_table(df, fname)
+        dump_table(dataframe, fname)
 
         print("Dump table", f"{time.time() - start:.2f}")
 
         if self._save_array:
             output = {}
-            for key in df.columns:
+            for key in dataframe.columns:
                 if isinstance(key, tuple):
                     column = "".join(str(k) for k in key)
-                output[column] = processor.column_accumulator(df[key].values)
+                output[column] = processor.column_accumulator(dataframe[key].values)
 
             # print("Save Array", f"{time.time() - start:.2f}")
             return {
                 "array": output,
                 "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
             }
-        else:
-            print("Return ", f"{time.time() - start:.2f}")
-            return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
+
+        print("Return ", f"{time.time() - start:.2f}")
+        return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
 
     def postprocess(self, accumulator):
         return accumulator
 
-    def getFatDijetVars(self, ak8FatJetVars: Dict, pt_shift: str = None, mass_shift: str = None):
+    def getFatDijetVars(
+        self, ak8FatJetVars: dict, pt_shift: str | None = None, mass_shift: str | None = None
+    ):
         """Calculates Dijet variables for given pt / mass JEC / JMS/R variation"""
         dijetVars = {}
 

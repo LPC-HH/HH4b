@@ -3,6 +3,8 @@
 A script to generate a BinnedValues-JSON file for pileup reweighting of MC
 https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/misc/LUM/makePUReWeightJSON.py
 """
+from __future__ import annotations
+
 import json
 import logging
 
@@ -128,10 +130,10 @@ def getHist(fName, hName="pileup"):
 
     tf = gbl.TFile.Open(fName)
     if not tf:
-        raise RuntimeError("Could not open file '{0}'".format(fName))
+        raise RuntimeError(f"Could not open file '{fName}'")
     hist = tf.Get(hName)
     if not hist:
-        raise RuntimeError("No histogram with name '{0}' found in file '{1}'".format(hName, fName))
+        raise RuntimeError(f"No histogram with name '{hName}' found in file '{fName}'")
     return tf, hist
 
 
@@ -247,13 +249,14 @@ def main():
 
             matplotlib.use("agg")
             from matplotlib import pyplot as plt
-        except Exception as ex:
+        except Exception:
             logger.warning("matplotlib could not be imported, so no plot will be produced")
             args.makePlot = False
     if args.gzip:
         try:
-            import gzip, io
-        except Exception as ex:
+            import gzip
+            import io
+        except Exception:
             logger.warning(
                 "gzip or io could not be imported, output will be stored as regular file"
             )
@@ -281,7 +284,7 @@ def main():
         mcPUBins, mcPUVals = normAndExtract(hMCPU)
     elif args.mcprofile:
         if args.mcprofile not in mcPUProfiles:
-            raise ValueError("No MC PU profile with tag '{0}' is known".format(args.mcprofile))
+            raise ValueError(f"No MC PU profile with tag '{args.mcprofile}' is known")
 
         mcPUBins, mcPUVals = mcPUProfiles[args.mcprofile]
         if len(mcPUBins) != len(mcPUVals) + 1:

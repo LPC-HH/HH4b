@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
+import os
 import subprocess
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
-
-import os
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
@@ -621,7 +623,7 @@ def get_v12():
             },
             # should use Muon0+Muon1
             # https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2FMuon*%2F*2023C*-22Sep2023_v*-*%2FNANOAOD
-            # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of partical rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
+            # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of particle rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
             "Muon": {
                 "Run2023C-v1_0": "/Muon0/Run2023C-22Sep2023_v1-v1/NANOAOD",
                 "Run2023C-v2_0": "/Muon0/Run2023C-22Sep2023_v2-v1/NANOAOD",
@@ -926,5 +928,5 @@ for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
                 else:
                     index[year][sample][sname] = get_files(dataset, version)
 
-    with open(f"nanoindex_{version}.json", "w") as f:
+    with Path(f"nanoindex_{version}.json").open("w") as f:
         json.dump(index, f, indent=4)

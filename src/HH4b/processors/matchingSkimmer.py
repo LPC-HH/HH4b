@@ -2,39 +2,29 @@
 Skimmer for matching studies
 Author(s): Raghav Kansal, Cristina Suarez
 """
-
-import numpy as np
-import awkward as ak
-import pandas as pd
-
-from coffea import processor
-from coffea.analysis_tools import Weights, PackedSelection
-from coffea.nanoevents.methods.nanoaod import JetArray
-import vector
+from __future__ import annotations
 
 import itertools
-import pathlib
-import pickle
-import gzip
-import os
-
-from typing import Dict
+import logging
+import time
 from collections import OrderedDict
 
-from .GenSelection import gen_selection_HHbbbb
-from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
-from .common import LUMI, jec_shifts, jmsr_shifts
-from .objects import *
-from . import common
+import awkward as ak
+import numpy as np
+import vector
+from coffea import processor
+from coffea.analysis_tools import PackedSelection, Weights
 
-import time
+from . import objects
+from .common import LUMI
+from .GenSelection import gen_selection_HHbbbb
+from .utils import P4, add_selection, dump_table, pad_val, to_pandas
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
     "GluGlutoHHto4B": gen_selection_HHbbbb,
 }
 
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -51,7 +41,7 @@ class matchingSkimmer(processor.ProcessorABC):
     """
 
     # key is name in nano files, value will be the name in the skimmed output
-    skim_vars = {
+    skim_vars = {  # noqa: RUF012
         "Jet": {
             "btagDeepFlavB": "btagDeepFlavB",
         },
@@ -67,7 +57,7 @@ class matchingSkimmer(processor.ProcessorABC):
     }
 
     # compute possible jet assignments lookup table
-    JET_ASSIGNMENTS = {}
+    JET_ASSIGNMENTS = {}  # noqa: RUF012
     for nj in range(MIN_JETS, MAX_JETS + 1):
         a = list(itertools.combinations(range(nj), 2))
         b = np.array(
@@ -75,41 +65,12 @@ class matchingSkimmer(processor.ProcessorABC):
         )
         JET_ASSIGNMENTS[nj] = b
 
-    def __init__(self, xsecs={}, apply_selection=True):
-        super(matchingSkimmer, self).__init__()
+    def __init__(self, xsecs=None, apply_selection=True):
+        super().__init__()
 
-        self.XSECS = xsecs  # in pb
+        self.XSECS = xsecs if xsecs is not None else {}  # in pb
         self._accumulator = processor.dict_accumulator({})
         self.apply_selection = apply_selection
-
-    def to_pandas(self, events: Dict[str, np.array]):
-        """
-        Convert our dictionary of numpy arrays into a pandas data frame
-        Uses multi-index columns for numpy arrays with >1 dimension
-        (e.g. FatJet arrays with two columns)
-        """
-        return pd.concat(
-            [pd.DataFrame(v) for k, v in events.items()],
-            axis=1,
-            keys=list(events.keys()),
-        )
-
-    def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None) -> None:
-        """
-        Saves pandas dataframe events to './outparquet'
-        """
-        import pyarrow.parquet as pq
-        import pyarrow as pa
-
-        local_dir = os.path.abspath(os.path.join(".", "outparquet"))
-        if odir_str:
-            local_dir += odir_str
-        os.system(f"mkdir -p {local_dir}")
-
-        # need to write with pyarrow as pd.to_parquet doesn't support different types in
-        # multi-index column names
-        table = pa.Table.from_pandas(pddf)
-        pq.write_table(table, f"{local_dir}/{fname}")
 
     @property
     def accumulator(self):
@@ -170,14 +131,14 @@ class matchingSkimmer(processor.ProcessorABC):
         print("Before jets ", f"{time.time() - start:.2f}")
 
         jets = events.Jet
-        jets = jets[good_ak4jets(jets, year, events.run.to_numpy(), isData)]
+        jets = jets[objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)]
         ht = ak.sum(jets.pt, axis=1)
-        vbf_jets = jets[(jets.pt > 25) & (((jets.pt < 50) & (jets.puId >= 6)) | (jets.pt >= 50))]
+        # vbf_jets = jets[(jets.pt > 25) & (((jets.pt < 50) & (jets.puId >= 6)) | (jets.pt >= 50))]
 
         print("Before fatjets ", f"{time.time() - start:.2f}")
 
-        fatjets = get_ak8jets(events.FatJet)
-        fatjets = fatjets[good_ak8jets(fatjets)]
+        fatjets = objects.get_ak8jets(events.FatJet)
+        fatjets = fatjets[objects.good_ak8jets(fatjets)]
         fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
 
         print("Before outside ", f"{time.time() - start:.2f}")
@@ -192,8 +153,8 @@ class matchingSkimmer(processor.ProcessorABC):
         print("Before b-jet energy regression", f"{time.time() - start:.2f}")
 
         # b-jet energy regression
-        jets_p4 = bregcorr(jets)
-        jets_p4_outside_fj = bregcorr(jets_outside_fj)
+        jets_p4 = objects.bregcorr(jets)
+        jets_p4_outside_fj = objects.bregcorr(jets_outside_fj)
 
         print("Objects", f"{time.time() - start:.2f}")
 
@@ -281,7 +242,7 @@ class matchingSkimmer(processor.ProcessorABC):
             }
             ak4JetVars = {
                 **ak4JetVars,
-                **{"ak4JetGenJetIdx": pad_val(getattr(jets, "genJetIdx"), num_jets, axis=1)},
+                "ak4JetGenJetIdx": pad_val(jets.genJetIdx, num_jets, axis=1),
             }
 
         skimmed_events = {
@@ -311,7 +272,6 @@ class matchingSkimmer(processor.ProcessorABC):
             "ecalBadCalibFilter",
         ]
         metfilters = np.ones(len(events), dtype="bool")
-        metfilterkey = "data" if isData else "mc"
         for mf in met_filters:
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
@@ -332,7 +292,7 @@ class matchingSkimmer(processor.ProcessorABC):
         HLT_triggered = np.zeros(len(events), dtype="bool")
         for trigger in HLTs:
             if trigger in events.HLT.fields:
-                HLT_triggered = HLT_triggered | events.HLT[trigger] 
+                HLT_triggered = HLT_triggered | events.HLT[trigger]
         print(HLT_triggered)
         add_selection("trigger", HLT_triggered, *selection_args)
         add_selection("nak4", ak.sum(jets.pt > 15, axis=1) >= 4, *selection_args)
@@ -369,12 +329,12 @@ class matchingSkimmer(processor.ProcessorABC):
                 for (key, value) in skimmed_events.items()
             }
 
-        df = self.to_pandas(skimmed_events)
+        dataframe = to_pandas(skimmed_events)
 
         print("To Pandas", f"{time.time() - start:.2f}")
 
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-        self.dump_table(df, fname)
+        dump_table(dataframe, fname)
 
         return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
 
@@ -418,6 +378,7 @@ class matchingSkimmer(processor.ProcessorABC):
 
             first_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 0, :]
             second_bb_pair = self.JET_ASSIGNMENTS[nj][index][:, 1, :]
+
             return {
                 "ak4Pair0chi2": first_bb_pair,
                 "ak4Pair1chi2": second_bb_pair,
@@ -426,7 +387,7 @@ class matchingSkimmer(processor.ProcessorABC):
         # TODO: add dR
         # elif method == "dr":
 
-        elif method == "dhh":
+        if method == "dhh":
             # https://github.com/UF-HH/bbbbAnalysis/blob/master/src/OfflineProducerHelper.cc#L4109
             mjj_sorted = ak.sort(mjj, ascending=False)
 
@@ -498,7 +459,7 @@ class matchingSkimmer(processor.ProcessorABC):
         second_bb_j2 = jets[np.arange(len(jets.pt)), second_bb_pair_sort[:, 1]]
         second_bb_dijet = second_bb_j1 + second_bb_j2
 
-        jetAssignmentDict = {
+        return {
             f"{name}Pair0": first_bb_pair_sort,
             f"{name}Pair1": second_bb_pair_sort,
             f"{name}DijetPt0": first_bb_dijet.pt,
@@ -511,4 +472,3 @@ class matchingSkimmer(processor.ProcessorABC):
             f"{name}DijetMass1": second_bb_dijet.mass,
             f"{name}DijetDeltaR": first_bb_dijet.deltaR(second_bb_dijet),
         }
-        return jetAssignmentDict
