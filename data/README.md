@@ -1,19 +1,22 @@
 ## Making filelists
 
-Uses https://github.com/dmwm/DBSClient.
-Use CMSSW_11_2_0 or later, and run `pip3 install dbs3-client --user`.
+Uses https://github.com/dmwm/DBSClient. Use CMSSW_11_2_0 or later, and run
+`pip3 install dbs3-client --user`.
 
 ## NanoAOD versions
 
-PDMV recommendations: https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis
+PDMV recommendations:
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis
 
 ```
-Campaign CMSSW 
+Campaign CMSSW
 --------------
 Run3Winter22 CMSSW_12_2_X POG studies
 Run3Summer22 CMSSW_12_4_X 2022 data analysis
 ```
-Some instructions on custom nano here: https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
+
+Some instructions on custom nano here:
+https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
 
 ### Recipe for NanoAODv12
 
@@ -27,6 +30,7 @@ scram b
 #### For data:
 
 2023-Prompt
+
 ```
 # taken from: https://cmsweb.cern.ch/couchdb/reqmgr_config_cache/32c5d6d84a05232e68c9abd3937a291e/configFile
 cmsDriver.py --python_filename test_nanoTuples_data2023_PromptNanoAODv12_cfg.py --eventcontent NANOAOD --customise Configuration/DataProcessing/Utils.addMonitoring,PhysicsTools/NanoAOD/nano_cff.nanoL1TrigObjCustomize --datatier NANOAOD \
@@ -37,6 +41,7 @@ cmsDriver.py --python_filename test_nanoTuples_data2023_PromptNanoAODv12_cfg.py 
 ```
 
 2023-MC Run3Summer23:
+
 ```
 # taken from https://cms-pdmv.cern.ch/mcm/public/restapi/requests/get_test/PPD-Run3Summer23NanoAODv12-00002
 cmsDriver.py --python_filename test_nanoTuples_Run3Summer23_PromptNanoAODv12_cfg.py --eventcontent NANOAOD --customise Configuration/DataProcessing/Utils.addMonitoring --datatier NANOAODSIM \
@@ -55,17 +60,18 @@ eval `scram runtime -sh`
 scram b
 ```
 
-Reference: PFNano from JME also has an available recipe: https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
+Reference: PFNano from JME also has an available recipe:
+https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
 
-Note: At some point, we	will switch to ReReco (Partial,	for ABCD)
+Note: At some point, we will switch to ReReco (Partial, for ABCD)
 https://cms-pdmv-prod.web.cern.ch/pmp/historical?r=27Jun2023&showDoneRequestsList=true
 Run3_2022_rereco, 124X_dataRun3_v15
 
 Another link tracking nano:
 https://cmsweb.cern.ch/das/request?view=list&limit=150&instance=prod%2Fglobal&input=dataset+status%3D*+dataset%3D%2F*%2F*-22Sep2023-*%2FNANOAOD
 
-
 2022-ABCDPrompt
+
 ```
 cmsDriver.py --python_filename test_nanoTuples_data2022_ABCDPrompt_cfg.py --eventcontent NANOAOD --datatier NANOAOD --customise_commands "process.options.wantSummary = cms.untracked.bool(True)" \
 --fileout file:nano_data2022_PromptNano.root \
@@ -75,6 +81,7 @@ cmsDriver.py --python_filename test_nanoTuples_data2022_ABCDPrompt_cfg.py --even
 ```
 
 2022-EFGPrompt
+
 ```
 # adapted from: https://cmsweb.cern.ch/couchdb/reqmgr_config_cache/10fc675e782eab01d6a5188185536e42/configFile
 # adapted from Marina
@@ -86,6 +93,7 @@ cmsDriver.py --python_filename test_nanoTuples_data2022_EFGPrompt_cfg.py --event
 ```
 
 2022-MC Run3Summer22:
+
 ```
 cmsDriver.py --python_filename test_nanoTuples_mc2022.py --eventcontent NANOAODSIM --datatier NANOAODSIM \
 --fileout file:nano_mc2022_v11.root \
@@ -95,6 +103,7 @@ cmsDriver.py --python_filename test_nanoTuples_mc2022.py --eventcontent NANOAODS
 ```
 
 2022-MC Run3Summer22EE:
+
 ```
 cmsDriver.py --python_filename test_nanoTuples_mc2023.py --eventcontent NANOAODSIM --datatier NANOAODSIM \
 --fileout file:nano_mc2022EE_v11.root \
@@ -105,7 +114,7 @@ cmsDriver.py --python_filename test_nanoTuples_mc2023.py --eventcontent NANOAODS
 
 ## Cross sections
 
-Reference: 
-https://xsdb-temp.app.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=30&searchQuery=energy%3D13.6 
+Reference:
+https://xsdb-temp.app.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=30&searchQuery=energy%3D13.6
 
 https://twiki.cern.ch/twiki/bin/viewauth/CMS/MATRIXCrossSectionsat13p6TeV

@@ -1,7 +1,7 @@
 ## To build JECs
 
 ```
-python -m build_jec jec_compiled.pkl.gz 
+python -m build_jec jec_compiled.pkl.gz
 ```
 
 ## LUMI recommendations

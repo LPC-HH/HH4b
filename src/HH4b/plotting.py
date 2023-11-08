@@ -1,26 +1,28 @@
-from typing import List, Dict, Union, Tuple
-from numpy.typing import ArrayLike
+from __future__ import annotations
+
 from collections import OrderedDict
 from copy import deepcopy
-
-from hist.intervals import ratio_uncertainty
-from hh_vars import LUMI, data_key, sig_keys, hbb_bg_keys
+from pathlib import Path
 
 import hist
-from hist import Hist
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
+from hist import Hist
+from hist.intervals import ratio_uncertainty
+from numpy.typing import ArrayLike
+
+from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
 
-import matplotlib.ticker as mticker
 
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 
-import matplotlib as mpl
 
 mpl.rcParams["font.size"] = 28
 mpl.rcParams["lines.linewidth"] = 2
@@ -28,8 +30,6 @@ mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
-
-import os
 
 
 colours = {
@@ -112,7 +112,6 @@ bg_order = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttb
 
 
 def plot_hists(
-    year,
     hists,
     vars_to_plot,
     luminosity=None,  # float (fb)
@@ -131,7 +130,7 @@ def plot_hists(
         add_data_over_mc = False
 
     for var in vars_to_plot:
-        if var not in hists.keys():
+        if var not in hists:
             print(f"{var} not stored in hists")
             continue
 
@@ -308,7 +307,7 @@ def plot_hists(
         handles, labels = ax.get_legend_handles_labels()
 
         # get total yield of backgrounds per label
-        first_key = list(hists.keys())[0]
+        first_key = next(iter(hists.keys()))
         # (sort by yield after pre-sel)
         order_dic = {}
         for bkg_label in bkg_labels:
@@ -319,7 +318,7 @@ def plot_hists(
 
         # get indices of labels arranged by yield
         order = []
-        for i in range(len(summ)):
+        for _ in range(len(summ)):
             order.append(np.argmax(np.array(summ)))
             summ[np.argmax(np.array(summ))] = -100
 
@@ -345,9 +344,9 @@ def plot_hists(
             ax.set_yscale("log")
             ax.set_ylim(1e-1)
 
-        outpath = "plots"
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
+        outpath = Path("plots")
+        if not outpath.exists():
+            outpath.mkdir(parents=True)
 
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
 
@@ -401,7 +400,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation):
         label = sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
 
         if sig_scale == 1:
-            label = label
+            label = label  # noqa: PLW0127
         elif sig_scale <= 100:
             label = f"{label} $\\times$ {sig_scale:.0f}"
         else:
@@ -440,25 +439,23 @@ def _asimov_significance(s, b):
 def ratioHistPlot(
     hists: Hist,
     year: str,
-    sig_keys: List[str],
-    bg_keys: List[str],
-    sig_err: Union[ArrayLike, str] = None,
-    data_err: Union[ArrayLike, bool, None] = None,
+    sig_keys: list[str],
+    bg_keys: list[str],
+    sig_err: ArrayLike | str | None = None,
+    data_err: ArrayLike | bool | None = None,
     sortyield: bool = False,
-    title: str = None,
-    blind_region: list = None,
+    title: str | None = None,
     name: str = "",
     sig_scale_dict=None,
-    ylim: int = None,
+    ylim: int | None = None,
     show: bool = True,
-    variation: Tuple = None,
+    variation: tuple | None = None,
     plot_data: bool = True,
-    bg_order: List[str] = bg_order,
     log: bool = False,
-    ratio_ylims: List[float] = None,
+    ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
     significance_dir: str = "right",
-    axrax: Tuple = None,
+    axrax: tuple | None = None,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -510,11 +507,19 @@ def ratioHistPlot(
         ax.sharex(rax)
     elif plot_significance:
         fig, (ax, rax, sax) = plt.subplots(
-            3, 1, figsize=(12, 18), gridspec_kw=dict(height_ratios=[3, 1, 1], hspace=0), sharex=True
+            3,
+            1,
+            figsize=(12, 18),
+            gridspec_kw={"height_ratios": [3, 1, 1], "hspace": 0},
+            sharex=True,
         )
     else:
         fig, (ax, rax) = plt.subplots(
-            2, 1, figsize=(12, 14), gridspec_kw=dict(height_ratios=[4, 1], hspace=0.07), sharex=True
+            2,
+            1,
+            figsize=(12, 14),
+            gridspec_kw={"height_ratios": [4, 1], "hspace": 0.07},
+            sharex=True,
         )
 
     plt.rcParams.update({"font.size": 28})
@@ -546,8 +551,8 @@ def ratioHistPlot(
         )
 
     # plot signal errors
-    if type(sig_err) == str:
-        scolours = {"down": colours["lightred"], "up": colours["darkred"]}
+    if isinstance(sig_err, str):
+        # scolours = {"down": colours["lightred"], "up": colours["darkred"]}
         for skey, shift in [("Up", "up"), ("Down", "down")]:
             hep.histplot(
                 [
@@ -560,15 +565,6 @@ def ratioHistPlot(
                 label=[f"{sig_key} {skey}" for sig_key in sig_scale_dict],
                 alpha=0.6,
                 color=sig_colours[: len(sig_keys)],
-            )
-    elif sig_err is not None:
-        for sig_key, sig_scale in sig_scale_dict.items():
-            _fill_error(
-                ax,
-                hists.axes[1].edges,
-                hists[sig_key, :].values() * (1 - sig_err),
-                hists[sig_key, :].values() * (1 + sig_err),
-                sig_scale,
             )
 
     # plot data
@@ -664,10 +660,16 @@ def ratioHistPlot(
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
             ax=ax,
+            com="13.6",
         )
     else:
         hep.cms.label(
-            "Work in Progress", data=True, lumi=f"{LUMI[year] / 1e3:.0f}", year=year, ax=ax
+            "Work in Progress",
+            data=True,
+            lumi=f"{LUMI[year] / 1e3:.0f}",
+            year=year,
+            ax=ax,
+            com="13.6",
         )
 
     if axrax is None:

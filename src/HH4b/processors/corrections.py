@@ -8,31 +8,28 @@ See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
 
 Authors: Raghav Kansal, Cristina Suarez
 """
+from __future__ import annotations
 
-import os
-from typing import Dict, List, Tuple, Union
-import numpy as np
 import gzip
+import pathlib
 import pickle
 import correctionlib
 import awkward as ak
 import uproot
 
-from coffea import util as cutil
+import awkward as ak
+import correctionlib
+import numpy as np
 from coffea.analysis_tools import Weights
 from coffea.lookup_tools.dense_lookup import dense_lookup
-from coffea.nanoevents.methods.nanoaod import MuonArray, JetArray, FatJetArray, GenParticleArray
-from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods import vector
-
-ak.behavior.update(vector.behavior)
-
-import pathlib
+from coffea.nanoevents.methods.base import NanoEventsArray
+from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
 from . import utils
-from .utils import P4, pad_val
+from .utils import pad_val
 
-
+ak.behavior.update(vector.behavior)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
 # Important Run3 start of Run
@@ -260,8 +257,8 @@ def add_pdf_weight(weights, pdf_weights):
     """
     nweights = len(weights.weight())
     nom = np.ones(nweights)
-    up = np.ones(nweights)
-    down = np.ones(nweights)
+    # up = np.ones(nweights)
+    # down = np.ones(nweights)
 
     # NNPDF31_nnlo_hessian_pdfas
     # https://lhapdfsets.web.cern.ch/current/NNPDF31_nnlo_hessian_pdfas/NNPDF31_nnlo_hessian_pdfas.info
@@ -300,8 +297,6 @@ def add_scalevar_7pt(weights, var_weights):
     [7] is renscfact=2d0 facscfact=1d0 ; <=
     [8] is renscfact=2d0 facscfact=2d0 ; <=
     """
-    docstring = var_weights.__doc__
-
     nweights = len(weights.weight())
 
     nom = np.ones(nweights)
@@ -338,8 +333,6 @@ def add_scalevar_7pt(weights, var_weights):
 
 
 def add_scalevar_3pt(weights, var_weights):
-    docstring = var_weights.__doc__
-
     nweights = len(weights.weight())
 
     nom = np.ones(nweights)
@@ -401,10 +394,10 @@ def get_jec_jets(
     jets: FatJetArray,
     year: str,
     isData: bool = False,
-    jecs: Dict[str, str] = None,
+    jecs: dict[str, str] | None = None,
     fatjets: bool = True,
     applyData: bool = False,
-    dataset: str = None,
+    dataset: str | None = None,
 ) -> FatJetArray:
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
@@ -414,10 +407,7 @@ def get_jec_jets(
         return jets, None
 
     jec_vars = ["pt"]  # variables we are saving that are affected by JECs
-    if fatjets:
-        jet_factory = fatjet_factory
-    else:
-        jet_factory = ak4jet_factory
+    jet_factory = fatjet_factory if fatjets else ak4jet_factory
 
     import cachetools
 
@@ -439,11 +429,7 @@ def get_jec_jets(
     else:
         corr_key = f"{year}mc"
 
-    if applyData:
-        apply_jecs = ak.any(jets.pt)
-    else:
-        # do not apply JECs to data
-        apply_jecs = not (not ak.any(jets.pt) or isData)
+    apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
 
     # fatjet_factory.build gives an error if there are no jets in event
     if apply_jecs:
@@ -504,7 +490,7 @@ jmsValues["particleNet_mass"] = {
 
 def get_jmsr(
     fatjets: FatJetArray, num_jets: int, year: str, isData: bool = False, seed: int = 42
-) -> Dict:
+) -> dict:
     """Calculates post JMS/R masses and shifts"""
     jmsr_shifted_vars = {}
 
@@ -516,12 +502,12 @@ def get_jmsr(
         if isData:
             tdict[""] = mass
         else:
-            np.random.seed(seed)
-            smearing = np.random.normal(size=mass.shape)
+            rng = np.random.default_rng(seed)
+            smearing = rng.normal(size=mass.shape)
             # scale to JMR nom, down, up (minimum at 0)
-            jmr_nom, jmr_down, jmr_up = [
+            jmr_nom, jmr_down, jmr_up = (
                 (smearing * max(jmrValues[mkey][year][i] - 1, 0) + 1) for i in range(3)
-            ]
+            )
             jms_nom, jms_down, jms_up = jmsValues[mkey][year]
 
             mass_jms = mass * jms_nom
@@ -622,8 +608,8 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
     Give number of jets in pre-selection to obtain event weight
     """
     if year == "2018":
-        with open(
-            f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl", "rb"
+        with Path(f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl").open(
+            "rb"
         ) as filehandler:
             combined = pickle.load(filehandler)
 

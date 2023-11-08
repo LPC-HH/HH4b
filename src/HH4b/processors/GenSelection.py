@@ -3,18 +3,15 @@ Gen selection functions for skimmer.
 
 Author(s): Raghav Kansal, Cristina Mantilla Suarez
 """
+from __future__ import annotations
 
-import numpy as np
 import awkward as ak
-
+import numpy as np
 from coffea.analysis_tools import PackedSelection
 from coffea.nanoevents.methods.base import NanoEventsArray
-from coffea.nanoevents.methods.nanoaod import FatJetArray, GenParticleArray, JetArray
+from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
-from typing import List, Dict, Tuple, Union
-
-from .utils import pad_val, add_selection, PAD_VAL
-
+from .utils import add_selection, pad_val
 
 d_PDGID = 1
 u_PDGID = 2
@@ -62,7 +59,6 @@ def gen_selection_HHbbbb(
 
     higgs_children = higgs.children
     is_bb = abs(higgs_children.pdgId) == b_PDGID
-    bb = ak.flatten(higgs.children[is_bb], axis=2)
 
     # checking that is a 4b decay
     has_4b = ak.sum(ak.flatten(is_bb, axis=2), axis=1) == 4

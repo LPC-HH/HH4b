@@ -3,6 +3,7 @@ Common variables
 
 Authors: Raghav Kansal, Cristina Suarez
 """
+from __future__ import annotations
 
 years = ["2022EE"]
 
@@ -12,8 +13,11 @@ LUMI = {"2022": 7971.4, "2022EE": 20700}
 # sample key -> list of samples or selectors
 common_samples = {
     "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
-    # "qcd": ["QCD_HT"],
-    "qcd": ["QCD_PT"],
+    "qcd": ["QCD_HT"],
+    # "qcd": ["QCD_PT"],
+    "data": [
+        "Run2022",
+    ],
     "ttbar": [
         "TTto2L2Nu",
         "TTtoLNu2Q",

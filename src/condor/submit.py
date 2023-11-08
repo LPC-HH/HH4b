@@ -1,32 +1,26 @@
-#!/usr/bin/python
-
 """
 Splits the total fileset and creates condor job submission files for the specified run script.
 
 Author(s): Cristina Mantilla Suarez, Raghav Kansal
 """
+from __future__ import annotations
 
 import argparse
 import os
 from math import ceil
+from pathlib import Path
 from string import Template
-import json
 
-import sys
-
-# needed to import run_utils from parent directory
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
-import run_utils
+from HH4b import run_utils
 
 
 def write_template(templ_file: str, out_file: str, templ_args: dict):
     """Write to ``out_file`` based on template from ``templ_file`` using ``templ_args``"""
 
-    with open(templ_file, "r") as f:
+    with Path(templ_file).open() as f:
         templ = Template(f.read())
 
-    with open(out_file, "w") as f:
+    with Path(out_file).open("w") as f:
         f.write(templ.substitute(templ_args))
 
 
@@ -127,8 +121,8 @@ def main(args):
                 write_template(sh_templ, localsh, sh_args)
                 os.system(f"chmod u+x {localsh}")
 
-                if os.path.exists(f"{localcondor}.log"):
-                    os.system(f"rm {localcondor}.log")
+                if Path(f"{localcondor}.log").exists():
+                    Path(f"{localcondor}.log").unlink()
 
                 print("To submit ", localcondor)
                 if args.submit:
