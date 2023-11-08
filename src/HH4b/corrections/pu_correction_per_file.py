@@ -1,13 +1,14 @@
-from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
-import hist
-import numpy as np
+from __future__ import annotations
+
 import sys
 
-import uproot
-
+import hist
 import matplotlib.pyplot as plt
-import mplhep as hep
 import matplotlib.ticker as mticker
+import mplhep as hep
+import numpy as np
+import uproot
+from coffea.nanoevents import NanoAODSchema, NanoEventsFactory
 
 hep.style.use(["CMS", "firamath"])
 formatter = mticker.ScalarFormatter(useMathText=True)

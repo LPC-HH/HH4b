@@ -13,13 +13,11 @@ from __future__ import annotations
 import gzip
 import pathlib
 import pickle
-import correctionlib
-import awkward as ak
-import uproot
 
 import awkward as ak
 import correctionlib
 import numpy as np
+import uproot
 from coffea.analysis_tools import Weights
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.nanoevents.methods import vector

@@ -853,9 +853,8 @@ def get_files(dataset, version):
         files = [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
         return files
     else:
-        from rucio_utils import get_proxy_path
-        from rucio_utils import get_dataset_files
         import requests
+        from rucio_utils import get_dataset_files, get_proxy_path
 
         proxy = get_proxy_path()
         link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"

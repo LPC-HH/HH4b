@@ -14,31 +14,18 @@ import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
-import pathlib
-import pickle
-import gzip
-import os
-
-from typing import Dict
-from collections import OrderedDict
-
-from .GenSelection import gen_selection_HHbbbb, gen_selection_Hbb
-from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
+from . import common
+from .common import LUMI
 from .corrections import (
     add_pileup_weight,
     add_trig_weights,
     get_jec_jets,
     # get_jmsr,
     get_jetveto_event,
-    get_jmsr,
 )
-from .common import LUMI
-from .common import jec_shifts, jmsr_shifts
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
 from .objects import *
-from . import common
-
-import time
-
+from .utils import P4, PAD_VAL, add_selection, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
