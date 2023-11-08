@@ -90,7 +90,7 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         year_to_corr = {
             "2018": "Collisions18_UltraLegacy_goldenJSON",
         }
-        # evaluate and clip up to 10 to avoid large weights                                             
+        # evaluate and clip up to 10 to avoid large weights
         values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
         values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
         values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
@@ -115,11 +115,11 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
                 pu_name = "Pu70"
             path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
             pileup_MC = np.load(path_pileup_dataset)
-            
-            # avoid division by 0 (?)
-            pileup_MC[pileup_MC == 0.] = 1
 
-            print("Data profile  ",np.round(pileup_profile, 3))
+            # avoid division by 0 (?)
+            pileup_MC[pileup_MC == 0.0] = 1
+
+            print("Data profile  ", np.round(pileup_profile, 3))
             print("MC profile ", np.round(pileup_MC, 3))
 
             pileup_correction = pileup_profile / pileup_MC
@@ -127,15 +127,15 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
 
             # remove large MC reweighting factors to prevent artifacts
             pileup_correction[pileup_correction > 10] = 10
-            
+
             print("correction ", np.round(pileup_correction, 2))
 
             sf = pileup_correction[nPU]
-            print("sf ",sf)
+            print("sf ", sf)
 
             # no uncertainties
             weights.add("pileup", sf)
-            
+
         else:
             y = year.replace("EE", "")
             cset = correctionlib.CorrectionSet.from_file(
@@ -144,7 +144,6 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
             name = f"Collisions_{y}_PromptReco_goldenJSON"
             nominal = np.clip(cset[name].evaluate(nPU, "nominal"), 0, 10)
             weights.add("pileup", nominal)
-
 
 
 def get_vpt(genpart, check_offshell=False):
@@ -410,7 +409,7 @@ def get_jec_jets(
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
-    # RunC,D,E are re-reco, should wait for new jecs                                                                                                                                                              
+    # RunC,D,E are re-reco, should wait for new jecs
     datasets_no_jecs = [
         "Run2022C_single",
         "Run2022C",
@@ -418,9 +417,9 @@ def get_jec_jets(
         "Run2022E",
     ]
     for dset in datasets_no_jecs:
-        if dataset in dset and nano_version=="v12":
+        if dataset in dset and nano_version == "v12":
             return jets, None
-            
+
     if year == "2018" or year == "2023":
         return jets, None
 

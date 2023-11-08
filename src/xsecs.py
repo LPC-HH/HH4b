@@ -104,7 +104,7 @@ xsecs["HHHTo6B_c3_0_d4_99"] = 0.005855 * BR_HBB * BR_HBB * BR_HBB
 xsecs["HHHTo6B_c3_0_d4_minus1"] = 4.117e-05 * BR_HBB * BR_HBB * BR_HBB
 xsecs["HHHTo6B_c3_19_d4_19"] = 0.1476 * BR_HBB * BR_HBB * BR_HBB
 # SM sample
-xsecs["HHHTo6B_c3_1_d4_0"] = 2.908e-05 * BR_HBB * BR_HBB * BR_HBB 
+xsecs["HHHTo6B_c3_1_d4_0"] = 2.908e-05 * BR_HBB * BR_HBB * BR_HBB
 xsecs["HHHTo6B_c3_1_d4_2"] = 1.616e-05 * BR_HBB * BR_HBB * BR_HBB
 # xsecs["HHHTo6B_c3_2_d4_minus1"] =
 # xsecs["HHHTo6B_c3_4_d4_9"] =
@@ -123,9 +123,9 @@ hh = {
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV": 2.802 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV": 1.875 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.01252 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.08664 * BR_HBB * BR_HBB
+    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.08664 * BR_HBB * BR_HBB,
 }
-for key,value in hh.items():
+for key, value in hh.items():
     xsecs[key] = value
     xsecs[f"{key}_TSG"] = value
     xsecs[f"{key}_TSG_Pu60"] = value
@@ -183,16 +183,16 @@ xsecs["WJetsToQQ_HT-800toInf_13TeV"] = 28.75
 
 # xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"]
 # xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"]
-# xsecs["Wto2Q-2Jets_PTQQ-600_2J"] 
+# xsecs["Wto2Q-2Jets_PTQQ-600_2J"]
 
 xsecs["ZJetsToQQ_HT-200to400_13TeV"] = 1012.0
 xsecs["ZJetsToQQ_HT-400to600_13TeV"] = 114.5
 xsecs["ZJetsToQQ_HT-600to800_13TeV"] = 25.41
 xsecs["ZJetsToQQ_HT-800toInf_13TeV"] = 12.91
 
-#xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"]
-#xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"]
-#xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"]
+# xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"]
+# xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"]
+# xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"]
 
 xsecs["GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8"] = 0.27395244
 xsecs["VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8"] = 2.2498257

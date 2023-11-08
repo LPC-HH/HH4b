@@ -100,7 +100,11 @@ def get_processor(
         from HH4b.processors import bbbbSkimmer
 
         return bbbbSkimmer(
-            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array, nano_version=nano_version
+            xsecs=xsecs,
+            save_systematics=save_systematics,
+            region=region,
+            save_array=save_array,
+            nano_version=nano_version,
         )
 
 

@@ -160,7 +160,7 @@ class matchingSkimmer(processor.ProcessorABC):
         #########################
         # Object definitions
         #########################
-        if year=="2018":
+        if year == "2018":
             veto_muon_sel = veto_muons_run2(events.Muon)
             veto_electron_sel = veto_electrons_run2(events.Electron)
         else:

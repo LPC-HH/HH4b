@@ -42,10 +42,7 @@ import time
 
 
 # mapping samples to the appropriate function for doing gen-level selections
-gen_selection_dict = {
-    "HHto4B": gen_selection_HHbbbb,
-    "HToBB": gen_selection_Hbb
-}
+gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
 
 
 import logging
@@ -97,7 +94,14 @@ class bbbbSkimmer(processor.ProcessorABC):
 
     jecs = common.jecs
 
-    def __init__(self, xsecs={}, save_systematics=False, region="signal", save_array=False, nano_version="v12"):
+    def __init__(
+        self,
+        xsecs={},
+        save_systematics=False,
+        region="signal",
+        save_array=False,
+        nano_version="v12",
+    ):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
@@ -130,7 +134,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 ],
             },
         }
-        
+
         self.HLTs = HLTs[region]
 
         self._systematics = save_systematics
@@ -248,14 +252,14 @@ class bbbbSkimmer(processor.ProcessorABC):
             applyData=True,
             dataset=dataset,
             nano_version=self._nano_version,
-        )            
+        )
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
 
         # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         num_leptons = 2
-        if year=="2018":
+        if year == "2018":
             veto_muon_sel = veto_muons_run2(events.Muon)
             veto_electron_sel = veto_electrons_run2(events.Electron)
         else:
@@ -282,7 +286,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
             for (var, key) in self.skim_vars["Jet"].items()
         }
-        
+
         # FatJet variables
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
@@ -349,7 +353,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         HLTs = self.HLTs[year]
-        if year!="2018":
+        if year != "2018":
             # add extra hlts as variables
             HLTs.extend(
                 [
@@ -432,8 +436,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         add_selection("ak8_pt", cut, *selection_args)
 
         # TODO: check if fatjet passes mass cut in any of the JMS/R variations
-        cut_mpnet = np.sum(ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"], axis=1)
-        cut_msd = np.sum(ak8FatJetVars["ak8FatJetMsd"] >=self.preselection["fatjet_msd"], axis=1)
+        cut_mpnet = np.sum(
+            ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"], axis=1
+        )
+        cut_msd = np.sum(ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"], axis=1)
         add_selection("ak8_msd", (cut_mpnet | cut_msd), *selection_args)
 
         # veto leptons

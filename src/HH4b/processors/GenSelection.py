@@ -164,7 +164,7 @@ def gen_selection_Hbb(
     GenHiggsVars = {f"GenHiggs{key}": higgs[var].to_numpy() for (var, key) in skim_vars.items()}
     GenHiggsVars["GenHiggsChildren"] = abs(higgs_children.pdgId[:, :, 0]).to_numpy()
 
-    is_bb = (abs(higgs_children.pdgId) == b_PDGID)
+    is_bb = abs(higgs_children.pdgId) == b_PDGID
     bs = ak.flatten(higgs_children[is_bb], axis=2)
     GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
 
