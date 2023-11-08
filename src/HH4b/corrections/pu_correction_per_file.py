@@ -8,6 +8,7 @@ import uproot
 import matplotlib.pyplot as plt
 import mplhep as hep
 import matplotlib.ticker as mticker
+
 hep.style.use(["CMS", "firamath"])
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
@@ -24,7 +25,7 @@ files = {
     "Pu70": [
         # 2022EE, v10, kl1
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/d00363f4-0cac-410d-8fc7-bb6f60ccb6cd.root",
-        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ee9ea1b0-ee93-46b1-b2b9-164cf499ef22.root"
+        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ee9ea1b0-ee93-46b1-b2b9-164cf499ef22.root",
     ],
     "Pu70_1": [
         # 2022EE, v10, kl5
@@ -43,9 +44,10 @@ files = {
     ],
 }
 
+
 def main():
     npu_axis = hist.axis.Regular(100, 0, 100, name="npu", label=r"nPUInt")
-    
+
     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
     h_npu = hist.Hist(npu_axis)
@@ -55,42 +57,38 @@ def main():
         h_npu = hist.Hist(npu_axis)
         for fname in files[sample]:
             events = NanoEventsFactory.from_root(fname, schemaclass=NanoAODSchema).events()
-            #h_npu.fill(events.Pileup.nTrueInt.to_numpy())
-            #print(events.Pileup.nTrueInt.to_numpy())
+            # h_npu.fill(events.Pileup.nTrueInt.to_numpy())
+            # print(events.Pileup.nTrueInt.to_numpy())
             h_npu.fill(events.Pileup.nPU.to_numpy())
         pileup_MC = h_npu.to_numpy()[0].astype("float64")
         # avoid division by zero
-        pileup_MC[pileup_MC == 0.] = 1
+        pileup_MC[pileup_MC == 0.0] = 1
         # normalize
         pileup_MC /= pileup_MC.sum()
         print(np.round(pileup_MC, 3))
-        with open(f"data/pileup/{sample}.npy", 'wb') as f:
+        with open(f"data/pileup/{sample}.npy", "wb") as f:
             np.save(f, pileup_MC)
 
         # plot
         hep.histplot(
-            h_npu/pileup_MC.sum(), 
-            histtype="step",
-            ax=ax,
-            label=f"MC {sample}",
-            density=True
+            h_npu / pileup_MC.sum(), histtype="step", ax=ax, label=f"MC {sample}", density=True
         )
 
     # plot profile for data
     path_pileup = "data/MyDataPileupHistogram2022FG.root"
     pileup_profile = uproot.open(path_pileup)["pileup"]
     pileup_profile = pileup_profile.to_numpy()[0]
-    # normalise                                                                                                                                                                                                                                                         
+    # normalise
     pileup_profile /= pileup_profile.sum()
-    print("data ",np.round(pileup_profile, 3))
+    print("data ", np.round(pileup_profile, 3))
     print("bins ", bins)
     nomBins = bins
-    nBinCenters = .5*(nomBins[:-1]+nomBins[1:])
+    nBinCenters = 0.5 * (nomBins[:-1] + nomBins[1:])
     ax.hist(
         nBinCenters,
         weights=pileup_profile,
         bins=nomBins,
-        histtype="step", 
+        histtype="step",
         label="data",
     )
 
@@ -98,7 +96,6 @@ def main():
     ax.set_ylabel("Density")
     ax.set_xlabel("PU profile")
     fig.savefig("pileup_comparison_perfile.png")
-
 
 
 if __name__ == "__main__":

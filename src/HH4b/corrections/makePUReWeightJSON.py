@@ -433,7 +433,12 @@ def main():
         rBinCenters = 0.5 * (ratioBins[:-1] + ratioBins[1:])
         ax.hist(dBinCenters, bins=mcPUBins, weights=mcPUVals, histtype="step", label="MC")
         ax.hist(
-            nBinCenters, bins=nomBins, weights=nomCont, histtype="step", label="Nominal (data)", color="k"
+            nBinCenters,
+            bins=nomBins,
+            weights=nomCont,
+            histtype="step",
+            label="Nominal (data)",
+            color="k",
         )
         rax.hist(rBinCenters, bins=ratioBins, weights=nomRatio, histtype="step", color="k")
         if upCont is not None:

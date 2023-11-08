@@ -46,7 +46,7 @@ def main(args):
         proxy = "/home/users/rkansal/x509up_u31735"
 
     username = os.environ["USER"]
-    
+
     tag = f"{args.tag}_{args.nano_version}"
     local_dir = f"condor/{args.processor}/{tag}"
     homedir = f"/store/user/{username}/bbbb/{args.processor}/"
