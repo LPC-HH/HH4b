@@ -99,6 +99,25 @@ def get_xsecs():
     return xsecs
 
 
+def get_cutflow(pickles_path, year, sample_name):
+    """Accumulates cutflow over all pickles in ``pickles_path`` directory"""
+    from coffea.processor.accumulator import accumulate
+
+    out_pickles = listdir(pickles_path)
+
+    file_name = out_pickles[0]
+    with open(f"{pickles_path}/{file_name}", "rb") as file:
+        out_dict = pickle.load(file)
+        cutflow = out_dict[year][sample_name]["cutflow"]  # index by year, then sample name
+
+    for file_name in out_pickles[1:]:
+        with open(f"{pickles_path}/{file_name}", "rb") as file:
+            out_dict = pickle.load(file)
+            cutflow = accumulate([cutflow, out_dict[year][sample_name]["cutflow"]])
+
+    return cutflow
+
+
 def get_nevents(pickles_path, year, sample_name):
     """Adds up nevents over all pickles in ``pickles_path`` directory"""
     try:
