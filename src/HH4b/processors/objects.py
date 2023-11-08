@@ -117,7 +117,10 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
-        fatjets["particleNet_mass"] = fatjets.particleNet_massCorr
+        # this is a relative correction to the JEC-corrected jet mass (no softdrop)
+        # CROSS-CHECK
+        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
 
     return fatjets

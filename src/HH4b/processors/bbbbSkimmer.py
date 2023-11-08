@@ -19,7 +19,7 @@ import os
 from typing import Dict
 from collections import OrderedDict
 
-from .GenSelection import gen_selection_HHbbbb
+from .GenSelection import gen_selection_HHbbbb, gen_selection_Hbb
 from .utils import pad_val, add_selection, concatenate_dicts, select_dicts, P4, PAD_VAL
 from .corrections import (
     add_pileup_weight,
@@ -43,7 +43,8 @@ import time
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
-    "GluGlutoHHto4B": gen_selection_HHbbbb,
+    "HHto4B": gen_selection_HHbbbb,
+    "HToBB": gen_selection_Hbb
 }
 
 
@@ -90,13 +91,13 @@ class bbbbSkimmer(processor.ProcessorABC):
     preselection = {
         "fatjet_pt": 300,
         "fatjet_msd": 40,
-        "fatjet_mreg": 60,
+        "fatjet_mreg": 40,
         "Txbb0": 0.8,
     }
 
     jecs = common.jecs
 
-    def __init__(self, xsecs={}, save_systematics=False, region="signal", save_array=False):
+    def __init__(self, xsecs={}, save_systematics=False, region="signal", save_array=False, nano_version="v12"):
         super(bbbbSkimmer, self).__init__()
 
         self.XSECS = xsecs  # in pb
@@ -133,6 +134,8 @@ class bbbbSkimmer(processor.ProcessorABC):
         self.HLTs = HLTs[region]
 
         self._systematics = save_systematics
+
+        self._nano_version = nano_version
 
         """
         signal: 
@@ -214,19 +217,36 @@ class bbbbSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         num_jets = 6
-        # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
+        # RunC,D,E are re-reco, should wait for new jecs
+        apply_jecs = True
+
+        datasets_no_jecs = [
+            "Run2022C_single",
+            "Run2022C",
+            "Run2022D",
+            "Run2022E",
+        ]
+        for dset in datasets_no_jecs:
+            if dataset in dset and self._nano_version=="v12":
+                apply_jecs = False
+
         # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
-        jets, jec_shifted_jetvars = get_jec_jets(
-            events,
-            events.Jet,
-            year,
-            isData,
-            # jecs=self.jecs,
-            jecs=None,
-            fatjets=False,
-            applyData=True,
+        if apply_jecs:
+            jets, jec_shifted_jetvars = get_jec_jets(
+                events,
+                events.Jet,
+                year,
+                isData,
+                # jecs=self.jecs,
+                jecs=None,
+                fatjets=False,
+                applyData=True,
             dataset=dataset,
-        )
+            )
+        else:
+            jets = events.Jet
+            jec_shifted_jetvars = None
+
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
@@ -500,8 +520,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             # TEMP: save each individual weight
             for key in weights._weights.keys():
                 skimmed_events[f"single_weight_{key}"] = weights.partial_weight([key])
-                if key=="pileup":
-                    print(f"single_weight_{key}", skimmed_events[f"single_weight_{key}"])
 
             for systematic in systematics:
                 if systematic in weights.variations:

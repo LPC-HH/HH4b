@@ -182,6 +182,7 @@ def main(args):
         args.save_array,
         args.region,
         args.apply_selection,
+        args.nano_version,
     )
 
     if len(args.files):

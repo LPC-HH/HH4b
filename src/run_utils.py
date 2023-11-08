@@ -82,6 +82,7 @@ def get_processor(
     save_array: bool = False,
     region: str = None,
     apply_selection: bool = None,
+    nano_version: str = None,
 ):
     # define processor
     if processor == "trigger_boosted":
@@ -99,7 +100,7 @@ def get_processor(
         from HH4b.processors import bbbbSkimmer
 
         return bbbbSkimmer(
-            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array
+            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array, nano_version=nano_version
         )
 
 
