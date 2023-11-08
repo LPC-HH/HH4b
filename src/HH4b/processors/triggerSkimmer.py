@@ -211,8 +211,9 @@ class TriggerProcessor(processor.ProcessorABC):
 
 
 class BoostedTriggerSkimmer(TriggerProcessor):
-    def __init__(self, save_hist=False):
+    def __init__(self, save_hist=False, nano_version="v12"):
         super(TriggerProcessor, self).__init__()
+        self._nano_version = nano_version
 
         self.skim_vars = {
             "FatJet": {
@@ -311,10 +312,17 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         # Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
-        fatjets = get_jec_jets(
-            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True, dataset=dataset
+        fatjets, _ = get_jec_jets(
+            events,
+            fatjets,
+            year,
+            isData,
+            jecs=None,
+            fatjets=True,
+            applyData=True,
+            dataset=dataset,
+            nano_version=self._nano_version,
         )
-
         fatjet_selector = (
             (fatjets.pt > self.preselection["fatjet_pt"])
             & (np.abs(fatjets.eta) < self.preselection["fatjet_eta"])
@@ -341,7 +349,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
 
         # add ht variable
-        jets = get_jec_jets(
+        jets, _ = get_jec_jets(
             events,
             events.Jet,
             year,
@@ -350,6 +358,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
             fatjets=False,
             applyData=True,
             dataset=dataset,
+            nano_version=self._nano_version,
         )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]

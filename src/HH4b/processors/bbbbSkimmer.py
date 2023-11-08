@@ -217,36 +217,19 @@ class bbbbSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         num_jets = 6
-        # RunC,D,E are re-reco, should wait for new jecs
-        apply_jecs = True
-
-        datasets_no_jecs = [
-            "Run2022C_single",
-            "Run2022C",
-            "Run2022D",
-            "Run2022E",
-        ]
-        for dset in datasets_no_jecs:
-            if dataset in dset and self._nano_version=="v12":
-                apply_jecs = False
-
         # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
-        if apply_jecs:
-            jets, jec_shifted_jetvars = get_jec_jets(
-                events,
-                events.Jet,
-                year,
-                isData,
-                # jecs=self.jecs,
-                jecs=None,
-                fatjets=False,
-                applyData=True,
+        jets, jec_shifted_jetvars = get_jec_jets(
+            events,
+            events.Jet,
+            year,
+            isData,
+            # jecs=self.jecs,
+            jecs=None,
+            fatjets=False,
+            applyData=True,
             dataset=dataset,
-            )
-        else:
-            jets = events.Jet
-            jec_shifted_jetvars = None
-
+            nano_version=self._nano_version,
+        )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
@@ -264,7 +247,8 @@ class bbbbSkimmer(processor.ProcessorABC):
             fatjets=True,
             applyData=True,
             dataset=dataset,
-        )
+            nano_version=self._nano_version,
+        )            
         fatjets_sel = good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
 

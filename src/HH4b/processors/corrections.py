@@ -405,12 +405,23 @@ def get_jec_jets(
     fatjets: bool = True,
     applyData: bool = False,
     dataset: str = None,
+    nano_version: str = "v12",
 ) -> FatJetArray:
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
-
-    if year == "2018":
+    # RunC,D,E are re-reco, should wait for new jecs                                                                                                                                                              
+    datasets_no_jecs = [
+        "Run2022C_single",
+        "Run2022C",
+        "Run2022D",
+        "Run2022E",
+    ]
+    for dset in datasets_no_jecs:
+        if dataset in dset and nano_version=="v12":
+            return jets, None
+            
+    if year == "2018" or year == "2023":
         return jets, None
 
     jec_vars = ["pt"]  # variables we are saving that are affected by JECs
