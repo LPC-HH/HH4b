@@ -52,14 +52,6 @@ def main(args):
     logdir = local_dir / "logs"
     logdir.mkdir(parents=True, exist_ok=True)
 
-    # copy processor version to local directory
-    if args.processor == "trigger_boosted":
-        os.system(f"cp src/HH4b/processors/triggerSkimmer.py {local_dir}")
-    elif args.processor == "matching":
-        os.system(f"cp src/HH4b/processors/matchingSkimmer.py {local_dir}")
-    else:
-        os.system(f"cp src/HH4b/processors/bbbbSkimmer.py {local_dir}")
-
     # and condor directory
     print("Condor work dir: " + local_dir)
     (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
