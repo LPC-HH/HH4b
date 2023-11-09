@@ -165,8 +165,13 @@ def gen_selection_Hbb(
     GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
 
     # match fatjets to bb
+    bs_unflat = higgs_children[is_bb]
+    b_h1 = higgs_children[is_bb][:, 0]
+    b_h2 = higgs_children[is_bb][:, 1]
     num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
     matched_to_higgs = fatjets.metric_table(higgs) < 0.8
+    is_matched = matched_to_higgs
+    is_fatjet_matched = ak.any(is_matched, axis=2)
 
     fatjets["HiggsMatch"] = is_fatjet_matched
     fatjets["HiggsMatchIndex"] = ak.mask(
