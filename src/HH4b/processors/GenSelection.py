@@ -142,7 +142,7 @@ def gen_selection_HHbbbb(
 
 def gen_selection_Hbb(
     events: NanoEventsArray,
-    jets: JetArray,
+    jets: JetArray,  # noqa: ARG001
     fatjets: FatJetArray,
     selection: PackedSelection,
     cutflow: dict,
@@ -170,8 +170,7 @@ def gen_selection_Hbb(
     b_h2 = higgs_children[is_bb][:, 1]
     num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
     matched_to_higgs = fatjets.metric_table(higgs) < 0.8
-    is_matched = matched_to_higgs
-    is_fatjet_matched = ak.any(is_matched, axis=2)
+    is_fatjet_matched = ak.any(matched_to_higgs, axis=2)
 
     fatjets["HiggsMatch"] = is_fatjet_matched
     fatjets["HiggsMatchIndex"] = ak.mask(
@@ -191,4 +190,4 @@ def gen_selection_Hbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars}
+    return {**GenHiggsVars, **GenbVars, **ak8FatJetVars}
