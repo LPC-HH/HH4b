@@ -9,4 +9,4 @@ org: LPC-HH
 project_name: HH4b
 project_short_description: HH4b
 url: https://github.com/LPC-HH/HH4b
-vcs: true
+vcs: False
