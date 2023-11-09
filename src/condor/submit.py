@@ -63,7 +63,7 @@ def main(args):
     # and condor directory
     print("Condor work dir: " + local_dir)
     (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
-    
+
     fileset = run_utils.get_fileset(
         args.processor,
         args.year,
