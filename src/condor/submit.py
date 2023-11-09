@@ -26,7 +26,7 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 
 def main(args):
     if args.site == "lpc":
-        t2_local_prefix = "/eos/uscms/"
+        t2_local_prefix = Path("/eos/uscms/")
         t2_prefix = "root://cmseos.fnal.gov"
 
         try:
@@ -35,32 +35,26 @@ def main(args):
             print("No valid proxy. Exiting.")
             exit(1)
     elif args.site == "ucsd":
-        t2_local_prefix = "/ceph/cms/"
+        t2_local_prefix = Path("/ceph/cms/")
         t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
 
     username = os.environ["USER"]
-    local_dir = f"condor/{args.processor}/{args.tag}"
-    homedir = f"/store/user/{username}/bbbb/{args.processor}/"
-    outdir = homedir + args.tag + "/"
 
-    print("Outputs dir: " + outdir)
+    tag = f"{args.tag}_{args.nano_version}"
+    local_dir = Path(f"condor/{args.processor}/{tag}")
+    homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
+    outdir = homedir / tag
+
+    print("Outputs dir: ", outdir)
 
     # make local directory
-    logdir = local_dir + "/logs"
-    os.system(f"mkdir -p {logdir}")
-
-    # copy processor version to local directory
-    if args.processor == "trigger_boosted":
-        os.system(f"cp HH4b/src/HH4b/processors/triggerSkimmer.py {local_dir}")
-    elif args.processor == "matching":
-        os.system(f"cp HH4b/src/HH4b/processors/matchingSkimmer.py {local_dir}")
-    else:
-        os.system(f"cp HH4b/src/HH4b/processors/bbbbSkimmer.py {local_dir}")
+    logdir = local_dir / "logs"
+    logdir.mkdir(parents=True, exist_ok=True)
 
     # and condor directory
-    print("Condor work dir: " + local_dir)
-    os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
+    print("Condor work dir: ", local_dir)
+    (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
 
     fileset = run_utils.get_fileset(
         args.processor,
@@ -84,7 +78,7 @@ def main(args):
             os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
             njobs = ceil(tot_files / args.files_per_job)
 
-            eosoutput_dir = f"{t2_prefix}/{outdir}/{args.year}/{subsample}/"
+            eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
 
             for j in range(njobs):
                 if args.test and j == 2:

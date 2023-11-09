@@ -18,6 +18,7 @@ from pathlib import Path
 import awkward as ak
 import correctionlib
 import numpy as np
+import uproot
 from coffea.analysis_tools import Weights
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.nanoevents.methods import vector
@@ -72,32 +73,70 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray):
-    # TODO: Switch to official recommendation when and if any
+def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str | None = None):
+    # clip nPU from 0 to 100
+    nPU = np.clip(nPU, 0, 99)
+    # print(list(nPU))
+
     if year == "2018":
+        values = {}
+
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
         y = year
+        year_to_corr = {
+            "2018": "Collisions18_UltraLegacy_goldenJSON",
+        }
+        # evaluate and clip up to 10 to avoid large weights
+        values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
+        values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
+        values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
+
+        weights.add("pileup", values["nominal"], values["up"], values["down"])
+
+    # TODO: Switch to official recommendation when and if any
     else:
-        cset = correctionlib.CorrectionSet.from_file(
-            package_path + "/corrections/2022_puWeights.json.gz"
-        )
-        y = get_Prompt_year(year)
+        if "Pu60" in dataset or "Pu70" in dataset:
+            # pileup profile from data
+            path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
+            pileup_profile = uproot.open(path_pileup)["pileup"]
+            pileup_profile = pileup_profile.to_numpy()[0]
+            # normalise
+            pileup_profile /= pileup_profile.sum()
 
-    year_to_corr = {
-        "2018": "Collisions18_UltraLegacy_goldenJSON",
-        "2022_Prompt": "Collisions_2022_PromptReco_goldenJSON",
-        "2022EE_Prompt": "Collisions_2022_PromptReco_goldenJSON",
-    }
+            # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
+            # pileup profile from MC
+            pu_name = "Pu60" if "Pu60" in dataset else "Pu70"
+            path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
+            pileup_MC = np.load(path_pileup_dataset)
 
-    values = {}
+            # avoid division by 0 (?)
+            pileup_MC[pileup_MC == 0.0] = 1
 
-    # evaluate and clip up to 10 to avoid large weights
-    values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
-    values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
-    values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
+            print("Data profile  ", np.round(pileup_profile, 3))
+            print("MC profile ", np.round(pileup_MC, 3))
 
-    # add weights (for now only the nominal weight)
-    weights.add("pileup", values["nominal"], values["up"], values["down"])
+            pileup_correction = pileup_profile / pileup_MC
+            print("correction ", np.round(pileup_correction, 2))
+
+            # remove large MC reweighting factors to prevent artifacts
+            pileup_correction[pileup_correction > 10] = 10
+
+            print("correction ", np.round(pileup_correction, 2))
+
+            sf = pileup_correction[nPU]
+            print("sf ", sf)
+
+            # no uncertainties
+            weights.add("pileup", sf)
+
+        else:
+            y = year.replace("EE", "")
+            cset = correctionlib.CorrectionSet.from_file(
+                package_path + f"/corrections/{y}_puWeights.json.gz"
+            )
+            name = f"Collisions_{y}_PromptReco_goldenJSON"
+            nominal = np.clip(cset[name].evaluate(nPU, "nominal"), 0, 10)
+            weights.add("pileup", nominal)
 
 
 def get_vpt(genpart, check_offshell=False):
@@ -354,12 +393,23 @@ def get_jec_jets(
     fatjets: bool = True,
     applyData: bool = False,
     dataset: str | None = None,
+    nano_version: str = "v12",
 ) -> FatJetArray:
     """
     If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
     """
+    # RunC,D,E are re-reco, should wait for new jecs
+    datasets_no_jecs = [
+        "Run2022C_single",
+        "Run2022C",
+        "Run2022D",
+        "Run2022E",
+    ]
+    for dset in datasets_no_jecs:
+        if dataset in dset and nano_version == "v12":
+            return jets, None
 
-    if year == "2018":
+    if year == "2018" or year == "2023":
         return jets, None
 
     jec_vars = ["pt"]  # variables we are saving that are affected by JECs

@@ -20,16 +20,14 @@ from .corrections import (
     add_pileup_weight,
     add_trig_weights,
     get_jec_jets,
+    # get_jmsr,
     get_jetveto_event,
-    get_jmsr,
 )
-from .GenSelection import gen_selection_HHbbbb
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
 from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
 
 # mapping samples to the appropriate function for doing gen-level selections
-gen_selection_dict = {
-    "GluGlutoHHto4B": gen_selection_HHbbbb,
-}
+gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -71,13 +69,21 @@ class bbbbSkimmer(processor.ProcessorABC):
 
     preselection = {  # noqa: RUF012
         "fatjet_pt": 300,
-        "fatjet_msd": 60,
+        "fatjet_msd": 40,
+        "fatjet_mreg": 40,
         "Txbb0": 0.8,
     }
 
     jecs = common.jecs
 
-    def __init__(self, xsecs=None, save_systematics=False, region="signal", save_array=False):
+    def __init__(
+        self,
+        xsecs=None,
+        save_systematics=False,
+        region="signal",
+        save_array=False,
+        nano_version="v12",
+    ):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
@@ -115,6 +121,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         self._systematics = save_systematics
 
+        self._nano_version = nano_version
+
         """
         signal:
         """
@@ -141,11 +149,11 @@ class bbbbSkimmer(processor.ProcessorABC):
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
-        isSignal = "HHTobbbb" in dataset
+        isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
 
         if isSignal:
             # take only signs of gen-weights for HH samples
-            # TODO: cross check
+            # TODO: cross check when new samples arrive
             gen_weights = np.sign(events["genWeight"])
         elif not isData:
             gen_weights = events["genWeight"].to_numpy()
@@ -166,17 +174,18 @@ class bbbbSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         num_jets = 6
-        # In Run3 nanoAOD events.Jet = AK4 Puppi Jets
         # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
         jets, jec_shifted_jetvars = get_jec_jets(
             events,
             events.Jet,
             year,
             isData,
-            jecs=self.jecs,
+            # jecs=self.jecs,
+            jecs=None,
             fatjets=False,
             applyData=True,
             dataset=dataset,
+            nano_version=self._nano_version,
         )
         jets_sel = objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
@@ -190,18 +199,25 @@ class bbbbSkimmer(processor.ProcessorABC):
             fatjets,
             year,
             isData,
-            jecs=self.jecs,
+            # jecs=self.jecs,
+            jecs=None,
             fatjets=True,
             applyData=True,
             dataset=dataset,
+            nano_version=self._nano_version,
         )
         fatjets_sel = objects.good_ak8jets(fatjets)
         fatjets = fatjets[fatjets_sel]
-        jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
+
+        # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         # num_leptons = 2
-        veto_muon_sel = objects.veto_muons(events.Muon)
-        veto_electron_sel = objects.veto_electrons(events.Electron)
+        if year == "2018":
+            veto_muon_sel = objects.veto_muons_run2(events.Muon)
+            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
+        else:
+            veto_muon_sel = objects.veto_muons(events.Muon)
+            veto_electron_sel = objects.veto_electrons(events.Electron)
 
         print("Objects", f"{time.time() - start:.2f}")
 
@@ -213,15 +229,19 @@ class bbbbSkimmer(processor.ProcessorABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets, selection, cutflow, gen_weights, P4
-                )
+                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
         # Jet variables
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
             for (var, key) in self.skim_vars["Jet"].items()
+        }
+
+        # FatJet variables
+        ak8FatJetVars = {
+            f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
+            for (var, key) in self.skim_vars["FatJet"].items()
         }
 
         """
@@ -231,22 +251,13 @@ class bbbbSkimmer(processor.ProcessorABC):
             for shift, vals in jec_shifted_jetvars[var].items():
                 if shift != "":
                     ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
-        """
 
-        # FatJet variables
-        ak8FatJetVars = {
-            f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
-            for (var, key) in self.skim_vars["FatJet"].items()
-        }
-
-        """
         # FatJet JEC variables
         for var in ["pt"]:
             key = self.skim_vars["FatJet"][var]
             for shift, vals in jec_shifted_fatjetvars[var].items():
                 if shift != "":
                     ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
-        """
 
         # JMSR variables
         for var in ["msoftdrop", "particleNet_mass"]:
@@ -257,7 +268,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
 
         # dijet variables
-        """
         fatDijetVars = {}
         for shift in jec_shifted_fatjetvars["pt"]:
             label = "" if shift == "" else "_" + shift
@@ -294,6 +304,18 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         HLTs = self.HLTs[year]
+        if year != "2018":
+            # add extra hlts as variables
+            HLTs.extend(
+                [
+                    "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
+                    "PFHT1050",
+                    "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                ]
+            )
+
         zeros = np.zeros(len(events), dtype="bool")
         HLTVars = {
             trigger: (
@@ -361,35 +383,16 @@ class bbbbSkimmer(processor.ProcessorABC):
             jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
             add_selection("ak4_jetveto", jetveto_selection, *selection_args)
 
-        # pt cuts: check if fatjet passes pt cut in any of the JEC variations
-        if jec_shifted_fatjetvars:
-            cuts = []
-            for pts in jec_shifted_fatjetvars["pt"].values():
-                cut = np.prod(
-                    pad_val(
-                        (pts > self.preselection["fatjet_pt"]),
-                        num_fatjets_cut,
-                        False,
-                        axis=1,
-                    ),
-                    axis=1,
-                )
-                cuts.append(cut)
-            add_selection("ak8_pt", np.any(cuts, axis=0), *selection_args)
-        else:
-            cut = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1)
-            add_selection("ak8_pt", cut, *selection_args)
+        # TODO: check if fatjet passes pt cut in any of the JEC variations
+        cut = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1)
+        add_selection("ak8_pt", cut, *selection_args)
 
-        # mass cuts: check if fatjet passes mass cut in any of the JMS/R variations
-        cuts = []
-        for shift in jmsr_shifted_vars["msoftdrop"]:
-            msds = jmsr_shifted_vars["msoftdrop"][shift]
-            cut = np.prod(
-                pad_val(msds > self.preselection["fatjet_msd"], num_fatjets_cut, False, axis=1),
-                axis=1,
-            )
-            cuts.append(cut)
-        add_selection("ak8_msd", np.any(cuts, axis=0), *selection_args)
+        # TODO: check if fatjet passes mass cut in any of the JMS/R variations
+        cut_mpnet = np.all(
+            ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"], axis=1
+        )
+        cut_msd = np.all(ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"], axis=1)
+        add_selection("ak8_msd", (cut_mpnet | cut_msd), *selection_args)
 
         # veto leptons
         add_selection(
@@ -398,7 +401,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             *selection_args,
         )
 
-        # Txbb pre-selection cut on leading jet
+        # Txbb pre-selection cut
         # txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
 
@@ -413,11 +416,11 @@ class bbbbSkimmer(processor.ProcessorABC):
         else:
             weights.add("genweight", gen_weights)
 
-            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy())
-
-            # add_VJets_kFactors(weights, events.GenPart, dataset)
+            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
 
             add_trig_weights(weights, fatjets, year, num_fatjets_cut)
+
+            # add_VJets_kFactors(weights, events.GenPart, dataset)
 
             # if dataset.startswith("TTTo"):
             #     # TODO: need to add uncertainties and rescale yields (?)

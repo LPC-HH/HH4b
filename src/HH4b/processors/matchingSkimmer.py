@@ -121,10 +121,12 @@ class matchingSkimmer(processor.ProcessorABC):
         #########################
         # Object definitions
         #########################
-        veto_muon_sel = objects.veto_muons(events.Muon)
-        print("Before electrons ", f"{time.time() - start:.2f}")
-
-        veto_electron_sel = objects.veto_electrons(events.Electron)
+        if year == "2018":
+            veto_muon_sel = objects.veto_muons_run2(events.Muon)
+            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
+        else:
+            veto_muon_sel = objects.veto_muons(events.Muon)
+            veto_electron_sel = objects.veto_electrons(events.Electron)
 
         print("Before jets ", f"{time.time() - start:.2f}")
 
@@ -227,9 +229,7 @@ class matchingSkimmer(processor.ProcessorABC):
         # gen variables
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets, selection, cutflow, gen_weights, P4
-                )
+                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
                 skimmed_events = {**skimmed_events, **vars_dict}
 
         ak4GenJetVars = {}
