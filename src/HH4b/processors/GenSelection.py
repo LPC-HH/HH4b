@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import awkward as ak
 import numpy as np
-from coffea.analysis_tools import PackedSelection
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
@@ -42,9 +41,7 @@ def gen_selection_HHbbbb(
     events: NanoEventsArray,
     jets: JetArray,
     fatjets: FatJetArray,
-    selection: PackedSelection,
-    cutflow: dict,
-    signGenWeights: ak.Array,
+    selection_args: list,
     skim_vars: dict,
 ):
     """Gets HH, bb 4-vectors"""
@@ -64,7 +61,7 @@ def gen_selection_HHbbbb(
     has_4b = ak.sum(ak.flatten(is_bb, axis=2), axis=1) == 4
 
     # only select events with 4 b's
-    add_selection("has_bbbb", has_4b, selection, cutflow, False, signGenWeights)
+    add_selection("has_bbbb", has_4b, *selection_args)
 
     # children 4-vector
     bs = ak.flatten(higgs_children[is_bb], axis=2)
@@ -144,9 +141,7 @@ def gen_selection_Hbb(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
     fatjets: FatJetArray,
-    selection: PackedSelection,
-    cutflow: dict,
-    signGenWeights: ak.Array,
+    selection_args: list,  # noqa: ARG001
     skim_vars: dict,
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
@@ -165,10 +160,10 @@ def gen_selection_Hbb(
     GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
 
     # match fatjets to bb
-    bs_unflat = higgs_children[is_bb]
+    # bs_unflat = higgs_children[is_bb]
+    # num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
     b_h1 = higgs_children[is_bb][:, 0]
     b_h2 = higgs_children[is_bb][:, 1]
-    num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
     matched_to_higgs = fatjets.metric_table(higgs) < 0.8
     is_fatjet_matched = ak.any(matched_to_higgs, axis=2)
 

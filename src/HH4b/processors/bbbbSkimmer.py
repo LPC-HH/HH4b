@@ -229,9 +229,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets, selection, cutflow, gen_weights, P4
-                )
+                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
         # Jet variables

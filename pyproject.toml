@@ -144,6 +144,7 @@ ignore = [
   "F811",   # redefinition of unused variable
   "PGH001", # eval
   "RET503",
+  "RET504", # unnecessary assignment before return
   "RET505", # unnecessary else after return statement
 ]
 isort.required-imports = ["from __future__ import annotations"]
