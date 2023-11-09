@@ -56,7 +56,7 @@ Changelog = "https://github.com/LPC-HH/HH4b/releases"
 
 
 [tool.hatch]
-version.path = "src/hh4b/__init__.py"
+version.path = "src/HH4b/__init__.py"
 envs.default.dependencies = [
   "pytest",
   "pytest-cov",

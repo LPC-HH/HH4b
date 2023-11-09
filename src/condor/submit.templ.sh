@@ -7,6 +7,7 @@
 # make dir for output
 mkdir outfiles
 
+# move HH4b folder to src/ to install properly
 mkdir src
 mv HH4b src/
 pip install -e .

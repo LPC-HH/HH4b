@@ -115,6 +115,8 @@ xsecs["HHHTo6B_c3_minus1p5_d4_minus0p5"] = 0.0001941 * BR_HBB * BR_HBB * BR_HBB
 
 # Di-Higgs
 # TO- XCHECK (from xsecdb)
+# ggF SM from https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH#Latest_recommendations_for_gluon
+# TODO: find official values for VBF non-SM samples
 hh = {
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.06648 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 0.1492 * BR_HBB * BR_HBB,
