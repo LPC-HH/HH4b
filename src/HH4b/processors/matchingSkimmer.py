@@ -122,11 +122,11 @@ class matchingSkimmer(processor.ProcessorABC):
         # Object definitions
         #########################
         if year == "2018":
-            veto_muon_sel = veto_muons_run2(events.Muon)
-            veto_electron_sel = veto_electrons_run2(events.Electron)
+            veto_muon_sel = objects.veto_muons_run2(events.Muon)
+            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
         else:
-            veto_muon_sel = veto_muons(events.Muon)
-            veto_electron_sel = veto_electrons(events.Electron)
+            veto_muon_sel = objects.veto_muons(events.Muon)
+            veto_electron_sel = objects.veto_electrons(events.Electron)
 
         print("Before jets ", f"{time.time() - start:.2f}")
 

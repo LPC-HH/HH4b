@@ -13,6 +13,7 @@ from __future__ import annotations
 import gzip
 import pathlib
 import pickle
+from pathlib import Path
 
 import awkward as ak
 import correctionlib
@@ -72,7 +73,7 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str = None):
+def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str | None = None):
     # clip nPU from 0 to 100
     nPU = np.clip(nPU, 0, 99)
     # print(list(nPU))
@@ -104,10 +105,7 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
 
             # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
             # pileup profile from MC
-            if "Pu60" in dataset:
-                pu_name = "Pu60"
-            else:
-                pu_name = "Pu70"
+            pu_name = "Pu60" if "Pu60" in dataset else "Pu70"
             path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
             pileup_MC = np.load(path_pileup_dataset)
 
@@ -394,7 +392,7 @@ def get_jec_jets(
     jecs: dict[str, str] | None = None,
     fatjets: bool = True,
     applyData: bool = False,
-    dataset: str = None,
+    dataset: str | None = None,
     nano_version: str = "v12",
 ) -> FatJetArray:
     """

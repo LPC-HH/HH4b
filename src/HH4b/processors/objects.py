@@ -25,23 +25,21 @@ def base_electrons(electrons: ElectronArray):
 
 
 def veto_muons_run2(muons: MuonArray):
-    sel = (
+    return (
         (muons.pt >= 30)
         & (abs(muons.eta) <= 2.4)
         & (muons.tightId)
         & (muons.miniPFRelIso_all <= 0.2)
     )
-    return sel
 
 
 def veto_electrons_run2(electrons: ElectronArray):
-    sel = (
+    return (
         (electrons.pt >= 35)
         & (abs(electrons.eta) <= 2.5)
         & (electrons.cutBased > 3)
         & (electrons.miniPFRelIso_all <= 0.2)
     )
-    return sel
 
 
 def veto_muons(muons: MuonArray):
@@ -130,5 +128,4 @@ def get_ak8jets(fatjets: FatJetArray):
 
 # ak8 jet definition
 def good_ak8jets(fatjets: FatJetArray):
-    sel = (abs(fatjets.eta) < 2.5) & (fatjets.isTight)
-    return sel
+    return (abs(fatjets.eta) < 2.5) & (fatjets.isTight)

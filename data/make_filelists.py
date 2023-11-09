@@ -850,8 +850,7 @@ def eos_rec_search(startdir, suffix, dirs):
 def get_files(dataset, version):
     if "private" in version:
         files = eos_rec_search(dataset, ".root", [])
-        files = [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
-        return files
+        return [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
     else:
         import requests
         from rucio_utils import get_dataset_files, get_proxy_path
@@ -867,7 +866,7 @@ def get_files(dataset, version):
         files = []
         not_valid = []
         for fj in filesjson:
-            if "is_file_valid" in fj.keys():
+            if "is_file_valid" in fj:
                 if fj["is_file_valid"] == 0:
                     print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
                     not_valid.append(fj["logical_file_name"])

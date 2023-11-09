@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import hist
 import matplotlib.pyplot as plt
@@ -54,7 +55,7 @@ def main():
     h_npu = hist.Hist(npu_axis)
     bins = h_npu.to_numpy()[1]
 
-    for sample in files.keys():
+    for sample in files:
         h_npu = hist.Hist(npu_axis)
         for fname in files[sample]:
             events = NanoEventsFactory.from_root(fname, schemaclass=NanoAODSchema).events()
@@ -67,7 +68,7 @@ def main():
         # normalize
         pileup_MC /= pileup_MC.sum()
         print(np.round(pileup_MC, 3))
-        with open(f"data/pileup/{sample}.npy", "wb") as f:
+        with Path(f"data/pileup/{sample}.npy").open("wb") as f:
             np.save(f, pileup_MC)
 
         # plot

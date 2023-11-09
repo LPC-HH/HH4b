@@ -82,9 +82,9 @@ def get_processor(
     save_systematics: bool | None = None,
     save_hist: bool = False,
     save_array: bool = False,
-    region: str = None,
-    apply_selection: bool = None,
-    nano_version: str = None,
+    region: str | None = None,
+    apply_selection: bool | None = None,
+    nano_version: str | None = None,
 ):
     # define processor
     if processor == "trigger_boosted":

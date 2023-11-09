@@ -14,7 +14,7 @@ import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
-from . import common
+from . import common, objects
 from .common import LUMI
 from .corrections import (
     add_pileup_weight,
@@ -24,8 +24,7 @@ from .corrections import (
     get_jetveto_event,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
-from .objects import *
-from .utils import P4, PAD_VAL, add_selection, pad_val
+from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
@@ -79,13 +78,13 @@ class bbbbSkimmer(processor.ProcessorABC):
 
     def __init__(
         self,
-        xsecs={},
+        xsecs=None,
         save_systematics=False,
         region="signal",
         save_array=False,
         nano_version="v12",
     ):
-        super(bbbbSkimmer, self).__init__()
+        super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
 
@@ -212,13 +211,13 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
-        num_leptons = 2
+        # num_leptons = 2
         if year == "2018":
-            veto_muon_sel = veto_muons_run2(events.Muon)
-            veto_electron_sel = veto_electrons_run2(events.Electron)
+            veto_muon_sel = objects.veto_muons_run2(events.Muon)
+            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
         else:
-            veto_muon_sel = veto_muons(events.Muon)
-            veto_electron_sel = veto_electrons(events.Electron)
+            veto_muon_sel = objects.veto_muons(events.Muon)
+            veto_electron_sel = objects.veto_electrons(events.Electron)
 
         print("Objects", f"{time.time() - start:.2f}")
 
@@ -405,7 +404,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # Txbb pre-selection cut
-        txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
+        # txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
