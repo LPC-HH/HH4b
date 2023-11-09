@@ -43,17 +43,17 @@ def main(args):
 
     tag = f"{args.tag}_{args.nano_version}"
     local_dir = Path(f"condor/{args.processor}/{tag}")
-    homedir = Path(f"/store/user/{username}/bbbb/{args.processor}/")
+    homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
     outdir = homedir / tag
 
-    print("Outputs dir: " + outdir)
+    print("Outputs dir: ", outdir)
 
     # make local directory
     logdir = local_dir / "logs"
     logdir.mkdir(parents=True, exist_ok=True)
 
     # and condor directory
-    print("Condor work dir: " + local_dir)
+    print("Condor work dir: ", local_dir)
     (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
 
     fileset = run_utils.get_fileset(
@@ -78,7 +78,7 @@ def main(args):
             os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
             njobs = ceil(tot_files / args.files_per_job)
 
-            eosoutput_dir = f"{t2_prefix}/{outdir}/{args.year}/{subsample}/"
+            eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
 
             for j in range(njobs):
                 if args.test and j == 2:
