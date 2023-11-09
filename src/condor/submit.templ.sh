@@ -7,6 +7,10 @@
 # make dir for output
 mkdir outfiles
 
+mkdir src
+mv HH4b src/
+pip install -e .
+
 # run code
 # pip install --user onnxruntime
 python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} ${region} ${apply_selection}

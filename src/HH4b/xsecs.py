@@ -118,7 +118,7 @@ xsecs["HHHTo6B_c3_minus1p5_d4_minus0p5"] = 0.0001941 * BR_HBB * BR_HBB * BR_HBB
 hh = {
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.06648 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 0.1492 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.02964 * BR_HBB * BR_HBB,
+    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 34.43e-3 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV": 0.01493 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV": 0.01052 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV": 2.802 * BR_HBB * BR_HBB,
