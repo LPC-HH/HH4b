@@ -26,7 +26,7 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 
 def main(args):
     if args.site == "lpc":
-        t2_local_prefix = "/eos/uscms/"
+        t2_local_prefix = Path("/eos/uscms/")
         t2_prefix = "root://cmseos.fnal.gov"
 
         try:
@@ -35,22 +35,22 @@ def main(args):
             print("No valid proxy. Exiting.")
             exit(1)
     elif args.site == "ucsd":
-        t2_local_prefix = "/ceph/cms/"
+        t2_local_prefix = Path("/ceph/cms/")
         t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
 
     username = os.environ["USER"]
 
     tag = f"{args.tag}_{args.nano_version}"
-    local_dir = f"condor/{args.processor}/{tag}"
-    homedir = f"/store/user/{username}/bbbb/{args.processor}/"
-    outdir = homedir + tag + "/"
+    local_dir = Path(f"condor/{args.processor}/{tag}")
+    homedir = Path(f"/store/user/{username}/bbbb/{args.processor}/")
+    outdir = homedir / tag
 
     print("Outputs dir: " + outdir)
 
     # make local directory
-    logdir = local_dir + "/logs"
-    os.system(f"mkdir -p {logdir}")
+    logdir = local_dir / "logs"
+    logdir.mkdir(parents=True, exist_ok=True)
 
     # copy processor version to local directory
     if args.processor == "trigger_boosted":
@@ -62,8 +62,8 @@ def main(args):
 
     # and condor directory
     print("Condor work dir: " + local_dir)
-    os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
-
+    (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
+    
     fileset = run_utils.get_fileset(
         args.processor,
         args.year,

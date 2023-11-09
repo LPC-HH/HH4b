@@ -391,10 +391,10 @@ class bbbbSkimmer(processor.ProcessorABC):
         add_selection("ak8_pt", cut, *selection_args)
 
         # TODO: check if fatjet passes mass cut in any of the JMS/R variations
-        cut_mpnet = np.sum(
+        cut_mpnet = np.all(
             ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"], axis=1
         )
-        cut_msd = np.sum(ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"], axis=1)
+        cut_msd = np.all(ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"], axis=1)
         add_selection("ak8_msd", (cut_mpnet | cut_msd), *selection_args)
 
         # veto leptons
