@@ -1,3 +1,3 @@
 from __future__ import annotations
 
-from postprocessing import *  # noqa: F403
+from .postprocessing import *  # noqa: F403
