@@ -303,7 +303,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["Other"].items()
         }
 
-        HLTs = self.HLTs[year]
+        HLTs = self.HLTs[year].copy()
         if year != "2018":
             # add extra hlts as variables
             HLTs.extend(
@@ -347,6 +347,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             if trigger not in events.HLT.fields:
                 logger.warning(f"Missing HLT {trigger}!")
 
+        print(self.HLTs[year])
         HLT_triggered = np.any(
             np.array(
                 [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
