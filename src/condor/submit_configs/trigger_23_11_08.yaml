@@ -1,24 +1,4 @@
 {
-  "2022":
-    {
-      "HH":
-        {
-          "subsamples":
-            [
-              "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
-              "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
-              "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
-              "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
-            ],
-          "files_per_job": 2,
-        },
-      "Muon":
-        {
-          "subsamples": ["Run2022C_single", "Run2022C", "Run2022D"],
-          "files_per_job": 6,
-        },
-      "TT": { "subsamples": ["TTtoLNu2Q"], "files_per_job": 10 },
-    },
   "2022EE":
     {
       "HH":
