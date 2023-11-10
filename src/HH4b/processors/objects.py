@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 import awkward as ak
 import numpy as np
 from coffea.nanoevents.methods.nanoaod import (
@@ -9,7 +11,6 @@ from coffea.nanoevents.methods.nanoaod import (
     MuonArray,
 )
 
-import time
 from .corrections import get_jetveto
 
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
@@ -121,9 +122,10 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
-        # this is a relative correction to the JEC-corrected jet mass (no softdrop)
-        # CROSS-CHECK
-        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+        # fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+        fatjets["particleNet_mass"] = (
+            (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
+        )
 
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
 

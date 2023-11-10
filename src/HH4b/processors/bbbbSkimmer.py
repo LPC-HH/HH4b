@@ -7,13 +7,13 @@ from __future__ import annotations
 import logging
 import time
 from collections import OrderedDict
+from copy import deepcopy
 
 import awkward as ak
 import numpy as np
 import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
-from copy import deepcopy
 
 from . import common, objects
 from .common import LUMI
@@ -241,7 +241,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
             for (var, key) in self.skim_vars["FatJet"].items()
         }
-        
+
         print("Jet vars", f"{time.time() - start:.2f}")
 
         """
@@ -329,7 +329,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             )
             for trigger in HLTs
         }
-        
+
         print("HLT vars", f"{time.time() - start:.2f}")
 
         skimmed_events = {
@@ -409,7 +409,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             veto_electron_sel = objects.veto_electrons(events.Electron)
 
         print("Lepton vetoes", f"{time.time() - start:.2f}")
-        
+
         # veto leptons
         add_selection(
             "0lep",
