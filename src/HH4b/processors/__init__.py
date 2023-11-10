@@ -1,3 +1,5 @@
-from .triggerSkimmer import *
-from .bbbbSkimmer import *
-from .matchingSkimmer import *
+from __future__ import annotations
+
+from .bbbbSkimmer import *  # noqa: F403
+from .matchingSkimmer import *  # noqa: F403
+from .triggerSkimmer import *  # noqa: F403

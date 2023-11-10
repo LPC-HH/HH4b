@@ -1,10 +1,12 @@
-import warnings
-
 # from distributed.diagnostics.plugin import WorkerPlugin
+from __future__ import annotations
+
 import json
+from pathlib import Path
+
 import numpy as np
 
-from xsecs import xsecs
+from .xsecs import xsecs
 
 
 def add_bool_arg(parser, name, help, default=False, no_name=None):
@@ -29,7 +31,7 @@ def add_mixins(nanoevents):
 
 
 def get_fileset(
-    processor: str,
+    processor: str,  # noqa: ARG001
     year: int,
     version: str,
     samples: list,
@@ -37,9 +39,9 @@ def get_fileset(
     starti: int = 0,
     endi: int = -1,
     get_num_files: bool = False,
-    coffea_casa: str = False,
+    # coffea_casa: str = False,
 ):
-    with open(f"data/nanoindex_{version}.json", "r") as f:
+    with Path(f"data/nanoindex_{version}.json").open() as f:
         full_fileset_nano = json.load(f)
 
     fileset = {}
@@ -67,8 +69,8 @@ def get_fileset(
             sample_fileset = {}
 
             for subsample, fnames in sample_set.items():
-                fnames = fnames[starti:] if endi < 0 else fnames[starti:endi]
-                sample_fileset[f"{year}_{subsample}"] = fnames
+                run_fnames = fnames[starti:] if endi < 0 else fnames[starti:endi]
+                sample_fileset[f"{year}_{subsample}"] = run_fnames
 
             fileset = {**fileset, **sample_fileset}
 
@@ -77,11 +79,12 @@ def get_fileset(
 
 def get_processor(
     processor: str,
-    save_systematics: bool = None,
+    save_systematics: bool | None = None,
     save_hist: bool = False,
     save_array: bool = False,
-    region: str = None,
-    apply_selection: bool = None,
+    region: str | None = None,
+    apply_selection: bool | None = None,
+    nano_version: str | None = None,
 ):
     # define processor
     if processor == "trigger_boosted":
@@ -89,17 +92,21 @@ def get_processor(
 
         return BoostedTriggerSkimmer(save_hist=save_hist)
 
-    elif processor == "matching":
+    if processor == "matching":
         from HH4b.processors import matchingSkimmer
 
         print(apply_selection)
         return matchingSkimmer(xsecs=xsecs, apply_selection=apply_selection)
 
-    elif processor == "skimmer":
+    if processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
         return bbbbSkimmer(
-            xsecs=xsecs, save_systematics=save_systematics, region=region, save_array=save_array
+            xsecs=xsecs,
+            save_systematics=save_systematics,
+            region=region,
+            save_array=save_array,
+            nano_version=nano_version,
         )
 
 

@@ -1,38 +1,32 @@
-#!/usr/bin/python
-
 """
 Splits the total fileset and creates condor job submission files for the specified run script.
 
 Author(s): Cristina Mantilla Suarez, Raghav Kansal
 """
+from __future__ import annotations
 
 import argparse
 import os
 from math import ceil
+from pathlib import Path
 from string import Template
-import json
 
-import sys
-
-# needed to import run_utils from parent directory
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
-import run_utils
+from HH4b import run_utils
 
 
 def write_template(templ_file: str, out_file: str, templ_args: dict):
     """Write to ``out_file`` based on template from ``templ_file`` using ``templ_args``"""
 
-    with open(templ_file, "r") as f:
+    with Path(templ_file).open() as f:
         templ = Template(f.read())
 
-    with open(out_file, "w") as f:
+    with Path(out_file).open("w") as f:
         f.write(templ.substitute(templ_args))
 
 
 def main(args):
     if args.site == "lpc":
-        t2_local_prefix = "/eos/uscms/"
+        t2_local_prefix = Path("/eos/uscms/")
         t2_prefix = "root://cmseos.fnal.gov"
 
         try:
@@ -41,32 +35,26 @@ def main(args):
             print("No valid proxy. Exiting.")
             exit(1)
     elif args.site == "ucsd":
-        t2_local_prefix = "/ceph/cms/"
+        t2_local_prefix = Path("/ceph/cms/")
         t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
 
     username = os.environ["USER"]
-    local_dir = f"condor/{args.processor}/{args.tag}"
-    homedir = f"/store/user/{username}/bbbb/{args.processor}/"
-    outdir = homedir + args.tag + "/"
 
-    print("Outputs dir: " + outdir)
+    tag = f"{args.tag}_{args.nano_version}"
+    local_dir = Path(f"condor/{args.processor}/{tag}")
+    homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
+    outdir = homedir / tag
+
+    print("Outputs dir: ", outdir)
 
     # make local directory
-    logdir = local_dir + "/logs"
-    os.system(f"mkdir -p {logdir}")
-
-    # copy processor version to local directory
-    if args.processor == "trigger_boosted":
-        os.system(f"cp HH4b/src/HH4b/processors/triggerSkimmer.py {local_dir}")
-    elif args.processor == "matching":
-        os.system(f"cp HH4b/src/HH4b/processors/matchingSkimmer.py {local_dir}")
-    else:
-        os.system(f"cp HH4b/src/HH4b/processors/bbbbSkimmer.py {local_dir}")
+    logdir = local_dir / "logs"
+    logdir.mkdir(parents=True, exist_ok=True)
 
     # and condor directory
-    print("Condor work dir: " + local_dir)
-    os.system(f"mkdir -p {t2_local_prefix}/{outdir}")
+    print("Condor work dir: ", local_dir)
+    (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
 
     fileset = run_utils.get_fileset(
         args.processor,
@@ -90,7 +78,7 @@ def main(args):
             os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
             njobs = ceil(tot_files / args.files_per_job)
 
-            eosoutput_dir = f"{t2_prefix}/{outdir}/{args.year}/{subsample}/"
+            eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
 
             for j in range(njobs):
                 if args.test and j == 2:
@@ -127,8 +115,8 @@ def main(args):
                 write_template(sh_templ, localsh, sh_args)
                 os.system(f"chmod u+x {localsh}")
 
-                if os.path.exists(f"{localcondor}.log"):
-                    os.system(f"rm {localcondor}.log")
+                if Path(f"{localcondor}.log").exists():
+                    Path(f"{localcondor}.log").unlink()
 
                 print("To submit ", localcondor)
                 if args.submit:

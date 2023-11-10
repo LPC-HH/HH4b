@@ -1,10 +1,13 @@
-import os
+from __future__ import annotations
+
 import getpass
-import re
 import json
+import os
+import re
 import subprocess
-from rucio.client import Client
 from collections import defaultdict
+
+from rucio.client import Client
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
@@ -106,7 +109,7 @@ def get_dataset_files(
     of all the replicas of the files in a CMS dataset.
 
     The sites can be filtered in 3 different ways:
-    - `whilist_sites`: list of sites to select from. If the file is not found there, raise an Expection.
+    - `whilist_sites`: list of sites to select from. If the file is not found there, raise an Exception.
     - `blacklist_sites`: list of sites to avoid. If the file has no left site, raise an Exception
     - `regex_sites`: regex expression to restrict the list of sites.
 
@@ -139,7 +142,7 @@ def get_dataset_files(
                     found = True
 
             if not found:
-                raise Exception(f"No SITE available in the whitelist for file {filedata['name']}")
+                print(f"No SITE available in the whitelist for file {filedata['name']}")
         else:
             possible_sites = list(rses.keys())
             if blacklist_sites:
@@ -148,7 +151,7 @@ def get_dataset_files(
                 )
 
             if len(possible_sites) == 0:
-                raise Exception(f"No SITE available for file {filedata['name']}")
+                print(f"No SITE available for file {filedata['name']}")
 
             # now check for regex
             for site in possible_sites:
@@ -184,7 +187,7 @@ def get_dataset_files(
                     found = True
 
         if not found:
-            raise Exception(f"No SITE available for file {filedata['name']}")
+            print(f"No SITE available for file {filedata['name']}")
         else:
             if output == "all":
                 outfiles.append(outfile)

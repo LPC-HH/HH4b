@@ -1,6 +1,8 @@
-import pandas as pd
+from __future__ import annotations
+
 import click
 import numpy as np
+import pandas as pd
 
 np.set_printoptions(threshold=np.inf)
 

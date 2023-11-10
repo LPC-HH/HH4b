@@ -3,6 +3,8 @@
 A script to generate a BinnedValues-JSON file for pileup reweighting of MC
 https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/misc/LUM/makePUReWeightJSON.py
 """
+from __future__ import annotations
+
 import json
 import logging
 
@@ -15,7 +17,7 @@ mcPUProfiles = {
     # ========#
     # https://github.com/cms-sw/cmssw/pull/34460
     # https://github.com/cms-sw/cmssw/blob/master/SimGeneral/MixingModule/python/Run3_2022_LHC_Simulation_10h_2h_cfi.py#L10-L54
-    "2022Prompt_25ns": (
+    "2022_LHC_Simulation_10h_2h": (
         np.linspace(0.0, 100.0, 101),
         [
             7.075550618391933e-8,
@@ -128,10 +130,10 @@ def getHist(fName, hName="pileup"):
 
     tf = gbl.TFile.Open(fName)
     if not tf:
-        raise RuntimeError("Could not open file '{0}'".format(fName))
+        raise RuntimeError(f"Could not open file '{fName}'")
     hist = tf.Get(hName)
     if not hist:
-        raise RuntimeError("No histogram with name '{0}' found in file '{1}'".format(hName, fName))
+        raise RuntimeError(f"No histogram with name '{hName}' found in file '{fName}'")
     return tf, hist
 
 
@@ -210,11 +212,13 @@ def main():
     parser.add_argument(
         "--up",
         type=str,
+        default=None,
         help="File with the data (true) pileup distribution histogram assuming the nominal+1sigma minimum bias cross-section value",
     )
     parser.add_argument(
         "--down",
         type=str,
+        default=None,
         help="File with the data (true) pileup distribution histogram assuming the nominal-1sigma minimum bias cross-section value",
     )
     parser.add_argument("--rebin", type=int, help="Factor to rebin the data histograms by")
@@ -245,13 +249,14 @@ def main():
 
             matplotlib.use("agg")
             from matplotlib import pyplot as plt
-        except Exception as ex:
+        except Exception:
             logger.warning("matplotlib could not be imported, so no plot will be produced")
             args.makePlot = False
     if args.gzip:
         try:
-            import gzip, io
-        except Exception as ex:
+            import gzip
+            import io
+        except Exception:
             logger.warning(
                 "gzip or io could not be imported, output will be stored as regular file"
             )
@@ -279,7 +284,7 @@ def main():
         mcPUBins, mcPUVals = normAndExtract(hMCPU)
     elif args.mcprofile:
         if args.mcprofile not in mcPUProfiles:
-            raise ValueError("No MC PU profile with tag '{0}' is known".format(args.mcprofile))
+            raise ValueError(f"No MC PU profile with tag '{args.mcprofile}' is known")
 
         mcPUBins, mcPUVals = mcPUProfiles[args.mcprofile]
         if len(mcPUBins) != len(mcPUVals) + 1:
@@ -431,7 +436,12 @@ def main():
         rBinCenters = 0.5 * (ratioBins[:-1] + ratioBins[1:])
         ax.hist(dBinCenters, bins=mcPUBins, weights=mcPUVals, histtype="step", label="MC")
         ax.hist(
-            nBinCenters, bins=nomBins, weights=nomCont, histtype="step", label="Nominal", color="k"
+            nBinCenters,
+            bins=nomBins,
+            weights=nomCont,
+            histtype="step",
+            label="Nominal (data)",
+            color="k",
         )
         rax.hist(rBinCenters, bins=ratioBins, weights=nomRatio, histtype="step", color="k")
         if upCont is not None:
@@ -450,12 +460,16 @@ def main():
             rax.hist(rBinCenters, bins=ratioBins, weights=downRatio, histtype="step", color="b")
         rax.axhline(1.0)
         ax.legend()
-        rax.set_ylim(0.02, 2.0)
+        rax.grid()
+        ax.grid()
+        rax.set_ylim(0.02, 20)
         rax.set_xlim(ratioBins[0], ratioBins[-1])
         if args.mcfiles:
             rax.set_xlabel(args.mcreweightvar)
         elif args.mcprofile:
             ax.set_title(args.mcprofile)
+        ax.set_ylabel("PU profile")
+        rax.set_ylabel("PU weight")
         if args.output.endswith(".json"):
             plt.savefig(args.output.replace(".json", ".png"))
 

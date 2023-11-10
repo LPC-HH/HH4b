@@ -1,13 +1,15 @@
 # TODO: Check if this is correct for available datasets
 
 # Golden JSON
+from __future__ import annotations
+
 LUMI = {  # in pb^-1
     "2018": 59830.0,
     # 5.0707 + 3.0063
     "2022": 7971.4,
-    # "2022EE": 26337.0,
+    "2022EE": 26337.0,
     # 2022EE minus E run
-    "2022EE": 20665.0,
+    # "2022EE": 20665.0,
     "2023": 28072.0,
 }
 
