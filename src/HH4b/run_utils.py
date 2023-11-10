@@ -54,6 +54,11 @@ def get_fileset(
         # check if any subsamples for this sample have been specified
         get_subsamples = set(set_subsamples).intersection(subsamples)
 
+        if len(subsamples):
+            for subs in subsamples:
+                if subs not in get_subsamples:
+                    raise ValueError(f"Subsample {subs} not found for sample {sample}!")
+
         # if so keep only that subset
         if len(get_subsamples):
             sample_set = {subsample: sample_set[subsample] for subsample in get_subsamples}

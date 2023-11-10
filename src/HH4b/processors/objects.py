@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import time
-
 import awkward as ak
 import numpy as np
 from coffea.nanoevents.methods.nanoaod import (
@@ -45,16 +43,13 @@ def veto_electrons_run2(electrons: ElectronArray):
 
 
 def veto_muons(muons: MuonArray):
-    start = time.time()
     sel = (
         (muons.pt >= 10) & (abs(muons.eta) <= 2.4) & (muons.looseId) & (muons.pfRelIso04_all < 0.15)
     )
-    print("muon sel1", f"{time.time() - start:.2f}")
     sel = sel & (
         ((abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.10) & (abs(muons.eta) < 1.2))
         | ((abs(muons.dxy) < 0.10) & (abs(muons.dz) < 0.20) & (abs(muons.eta) >= 1.2))
     )
-    print("muon sel2", f"{time.time() - start:.2f}")
     return sel
 
 
@@ -122,8 +117,9 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
-        # fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
-        fatjets["particleNet_mass"] = (
+        # save both until we confirm which is correct
+        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+        fatjets["particleNet_massraw"] = (
             (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
         )
 

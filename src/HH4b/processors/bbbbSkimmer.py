@@ -242,6 +242,11 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["FatJet"].items()
         }
 
+        if self._nano_version == "v12":
+            ak8FatJetVars["ak8FatJetPNetMassRaw"] = pad_val(
+                fatjets["particleNet_massraw"], num_fatjets, axis=1
+            )
+
         print("Jet vars", f"{time.time() - start:.2f}")
 
         """
