@@ -303,7 +303,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (var, key) in self.skim_vars["Other"].items()
         }
 
-        HLTs = self.HLTs[year]
+        HLTs = self.HLTs[year].copy()
         if year != "2018":
             # add extra hlts as variables
             HLTs.extend(
