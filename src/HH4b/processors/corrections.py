@@ -369,8 +369,8 @@ try:
 
     ak4jet_factory = jmestuff["jet_factory"]
     fatjet_factory = jmestuff["fatjet_factory"]
-except:
-    print("Failed loading compiled JECs")
+except Exception as e:
+    print("Failed loading compiled JECs. Error: ", e)
 
 
 def _add_jec_variables(jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:

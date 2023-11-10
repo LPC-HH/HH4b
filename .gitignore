@@ -172,3 +172,5 @@ docker_stderror
 *.err
 *.out
 *.log
+
+running_jobs.txt

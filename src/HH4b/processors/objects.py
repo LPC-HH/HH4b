@@ -9,6 +9,7 @@ from coffea.nanoevents.methods.nanoaod import (
     MuonArray,
 )
 
+import time
 from .corrections import get_jetveto
 
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
@@ -43,13 +44,16 @@ def veto_electrons_run2(electrons: ElectronArray):
 
 
 def veto_muons(muons: MuonArray):
+    start = time.time()
     sel = (
         (muons.pt >= 10) & (abs(muons.eta) <= 2.4) & (muons.looseId) & (muons.pfRelIso04_all < 0.15)
     )
+    print("muon sel1", f"{time.time() - start:.2f}")
     sel = sel & (
         ((abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.10) & (abs(muons.eta) < 1.2))
         | ((abs(muons.dxy) < 0.10) & (abs(muons.dz) < 0.20) & (abs(muons.eta) >= 1.2))
     )
+    print("muon sel2", f"{time.time() - start:.2f}")
     return sel
 
 
