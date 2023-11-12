@@ -247,7 +247,7 @@ def main():
         try:
             import matplotlib
 
-            #matplotlib.use("agg")
+            # matplotlib.use("agg")
             from matplotlib import pyplot as plt
         except Exception:
             logger.warning("matplotlib could not be imported, so no plot will be produced")
@@ -428,7 +428,6 @@ def main():
             json.dump(out, outF)
 
     if args.makePlot:
-
         """
         fig, (ax, rax) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
         rax.set_yscale("log")
@@ -477,6 +476,7 @@ def main():
         """
         import mplhep as hep
         import matplotlib.ticker as mticker
+
         hep.style.use(["CMS", "firamath"])
         formatter = mticker.ScalarFormatter(useMathText=True)
         formatter.set_powerlimits((-3, 3))
@@ -490,7 +490,9 @@ def main():
         dBinCenters = 0.5 * (mcPUBins[:-1] + mcPUBins[1:])
         nBinCenters = 0.5 * (nomBins[:-1] + nomBins[1:])
         rBinCenters = 0.5 * (ratioBins[:-1] + ratioBins[1:])
-        ax.hist(dBinCenters, bins=mcPUBins, weights=mcPUVals, histtype="step", label="MC", color="blue")
+        ax.hist(
+            dBinCenters, bins=mcPUBins, weights=mcPUVals, histtype="step", label="MC", color="blue"
+        )
         ax.hist(
             nBinCenters,
             bins=nomBins,
@@ -498,15 +500,16 @@ def main():
             histtype="stepfilled",
             label="Data",
             hatch=r"\\\\",
-            color='black',
+            color="black",
             alpha=0.2,
         )
         ax.set_xlabel("PU profile")
         ax.set_ylabel("Density")
         ax.grid()
         ax.legend()
-        ax.set_title('2022_LHC_Simulation_10h_2h')
+        ax.set_title("2022_LHC_Simulation_10h_2h")
         plt.savefig(args.output.replace(".json", ".png"))
+
 
 if __name__ == "__main__":
     main()
