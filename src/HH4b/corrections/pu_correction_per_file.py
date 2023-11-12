@@ -29,21 +29,21 @@ files = {
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/d00363f4-0cac-410d-8fc7-bb6f60ccb6cd.root",
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ee9ea1b0-ee93-46b1-b2b9-164cf499ef22.root",
     ],
-    "Pu70_1": [
-        # 2022EE, v10, kl5
-        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff50a677-99ec-4148-9c88-648dad33766b.root"
-    ],
+    #"Pu70_1": [
+    #    # 2022EE, v10, kl5
+    #    "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv10/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/30000/ff50a677-99ec-4148-9c88-648dad33766b.root"
+    #],
     "Pu60": [
         # 2022EE, v12, kl1, Pu60
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/2540000/00d98799-ada3-4a26-8558-5052891a8d23.root",
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/30000/70a2f3a2-1cac-4633-bb22-9bb48ea4114c.root",
         "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/50000/fc603037-ef65-4bbf-9cef-934ecec40bbe.root",
     ],
-    "Pu60_1": [
-        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/2540000/a8f839de-fe30-4f04-be63-3284b91f23ce.root",
-        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/40000/7bd67f96-8b9e-465a-920d-3ee9e18131f7.root",
-        "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/50000/b3ba2704-adc1-436e-b111-1dece13a5de7.root",
-    ],
+    #"Pu60_1": [
+    #    "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/2540000/a8f839de-fe30-4f04-be63-3284b91f23ce.root",
+    #    "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/40000/7bd67f96-8b9e-465a-920d-3ee9e18131f7.root",
+    #    "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/Poisson60KeepRAW_130X_mcRun3_2022_realistic_postEE_v6-v2/50000/b3ba2704-adc1-436e-b111-1dece13a5de7.root",
+    #],
 }
 
 
@@ -73,7 +73,7 @@ def main():
 
         # plot
         hep.histplot(
-            h_npu / pileup_MC.sum(), histtype="step", ax=ax, label=f"MC {sample}", density=True
+            h_npu / pileup_MC.sum(), histtype="step", ax=ax, label=f"2022 MC {sample}", density=True, flow='none',
         )
 
     # plot profile for data
@@ -90,10 +90,13 @@ def main():
         nBinCenters,
         weights=pileup_profile,
         bins=nomBins,
-        histtype="step",
-        label="data",
+        histtype="stepfilled",
+        label="Data",
+        hatch=r"\\\\",
+        color='black',
+        alpha=0.2,
     )
-
+    ax.grid()
     ax.legend()
     ax.set_ylabel("Density")
     ax.set_xlabel("PU profile")
