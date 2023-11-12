@@ -39,16 +39,28 @@ if __name__ == "__main__":
     args.outdir = "outfiles"
     args.test = False
     tag = args.tag
-    for key, tdict in samples_to_submit.items():
-        print(f"Submitting for year {key}")
-        args.year = key
-        for sample, sdict in tdict.items():
-            args.samples = [sample]
-            args.subsamples = sdict.get("subsamples", [])
-            args.files_per_job = sdict["files_per_job"]
-            args.maxchunks = sdict.get("maxchunks", 0)
-            args.chunksize = sdict.get("chunksize", 100000)
-            args.tag = tag
+    for i in range(2):
+        for key, tdict in samples_to_submit.items():
+            # print(f"Submitting for year {key}")
+            args.year = key
+            for sample, sdict in tdict.items():
+                args.samples = [sample]
+                args.subsamples = sdict.get("subsamples", [])
+                args.files_per_job = sdict["files_per_job"]
+                args.maxchunks = sdict.get("maxchunks", 0)
+                args.chunksize = sdict.get("chunksize", 100000)
+                args.tag = tag
 
-            print(args)
-            submit.main(args)
+                if i == 0:
+                    # first test that subsamples are all correct
+                    run_utils.get_fileset(
+                        args.processor,
+                        args.year,
+                        args.nano_version,
+                        args.samples,
+                        args.subsamples,
+                        get_num_files=True,
+                    )
+                else:
+                    print(args)
+                    submit.main(args)

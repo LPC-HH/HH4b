@@ -117,8 +117,9 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
-        # fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
-        fatjets["particleNet_mass"] = (
+        # save both until we confirm which is correct
+        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+        fatjets["particleNet_massraw"] = (
             (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
         )
 

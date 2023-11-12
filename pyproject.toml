@@ -29,7 +29,9 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+  "cloudpickle >= 3",
+]
 
 [project.optional-dependencies]
 test = [

@@ -5,7 +5,7 @@ Authors: Raghav Kansal, Cristina Suarez
 """
 from __future__ import annotations
 
-years = ["2022EE"]
+years = ["2022", "2022EE"]
 
 # in pb^-1
 LUMI = {"2022": 7971.4, "2022EE": 20700}
