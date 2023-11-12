@@ -37,6 +37,26 @@ b_PDGIDS = [511, 521, 523]
 GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
 
 
+def gen_selection_HHbbbb_simplified(
+    events: NanoEventsArray,
+    jets: JetArray,
+    fatjets: FatJetArray,
+    selection_args: list,
+    skim_vars: dict,
+):
+    """Simplified gen selection"""
+    higgs = events.GenPart[
+        (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    GenHiggsVars = {f"GenHiggs{key}": higgs[var].to_numpy() for (var, key) in skim_vars.items()}
+    higgs_children = higgs.children
+    is_bb = abs(higgs_children.pdgId) == b_PDGID
+    bs = ak.flatten(higgs_children[is_bb], axis=2)
+    GenbVars = {f"Genb{key}": pad_val(bs[var], 4, axis=1) for (var, key) in skim_vars.items()}
+
+    return {**GenHiggsVars, **GenbVars}
+
+
 def gen_selection_HHbbbb(
     events: NanoEventsArray,
     jets: JetArray,
@@ -45,7 +65,6 @@ def gen_selection_HHbbbb(
     skim_vars: dict,
 ):
     """Gets HH, bb 4-vectors"""
-
     # finding the two gen higgs
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
