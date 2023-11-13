@@ -14,11 +14,17 @@ from .corrections import (
     get_jec_jets,
     get_jetveto_event,
 )
+from .GenSelection import gen_selection_HHbbbb, gen_selection_HHbbbb_simplified
 from .objects import get_ak8jets, good_ak4jets
 from .utils import P4, add_selection, dump_table, pad_val, to_pandas
 
 warnings.filterwarnings("ignore", message="invalid value encountered in divide")
 
+# mapping samples to the appropriate function for doing gen-level selections
+gen_selection_dict = {
+    "GluGlutoHHto4B": gen_selection_HHbbbb,
+    "VBFHHto4B": gen_selection_HHbbbb_simplified,
+}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -367,6 +373,12 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         skimmed_events = {**skimmed_events, **trigObjFatJetVars}
         """
 
+        # gen variables
+        for d in gen_selection_dict:
+            if d in dataset:
+                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
+                skimmed_events = {**skimmed_events, **vars_dict}
+
         # reshape and apply selections
         sel_all = selection.all(*selection.names)
 
@@ -401,6 +413,12 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         skimmed_events = {
             key: value.reshape(len(events), -1)[sel_all] for (key, value) in skimmed_events.items()
         }
+        """
+        # no selection  (for signal study)
+        skimmed_events = {
+            key: value.reshape(len(events), -1) for (key, value) in skimmed_events.items()
+        }
+        """
 
         dataframe = to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
