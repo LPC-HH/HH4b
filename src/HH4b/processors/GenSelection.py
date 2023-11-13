@@ -39,9 +39,9 @@ GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
 
 def gen_selection_HHbbbb_simplified(
     events: NanoEventsArray,
-    jets: JetArray,
-    fatjets: FatJetArray,
-    selection_args: list,
+    jets: JetArray,              # noqa: ARG001
+    fatjets: FatJetArray,        # noqa: ARG001
+    selection_args: list,        # noqa: ARG001
     skim_vars: dict,
 ):
     """Simplified gen selection"""
