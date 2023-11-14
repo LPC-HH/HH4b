@@ -65,12 +65,14 @@ class matchingSkimmer(processor.ProcessorABC):
         )
         JET_ASSIGNMENTS[nj] = b
 
-    def __init__(self, xsecs=None, apply_selection=True):
+    def __init__(self, xsecs=None, apply_selection=True, nano_version="v9"):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         self._accumulator = processor.dict_accumulator({})
         self.apply_selection = apply_selection
+        self._nano_version = nano_version
+        print(self.apply_selection)
 
     @property
     def accumulator(self):
@@ -85,16 +87,19 @@ class matchingSkimmer(processor.ProcessorABC):
         year = events.metadata["dataset"].split("_")[0]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
-        # if year != "2018":
-        #     # for now, only in v11_private
-        #     btag_vars = {
-        #         "btagPNetProb": "btagPNetProb",
-        #         "btagPNetProbbb": "btagPNetProbbb",
-        #         "btagPNetProbc": "btagPNetProbc",
-        #         "btagPNetProbuds": "btagPNetProbuds",
-        #         "btagPNetProbg": "btagPNetProbg",
-        #         "btagPNetBvsAll": "btagPNetBvsAll",
-        #     }
+        btag_vars = {}
+        if self._nano_version == "v9_private":
+            btag_vars = {
+                "ParticleNetAK4_probb": "btagPNetProbb",
+                "ParticleNetAK4_probbb": "btagPNetProbbb",
+                "ParticleNetAK4_probc": "btagPNetProbc",
+                "ParticleNetAK4_probcc": "btagPNetProbcc",
+                "ParticleNetAK4_probpu": "btagPNetProbpu",
+                "ParticleNetAK4_probuds": "btagPNetProbuds",
+                "ParticleNetAK4_probg": "btagPNetProbg",
+                "ParticleNetAK4_probundef": "btagPNetProbundef",
+                # "btagPNetBvsAll": "btagPNetBvsAll",
+            }
 
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset
@@ -133,7 +138,6 @@ class matchingSkimmer(processor.ProcessorABC):
         jets = events.Jet
         jets = jets[objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)]
         ht = ak.sum(jets.pt, axis=1)
-        # vbf_jets = jets[(jets.pt > 25) & (((jets.pt < 50) & (jets.puId >= 6)) | (jets.pt >= 50))]
 
         print("Before fatjets ", f"{time.time() - start:.2f}")
 
@@ -156,12 +160,21 @@ class matchingSkimmer(processor.ProcessorABC):
         jets_p4 = objects.bregcorr(jets)
         jets_p4_outside_fj = objects.bregcorr(jets_outside_fj)
 
+        # vbf jets (preliminary)
+        vbf_jets = jets[(jets.pt > 25) & (jets.delta_r(leading_fj) > 1.2)]
+        vbf_jet_0 = vbf_jets[:, 0:1]
+        vbf_jet_1 = vbf_jets[:, 1:2]
+        vbf_mass = (ak.firsts(vbf_jet_0) + ak.firsts(vbf_jet_1)).mass
+        vbf_deta = abs(ak.firsts(vbf_jet_0).eta - ak.firsts(vbf_jet_1).eta)
+        vbf_selection = (vbf_mass > 500) & (vbf_deta > 4.0)
+
         print("Objects", f"{time.time() - start:.2f}")
 
         #########################
         # Save / derive variables
         #########################
         skimmed_events = {}
+        skimmed_events["ht"] = ht.to_numpy()
 
         # HLT variables
         HLTs = {
@@ -195,20 +208,19 @@ class matchingSkimmer(processor.ProcessorABC):
 
         # Jet variables
         num_jets = 6
+        jet_vars = {**self.skim_vars["Jet"], **btag_vars}
         ak4JetVars = {
-            f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
-            for (var, key) in self.skim_vars["Jet"].items()
+            f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1) for (var, key) in jet_vars.items()
         }
         ak4JetVarsOutsideFJ = {
             f"ak4JetOutside{key}": pad_val(jets_outside_fj[var], num_jets, axis=1)
-            for (var, key) in self.skim_vars["Jet"].items()
+            for (var, key) in jet_vars.items()
         }
         for var, key in P4.items():
             ak4JetVars[f"ak4Jet{key}"] = pad_val(getattr(jets_p4, var), num_jets, axis=1)
             ak4JetVarsOutsideFJ[f"ak4JetOutside{key}"] = pad_val(
                 getattr(jets_p4_outside_fj, var), num_jets, axis=1
             )
-        skimmed_events["ht"] = ht.to_numpy()
 
         print("AK4Vars", f"{time.time() - start:.2f}")
 
@@ -222,8 +234,8 @@ class matchingSkimmer(processor.ProcessorABC):
         ak4JetVars = {
             **ak4JetVars,
             **ak4JetVarsOutsideFJ,
-            **self.getJetAssignmentVars(ak4JetVars, ak8Vars=ak8FatJetVars),
-            **self.getJetAssignmentVars(ak4JetVarsOutsideFJ, name="ak4JetOutside", method="chi2"),
+            # **self.getJetAssignmentVars(ak4JetVars, ak8Vars=ak8FatJetVars),
+            # **self.getJetAssignmentVars(ak4JetVarsOutsideFJ, name="ak4JetOutside", method="chi2"),
         }
 
         # gen variables
@@ -233,6 +245,7 @@ class matchingSkimmer(processor.ProcessorABC):
                 skimmed_events = {**skimmed_events, **vars_dict}
 
         ak4GenJetVars = {}
+        """
         if not isData:
             ak4GenJetVars = {
                 f"ak4GenJet{key}": pad_val(events.GenJet[var], num_jets, axis=1)
@@ -242,6 +255,7 @@ class matchingSkimmer(processor.ProcessorABC):
                 **ak4JetVars,
                 "ak4JetGenJetIdx": pad_val(jets.genJetIdx, num_jets, axis=1),
             }
+        """
 
         skimmed_events = {
             **skimmed_events,
@@ -256,6 +270,21 @@ class matchingSkimmer(processor.ProcessorABC):
         ######################
         # Selection
         ######################
+
+        # trigger selection
+        HLTs_selection = {
+            "2018": [
+                "PFHT330PT30_QuadPFJet_75_60_45_40_TriplePFBTagDeepCSV_4p5",
+            ]
+        }[year]
+        HLT_triggered = np.any(
+            np.array(
+                [events.HLT[trigger] for trigger in HLTs_selection if trigger in events.HLT.fields]
+            ),
+            axis=0,
+        )
+        # apply trigger to both data and mc
+        add_selection("trigger", HLT_triggered, *selection_args)
 
         # met filter selection
         met_filters = [
@@ -274,17 +303,34 @@ class matchingSkimmer(processor.ProcessorABC):
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
         add_selection("met_filters", metfilters, *selection_args)
+
         # require at least one ak8 jet with PNscore > 0.8
-        add_selection("1ak8_pt", np.any(fatjets.pt > 200, axis=1), *selection_args)
-        add_selection("1ak8_xbb", np.any(fatjets.Txbb > 0.8, axis=1), *selection_args)
-        # require at least two ak4 jets with Medium DeepJetM score (0.2783 for 2018)
-        add_selection("2ak4_b", ak.sum(jets.btagDeepFlavB > 0.2783, axis=1) >= 2, *selection_args)
+        # add_selection("1ak8_pt", np.any(fatjets.pt > 300, axis=1), *selection_args)
+        # add_selection("1ak8_xbb", np.any(fatjets.Txbb > 0.8, axis=1), *selection_args)
+
+        # require one good ak8 jet
+        add_selection("1ak8_pt", leading_fj.pt > 300, *selection_args)
+        add_selection("1ak8_mass", leading_fj.particleNet_mass > 60, *selection_args)
+        add_selection("1ak8_xbb", leading_fj.Txbb > 0.8, *selection_args)
+
+        # require at least two ak4 jets with Medium DeepJetM score
+        # DeepJetM (0.2783 for 2018)
+        # PNetAK4M (0.2605 for 2022EE)
+        nbjets_deepjet = ak.sum(jets.btagDeepFlavB > 0.2783, axis=1)
+        nbjets_sel = nbjets_deepjet >= 2
+        # if self._nano_version == "v9_private":
+        #    nbjets_pnet = ak.sum(jets.
+        add_selection("2ak4_b", nbjets_sel, *selection_args)
+
         # veto leptons
         add_selection(
             "0lep",
             (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
             *selection_args,
         )
+
+        # veto events with VBF jets
+        add_selection("vbf_veto", ~(vbf_selection), *selection_args)
 
         """
         HLT_triggered = np.zeros(len(events), dtype="bool")
