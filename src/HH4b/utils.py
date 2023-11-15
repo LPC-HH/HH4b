@@ -37,6 +37,7 @@ class ShapeVar:
         blind_window (List[int], optional): if blinding, set min and max values to set 0. Defaults to None.
         significance_dir (str, optional): if plotting significance, which direction to plot it in.
           See more in plotting.py:ratioHistPlot(). Options are ["left", "right", "bin"]. Defaults to "right".
+        plot_args (dict, optional): dictionary of arguments for plotting. Defaults to None.
     """
 
     var: str = None
@@ -45,13 +46,17 @@ class ShapeVar:
     reg: bool = True
     blind_window: list[int] = None
     significance_dir: str = "right"
+    plot_args: dict = None
 
     def __post_init__(self):
         # create axis used for histogramming
-        if self.reg:
-            self.axis = hist.axis.Regular(*self.bins, name=self.var, label=self.label)
+        if self.bins is not None:
+            if self.reg:
+                self.axis = hist.axis.Regular(*self.bins, name=self.var, label=self.label)
+            else:
+                self.axis = hist.axis.Variable(self.bins, name=self.var, label=self.label)
         else:
-            self.axis = hist.axis.Variable(self.bins, name=self.var, label=self.label)
+            self.axis = None
 
 
 @contextlib.contextmanager
