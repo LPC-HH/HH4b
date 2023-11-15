@@ -563,6 +563,8 @@ def make_selection(
         for cutvar, branges in var_cuts.items():
             if jshift != "" and sample != data_key:
                 var = check_get_jec_var(cutvar, jshift)
+            else:
+                var = cutvar
 
             if isinstance(branges[0], list):
                 # OR the cuts

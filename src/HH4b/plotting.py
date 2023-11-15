@@ -456,6 +456,7 @@ def ratioHistPlot(
     plot_significance: bool = False,
     significance_dir: str = "right",
     axrax: tuple | None = None,
+    energy: str = "13.6"
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -607,6 +608,7 @@ def ratioHistPlot(
             color="black",
             capsize=4,
         )
+        print(hists[data_key, :] / (bg_tot.values() + 1e-5))
     else:
         rax.set_xlabel(hists.axes[1].label)
 
@@ -660,7 +662,7 @@ def ratioHistPlot(
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
             ax=ax,
-            com="13.6",
+            com=energy,
         )
     else:
         hep.cms.label(
@@ -669,7 +671,7 @@ def ratioHistPlot(
             lumi=f"{LUMI[year] / 1e3:.0f}",
             year=year,
             ax=ax,
-            com="13.6",
+            com=energy,
         )
 
     if axrax is None:
