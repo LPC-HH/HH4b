@@ -24,7 +24,11 @@ formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 
 
-mpl.rcParams["font.size"] = 28
+# this is needed for some reason to update the font size for the first plot
+fig, ax = plt.subplots(1, 1, figsize=(12, 12))
+plt.rcParams.update({"font.size": 28})
+plt.close()
+
 mpl.rcParams["lines.linewidth"] = 2
 mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
