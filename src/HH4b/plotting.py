@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
@@ -675,6 +676,65 @@ def ratioHistPlot(
     if axrax is None:
         if len(name):
             plt.savefig(name, bbox_inches="tight")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+
+def mesh2d(
+    xbins: ArrayLike,
+    ybins: ArrayLike,
+    vals: ArrayLike,
+    year: str,
+    vmax: float = 1,
+    ax: plt.axis.Axes = None,
+    title: str = None,
+    title_params: dict = None,
+    xlabel: str = "AK8 Jet SD Mass [GeV]",
+    ylabel: str = r"AK8 Jet $p_T$ [GeV]",
+    plot_dir: str = "",
+    name: str = "",
+    show: bool = False,
+    data: bool = True,
+    fontsize: float = 28,
+):
+    """2D histogram with values printed in bins for e.g. trigger efficiencies and SFs"""
+    if ax is None:
+        in_ax = False
+        fig, ax = plt.subplots(1, 1, figsize=(18, 17))
+    else:
+        in_ax = True
+
+    mesh = ax.pcolormesh(xbins, ybins, vals.T, cmap="turbo", vmin=0, vmax=vmax)
+    for i in range(len(ybins) - 1):
+        for j in range(len(xbins) - 1):
+            if not math.isnan(vals[j, i]):
+                ax.text(
+                    (xbins[j] + xbins[j + 1]) / 2,
+                    (ybins[i] + ybins[i + 1]) / 2,
+                    vals[j, i].round(2),
+                    color="black" if 0.1 * vmax < vals[j, i] < 0.9 * vmax else "white",
+                    ha="center",
+                    va="center",
+                    fontsize=fontsize,
+                )
+
+    title_params = {"x": 0.35, "y": 1.005} if title_params is None else title_params
+    ax.set_title(title, **title_params)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    hep.cms.label(ax=ax, data=data, year=year, lumi=round(LUMI[year] / 1e3), com="13.6")
+
+    if in_ax:
+        return mesh
+    else:
+        fig.colorbar(mesh, ax=ax, pad=0.01)
+
+        if len(name):
+            plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
         if show:
             plt.show()
