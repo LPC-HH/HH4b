@@ -158,6 +158,57 @@ def get_v9_private():
     }
 
 
+def get_v9_privatepfnano():
+    return {
+        "2018": {
+            "HH": {
+                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+                "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+                "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+            },
+            "Hbb": {
+                "GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8": "/store/group/lpcpfnano/rkansal/v2_3/2018/GluGluHToBB/GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
+                "VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/jdickins/v2_3/2018/VBFHToBB_DipoleRecoilOn/VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8",
+                "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HTo\
+BB/WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
+                "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8",
+            },
+            "Diboson": {
+                "ZZ_TuneCP5_13TeV-pythia8": "/store/group/lpcpfnano/rkansal/v2_3/2018/Diboson/ZZ_TuneCP5_13TeV-pythia8"
+            },
+            "QCD": {
+                **{
+                    f"QCD_HT-{qbin}-13TeV": f"/store/group/lpcpfnano/cmantill/v2_3/2018/QCD/QCD_HT{qbin}_TuneCP5_PSWeights_13TeV-madgraph-pythia8"
+                    for qbin in qcd_ht_bins_run2
+                },
+            },
+            "TT": {
+                "TTToHadronic_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTToHadronic_TuneCP5_13TeV-powheg-pythia8",
+                "TTTo2L2Nu_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
+                "TTToSemiLeptonic_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8",
+            },
+            "VJets": {
+                "WJetsToQQ_HT-200to400_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-400to600_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-600to800_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "WJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-200to400_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-400to600_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-600to800_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
+                "ZJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
+            },
+            "JetHT": {
+                "Run2018A": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018A",
+                "Run2018B": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018B",
+                "Run2018C": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018C",
+                "Run2018D": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018D",
+            },
+        }
+    }
+
+
 def get_v10():
     return {
         "2022": {
@@ -921,8 +972,8 @@ def get_files(dataset, version):
         return files_valid
 
 
-for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
-    # for version in ["v9_private"]:
+# for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
+for version in ["v9_privatepfnano"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
