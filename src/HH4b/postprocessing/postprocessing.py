@@ -1,38 +1,39 @@
-#!/usr/bin/python3
+from __future__ import annotations
 
-from typing import Dict, List
-import click
-
-import pickle, json
-import utils
-import plotting
-from hh_vars import years, samples, data_key, bg_keys, sig_keys, sig_keys_ggf, sig_keys_vbf
-
-from copy import deepcopy
-import logging
+import pickle
 import sys
-import numpy as np
-import pandas as pd
+from copy import deepcopy
+from dataclasses import dataclass, field
+from pathlib import Path
 
+import click
 import hist
+import pandas as pd
 from hist import Hist
 
-# define ShapeVar (label and bins for a given variable)
-from utils import ShapeVar, CUT_MAX_VAL
+from HH4b import plotting, utils
+from HH4b.hh_vars import (
+    bg_keys,
+    data_key,
+    samples,
+    sig_keys,
+    years,
+)
 
-from dataclasses import dataclass, field
+# define ShapeVar (label and bins for a given variable)
+from HH4b.utils import CUT_MAX_VAL, ShapeVar
 
 
 @dataclass
 class Region:
-    cuts: Dict = None
+    cuts: dict = None
     label: str = None
 
 
 @dataclass
 class Syst:
-    samples: List[str] = None
-    years: List[str] = field(default_factory=lambda: years)
+    samples: list[str] = None
+    years: list[str] = field(default_factory=lambda: years)
     label: str = None
 
 
@@ -70,7 +71,7 @@ selection_regions = {
 fit_shape_var = ShapeVar(
     "bb1FatJetPNetMass",
     r"$m^{j2}_\mathrm{Reg}$ (GeV)",
-    [20, 60, 260],
+    [19, 60, 250],
     reg=True,
     blind_window=[100, 150],
 )
@@ -109,10 +110,6 @@ def postprocess(years):
     # TODO: set this as a yaml file
     dirs = {"/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": samples}
 
-    samples_to_fill = [
-        "data",
-        "qcd",
-    ]
     vars_to_plot = [
         "ak8FatJetPt0",
         "ak8FatJetPt1",
@@ -159,14 +156,14 @@ def postprocess(years):
     for year in years:
         # load all samples, apply filters if needed
         events_dict = {}
-        for input_dir, samples in dirs.items():
+        for input_dir, in_samples in dirs.items():
             events_dict = {
                 **events_dict,
-                **utils.load_samples(input_dir, samples, year, filters, columns),
+                **utils.load_samples(input_dir, in_samples, year, filters, columns),
             }
 
-        samples_loaded = list(events_dict.keys())
-        keys_loaded = list(events_dict[samples_loaded[0]].keys())
+        # samples_loaded = list(events_dict.keys())
+        # keys_loaded = list(events_dict[samples_loaded[0]].keys())
         # print(f"Keys in events_dict {keys_loaded}")
 
         # make a histogram
@@ -191,8 +188,8 @@ def postprocess(years):
 
 def _get_fill_data(
     events: pd.DataFrame,
-    bb_mask: Dict[str, pd.DataFrame],
-    shape_vars: List[ShapeVar],
+    bb_mask: dict[str, pd.DataFrame],
+    shape_vars: list[ShapeVar],
     jshift: str = "",
 ):
     return {
@@ -205,7 +202,7 @@ def _get_fill_data(
     }
 
 
-def bb_assignment(events_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+def bb_assignment(events_dict: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Creates a dataframe of masks for getting leading and sub-leading jets in Txbb score.
 
@@ -225,28 +222,28 @@ def bb_assignment(events_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFram
 
 
 def get_templates(
-    events_dict: Dict[str, pd.DataFrame],
-    bb_masks: Dict[str, pd.DataFrame],
+    events_dict: dict[str, pd.DataFrame],
+    bb_masks: dict[str, pd.DataFrame],
     year: str,
-    sig_keys: List[str],
-    selection_regions: Dict[str, Region],
-    shape_vars: List[ShapeVar],
-    systematics: Dict,
+    sig_keys: list[str],
+    selection_regions: dict[str, Region],
+    shape_vars: list[ShapeVar],
+    systematics: dict,  # noqa: ARG001
     template_dir: str = "",
-    bg_keys: List[str] = bg_keys,
+    bg_keys: list[str] = bg_keys,
     plot_dir: str = "",
-    prev_cutflow: pd.DataFrame = None,
+    prev_cutflow: pd.DataFrame | None = None,
     weight_key: str = "weight",
-    plot_sig_keys: List[str] = None,
-    sig_scale_dict: Dict = None,
-    weight_shifts: Dict = {},
+    plot_sig_keys: list[str] | None = None,
+    sig_scale_dict: dict | None = None,
+    weight_shifts: dict | None = None,
     jshift: str = "",
     plot_shifts: bool = False,
-    pass_ylim: int = None,
-    fail_ylim: int = None,
+    pass_ylim: int | None = None,
+    fail_ylim: int | None = None,
     blind_pass: bool = False,
     show: bool = False,
-) -> Dict[str, Hist]:
+) -> dict[str, Hist]:
     """
     (1) Makes histograms for each region in the ``selection_regions`` dictionary,
     (2) TODO: Applies the Txbb scale factor in the pass region,
@@ -266,6 +263,9 @@ def get_templates(
     do_jshift = jshift != ""
     jlabel = "" if not do_jshift else "_" + jshift
     templates = {}
+
+    if weight_shifts is None:
+        weight_shifts = {}
 
     for rname, region in selection_regions.items():
         pass_region = rname.startswith("pass")
@@ -292,7 +292,7 @@ def get_templates(
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
-            sig_bb_mask = bb_masks[sig_key][sel[sig_key]]
+            sig_bb_mask = bb_masks[sig_key][sel[sig_key]]  # noqa: F841
 
             # # TODO: ParticleNetMD Txbb
             # if pass_region:
@@ -331,7 +331,7 @@ def get_templates(
             fill_data = _get_fill_data(
                 events, bb_mask, shape_vars, jshift=jshift if sample != data_key else None
             )
-            weight = events[weight_key].values.squeeze()
+            weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
 
             if not do_jshift:
@@ -348,7 +348,9 @@ def get_templates(
                                     * (
                                         events[f"weight_QCDscale7pt{skey}"][0]
                                         / events["weight_QCDscale4"]
-                                    ).values.squeeze()
+                                    )
+                                    .to_numpy()
+                                    .squeeze()
                                 )
                             else:
                                 # reweight based on diff between up/down and nominal weights
@@ -357,7 +359,9 @@ def get_templates(
                                     * (
                                         events[f"weight_{wshift}{skey}"][0]
                                         / events["weight_nonorm"]
-                                    ).values.squeeze()
+                                    )
+                                    .to_numpy()
+                                    .squeeze()
                                 )
                             h.fill(Sample=f"{sample}_{wshift}_{shift}", **fill_data, weight=sweight)
 
@@ -447,7 +451,7 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: Dict[str, Hist], template_file: str, shape_var: ShapeVar):
+def save_templates(templates: dict[str, Hist], template_file: str, shape_var: ShapeVar):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
@@ -459,7 +463,7 @@ def save_templates(templates: Dict[str, Hist], template_file: str, shape_var: Sh
         utils.blindBins(blinded_template, blind_window)
         templates[f"{label}MCBlinded"] = blinded_template
 
-    with open(template_file, "wb") as f:
+    with Path(template_file).open("wb") as f:
         pickle.dump(templates, f)
 
     print("Saved templates to", template_file)

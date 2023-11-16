@@ -3,19 +3,15 @@ Runs the submit script but with samples specified in a yaml file.
 
 Author(s): Raghav Kansal, Cristina Mantilla Suarez
 """
+from __future__ import annotations
 
-import os
-import sys
 import argparse
+from pathlib import Path
 
 import submit
 import yaml
 
-# needed to import run_utils from parent directory
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
-import run_utils
-
+from HH4b import run_utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -36,23 +32,35 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with open(args.yaml, "r") as file:
+    with Path(args.yaml).open() as file:
         samples_to_submit = yaml.safe_load(file)
 
     args.script = "run.py"
     args.outdir = "outfiles"
     args.test = False
     tag = args.tag
-    for key, tdict in samples_to_submit.items():
-        print(f"Submitting for year {key}")
-        args.year = key
-        for sample, sdict in tdict.items():
-            args.samples = [sample]
-            args.subsamples = sdict.get("subsamples", [])
-            args.files_per_job = sdict["files_per_job"]
-            args.maxchunks = sdict.get("maxchunks", 0)
-            args.chunksize = sdict.get("chunksize", 100000)
-            args.tag = tag
+    for i in range(2):
+        for key, tdict in samples_to_submit.items():
+            # print(f"Submitting for year {key}")
+            args.year = key
+            for sample, sdict in tdict.items():
+                args.samples = [sample]
+                args.subsamples = sdict.get("subsamples", [])
+                args.files_per_job = sdict["files_per_job"]
+                args.maxchunks = sdict.get("maxchunks", 0)
+                args.chunksize = sdict.get("chunksize", 100000)
+                args.tag = tag
 
-            print(args)
-            submit.main(args)
+                if i == 0:
+                    # first test that subsamples are all correct
+                    run_utils.get_fileset(
+                        args.processor,
+                        args.year,
+                        args.nano_version,
+                        args.samples,
+                        args.subsamples,
+                        get_num_files=True,
+                    )
+                else:
+                    print(args)
+                    submit.main(args)

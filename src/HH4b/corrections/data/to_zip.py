@@ -1,4 +1,7 @@
-import glob, os
+from __future__ import annotations
+
+import glob
+import os
 
 for ifile in glob.glob("*.txt.gz"):
     # os.system(f"gzip {ifile}")

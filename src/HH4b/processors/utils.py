@@ -3,14 +3,15 @@ Common functions for processors.
 
 Author(s): Raghav Kansal
 """
+from __future__ import annotations
 
-import numpy as np
+import os
+from pathlib import Path
+
 import awkward as ak
-
+import numpy as np
+import pandas as pd
 from coffea.analysis_tools import PackedSelection
-
-from typing import List, Dict
-
 
 P4 = {
     "eta": "Eta",
@@ -69,7 +70,7 @@ def add_selection_no_cutflow(
     selection.add(name, ak.fill_none(sel, False))
 
 
-def concatenate_dicts(dicts_list: List[Dict[str, np.ndarray]]):
+def concatenate_dicts(dicts_list: list[dict[str, np.ndarray]]):
     """given a list of dicts of numpy arrays, concatenates the numpy arrays across the lists"""
     if len(dicts_list) > 1:
         return {
@@ -82,11 +83,11 @@ def concatenate_dicts(dicts_list: List[Dict[str, np.ndarray]]):
             )
             for key in dicts_list[0]
         }
-    else:
-        return dicts_list[0]
+
+    return dicts_list[0]
 
 
-def select_dicts(dicts_list: List[Dict[str, np.ndarray]], sel: np.ndarray):
+def select_dicts(dicts_list: list[dict[str, np.ndarray]], sel: np.ndarray):
     """given a list of dicts of numpy arrays, select the entries per array across the lists according to ``sel``"""
     return {
         key: np.stack(
@@ -98,3 +99,34 @@ def select_dicts(dicts_list: List[Dict[str, np.ndarray]], sel: np.ndarray):
         )[sel]
         for key in dicts_list[0]
     }
+
+
+def to_pandas(events: dict[str, np.array]):
+    """
+    Convert our dictionary of numpy arrays into a pandas data frame
+    Uses multi-index columns for numpy arrays with >1 dimension
+    (e.g. FatJet arrays with two columns)
+    """
+    return pd.concat(
+        [pd.DataFrame(v) for k, v in events.items()],
+        axis=1,
+        keys=list(events.keys()),
+    )
+
+
+def dump_table(pddf: pd.DataFrame, fname: str, odir_str: str | None = None) -> None:
+    """
+    Saves pandas dataframe events to './outparquet'
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    local_dir = (Path() / "outparquet").resolve()
+    if odir_str:
+        local_dir += odir_str
+    os.system(f"mkdir -p {local_dir}")
+
+    # need to write with pyarrow as pd.to_parquet doesn't support different types in
+    # multi-index column names
+    table = pa.Table.from_pandas(pddf)
+    pq.write_table(table, f"{local_dir}/{fname}")

@@ -3,32 +3,28 @@ Combines Coffea processor output pickle files
 
 Author(s): Raghav Kansal
 """
+from __future__ import annotations
 
-import os
-from os import listdir
 import argparse
+import os
 import pickle
+from os import listdir
+from pathlib import Path
+
 from coffea.processor.accumulator import accumulate
-import sys
 from tqdm import tqdm
 
-
-import sys
-
-# needed to import run_utils from parent directory
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
-import run_utils
+from HH4b import run_utils
 
 
 def accumulate_files(files: list):
     """accumulates pickle files from files list via coffea.processor.accumulator.accumulate"""
 
-    with open(files[0], "rb") as file:
+    with Path(files[0]).open("rb") as file:
         out = pickle.load(file)
 
     for ifile in tqdm(files[1:]):
-        with open(ifile, "rb") as file:
+        with Path(ifile).open("rb") as file:
             out = accumulate([out, pickle.load(file)])
 
     return out
@@ -71,14 +67,14 @@ if __name__ == "__main__":
     outdir = f"/eos/uscms/store/user/{args.outuser}/HH4b/{args.processor}/{args.tag}/"
     os.system(f"mkdir -p {outdir}")
 
-    print(f"Inputs directory:", indir)
-    print(f"Outputs directory:", outdir)
+    print("Inputs directory:", indir)
+    print("Outputs directory:", outdir)
 
     files = [indir + "/" + file for file in listdir(indir) if file.endswith(".pkl")]
     out_dict = {}
 
     if args.r:
-        samples = [d for d in listdir(indir) if os.path.isdir(indir + "/" + d + "/pickles/")]
+        samples = [d for d in listdir(indir) if (Path(indir) / d / "pickles").is_dir()]
 
         for sample in samples:
             print(sample)
@@ -98,7 +94,7 @@ if __name__ == "__main__":
         print(f"Accumulating {len(files)} files")
         out = accumulate_files(files)
 
-    with open(f"{outdir}/{args.year}_{args.name}.pkl", "wb") as f:
+    with Path(f"{outdir}/{args.year}_{args.name}.pkl").open("wb") as f:
         pickle.dump(out, f)
 
     print(f"Saved to {outdir}/{args.year}_{args.name}.pkl")

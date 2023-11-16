@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2023.10.27
+_src_path: gh:scientific-python/cookie
+backend: hatch
+email: rkansal@cern.ch
+full_name: Raghav Kansal
+license: MIT
+org: LPC-HH
+project_name: HH4b
+project_short_description: HH4b
+url: https://github.com/LPC-HH/HH4b
+vcs: False

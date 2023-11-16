@@ -1,8 +1,10 @@
-import importlib.resources
-from pathlib import Path
+from __future__ import annotations
+
 import contextlib
+from pathlib import Path
+
+from coffea.jetmet_tools import CorrectedJetsFactory, CorrectedMETFactory, JECStack
 from coffea.lookup_tools import extractor
-from coffea.jetmet_tools import JECStack, CorrectedJetsFactory, CorrectedMETFactory
 
 jec_name_map = {
     "JetPt": "pt",
@@ -180,8 +182,8 @@ met_factory = CorrectedMETFactory(jec_name_map)
 
 
 if __name__ == "__main__":
-    import sys
     import gzip
+    import sys
 
     # jme stuff not pickleable in coffea
     import cloudpickle
