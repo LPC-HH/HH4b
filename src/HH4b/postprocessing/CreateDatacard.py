@@ -27,8 +27,9 @@ from datacardHelpers import (
     rem_neg,
     sum_templates,
 )
-from hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
 from hist import Hist
+
+from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
 
 try:
     rl.util.install_roofit_helpers()
