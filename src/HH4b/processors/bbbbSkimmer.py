@@ -165,12 +165,19 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         n_events = len(events) if isData else np.sum(gen_weights)
 
-        selection = PackedSelection()
-        weights = Weights(len(events), storeIndividual=True)
-
         cutflow = OrderedDict()
         cutflow["all"] = n_events
 
+        # preselection = (
+        #     (ak.count(events.FatJet.pt, axis=1) >= 2)
+        #     * (ak.all(events.FatJet.pt[:, :2] >= 200, axis=1))
+        # )
+        # events = events[preselection]
+        # gen_weights = gen_weights[preselection] if gen_weights is not None else gen_weights
+        # cutflow["2jetpreselection"] = len(events) if isData else np.sum(gen_weights)
+
+        selection = PackedSelection()
+        weights = Weights(len(events), storeIndividual=True)
         selection_args = (selection, cutflow, isData, gen_weights)
 
         #########################
@@ -451,7 +458,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         ######################
 
         if isData:
-            skimmed_events["weight"] = np.ones(n_events)
+            skimmed_events["weight"] = np.ones(len(events))
         else:
             weights.add("genweight", gen_weights)
 
@@ -527,12 +534,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         dataframe = to_pandas(skimmed_events)
 
-        print("To Pandas", f"{time.time() - start:.2f}")
-
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         dump_table(dataframe, fname)
-
-        print("Dump table", f"{time.time() - start:.2f}")
 
         if self._save_array:
             output = {}
