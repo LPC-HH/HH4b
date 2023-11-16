@@ -53,6 +53,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
             "particleNet_mass": "PNetMass",
+            "t32": "Tau3OverTau2",
         },
         "GenHiggs": P4,
         "Event": {
@@ -64,7 +65,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "nPU",
         },
         "Other": {
-            # "MET_pt": "MET_pt",
+            "MET_pt": "MET_pt",
         },
     }
 
@@ -243,9 +244,17 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         # FatJet variables
+        fatjet_skimvars = self.skim_vars["FatJet"]
+        if year == "2018":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "TQCDb": "PNetQCDb",
+                "TQCDbb": "PNetQCDbb",
+                "TQCDothers": "PNetQCDothers",
+            }
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
-            for (var, key) in self.skim_vars["FatJet"].items()
+            for (var, key) in fatjet_skimvars.items()
         }
 
         if self._nano_version == "v12":

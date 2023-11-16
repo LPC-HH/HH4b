@@ -99,7 +99,8 @@ def bregcorr(jets: JetArray):
 
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
-    if "particleNetMD_Xbb" in fatjets.fields:
+    fatjets_fields = fatjets.fields
+    if "particleNetMD_Xbb" in fatjets_fields:
         fatjets["Txbb"] = ak.nan_to_num(
             fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
             nan=-1.0,
@@ -114,6 +115,7 @@ def get_ak8jets(fatjets: FatJetArray):
             ),
             nan=-1.0,
         )
+
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
@@ -124,6 +126,16 @@ def get_ak8jets(fatjets: FatJetArray):
         )
 
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+
+    if "ParticleNetMD_probQCDb" in fatjets_fields:
+        fatjets["TQCDb"] = fatjets.ParticleNetMD_probQCDb
+        fatjets["TQCDbb"] = fatjets.ParticleNetMD_probQCDbb
+        fatjets["TQCDothers"] = fatjets.ParticleNetMD_probQCDothers
+    else:
+        # dummy
+        fatjets["TQCDb"] = fatjets.particleNetMD_Xbb
+        fatjets["TQCDbb"] = fatjets.particleNetMD_Xbb
+        fatjets["TQCDothers"] = fatjets.particleNetMD_Xbb
 
     return fatjets
 
