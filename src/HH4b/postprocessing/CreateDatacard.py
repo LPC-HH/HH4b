@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import logging
 import pickle
+import sys
 from collections import OrderedDict
 from pathlib import Path
 
@@ -29,7 +30,9 @@ from datacardHelpers import (
 )
 from hist import Hist
 
-from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
+sys.path.append("..")
+
+from hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
 
 try:
     rl.util.install_roofit_helpers()
@@ -87,7 +90,7 @@ parser.add_argument(
     help="year",
     type=str,
     default="2022EE",
-    choices=["2022EE"],
+    choices=["2022EE", "2018"],
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
