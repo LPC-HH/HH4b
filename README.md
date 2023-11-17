@@ -199,9 +199,8 @@ for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --ta
 
 ### Create Datacard
 
-Need `root==6.22.6`, and `square_coef` branch of
-https://github.com/rkansal47/rhalphalib installed (`pip install -e . --user`
-after checking out the branch).
+Need `root==6.22.6`, and https://github.com/rkansal47/rhalphalib installed (see
+[below](#cmssw--combine-quickstart) for how to install both).
 
 ```bash
 python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
@@ -220,6 +219,10 @@ git clone -b regex-float-parameters https://github.com/rkansal47/HiggsAnalysis-C
 git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 # Important: this scram has to be run from src dir
 scramv1 b clean; scramv1 b
+# rhalphalib to create the datacards:
+git clone https://github.com/rkansal47/rhalphalib
+cd rhalphalib
+pip install -e .  # editable installation
 ```
 
 I also add the combine folder to my PATH in my .bashrc for convenience:
