@@ -692,6 +692,7 @@ def mesh2d(
     ybins: ArrayLike,
     vals: ArrayLike,
     year: str,
+    print_vals: bool = True,
     vmax: float = 1,
     ax: plt.axis.Axes = None,
     title: str = None,
@@ -712,18 +713,19 @@ def mesh2d(
         in_ax = True
 
     mesh = ax.pcolormesh(xbins, ybins, vals.T, cmap="turbo", vmin=0, vmax=vmax)
-    for i in range(len(ybins) - 1):
-        for j in range(len(xbins) - 1):
-            if not math.isnan(vals[j, i]):
-                ax.text(
-                    (xbins[j] + xbins[j + 1]) / 2,
-                    (ybins[i] + ybins[i + 1]) / 2,
-                    vals[j, i].round(2),
-                    color="black" if 0.1 * vmax < vals[j, i] < 0.9 * vmax else "white",
-                    ha="center",
-                    va="center",
-                    fontsize=fontsize,
-                )
+    if print_vals:
+        for i in range(len(ybins) - 1):
+            for j in range(len(xbins) - 1):
+                if not math.isnan(vals[j, i]):
+                    ax.text(
+                        (xbins[j] + xbins[j + 1]) / 2,
+                        (ybins[i] + ybins[i + 1]) / 2,
+                        vals[j, i].round(2),
+                        color="black" if 0.1 * vmax < vals[j, i] < 0.9 * vmax else "white",
+                        ha="center",
+                        va="center",
+                        fontsize=fontsize,
+                    )
 
     title_params = {"x": 0.35, "y": 1.005} if title_params is None else title_params
     ax.set_title(title, **title_params)
