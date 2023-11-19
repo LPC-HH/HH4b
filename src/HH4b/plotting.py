@@ -456,7 +456,7 @@ def ratioHistPlot(
     plot_significance: bool = False,
     significance_dir: str = "right",
     axrax: tuple | None = None,
-    energy: str = "13.6"
+    energy: str = "13.6",
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
