@@ -7,6 +7,7 @@ from coffea.nanoevents.methods.nanoaod import (
     FatJetArray,
     JetArray,
     MuonArray,
+    TauArray,
 )
 
 from .corrections import get_jetveto
@@ -67,13 +68,29 @@ def veto_electrons(electrons: ElectronArray):
     return sel
 
 
+def loose_taus(taus: TauArray):
+    sel = (
+        (taus.pt > 20)
+        & (abs(taus.eta) <= 2.5)
+        & (taus.idDeepTau2017v2p1VSe >= 2)
+        & (taus.idDeepTau2017v2p1VSmu >= 2)
+        & (taus.idDeepTau2017v2p1VSjet >= 8)
+    )
+    return sel
+
+
 # ak4 jet definition
 def good_ak4jets(jets: JetArray, year: str, run: np.ndarray, isData: bool):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
+
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
     sel = (jets.isTight) & (abs(jets.eta) < 4.7)
+
+    if year == "2018":
+        pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
+        sel = sel & pu_id
 
     if year == "2022" or year == "2022EE":
         jet_veto = get_jetveto(jets, year, run, isData)
@@ -115,7 +132,7 @@ def get_ak8jets(fatjets: FatJetArray):
             ),
             nan=-1.0,
         )
-
+        fatjets["Tqcd"] = fatjets.particleNetMD_QCD
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
@@ -124,6 +141,8 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["particleNet_massraw"] = (
             (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
         )
+        # dummy
+        fatjets["Tqcd"] = fatjets.particleNet_XbbVsQCD
 
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
 
