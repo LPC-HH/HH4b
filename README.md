@@ -1,7 +1,23 @@
 # HH4b
 
+[![Actions Status][actions-badge]][actions-link]
 [![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/LPC-HH/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/LPC-HH/HH4b/main)
+
+<!-- prettier-ignore-start -->
+[actions-badge]:            https://github.com/LPC-HH/HH4b/workflows/CI/badge.svg
+[actions-link]:             https://github.com/LPC-HH/HH4b/actions
+[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/HH4b
+[conda-link]:               https://github.com/conda-forge/HH4b-feedstock
+[github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
+[github-discussions-link]:  https://github.com/LPC-HH/HH4b/discussions
+[pypi-link]:                https://pypi.org/project/HH4b/
+[pypi-platforms]:           https://img.shields.io/pypi/pyversions/HH4b
+[pypi-version]:             https://img.shields.io/pypi/v/HH4b
+[rtd-badge]:                https://readthedocs.org/projects/HH4b/badge/?version=latest
+[rtd-link]:                 https://HH4b.readthedocs.io/en/latest/?badge=latest
+
+<!-- prettier-ignore-end -->
 
 <p align="left">
   <img width="300" src="https://raw.githubusercontent.com/LPC-HH/HH4b/main/figure.png" />
