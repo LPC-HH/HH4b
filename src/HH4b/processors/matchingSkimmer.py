@@ -18,7 +18,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 from . import objects
 from .common import LUMI
 from .GenSelection import gen_selection_HHbbbb
-from .utils import P4, add_selection, dump_table, pad_val, to_pandas
+from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
@@ -51,9 +51,15 @@ class matchingSkimmer(processor.ProcessorABC):
             "msoftdrop": "Msd",
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
+            "Tqcd": "PNetQCD",
             "particleNet_mass": "PNetMass",
         },
         "GenJet": P4,
+        "Lepton": P4,
+        "Tau": P4,
+        "Other": {
+            "MET_pt": "MET_pt",
+        },
     }
 
     # compute possible jet assignments lookup table
@@ -129,27 +135,37 @@ class matchingSkimmer(processor.ProcessorABC):
         if year == "2018":
             veto_muon_sel = objects.veto_muons_run2(events.Muon)
             veto_electron_sel = objects.veto_electrons_run2(events.Electron)
+            veto_muons = events.Muon[veto_muon_sel]
+            veto_electrons = events.Electron[veto_electron_sel]
         else:
             veto_muon_sel = objects.veto_muons(events.Muon)
             veto_electron_sel = objects.veto_electrons(events.Electron)
+            veto_muons = events.Muon[veto_muon_sel]
+            veto_electrons = events.Electron[veto_electron_sel]
+
+        loose_taus = events.Tau[objects.loose_taus(events.Tau)]
 
         print("Before jets ", f"{time.time() - start:.2f}")
 
         jets = events.Jet
         jets = jets[objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)]
+        central_jets_sel = np.abs(jets.eta) < 2.5
+        central_jets = jets[central_jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
         print("Before fatjets ", f"{time.time() - start:.2f}")
 
         fatjets = objects.get_ak8jets(events.FatJet)
-        fatjets = fatjets[objects.good_ak8jets(fatjets)]
+        fatjets_sel = objects.good_ak8jets(fatjets)
+        fatjets = fatjets[fatjets_sel]
         fatjets = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
 
         print("Before outside ", f"{time.time() - start:.2f}")
 
         # get jets outside the leading fj (in bb)
         leading_fj = ak.firsts(fatjets)
-        jets_outside_fj = jets[jets.delta_r(leading_fj) > 0.8]
+        outside_fj_sel = central_jets.delta_r(leading_fj) > 0.8
+        jets_outside_fj = central_jets[outside_fj_sel]
         jets_outside_fj = jets_outside_fj[
             ak.argsort(jets_outside_fj["btagDeepFlavB"], ascending=False)
         ]
@@ -175,6 +191,10 @@ class matchingSkimmer(processor.ProcessorABC):
         #########################
         skimmed_events = {}
         skimmed_events["ht"] = ht.to_numpy()
+        skimmed_events["nCentralJets"] = ak.sum(central_jets_sel, axis=1).to_numpy()
+        skimmed_events["nOutsideJets"] = ak.sum(outside_fj_sel, axis=1).to_numpy()
+        skimmed_events["nFatJets"] = ak.sum(fatjets_sel, axis=1).to_numpy()
+        skimmed_events["vbf_selection"] = vbf_selection.to_numpy()
 
         # HLT variables
         HLTs = {
@@ -207,27 +227,32 @@ class matchingSkimmer(processor.ProcessorABC):
         }
 
         # Jet variables
-        num_jets = 6
+        # num_jets = 6
+        num_jets = 10
         jet_vars = {**self.skim_vars["Jet"], **btag_vars}
         ak4JetVars = {
-            f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1) for (var, key) in jet_vars.items()
+            f"ak4Jet{key}": pad_val(jets[var], num_jets, value=PAD_VAL, axis=1)
+            for (var, key) in jet_vars.items()
         }
         ak4JetVarsOutsideFJ = {
-            f"ak4JetOutside{key}": pad_val(jets_outside_fj[var], num_jets, axis=1)
+            f"ak4JetOutside{key}": pad_val(jets_outside_fj[var], num_jets, value=PAD_VAL, axis=1)
             for (var, key) in jet_vars.items()
         }
         for var, key in P4.items():
-            ak4JetVars[f"ak4Jet{key}"] = pad_val(getattr(jets_p4, var), num_jets, axis=1)
+            ak4JetVars[f"ak4Jet{key}"] = pad_val(
+                getattr(jets_p4, var), num_jets, value=PAD_VAL, axis=1
+            )
             ak4JetVarsOutsideFJ[f"ak4JetOutside{key}"] = pad_val(
-                getattr(jets_p4_outside_fj, var), num_jets, axis=1
+                getattr(jets_p4_outside_fj, var), num_jets, value=PAD_VAL, axis=1
             )
 
         print("AK4Vars", f"{time.time() - start:.2f}")
 
         # FatJet variables
-        num_fatjets = 2
+        # num_fatjets = 2
+        num_fatjets = 3
         ak8FatJetVars = {
-            f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
+            f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, value=PAD_VAL, axis=1)
             for (var, key) in self.skim_vars["FatJet"].items()
         }
 
@@ -238,7 +263,7 @@ class matchingSkimmer(processor.ProcessorABC):
             # **self.getJetAssignmentVars(ak4JetVarsOutsideFJ, name="ak4JetOutside", method="chi2"),
         }
 
-        # gen variables
+        # GenMatching variables
         for d in gen_selection_dict:
             if d in dataset:
                 vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
@@ -257,12 +282,35 @@ class matchingSkimmer(processor.ProcessorABC):
             }
         """
 
+        # Other variables
+        num_leptons = 2
+        leptonVars = {}
+        veto_leptons_pt = ak.concatenate([veto_electrons.pt, veto_muons.pt], axis=1)
+        for var, key in self.skim_vars["Lepton"].items():
+            veto_leptons_var = ak.concatenate([veto_electrons[var], veto_muons[var]], axis=1)
+            veto_leptons_var = veto_leptons_var[ak.argsort(veto_leptons_pt, ascending=False)]
+            leptonVars[f"Lepton{key}"] = pad_val(veto_leptons_var, num_leptons, value=0, axis=1)
+
+        num_taus = 2
+        tauVars = {
+            f"tau{key}": pad_val(loose_taus[var], num_taus, value=0, axis=1)
+            for (var, key) in self.skim_vars["Tau"].items()
+        }
+
+        otherVars = {
+            key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
+            for (var, key) in self.skim_vars["Other"].items()
+        }
+
         skimmed_events = {
             **skimmed_events,
             **HLTVars,
             **ak4JetVars,
             **ak8FatJetVars,
             **ak4GenJetVars,
+            **leptonVars,
+            **tauVars,
+            **otherVars,
         }
 
         print("Vars", f"{time.time() - start:.2f}")
@@ -304,10 +352,6 @@ class matchingSkimmer(processor.ProcessorABC):
                 metfilters = metfilters & events.Flag[mf]
         add_selection("met_filters", metfilters, *selection_args)
 
-        # require at least one ak8 jet with PNscore > 0.8
-        # add_selection("1ak8_pt", np.any(fatjets.pt > 300, axis=1), *selection_args)
-        # add_selection("1ak8_xbb", np.any(fatjets.Txbb > 0.8, axis=1), *selection_args)
-
         # require one good ak8 jet
         add_selection("1ak8_pt", leading_fj.pt > 300, *selection_args)
         add_selection("1ak8_mass", leading_fj.particleNet_mass > 60, *selection_args)
@@ -316,21 +360,21 @@ class matchingSkimmer(processor.ProcessorABC):
         # require at least two ak4 jets with Medium DeepJetM score
         # DeepJetM (0.2783 for 2018)
         # PNetAK4M (0.2605 for 2022EE)
-        nbjets_deepjet = ak.sum(jets.btagDeepFlavB > 0.2783, axis=1)
+        nbjets_deepjet = ak.sum(central_jets.btagDeepFlavB > 0.2783, axis=1)
         nbjets_sel = nbjets_deepjet >= 2
         # if self._nano_version == "v9_private":
         #    nbjets_pnet = ak.sum(jets.
         add_selection("2ak4_b", nbjets_sel, *selection_args)
 
         # veto leptons
-        add_selection(
-            "0lep",
-            (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
-            *selection_args,
-        )
+        # add_selection(
+        #     "0lep",
+        #     (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
+        #     *selection_args,
+        # )
 
         # veto events with VBF jets
-        add_selection("vbf_veto", ~(vbf_selection), *selection_args)
+        # add_selection("vbf_veto", ~(vbf_selection), *selection_args)
 
         """
         HLT_triggered = np.zeros(len(events), dtype="bool")

@@ -206,6 +206,12 @@ Need `root==6.22.6`, and https://github.com/rkansal47/rhalphalib installed (see
 python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
 ```
 
+e.g.
+
+```
+python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2018-cutbased --year 2018
+```
+
 ## Combine
 
 ### CMSSW + Combine Quickstart

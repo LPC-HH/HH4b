@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import dataclass, field
 
 import hist
 import numpy as np
 from hist import Hist
 
-from HH4b.hh_vars import years as all_years
+sys.path.append("..")
+
+all_years = ["2022", "2022EE"]
 
 #################################################
 # Common
