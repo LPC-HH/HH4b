@@ -16,7 +16,7 @@
 #
 # Specify seed with --seed (default 42) and number of toys with --numtoys (default 100)
 #
-# Usage ./run_blinded.sh [-wblsdgt] [--numtoys 100] [--seed 42]
+# Usage ./run_blinded_hh4b.sh [-wblsdgt] [--numtoys 100] [--seed 42]
 #
 # Author: Raghav Kansal
 ####################################################################################################
@@ -156,7 +156,6 @@ unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*} --set
 
 # excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
 
-
 echo "mask args:"
 echo "$maskblindedargs"
 
@@ -179,7 +178,8 @@ ulimit -s unlimited
 
 if [ $workspace = 1 ]; then
     echo "Combining cards"
-    combineCards.py "$ccargs" > $ws.txt
+    # shellcheck disable=SC2086
+    combineCards.py $ccargs > $ws.txt
 
     echo "Running text2workspace"
     # text2workspace.py -D $dataset $ws.txt --channel-masks -o $wsm.root 2>&1 | tee $outsdir/text2workspace.txt

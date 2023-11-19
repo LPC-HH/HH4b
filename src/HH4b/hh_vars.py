@@ -48,14 +48,8 @@ common_samples = {
         "WZ",
     ],
     "vjets": [
-        "Wto2Q-3Jets_HT-200to400",
-        "Wto2Q-3Jets_HT-400to600",
-        "Wto2Q-3Jets_HT-600to800",
-        "Wto2Q-3Jets_HT-800",
-        "Zto2Q-4Jets_HT-200to400",
-        "Zto2Q-4Jets_HT-400to600",
-        "Zto2Q-4Jets_HT-600to800",
-        "Zto2Q-4Jets_HT-800",
+        "Wto2Q-3Jets_HT",
+        "Zto2Q-4Jets_HT",
     ],
 }
 

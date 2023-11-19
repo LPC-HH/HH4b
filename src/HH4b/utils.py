@@ -37,6 +37,7 @@ class ShapeVar:
         blind_window (List[int], optional): if blinding, set min and max values to set 0. Defaults to None.
         significance_dir (str, optional): if plotting significance, which direction to plot it in.
           See more in plotting.py:ratioHistPlot(). Options are ["left", "right", "bin"]. Defaults to "right".
+        plot_args (dict, optional): dictionary of arguments for plotting. Defaults to None.
     """
 
     var: str = None
@@ -45,13 +46,17 @@ class ShapeVar:
     reg: bool = True
     blind_window: list[int] = None
     significance_dir: str = "right"
+    plot_args: dict = None
 
     def __post_init__(self):
         # create axis used for histogramming
-        if self.reg:
-            self.axis = hist.axis.Regular(*self.bins, name=self.var, label=self.label)
+        if self.bins is not None:
+            if self.reg:
+                self.axis = hist.axis.Regular(*self.bins, name=self.var, label=self.label)
+            else:
+                self.axis = hist.axis.Variable(self.bins, name=self.var, label=self.label)
         else:
-            self.axis = hist.axis.Variable(self.bins, name=self.var, label=self.label)
+            self.axis = None
 
 
 @contextlib.contextmanager
@@ -692,6 +697,7 @@ def merge_dictionaries(dict1, dict2):
 
 
 # from https://gist.github.com/kdlong/d697ee691c696724fc656186c25f8814
+# temp function until something is merged into hist https://github.com/scikit-hep/hist/issues/345
 def rebin_hist(h, axis_name, edges):
     if isinstance(edges, int):
         return h[{axis_name: hist.rebin(edges)}]
@@ -742,4 +748,27 @@ def rebin_hist(h, axis_name, edges):
         hnew.variances(flow=flow)[...] = np.add.reduceat(
             h.variances(flow=flow), edge_idx, axis=ax_idx
         ).take(indices=range(new_ax.size + underflow + overflow), axis=ax_idx)
+
     return hnew
+
+
+def remove_hist_overflow(h: Hist):
+    hnew = Hist(*h.axes, name=h.name, storage=h._storage_type())
+    hnew.values()[...] = h.values()
+    return hnew
+
+
+def multi_rebin_hist(h: Hist, axes_edges: dict[str, list[float]], flow: bool = True) -> Hist:
+    """Wrapper around rebin_hist to rebin multiple axes at a time.
+
+    Args:
+        h (Hist): Hist to rebin
+        axes_edges (dict[str, list[float]]): dictionary of {axis: edges}
+    """
+    for axis_name, edges in axes_edges.items():
+        h = rebin_hist(h, axis_name, edges)
+
+    if not flow:
+        h = remove_hist_overflow(h)
+
+    return h
