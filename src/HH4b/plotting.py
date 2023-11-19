@@ -608,7 +608,7 @@ def ratioHistPlot(
             color="black",
             capsize=4,
         )
-        print(hists[data_key, :] / (bg_tot.values() + 1e-5))
+        # print(hists[data_key, :] / (bg_tot.values() + 1e-5))
     else:
         rax.set_xlabel(hists.axes[1].label)
 
