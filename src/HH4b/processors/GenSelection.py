@@ -181,8 +181,8 @@ def gen_selection_Hbb(
     # match fatjets to bb
     # bs_unflat = higgs_children[is_bb]
     # num_b_matched = ak.sum(fatjets.metric_table(bs_unflat) < 0.8, axis=2)
-    b_h1 = higgs_children[is_bb][:, 0]
-    b_h2 = higgs_children[is_bb][:, 1]
+    b_h1 = ak.firsts(higgs_children[is_bb][:, 0:1])
+    b_h2 = ak.firsts(higgs_children[is_bb][:, 1:2])
     matched_to_higgs = fatjets.metric_table(higgs) < 0.8
     is_fatjet_matched = ak.any(matched_to_higgs, axis=2)
 

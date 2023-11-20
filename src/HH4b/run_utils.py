@@ -101,7 +101,9 @@ def get_processor(
         from HH4b.processors import matchingSkimmer
 
         print(apply_selection)
-        return matchingSkimmer(xsecs=xsecs, apply_selection=apply_selection)
+        return matchingSkimmer(
+            xsecs=xsecs, apply_selection=apply_selection, nano_version=nano_version
+        )
 
     if processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
@@ -131,7 +133,7 @@ def parse_common_args(parser):
         "--nano-version",
         type=str,
         required=True,
-        choices=["v9", "v10", "v11", "v11_private", "v12"],
+        choices=["v9", "v9_private", "v9_privatepfnano", "v10", "v11", "v11_private", "v12"],
         help="NanoAOD version",
     )
     parser.add_argument(

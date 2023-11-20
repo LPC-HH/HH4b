@@ -53,6 +53,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
             "particleNet_mass": "PNetMass",
+            "t32": "Tau3OverTau2",
         },
         "GenHiggs": P4,
         "Event": {
@@ -64,7 +65,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "nPU",
         },
         "Other": {
-            # "MET_pt": "MET_pt",
+            "MET_pt": "MET_pt",
         },
     }
 
@@ -105,7 +106,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     #
                     "PFHT1050",
                     #
-                    "AK8PFJet330_TrimMass30_PFAK8BTagCSV_p17_v",
+                    "AK8PFJet330_TrimMass30_PFAK8BTagCSV_p17",
                 ],
                 "2022": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -197,9 +198,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print("ak4 JECs", f"{time.time() - start:.2f}")
         jets_sel = objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)
-        print("ak4 Jets", f"{time.time() - start:.2f}")
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
@@ -223,7 +222,15 @@ class bbbbSkimmer(processor.ProcessorABC):
         fatjets_sel = objects.good_ak8jets(fatjets)
         print("good ak8 jets", f"{time.time() - start:.2f}")
         fatjets = fatjets[fatjets_sel]
+        fatjet_0 = ak.firsts(fatjets)
 
+        # similar to run 2 selection
+        vbf_jets = jets[(jets.pt > 25) & (jets.delta_r(fatjet_0) > 1.2)]
+        vbf_jet_0 = vbf_jets[:, 0:1]
+        vbf_jet_1 = vbf_jets[:, 1:2]
+        vbf_mass = (ak.firsts(vbf_jet_0) + ak.firsts(vbf_jet_1)).mass
+        vbf_deta = abs(ak.firsts(vbf_jet_0).eta - ak.firsts(vbf_jet_1).eta)
+        vbf_selection = (vbf_mass > 500) & (vbf_deta > 4.0)
         # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         #########################
@@ -244,9 +251,17 @@ class bbbbSkimmer(processor.ProcessorABC):
         }
 
         # FatJet variables
+        fatjet_skimvars = self.skim_vars["FatJet"]
+        if year == "2018":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "TQCDb": "PNetQCDb",
+                "TQCDbb": "PNetQCDbb",
+                "TQCDothers": "PNetQCDothers",
+            }
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
-            for (var, key) in self.skim_vars["FatJet"].items()
+            for (var, key) in fatjet_skimvars.items()
         }
 
         if self._nano_version == "v12":
@@ -432,6 +447,9 @@ class bbbbSkimmer(processor.ProcessorABC):
         # Txbb pre-selection cut
         # txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
         # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
+
+        # VBF veto cut
+        add_selection("vbf_veto", ~(vbf_selection), *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
