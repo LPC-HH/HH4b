@@ -167,8 +167,11 @@ outfiles
 plots
 cards
 docker_stderror
-*.jdl
-*.sh
-*.err
-*.out
-*.log
+/*.jdl
+/*.sh
+/*.err
+/*.out
+/*.log
+/condor
+
+running_jobs.txt

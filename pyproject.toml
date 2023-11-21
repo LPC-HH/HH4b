@@ -29,7 +29,9 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+  "cloudpickle >= 3",
+]
 
 [project.optional-dependencies]
 test = [
@@ -141,6 +143,7 @@ ignore = [
   "G004",
   "E722",   # bare except
   "RUF005", # iterable unpacking
+  "RUF013", # implicit 'Optional' type
   "F811",   # redefinition of unused variable
   "PGH001", # eval
   "RET503",

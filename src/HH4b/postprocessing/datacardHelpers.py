@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 
 import hist
 import numpy as np
-from hh_vars import years as all_years
 from hist import Hist
+
+from HH4b.hh_vars import years as all_years
 
 #################################################
 # Common

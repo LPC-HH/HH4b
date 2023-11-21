@@ -279,6 +279,7 @@ def get_templates(
         )
 
         if template_dir != "":
+            cf = cf.round(2)
             cf.to_csv(f"{template_dir}/cutflows/{year}/{rname}_cutflow{jlabel}.csv")
 
         # # TODO: trigger uncertainties
@@ -326,7 +327,6 @@ def get_templates(
             events = sig_events[sample] if sample in sig_keys else events_dict[sample][sel[sample]]
             if not len(events):
                 continue
-
             bb_mask = bb_masks[sample][sel[sample]]
             fill_data = _get_fill_data(
                 events, bb_mask, shape_vars, jshift=jshift if sample != data_key else None

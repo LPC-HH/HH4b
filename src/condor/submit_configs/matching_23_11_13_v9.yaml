@@ -1,0 +1,13 @@
+{
+    "2018": {
+        "JetHT": {
+            "files_per_job": 50
+        },
+        "TT": {"files_per_job": 80},
+        "Diboson": {"files_per_job": 50},
+        "HH": {"files_per_job": 40},
+        "Hbb": {"files_per_job": 40},
+        "VJets": {"files_per_job": 40},
+        "QCD": {"files_per_job": 40},
+    },
+}
