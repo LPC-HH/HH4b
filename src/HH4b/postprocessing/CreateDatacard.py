@@ -7,20 +7,29 @@ Based on https://github.com/rkansal47/HHbbVV/blob/main/src/HHbbVV/postprocessing
 
 Authors: Raghav Kansal
 """
+from __future__ import annotations
 
-
-import os, sys
-from typing import Dict, List, Tuple, Union
+# from utils import add_bool_arg
+import argparse
+import logging
+import pickle
+from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
-import pickle, json
-import logging
-from collections import OrderedDict
-
-import hist
+import rhalphalib as rl
+from datacardHelpers import (
+    ShapeVar,
+    Syst,
+    add_bool_arg,
+    combine_templates,
+    get_effect_updown,
+    rem_neg,
+    sum_templates,
+)
 from hist import Hist
 
-import rhalphalib as rl
+from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
 
 try:
     rl.util.install_roofit_helpers()
@@ -31,22 +40,6 @@ except:
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 adjust_posdef_yields = False
-
-# from utils import add_bool_arg
-from hh_vars import LUMI, samples, data_key, qcd_key, sig_keys_ggf, sig_keys_vbf, jecs, jmsr
-import utils
-import datacardHelpers as helpers
-from datacardHelpers import (
-    Syst,
-    ShapeVar,
-    add_bool_arg,
-    rem_neg,
-    sum_templates,
-    combine_templates,
-    get_effect_updown,
-)
-
-import argparse
 
 
 parser = argparse.ArgumentParser()
@@ -94,7 +87,7 @@ parser.add_argument(
     help="year",
     type=str,
     default="2022EE",
-    choices=["2022EE"],
+    choices=["2022EE", "2018"],
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
@@ -236,29 +229,30 @@ for skey, syst in uncorr_year_shape_systs.items():
 
 def get_templates(
     templates_dir: str,
-    years: List[str],
+    years: list[str],
     sig_separate: bool,
-    scale: float = None,
-    combine_lasttwo: bool = False,
+    scale: float | None = None,
 ):
     """Loads templates, combines bg and sig templates if separate, sums across all years"""
-    templates_dict: Dict[str, Dict[str, Hist]] = {}
+    templates_dict: dict[str, dict[str, Hist]] = {}
 
     if not sig_separate:
         # signal and background templates in same hist, just need to load and sum across years
         for year in years:
-            with open(f"{templates_dir}/{year}_templates.pkl", "rb") as f:
+            with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
-            with open(f"{templates_dir}/backgrounds/{year}_templates.pkl", "rb") as f:
+            with Path(f"{templates_dir}/backgrounds/{year}_templates.pkl").open("rb") as f:
                 bg_templates = rem_neg(pickle.load(f))
 
             sig_templates = []
 
             for sig_key in sig_keys:
-                with open(f"{templates_dir}/{hist_names[sig_key]}/{year}_templates.pkl", "rb") as f:
+                with Path(f"{templates_dir}/{hist_names[sig_key]}/{year}_templates.pkl").open(
+                    "rb"
+                ) as f:
                     sig_templates.append(rem_neg(pickle.load(f)))
 
             templates_dict[year] = combine_templates(bg_templates, sig_templates)
@@ -268,7 +262,7 @@ def get_templates(
             for key in templates_dict[year]:
                 templates_dict[year][key] = templates_dict[year][key] * scale
 
-    templates_summed: Dict[str, Hist] = sum_templates(templates_dict, years)  # sum across years
+    templates_summed: dict[str, Hist] = sum_templates(templates_dict, years)  # sum across years
     return templates_dict, templates_summed
 
 
@@ -301,15 +295,15 @@ def get_year_updown(templates_dict, sample, region, region_noblinded, blind_str,
 
 def fill_regions(
     model: rl.Model,
-    regions: List[str],
-    templates_dict: Dict,
-    templates_summed: Dict,
-    mc_samples: Dict[str, str],
-    nuisance_params: Dict[str, Syst],
-    nuisance_params_dict: Dict[str, rl.NuisanceParameter],
-    corr_year_shape_systs: Dict[str, Syst],
-    uncorr_year_shape_systs: Dict[str, Syst],
-    shape_systs_dict: Dict[str, rl.NuisanceParameter],
+    regions: list[str],
+    templates_dict: dict,
+    templates_summed: dict,
+    mc_samples: dict[str, str],
+    nuisance_params: dict[str, Syst],
+    nuisance_params_dict: dict[str, rl.NuisanceParameter],
+    corr_year_shape_systs: dict[str, Syst],
+    uncorr_year_shape_systs: dict[str, Syst],
+    shape_systs_dict: dict[str, rl.NuisanceParameter],
     bblite: bool = True,
 ):
     """Fill samples per region including given rate, shape and mcstats systematics.
@@ -348,10 +342,9 @@ def fill_regions(
 
         for sample_name, card_name in mc_samples.items():
             # don't add signals in fail regions
-            if sample_name in sig_keys:
-                if not pass_region:
-                    logging.info(f"\nSkipping {sample_name} in {region} region\n")
-                    continue
+            if sample_name in sig_keys and not pass_region:
+                logging.info(f"\nSkipping {sample_name} in {region} region\n")
+                continue
 
             logging.info("get templates for: %s" % sample_name)
 
@@ -374,12 +367,12 @@ def fill_regions(
                 1.0 + np.sqrt(sample_template.variances()[mask]) / values_nominal[mask]
             )
 
-            logging.debug("nominal   : {nominal}".format(nominal=values_nominal))
-            logging.debug("error     : {errors}".format(errors=errors_nominal))
+            logging.debug(f"nominal   : {values_nominal}")
+            logging.debug(f"error     : {errors_nominal}")
 
             if not bblite and args.mcstats:
                 # set mc stat uncs
-                logging.info("setting autoMCStats for %s in %s" % (sample_name, region))
+                logging.info(f"setting autoMCStats for {sample_name} in {region}")
 
                 # tie MC stats parameters together in blinded and "unblinded" region
                 stats_sample_name = f"{CMS_PARAMS_LABEL}_{region}_{card_name}"
@@ -432,9 +425,7 @@ def fill_regions(
                     values_up = region_templates[f"{sample_name}_{skey}_up", :].values()
                     values_down = region_templates[f"{sample_name}_{skey}_down", :].values()
 
-                logger = logging.getLogger(
-                    "validate_shapes_{}_{}_{}".format(region, sample_name, skey)
-                )
+                logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                 effect_up, effect_down = get_effect_updown(
                     values_nominal, values_up, values_down, mask, logger, args.epsilon
@@ -461,9 +452,7 @@ def fill_regions(
                         year,
                         skey,
                     )
-                    logger = logging.getLogger(
-                        "validate_shapes_{}_{}_{}".format(region, sample_name, skey)
-                    )
+                    logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                     effect_up, effect_down = get_effect_updown(
                         values_nominal, values_up, values_down, mask, logger, args.epsilon
@@ -489,18 +478,18 @@ def fill_regions(
 
 def alphabet_fit(
     model: rl.Model,
-    shape_vars: List[ShapeVar],
-    templates_summed: Dict,
-    scale: float = None,
-    min_qcd_val: float = None,
+    shape_vars: list[ShapeVar],
+    templates_summed: dict,
+    scale: float | None = None,
+    min_qcd_val: float | None = None,
 ):
     shape_var = shape_vars[0]
     m_obs = rl.Observable(shape_var.name, shape_var.bins)
 
     # QCD overall pass / fail efficiency
     qcd_eff = (
-        templates_summed[f"pass"][qcd_key, :].sum().value
-        / templates_summed[f"fail"][qcd_key, :].sum().value
+        templates_summed["pass"][qcd_key, :].sum().value
+        / templates_summed["fail"][qcd_key, :].sum().value
     )
 
     # transfer factor
@@ -526,9 +515,6 @@ def alphabet_fit(
     for blind_str in ["", "MCBlinded"]:
         passChName = f"pass{blind_str}".replace("_", "")
         failChName = f"fail{blind_str}".replace("_", "")
-        logging.info(
-            "setting transfer factor for pass region %s, fail region %s" % (passChName, failChName)
-        )
         failCh = model[failChName]
         passCh = model[passChName]
 
@@ -578,8 +564,8 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
-    regions: List[str] = [
-        f"{pf}{blind_str}" for pf in [f"pass", "fail"] for blind_str in ["", "MCBlinded"]
+    regions: list[str] = [
+        f"{pf}{blind_str}" for pf in ["pass", "fail"] for blind_str in ["", "MCBlinded"]
     ]
 
     # build actual fit model now
@@ -612,13 +598,11 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     logging.info("rendering combine model")
 
     out_dir = (
-        os.path.join(str(args.cards_dir), args.model_name)
-        if args.model_name is not None
-        else args.cards_dir
+        Path(args.cards_dir) / args.model_name if args.model_name is not None else args.cards_dir
     )
     model.renderCombine(out_dir)
 
-    with open(f"{out_dir}/model.pkl", "wb") as fout:
+    with Path(f"{out_dir}/model.pkl").open("wb") as fout:
         pickle.dump(model, fout, 2)  # use python 2 compatible protocol
 
 
@@ -632,7 +616,7 @@ def main(args):
     # process_systematics(args.templates_dir, args.sig_separate)
 
     # random template from which to extract shape vars
-    sample_templates: Hist = templates_summed[list(templates_summed.keys())[0]]
+    sample_templates: Hist = templates_summed[next(iter(templates_summed.keys()))]
 
     # [mH(bb)]
     shape_vars = [
@@ -640,7 +624,7 @@ def main(args):
         for _, axis in enumerate(sample_templates.axes[1:])
     ]
 
-    os.makedirs(args.cards_dir, exist_ok=True)
+    Path(args.cards_dir).mkdir(parents=True, exist_ok=True)
     createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars)
 
 

@@ -1,27 +1,30 @@
+from __future__ import annotations
+
+import logging
+import warnings
 from collections import OrderedDict
-from typing import Dict
-import pandas as pd
+
 import awkward as ak
 import numpy as np
-import os
-
 from coffea import processor
 from coffea.analysis_tools import PackedSelection
 from hist import Hist
 
-from .utils import add_selection, P4, pad_val
-from .objects import get_ak8jets, good_ak4jets
 from .corrections import (
     get_jec_jets,
     get_jetveto_event,
 )
-
-import warnings
+from .GenSelection import gen_selection_HHbbbb, gen_selection_HHbbbb_simplified
+from .objects import get_ak8jets, good_ak4jets
+from .utils import P4, add_selection, dump_table, pad_val, to_pandas
 
 warnings.filterwarnings("ignore", message="invalid value encountered in divide")
 
-
-import logging
+# mapping samples to the appropriate function for doing gen-level selections
+gen_selection_dict = {
+    "GluGlutoHHto4B": gen_selection_HHbbbb,
+    "VBFHHto4B": gen_selection_HHbbbb_simplified,
+}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -46,7 +49,7 @@ logger.setLevel(logging.INFO)
 
 
 class TriggerProcessor(processor.ProcessorABC):
-    HLTs = {
+    HLTs = {  # noqa: RUF012
         "2022": [
             "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
             "PFHT1050",
@@ -99,7 +102,7 @@ class TriggerProcessor(processor.ProcessorABC):
     }
 
     # https://twiki.cern.ch/twiki/bin/view/CMS/MuonHLT2022
-    muon_HLTs = {
+    muon_HLTs = {  # noqa: RUF012
         "2022": [
             "IsoMu24",
             "Mu50",
@@ -116,7 +119,7 @@ class TriggerProcessor(processor.ProcessorABC):
         ],
     }
 
-    L1s = {
+    L1s = {  # noqa: RUF012
         "2022": [
             "Mu6_HTT240er",  # un-prescaled
             "QuadJet60er2p5",
@@ -158,7 +161,7 @@ class TriggerProcessor(processor.ProcessorABC):
     ### hltAK8PFJets250SoftDropMass40
     #  hltAK8SinglePFJets250SoftDropMass40BTagParticleNetBB0p35
 
-    triggerObj_bits = {
+    triggerObj_bits = {  # noqa: RUF012
         "hlt4PixelOnlyPFCentralJetTightIDPt20": 0,  # 4 jets, jetForthHighestPt_pt
         "hlt3PixelOnlyPFCentralJetTightIDPt30": 1,  # 3 jets, jetThirdHighestPt_pt
         "hlt2PixelOnlyPFCentralJetTightIDPt40": 6,  # 2 jets, jetSecondHighestPt_pt
@@ -180,39 +183,11 @@ class TriggerProcessor(processor.ProcessorABC):
     def __init__(self):
         pass
 
-    def to_pandas(self, events: Dict[str, np.array]):
-        """
-        Convert our dictionary of numpy arrays into a pandas data frame
-        Uses multi-index columns for numpy arrays with >1 dimension
-        (e.g. FatJet arrays with two columns)
-        """
-        return pd.concat(
-            [pd.DataFrame(v) for k, v in events.items()],
-            axis=1,
-            keys=list(events.keys()),
-        )
-
-    def dump_table(self, pddf: pd.DataFrame, fname: str, odir_str: str = None) -> None:
-        """
-        Saves pandas dataframe events to './outparquet'
-        """
-        import pyarrow.parquet as pq
-        import pyarrow as pa
-
-        local_dir = os.path.abspath(os.path.join(".", "outparquet"))
-        if odir_str:
-            local_dir += odir_str
-        os.system(f"mkdir -p {local_dir}")
-
-        # need to write with pyarrow as pd.to_parquet doesn't support different types in
-        # multi-index column names
-        table = pa.Table.from_pandas(pddf)
-        pq.write_table(table, f"{local_dir}/{fname}")
-
 
 class BoostedTriggerSkimmer(TriggerProcessor):
-    def __init__(self, save_hist=False):
+    def __init__(self, save_hist=False, nano_version="v12"):
         super(TriggerProcessor, self).__init__()
+        self._nano_version = nano_version
 
         self.skim_vars = {
             "FatJet": {
@@ -296,7 +271,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
             for trigger in HLTs
         }
 
-        skimmed_events = {**HLT_vars, **{"run": events.run.to_numpy()}}
+        skimmed_events = {**HLT_vars, "run": events.run.to_numpy()}
 
         muons = events.Muon
         muon_selector = (
@@ -311,10 +286,17 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         # Apply JECs from JME recommendations instead of MINI/NANOAOD
         num_fatjets = 2
         fatjets = get_ak8jets(events.FatJet)
-        fatjets = get_jec_jets(
-            events, fatjets, year, isData, jecs=None, fatjets=True, applyData=True, dataset=dataset
+        fatjets, _ = get_jec_jets(
+            events,
+            fatjets,
+            year,
+            isData,
+            jecs=None,
+            fatjets=True,
+            applyData=True,
+            dataset=dataset,
+            nano_version=self._nano_version,
         )
-
         fatjet_selector = (
             (fatjets.pt > self.preselection["fatjet_pt"])
             & (np.abs(fatjets.eta) < self.preselection["fatjet_eta"])
@@ -341,7 +323,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         add_selection("ak8jet_pt_and_dR", ak.any(fatjet_selector, axis=1), *selection_args)
 
         # add ht variable
-        jets = get_jec_jets(
+        jets, _ = get_jec_jets(
             events,
             events.Jet,
             year,
@@ -350,6 +332,7 @@ class BoostedTriggerSkimmer(TriggerProcessor):
             fatjets=False,
             applyData=True,
             dataset=dataset,
+            nano_version=self._nano_version,
         )
         jets_sel = good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
@@ -390,6 +373,12 @@ class BoostedTriggerSkimmer(TriggerProcessor):
         skimmed_events = {**skimmed_events, **trigObjFatJetVars}
         """
 
+        # gen variables
+        for d in gen_selection_dict:
+            if d in dataset:
+                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4)
+                skimmed_events = {**skimmed_events, **vars_dict}
+
         # reshape and apply selections
         sel_all = selection.all(*selection.names)
 
@@ -421,19 +410,21 @@ class BoostedTriggerSkimmer(TriggerProcessor):
                 )
             return hists
 
-        else:
-            skimmed_events = {
-                key: value.reshape(len(events), -1)[sel_all]
-                for (key, value) in skimmed_events.items()
-            }
+        skimmed_events = {
+            key: value.reshape(len(events), -1)[sel_all] for (key, value) in skimmed_events.items()
+        }
+        """
+        # no selection  (for signal study)
+        skimmed_events = {
+            key: value.reshape(len(events), -1) for (key, value) in skimmed_events.items()
+        }
+        """
 
-            df = self.to_pandas(skimmed_events)
-            fname = (
-                events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-            )
-            self.dump_table(df, fname)
+        dataframe = to_pandas(skimmed_events)
+        fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
+        dump_table(dataframe, fname)
 
-            return {}
+        return {}
 
     def postprocess(self, accumulator):
         return accumulator
