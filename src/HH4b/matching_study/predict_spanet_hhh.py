@@ -1,7 +1,11 @@
-import pandas as pd
-import numpy as np
-from HH4b.utils import make_vector
+from __future__ import annotations
+
 import awkward as ak
+import numpy as np
+import pandas as pd
+
+from HH4b.utils import make_vector
+
 
 def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     """
@@ -30,7 +34,7 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
             + events.ak4JetbtagPNetProbg[i]
             + events.ak4JetbtagPNetProbuds[i]
         ).values
-        pnetb = np.array([-1.0]*nevents, dtype = float)
+        pnetb = np.array([-1.0] * nevents, dtype=float)
         pnetb[den > 0] = num[den > 0] / den[den > 0]
         df["PNetB"] = pnetb
         np_arr = df.values.T.astype(np.float32)
@@ -74,7 +78,6 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
         Jet_data[i] = np.transpose(np.transpose(Jets_arrays[f"Jet{i}"], (1, 0, 2)))
         pt = Jet_data[i][:, :, 0]
         Jet_mask[i] = pt > 20
-
 
     # FatJets
     boosted_arrays = []
@@ -146,9 +149,8 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
 
     jet_pair_dict = {}
     for i in range(1, njets):
-        jet_pair_dict[f"Jet{i}_data"] = Jet_data[i-1]
-        jet_pair_dict[f"Jet{i}_mask"] = Jet_mask[i-1]
-
+        jet_pair_dict[f"Jet{i}_data"] = Jet_data[i - 1]
+        jet_pair_dict[f"Jet{i}_mask"] = Jet_mask[i - 1]
 
     input_dict = {
         "Jets_data": Jets_data,
@@ -168,9 +170,10 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
 
     return input_dict
 
+
 def remove_elements_with_pd(h_index_char, selected_pairs):
     pairs_pd = pd.DataFrame()
-    pairs_pd["pairs_str"] = np.char.mod('%02d', selected_pairs)
+    pairs_pd["pairs_str"] = np.char.mod("%02d", selected_pairs)
     pairs_pd["jet0"] = pairs_pd["pairs_str"].str[0].astype(int)
     pairs_pd["jet1"] = pairs_pd["pairs_str"].str[1].astype(int)
 
@@ -183,10 +186,10 @@ def remove_elements_with_pd(h_index_char, selected_pairs):
         for i in range(npairings):
             x = pd.Series(h_index_char[:, 0][:, i]).astype(str)
             used = (
-                (x.str[0].astype(int) == pairs_pd["jet0"]) |
-                (x.str[1].astype(int) == pairs_pd["jet0"]) |
-                (x.str[0].astype(int) == pairs_pd["jet1"]) | 
-                (x.str[1].astype(int) == pairs_pd["jet1"])
+                (x.str[0].astype(int) == pairs_pd["jet0"])
+                | (x.str[1].astype(int) == pairs_pd["jet0"])
+                | (x.str[0].astype(int) == pairs_pd["jet1"])
+                | (x.str[1].astype(int) == pairs_pd["jet1"])
             )
             used_j.append(used.values)
         used_j = np.array(used_j).T
@@ -194,6 +197,7 @@ def remove_elements_with_pd(h_index_char, selected_pairs):
     pairs_used = np.array(pairs_used)
     pairs_used = np.transpose(pairs_used, (1, 0, 2))
     return pairs_used
+
 
 def get_maximas(assignment_prob):
     """
@@ -213,6 +217,7 @@ def get_maximas(assignment_prob):
     max_values = arr_flat[max_indices]
     return max_indices, max_values
 
+
 def get_pairs_hhh_resolved(assignment_probabilities, detection_probabilities):
     # all possible pairings for h1, h2, h3 sorted by assignment probability
     index_h1, prob_h1 = get_maximas(assignment_probabilities[0])
@@ -221,9 +226,9 @@ def get_pairs_hhh_resolved(assignment_probabilities, detection_probabilities):
     hIndex = ak.from_numpy(np.stack([index_h1, index_h2, index_h3], axis=1))
 
     # convert pairings from integer to string
-    h_index_1_char = np.char.mod('%02d', index_h1)
-    h_index_2_char = np.char.mod('%02d', index_h2)
-    h_index_3_char = np.char.mod('%02d', index_h3)
+    h_index_1_char = np.char.mod("%02d", index_h1)
+    h_index_2_char = np.char.mod("%02d", index_h2)
+    h_index_3_char = np.char.mod("%02d", index_h3)
     h_index_char = np.stack([h_index_1_char, h_index_2_char, h_index_3_char], axis=1)
 
     # detection probability for h1, h2, h3
@@ -256,20 +261,24 @@ def get_pairs_hhh_resolved(assignment_probabilities, detection_probabilities):
     higgs_3 = hIndex_wo2[hDetMax[:, 2:3]]
     higgs_3_pairs = np.array([h.to_numpy().compressed()[0] for h in higgs_3])
 
-    return higgs_1_pairs,higgs_2_pairs,higgs_3_pairs
+    return higgs_1_pairs, higgs_2_pairs, higgs_3_pairs
+
 
 def get_pairs_hhh_boosted(assignment_probabilities):
     bh1 = assignment_probabilities[0]
     bh2 = assignment_probabilities[1]
     bh3 = assignment_probabilities[2]
 
-    # SPANET creates assignment matrices keeping both AK4 and AK8 jets, so 10 + 3 
-    # for boosted assignment, we want only AK8 jets, hence I look only at elements 10,11,12 
-    boosted_h1 = (ak.from_regular(ak.from_numpy(bh1[:, 10:13])) > 0.5)
+    # SPANET creates assignment matrices keeping both AK4 and AK8 jets, so 10 + 3
+    # for boosted assignment, we want only AK8 jets, hence I look only at elements 10,11,12
+    boosted_h1 = ak.from_regular(ak.from_numpy(bh1[:, 10:13])) > 0.5
     boosted_h2 = (ak.from_regular(ak.from_numpy(bh2[:, 10:13])) > 0.5) & ~boosted_h1
-    boosted_h3 = (ak.from_regular(ak.from_numpy(bh3[:, 10:13])) > 0.5) & (~boosted_h2) & (~boosted_h1)
+    boosted_h3 = (
+        (ak.from_regular(ak.from_numpy(bh3[:, 10:13])) > 0.5) & (~boosted_h2) & (~boosted_h1)
+    )
 
-    return boosted_h1,boosted_h2,boosted_h3
+    return boosted_h1, boosted_h2, boosted_h3
+
 
 def get_pairs_hhh(output_values, events):
     # get jets
@@ -277,18 +286,24 @@ def get_pairs_hhh(output_values, events):
     jets = make_vector(events, "ak4Jet")
 
     # resolved pairs
-    higgs_1_pairs,higgs_2_pairs,higgs_3_pairs = get_pairs_hhh_resolved(output_values[0:3],output_values[6:9])
+    higgs_1_pairs, higgs_2_pairs, higgs_3_pairs = get_pairs_hhh_resolved(
+        output_values[0:3], output_values[6:9]
+    )
     resolved_higgs = np.stack([higgs_1_pairs, higgs_2_pairs, higgs_3_pairs], axis=1)
 
     # boosted jets
-    boosted_h1,boosted_h2,boosted_h3 = get_pairs_hhh_boosted(output_values[3:6])
+    boosted_h1, boosted_h2, boosted_h3 = get_pairs_hhh_boosted(output_values[3:6])
     boosted_higgs = np.stack([boosted_h1, boosted_h2, boosted_h3], axis=1)
-    is_boosted = (boosted_h1 | boosted_h2 | boosted_h3)
+    is_boosted = boosted_h1 | boosted_h2 | boosted_h3
 
     # get pairings for each higgs (3)
     # if ~is_boosted: transform pairing into string
-    higgs_reconstructed_index = ak.from_numpy(np.repeat([[0, 1, 2]], boosted_higgs.to_numpy().shape[0], axis=0))
-    higgs_reconstructed_index_fill = ak.where((boosted_h1 | boosted_h2 | boosted_h3), higgs_reconstructed_index, resolved_higgs)
+    higgs_reconstructed_index = ak.from_numpy(
+        np.repeat([[0, 1, 2]], boosted_higgs.to_numpy().shape[0], axis=0)
+    )
+    higgs_reconstructed_index_fill = ak.where(
+        (boosted_h1 | boosted_h2 | boosted_h3), higgs_reconstructed_index, resolved_higgs
+    )
 
     # get Higgs 4-vector (for resolved, this is a temporary 4-vector)
     higgs_jet_mass = ak.where(is_boosted, fatjets.mass, resolved_higgs)
@@ -298,16 +313,16 @@ def get_pairs_hhh(output_values, events):
 
     # build dataframe
     pairs_pd = pd.DataFrame()
-    for i in range(1,4):
-        pairs_pd[f"higgs_{i}_rec"] = higgs_reconstructed_index_fill[:, i-1].to_numpy()
-        pairs_pd[f"higgs_{i}_isboosted"] = is_boosted[:, i-1].to_numpy()
-        pairs_pd[f"higgs_{i}_pairs_str"] = np.char.mod('%02d', resolved_higgs[:,i-1])
+    for i in range(1, 4):
+        pairs_pd[f"higgs_{i}_rec"] = higgs_reconstructed_index_fill[:, i - 1].to_numpy()
+        pairs_pd[f"higgs_{i}_isboosted"] = is_boosted[:, i - 1].to_numpy()
+        pairs_pd[f"higgs_{i}_pairs_str"] = np.char.mod("%02d", resolved_higgs[:, i - 1])
         pairs_pd[f"higgs_{i}_jet0"] = pairs_pd[f"higgs_{i}_pairs_str"].str[0].astype(int)
         pairs_pd[f"higgs_{i}_jet1"] = pairs_pd[f"higgs_{i}_pairs_str"].str[1].astype(int)
-        pairs_pd[f"higgs_{i}_mass"] = higgs_jet_mass[:, i-1]
-        pairs_pd[f"higgs_{i}_pt"] = higgs_jet_pt[:, i-1]
-        pairs_pd[f"higgs_{i}_eta"] = higgs_jet_eta[:, i-1]
-        pairs_pd[f"higgs_{i}_phi"] = higgs_jet_phi[:, i-1]
+        pairs_pd[f"higgs_{i}_mass"] = higgs_jet_mass[:, i - 1]
+        pairs_pd[f"higgs_{i}_pt"] = higgs_jet_pt[:, i - 1]
+        pairs_pd[f"higgs_{i}_eta"] = higgs_jet_eta[:, i - 1]
+        pairs_pd[f"higgs_{i}_phi"] = higgs_jet_phi[:, i - 1]
 
     # add information from resolved
     for i in range(1, 4):
@@ -317,19 +332,27 @@ def get_pairs_hhh(output_values, events):
             jet0 = jets[j, jet_0]
             jet_1 = pairs_pd[f"higgs_{i}_jet1"][j]
             jet1 = jets[j, jet_1]
-            jjs.append((jet0 + jet1))
+            jjs.append(jet0 + jet1)
         pairs_pd[f"higgs_resolved_{i}_mass"] = [jj.mass for jj in jjs]
         pairs_pd[f"higgs_resolved_{i}_eta"] = [jj.eta for jj in jjs]
         pairs_pd[f"higgs_resolved_{i}_phi"] = [jj.phi for jj in jjs]
         pairs_pd[f"higgs_resolved_{i}_pt"] = [jj.pt for jj in jjs]
 
-        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_mass"] = pairs_pd[f"higgs_resolved_{i}_mass"]
-        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_eta"] = pairs_pd[f"higgs_resolved_{i}_eta"]
-        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_phi"] = pairs_pd[f"higgs_resolved_{i}_phi"]
-        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_pt"] = pairs_pd[f"higgs_resolved_{i}_pt"]
+        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_mass"] = pairs_pd[
+            f"higgs_resolved_{i}_mass"
+        ]
+        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_eta"] = pairs_pd[
+            f"higgs_resolved_{i}_eta"
+        ]
+        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_phi"] = pairs_pd[
+            f"higgs_resolved_{i}_phi"
+        ]
+        pairs_pd.loc[~pairs_pd[f"higgs_{i}_isboosted"], f"higgs_{i}_pt"] = pairs_pd[
+            f"higgs_resolved_{i}_pt"
+        ]
 
     columns = []
-    for i in range(1,4):
+    for i in range(1, 4):
         columns.append(f"higgs_{i}_mass")
         columns.append(f"higgs_{i}_eta")
         columns.append(f"higgs_{i}_phi")
@@ -360,6 +383,7 @@ def get_values_from_output(output_values):
     }
 
     return probs
+
 
 def get_values_from_assignment_output(output_values):
     """

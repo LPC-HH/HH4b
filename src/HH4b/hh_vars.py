@@ -48,14 +48,8 @@ common_samples = {
         "WZ",
     ],
     "vjets": [
-        "Wto2Q-3Jets_HT-200to400",
-        "Wto2Q-3Jets_HT-400to600",
-        "Wto2Q-3Jets_HT-600to800",
-        "Wto2Q-3Jets_HT-800",
-        "Zto2Q-4Jets_HT-200to400",
-        "Zto2Q-4Jets_HT-400to600",
-        "Zto2Q-4Jets_HT-600to800",
-        "Zto2Q-4Jets_HT-800",
+        "Wto2Q-3Jets_HT",
+        "Zto2Q-4Jets_HT",
     ],
 }
 
@@ -95,12 +89,12 @@ samples = {
             "ZJetsToQQ_HT-800toInf_13TeV",
         ],
         "diboson": [
-            #"ZZ_TuneCP5_13TeV-pythia8"
+            # "ZZ_TuneCP5_13TeV-pythia8"
             "ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8",
         ],
         "gghtobb": [
             "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8",
-            #"GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
+            # "GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
         ],
         "vbfhtobb": ["VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8"],
         "vhtobb": [
