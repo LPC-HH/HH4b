@@ -180,7 +180,7 @@ def remove_elements_with_pd(h_index_char, selected_pairs):
     # just not smart enough to figure this out w/o a loop
     pairs_used = []
 
-    #njets = h_index_char.shape[1]
+    # njets = h_index_char.shape[1]
     npairings = h_index_char.shape[2]
 
     # for j in range(njets):
