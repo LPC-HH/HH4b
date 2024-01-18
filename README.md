@@ -1,7 +1,23 @@
 # HH4b
 
+[![Actions Status][actions-badge]][actions-link]
 [![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/LPC-HH/HH4b/main.svg)](https://results.pre-commit.ci/latest/github/LPC-HH/HH4b/main)
+
+<!-- prettier-ignore-start -->
+[actions-badge]:            https://github.com/LPC-HH/HH4b/workflows/CI/badge.svg
+[actions-link]:             https://github.com/LPC-HH/HH4b/actions
+[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/HH4b
+[conda-link]:               https://github.com/conda-forge/HH4b-feedstock
+[github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
+[github-discussions-link]:  https://github.com/LPC-HH/HH4b/discussions
+[pypi-link]:                https://pypi.org/project/HH4b/
+[pypi-platforms]:           https://img.shields.io/pypi/pyversions/HH4b
+[pypi-version]:             https://img.shields.io/pypi/v/HH4b
+[rtd-badge]:                https://readthedocs.org/projects/HH4b/badge/?version=latest
+[rtd-link]:                 https://HH4b.readthedocs.io/en/latest/?badge=latest
+
+<!-- prettier-ignore-end -->
 
 <p align="left">
   <img width="300" src="https://raw.githubusercontent.com/LPC-HH/HH4b/main/figure.png" />
@@ -25,10 +41,9 @@ four beauty quarks (b).
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
-  - [Post-processing](#post-processing)
-    - [Create Datacard](#create-datacard)
   - [Combine](#combine)
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
+    - [Create Datacards](#create-datacards)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
 
 ## Setting up package
@@ -195,23 +210,6 @@ Combine all output pickles into one:
 for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --tag $TAG --processor trigger --r --year $year; done
 ```
 
-## Post-processing
-
-### Create Datacard
-
-Need `root==6.22.6`, and https://github.com/rkansal47/rhalphalib installed (see
-[below](#cmssw--combine-quickstart) for how to install both).
-
-```bash
-python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
-```
-
-e.g.
-
-```
-python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2018-cutbased --year 2018
-```
-
 ## Combine
 
 ### CMSSW + Combine Quickstart
@@ -225,16 +223,41 @@ git clone -b regex-float-parameters https://github.com/rkansal47/HiggsAnalysis-C
 git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 # Important: this scram has to be run from src dir
 scramv1 b clean; scramv1 b
-# rhalphalib to create the datacards:
-git clone https://github.com/rkansal47/rhalphalib
-cd rhalphalib
-pip install -e .  # editable installation
 ```
 
 I also add the combine folder to my PATH in my .bashrc for convenience:
 
 ```
 export PATH="$PATH:/uscms_data/d1/rkansal/hh4b/HH4b/src/HH4b/combine"
+```
+
+### Create Datacards
+
+After activating the CMSSW environment from above, need to install rhalphalib
+and this repo:
+
+```bash
+# rhalphalib
+git clone https://github.com/rkansal47/rhalphalib
+cd rhalphalib
+pip install -e .  # editable installation
+cd ..
+# this repo
+git clone https://github.com/LPC-HH/HH4b.git
+cd HH4b
+pip install -e .  # editable installation
+```
+
+Then, the command is:
+
+```bash
+python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
+```
+
+e.g.
+
+```
+python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2018-cutbased --year 2018
 ```
 
 ### Run fits and diagnostics locally

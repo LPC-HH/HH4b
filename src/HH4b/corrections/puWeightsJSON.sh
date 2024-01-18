@@ -1,3 +1,5 @@
+#!/bin/bash
+
 scriptName="makePUReWeightJSON.py"
 
 # produced using 69200ub
