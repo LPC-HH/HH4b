@@ -19,13 +19,13 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     jet_vars = ["PtCorr", "Eta", "SinPhi", "CosPhi", "PNetB", "Mass"]
     arrays = []
     for i in range(njets):
-        df = pd.DataFrame(0, index=np.arange(nevents), columns=jet_vars)
-        df["PtCorr"] = events.ak4JetPt[i].values
-        df["Eta"] = events.ak4JetEta[i].values
-        df["SinPhi"] = np.sin(events.ak4JetPhi[i].values)
-        df["CosPhi"] = np.cos(events.ak4JetPhi[i].values)
-        df["Mass"] = events.ak4JetMass[i].values
-        num = (events.ak4JetbtagPNetProbb[i] + events.ak4JetbtagPNetProbbb[i]).values
+        dfj = pd.DataFrame(0, index=np.arange(nevents), columns=jet_vars)
+        dfj["PtCorr"] = events.ak4JetPt[i].to_numpy()
+        dfj["Eta"] = events.ak4JetEta[i].to_numpy()
+        dfj["SinPhi"] = np.sin(events.ak4JetPhi[i].to_numpy())
+        dfj["CosPhi"] = np.cos(events.ak4JetPhi[i].to_numpy())
+        dfj["Mass"] = events.ak4JetMass[i].to_numpy()
+        num = (events.ak4JetbtagPNetProbb[i] + events.ak4JetbtagPNetProbbb[i]).to_numpy()
         den = (
             events.ak4JetbtagPNetProbb[i]
             + events.ak4JetbtagPNetProbbb[i]
@@ -33,11 +33,11 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
             + events.ak4JetbtagPNetProbcc[i]
             + events.ak4JetbtagPNetProbg[i]
             + events.ak4JetbtagPNetProbuds[i]
-        ).values
+        ).to_numpy()
         pnetb = np.array([-1.0] * nevents, dtype=float)
         pnetb[den > 0] = num[den > 0] / den[den > 0]
-        df["PNetB"] = pnetb
-        np_arr = df.values.T.astype(np.float32)
+        dfj["PNetB"] = pnetb
+        np_arr = dfj.to_numpy().T.astype(np.float32)
         arrays.append(np_arr)
 
     Jets_data = np.transpose(np.transpose(arrays, (1, 0, 2)))
@@ -60,15 +60,15 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
             j_i = jets[:, i]
             j_j = jets[:, j]
             jj = j_i + j_j
-            df = pd.DataFrame(0, index=np.arange(nevents), columns=Higgs_vars)
-            df["mass"] = jj.mass
-            df["pt"] = jj.pt
-            df["eta"] = jj.eta
-            df["sinphi"] = np.sin(jj.phi)
-            df["cosphi"] = np.cos(jj.phi)
-            df["dr"] = j_i.deltaR(j_j)
-            df = df.fillna(0)
-            np_arr = df.values.T.astype(np.float32)
+            dfj = pd.DataFrame(0, index=np.arange(nevents), columns=Higgs_vars)
+            dfj["mass"] = jj.mass
+            dfj["pt"] = jj.pt
+            dfj["eta"] = jj.eta
+            dfj["sinphi"] = np.sin(jj.phi)
+            dfj["cosphi"] = np.cos(jj.phi)
+            dfj["dr"] = j_i.deltaR(j_j)
+            dfj = dfj.fillna(0)
+            np_arr = dfj.to_numpy().T.astype(np.float32)
             Higgs_list.append(np_arr)
         Jets_arrays[name] = Higgs_list
 
@@ -84,17 +84,17 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     fatjet_vars = ["Pt", "Eta", "SinPhi", "CosPhi", "PNetXbb", "PNetXjj", "PNetQCD", "Mass"]
     nfatjets = 3
     for i in range(nfatjets):
-        df = pd.DataFrame(0, index=np.arange(nevents), columns=fatjet_vars)
-        df["Pt"] = events.ak8FatJetPt[i].values
-        df["Eta"] = events.ak8FatJetEta[i].values
-        df["SinPhi"] = np.sin(events.ak8FatJetPhi[i].values)
-        df["CosPhi"] = np.cos(events.ak8FatJetPhi[i].values)
-        df["PNetXbb"] = events.ak8FatJetPNetXbb[i].values
-        df["PNetXjj"] = events.ak8FatJetPNetXjj[i].values
-        df["PNetQCD"] = events.ak8FatJetPNetQCD[i].values
-        df["Mass"] = events.ak8FatJetPNetMass[i].values
+        dfj = pd.DataFrame(0, index=np.arange(nevents), columns=fatjet_vars)
+        dfj["Pt"] = events.ak8FatJetPt[i].to_numpy()
+        dfj["Eta"] = events.ak8FatJetEta[i].to_numpy()
+        dfj["SinPhi"] = np.sin(events.ak8FatJetPhi[i].to_numpy())
+        dfj["CosPhi"] = np.cos(events.ak8FatJetPhi[i].to_numpy())
+        dfj["PNetXbb"] = events.ak8FatJetPNetXbb[i].to_numpy()
+        dfj["PNetXjj"] = events.ak8FatJetPNetXjj[i].to_numpy()
+        dfj["PNetQCD"] = events.ak8FatJetPNetQCD[i].to_numpy()
+        dfj["Mass"] = events.ak8FatJetPNetMass[i].to_numpy()
 
-        np_arr = df.values.T.astype(np.float32)
+        np_arr = dfj.to_numpy().T.astype(np.float32)
         boosted_arrays.append(np_arr)
 
     # Leptons
@@ -102,26 +102,26 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     lep_vars = ["Pt", "Eta", "SinPhi", "CosPhi"]
     nleptons = 2
     for i in range(nleptons):
-        df = pd.DataFrame(0, index=np.arange(nevents), columns=lep_vars)
-        df["Pt"] = events.LeptonPt[i].values
-        df["Eta"] = events.LeptonEta[i].values
-        df["SinPhi"] = np.sin(events.LeptonPhi[i].values)
-        df["CosPhi"] = np.cos(events.LeptonPhi[i].values)
+        dfl = pd.DataFrame(0, index=np.arange(nevents), columns=lep_vars)
+        dfl["Pt"] = events.LeptonPt[i].to_numpy()
+        dfl["Eta"] = events.LeptonEta[i].to_numpy()
+        dfl["SinPhi"] = np.sin(events.LeptonPhi[i].to_numpy())
+        dfl["CosPhi"] = np.cos(events.LeptonPhi[i].to_numpy())
 
-        np_arr = df.values.T.astype(np.float32)
+        np_arr = dfl.to_numpy().T.astype(np.float32)
         lep_arrays.append(np_arr)
 
     tau_arrays = []
     tau_vars = ["Pt", "Eta", "SinPhi", "CosPhi"]
     ntaus = 2
     for i in range(ntaus):
-        df = pd.DataFrame(0, index=np.arange(nevents), columns=tau_vars)
-        df["Pt"] = events.tauPt[i].values
-        df["Eta"] = events.tauEta[i].values
-        df["SinPhi"] = np.sin(events.tauPhi[i].values)
-        df["CosPhi"] = np.cos(events.tauPhi[i].values)
+        dft = pd.DataFrame(0, index=np.arange(nevents), columns=tau_vars)
+        dft["Pt"] = events.tauPt[i].to_numpy()
+        dft["Eta"] = events.tauEta[i].to_numpy()
+        dft["SinPhi"] = np.sin(events.tauPhi[i].to_numpy())
+        dft["CosPhi"] = np.cos(events.tauPhi[i].to_numpy())
 
-        np_arr = df.values.T.astype(np.float32)
+        np_arr = dft.to_numpy().T.astype(np.float32)
         tau_arrays.append(np_arr)
 
     BoostedJets_data = np.transpose(np.transpose(boosted_arrays, (1, 0, 2)))
@@ -139,11 +139,11 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     Taus_Pt = Taus_data[:, :, 0]
     Taus_mask = Taus_Pt > 20
 
-    met_arrays = [np.array([events.MET_pt.values.squeeze()])]
+    met_arrays = [np.array([events.MET_pt.to_numpy().squeeze()])]
     MET_data = np.transpose(met_arrays)
     MET_mask = MET_data[:, :, 0] > 0
 
-    ht_arrays = [np.array([events.ht.values.squeeze()])]
+    ht_arrays = [np.array([events.ht.to_numpy().squeeze()])]
     HT_data = np.transpose(ht_arrays)
     HT_mask = HT_data[:, :, 0] > 0
 
@@ -179,21 +179,25 @@ def remove_elements_with_pd(h_index_char, selected_pairs):
 
     # just not smart enough to figure this out w/o a loop
     pairs_used = []
-    njets = h_index_char.shape[1]
+
+    #njets = h_index_char.shape[1]
     npairings = h_index_char.shape[2]
-    for j in range(njets):
-        used_j = []
-        for i in range(npairings):
-            x = pd.Series(h_index_char[:, 0][:, i]).astype(str)
-            used = (
-                (x.str[0].astype(int) == pairs_pd["jet0"])
-                | (x.str[1].astype(int) == pairs_pd["jet0"])
-                | (x.str[0].astype(int) == pairs_pd["jet1"])
-                | (x.str[1].astype(int) == pairs_pd["jet1"])
-            )
-            used_j.append(used.values)
-        used_j = np.array(used_j).T
-        pairs_used.append(used_j)
+
+    # for j in range(njets):
+
+    used_j = []
+    for i in range(npairings):
+        x = pd.Series(h_index_char[:, 0][:, i]).astype(str)
+        used = (
+            (x.str[0].astype(int) == pairs_pd["jet0"])
+            | (x.str[1].astype(int) == pairs_pd["jet0"])
+            | (x.str[0].astype(int) == pairs_pd["jet1"])
+            | (x.str[1].astype(int) == pairs_pd["jet1"])
+        )
+        used_j.append(used.to_numpy())
+    used_j = np.array(used_j).T
+    pairs_used.append(used_j)
+
     pairs_used = np.array(pairs_used)
     pairs_used = np.transpose(pairs_used, (1, 0, 2))
     return pairs_used
