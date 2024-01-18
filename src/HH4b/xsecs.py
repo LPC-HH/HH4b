@@ -131,6 +131,7 @@ hh = {
 for key, value in hh.items():
     xsecs[key] = value
     xsecs[f"{key}_TSG"] = value
+    xsecs[f"{key}_Private"] = value
     xsecs[f"{key}_TSG_Pu60"] = value
 
 # TSG Samples (?)
