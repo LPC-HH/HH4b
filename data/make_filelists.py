@@ -106,8 +106,6 @@ def get_v9():
 
 
 path_hqu = "/store/group/lpcjme/NanoAOD/NanoAODv9-ParticleNetAK4/2018"
-
-
 def get_v9_private():
     return {
         "2018": {
@@ -206,37 +204,6 @@ BB/WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
                 "Run2018D": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018D",
             },
         }
-    }
-
-
-def get_v10():
-    return {
-        "2022": {
-            "JetMET": {
-                "Run2022C_single": "/JetHT/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022C": "/JetMET/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022D_v1": "/JetMET/Run2022D-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022D_v2": "/JetMET/Run2022D-PromptNanoAODv10_v2-v1/NANOAOD",
-            },
-            "Muon": {
-                "Run2022C_single": "/SingleMuon/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022C": "/Muon/Run2022C-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022D_v1": "/Muon/Run2022D-PromptNanoAODv10_v1-v1/NANOAOD",
-                "Run2022D_v2": "/Muon/Run2022D-PromptNanoAODv10_v2-v1/NANOAOD",
-            },
-        },
-        "2022EE": {
-            "JetMET": {
-                "Run2022E": "/JetMET/Run2022E-PromptNanoAODv10_v1-v3/NANOAOD",
-                "Run2022F": "/JetMET/Run2022F-PromptNanoAODv10_v1-v2/NANOAOD",
-                "Run2022G": "/JetMET/Run2022G-PromptNanoAODv10_v1-v1/NANOAOD",
-            },
-            "Muon": {
-                "Run2022E": "/Muon/Run2022E-PromptNanoAODv10_v1-v3/NANOAOD",
-                "Run2022F": "/Muon/Run2022F-PromptNanoAODv10_v1-v2/NANOAOD",
-                "Run2022G": "/Muon/Run2022G-PromptNanoAODv10_v1-v1/NANOAOD",
-            },
-        },
     }
 
 
@@ -472,6 +439,7 @@ def get_v12():
                 # 1M events
                 "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
+                # 100k events
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
@@ -481,6 +449,8 @@ def get_v12():
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
+                # 1M private events
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private": "/ggHH_cHHH_1/lpcdihiggsboost-crab_PrivateProduction_Summer22_DR_step5_NANOAODSIM_ggHH_cHHH_1_batch2_v1-00000000000000000000000000000000/USER",
             },
             "QCD": {
                 **{
@@ -664,6 +634,18 @@ def get_v12():
             },
         },
         "2023": {
+            "HH": {
+                # TSG, 1M events
+                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+                "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+            },
             "JetMET": {
                 "Run2023C-v1_0": "/JetMET0/Run2023C-22Sep2023_v1-v1/NANOAOD",
                 "Run2023C-v2_0": "/JetMET0/Run2023C-22Sep2023_v2-v1/NANOAOD",
@@ -913,7 +895,10 @@ def get_files(dataset, version):
         from rucio_utils import get_dataset_files, get_proxy_path
 
         proxy = get_proxy_path()
-        link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
+        if "USER" in dataset:
+            link = f"https://cmsweb.cern.ch:8443/dbs/prod/phys03/DBSReader/files?dataset={dataset}&detail=True"
+        else:
+            link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={dataset}&detail=True"
         r = requests.get(
             link,
             cert=proxy,
@@ -931,6 +916,10 @@ def get_files(dataset, version):
                     files.append(fj["logical_file_name"])
             else:
                 continue
+
+        if "USER" in dataset:
+            files_valid = [f"root://cmseos.fnal.gov/{f}" for f in files]
+            return files_valid
 
         if "WplusH_Hto2B_Wto2Q_M-125" in dataset and year == "2022EE":
             not_valid = [
@@ -972,8 +961,8 @@ def get_files(dataset, version):
         return files_valid
 
 
-# for version in ["v9", "v10", "v11", "v11_private", "v9_private", "v12"]:
-for version in ["v9_privatepfnano"]:
+for version in ["v9", "v11", "v11_private", "v9_private", "v12"]:
+    # for version in ["v12"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
