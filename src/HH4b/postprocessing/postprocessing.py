@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from __future__ import annotations
 
 import pickle
@@ -75,6 +76,19 @@ fit_shape_var = ShapeVar(
     reg=True,
     blind_window=[100, 150],
 )
+=======
+import click
+
+import utils
+import plotting
+
+import logging
+import sys
+
+
+# define ShapeVar (label and bins for a given variable)
+from utils import ShapeVar
+>>>>>>> HH4b/main
 
 
 var_to_shapevar = {
@@ -108,8 +122,74 @@ var_to_shapevar = {
 )
 def postprocess(years):
     # TODO: set this as a yaml file
+<<<<<<< HEAD
     dirs = {"/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": samples}
 
+=======
+    dirs = {
+        "/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": {
+            "qcd": [
+                "QCD_PT-120to170",
+                "QCD_PT-170to300",
+                "QCD_PT-470to600",
+                "QCD_PT-600to800",
+                "QCD_PT-800to1000",
+                "QCD_PT-1000to1400",
+                "QCD_PT-1400to1800",
+                "QCD_PT-1800to2400",
+                "QCD_PT-2400to3200",
+                "QCD_PT-3200",
+            ],
+            "data": [
+                "Run2022F",
+                "Run2022G",
+            ],
+            "ttbar": [
+                "TTtoLNu2Q",
+                "TTto4Q",
+                "TTto2L2Nu",
+            ],
+            "gghtobb": [
+                "GluGluHto2B_PT-200_M-125",
+            ],
+            "vbfhtobb": [
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "vhtobb": [
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_WtoLNu_M-125",
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WminusH_Hto2B_WtoLNu_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2L_M-125",
+                "ggZH_Hto2B_Zto2Nu_M-125",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "diboson": [
+                "ZZ",
+                "WW",
+                "WZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+        }
+    }
+    samples_to_fill = [
+        "data",
+        "qcd",
+    ]
+>>>>>>> HH4b/main
     vars_to_plot = [
         "ak8FatJetPt0",
         "ak8FatJetPt1",
@@ -156,6 +236,7 @@ def postprocess(years):
     for year in years:
         # load all samples, apply filters if needed
         events_dict = {}
+<<<<<<< HEAD
         for input_dir, in_samples in dirs.items():
             events_dict = {
                 **events_dict,
@@ -164,6 +245,16 @@ def postprocess(years):
 
         # samples_loaded = list(events_dict.keys())
         # keys_loaded = list(events_dict[samples_loaded[0]].keys())
+=======
+        for input_dir, samples in dirs.items():
+            events_dict = {
+                **events_dict,
+                **utils.load_samples(input_dir, samples, year, filters, columns),
+            }
+
+        samples_loaded = list(events_dict.keys())
+        keys_loaded = list(events_dict[samples_loaded[0]].keys())
+>>>>>>> HH4b/main
         # print(f"Keys in events_dict {keys_loaded}")
 
         # make a histogram
@@ -186,6 +277,7 @@ def postprocess(years):
         )
 
 
+<<<<<<< HEAD
 def _get_fill_data(
     events: pd.DataFrame,
     bb_mask: dict[str, pd.DataFrame],
@@ -469,5 +561,7 @@ def save_templates(templates: dict[str, Hist], template_file: str, shape_var: Sh
     print("Saved templates to", template_file)
 
 
+=======
+>>>>>>> HH4b/main
 if __name__ == "__main__":
     sys.exit(postprocess())
