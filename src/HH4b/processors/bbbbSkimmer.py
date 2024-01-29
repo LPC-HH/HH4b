@@ -213,7 +213,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
-        num_fatjets = 2  # number to save
+        num_fatjets = 3  # number to save
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = objects.get_ak8jets(events.FatJet)
         print("ak8 jets", f"{time.time() - start:.2f}")
@@ -418,7 +418,7 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # BOTH fatjets with pt above self.preselection["fatjet_pt"]
         # TODO: check if fatjet passes pt cut in any of the JEC variations
-        cut_pt = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1) == 2
+        cut_pt = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1) >= 2
         add_selection("ak8_pt", cut_pt, *selection_args)
 
         # BOTH fajets with OR of msd or mpnet
@@ -429,7 +429,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"]),
                 axis=1,
             )
-            == 2
+            >= 2
         )
         add_selection("ak8_mass", cut_mass, *selection_args)
 
