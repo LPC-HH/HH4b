@@ -42,7 +42,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     """
 
     # key is name in nano files, value will be the name in the skimmed output
-    skim_vars = {
+    skim_vars = {  # noqa: RUF012
         "Jet": {
             **P4,
         },
@@ -70,7 +70,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         },
     }
 
-    preselection = {
+    preselection = {  # noqa: RUF012
         "fatjet_pt": 300,
         "fatjet_msd": 60,
         "fatjet_mreg": 60,
