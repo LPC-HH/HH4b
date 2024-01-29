@@ -1,13 +1,22 @@
 {
-    "2022": {
-        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+    "2022EE": {
+        "TT": {"subsamples": ["TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
         "HH": {
-          "subsamples": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8", "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private"],
+          "subsamples": [
+            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"
+          ],
           "files_per_job": 10},
-        "Hbb": {"files_per_job": 10},
+        "Hbb": {
+          "subsamples": [
+            "WminusH_Hto2B_Wto2Q_M-125",
+            "WplusH_Hto2B_Wto2Q_M-125",
+            "ggZH_Hto2B_Zto2Q_M-125",
+            "ZH_Hto2B_Zto2Q_M-125"
+          ],
+          "files_per_job": 10},
         "QCD": {
             "subsamples": [
-                "QCD_HT-100to200",
                 "QCD_HT-200to400",
                 "QCD_HT-400to600",
                 "QCD_HT-600to800",
