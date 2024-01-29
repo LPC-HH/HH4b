@@ -21,9 +21,10 @@ from .corrections import (
     add_pileup_weight,
     add_trig_weights,
     get_jec_jets,
-    # get_jmsr,
     get_jetveto_event,
 )
+
+# get_jmsr,
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
 from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
 
@@ -71,8 +72,8 @@ class bbbbSkimmer(processor.ProcessorABC):
 
     preselection = {  # noqa: RUF012
         "fatjet_pt": 300,
-        "fatjet_msd": 40,
-        "fatjet_mreg": 40,
+        "fatjet_msd": 60,
+        "fatjet_mreg": 60,
         "Txbb0": 0.8,
     }
 
@@ -125,6 +126,17 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         self._nano_version = nano_version
 
+        # https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
+        self.met_filters = [
+            "goodVertices",
+            "globalSuperTightHalo2016Filter",
+            "EcalDeadCellTriggerPrimitiveFilter",
+            "BadPFMuonFilter",
+            "BadPFMuonDzFilter",
+            "eeBadScFilter",
+            "ecalBadCalibFilter",
+        ]
+
         """
         signal:
         """
@@ -167,15 +179,6 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         cutflow = OrderedDict()
         cutflow["all"] = n_events
-
-        # preselection = (
-        #     (ak.count(events.FatJet.pt, axis=1) >= 2)
-        #     * (ak.all(events.FatJet.pt[:, :2] >= 200, axis=1))
-        # )
-        # events = events[preselection]
-        # gen_weights = gen_weights[preselection] if gen_weights is not None else gen_weights
-        # cutflow["2jetpreselection"] = len(events) if isData else np.sum(gen_weights)
-
         selection = PackedSelection()
         weights = Weights(len(events), storeIndividual=True)
         selection_args = (selection, cutflow, isData, gen_weights)
@@ -183,8 +186,15 @@ class bbbbSkimmer(processor.ProcessorABC):
         #########################
         # Object definitions
         #########################
+        if year == "2018":
+            veto_muon_sel = objects.veto_muons_run2(events.Muon)
+            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
+        else:
+            veto_muon_sel = objects.veto_muons(events.Muon)
+            veto_electron_sel = objects.veto_electrons(events.Electron)
+
         num_jets = 6
-        print("Starting Objects", f"{time.time() - start:.2f}")
+        print("starting object selection", f"{time.time() - start:.2f}")
         # TODO: this is tricky, should we apply JEC first and then selection (including vetoes)
         jets, jec_shifted_jetvars = get_jec_jets(
             events,
@@ -198,11 +208,12 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
+        print("ak4 JECs", f"{time.time() - start:.2f}")
         jets_sel = objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)
         jets = jets[jets_sel]
         ht = ak.sum(jets.pt, axis=1)
 
-        num_fatjets = 2  # number to save
+        num_fatjets = 3  # number to save
         num_fatjets_cut = 2  # number to consider for selection
         fatjets = objects.get_ak8jets(events.FatJet)
         print("ak8 jets", f"{time.time() - start:.2f}")
@@ -224,20 +235,20 @@ class bbbbSkimmer(processor.ProcessorABC):
         fatjets = fatjets[fatjets_sel]
         fatjet_0 = ak.firsts(fatjets)
 
+        # VBF objects
         # similar to run 2 selection
         vbf_jets = jets[(jets.pt > 25) & (jets.delta_r(fatjet_0) > 1.2)]
         vbf_jet_0 = vbf_jets[:, 0:1]
         vbf_jet_1 = vbf_jets[:, 1:2]
         vbf_mass = (ak.firsts(vbf_jet_0) + ak.firsts(vbf_jet_1)).mass
         vbf_deta = abs(ak.firsts(vbf_jet_0).eta - ak.firsts(vbf_jet_1).eta)
-        vbf_selection = (vbf_mass > 500) & (vbf_deta > 4.0)
         # jmsr_shifted_vars = get_jmsr(fatjets, num_fatjets, year, isData)
 
         #########################
         # Save / derive variables
         #########################
 
-        # gen variables - saving HH and bbbb 4-vector info
+        # Gen variables - saving HH and bbbb 4-vector info
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
@@ -293,13 +304,13 @@ class bbbbSkimmer(processor.ProcessorABC):
                 # overwrite saved mass vars with corrected ones
                 label = "" if shift == "" else "_" + shift
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
+        """
 
         # dijet variables
-        fatDijetVars = {}
-        for shift in jec_shifted_fatjetvars["pt"]:
-            label = "" if shift == "" else "_" + shift
-            fatDijetVars = {**fatDijetVars, **self.getFatDijetVars(ak8FatJetVars, pt_shift=label)}
+        # TODO: add shifts to dijet variables
+        fatDijetVars = self.getFatDijetVars(ak8FatJetVars, pt_shift="")
 
+        """
         for shift in jmsr_shifted_vars["msoftdrop"]:
             if shift != "":
                 label = "_" + shift
@@ -312,22 +323,16 @@ class bbbbSkimmer(processor.ProcessorABC):
         eventVars = {
             key: events[key].to_numpy() for key in self.skim_vars["Event"] if key in events.fields
         }
-
         eventVars["ht"] = ht.to_numpy()
         eventVars["nJets"] = ak.sum(jets_sel, axis=1).to_numpy()
         eventVars["nFatJets"] = ak.sum(fatjets_sel, axis=1).to_numpy()
-
-        print("Event vars", f"{time.time() - start:.2f}")
 
         if isData:
             pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
         else:
             eventVars["lumi"] = np.ones(len(events)) * PAD_VAL
             pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
-
         pileupVars = {**pileupVars, "nPV": events.PV["npvs"].to_numpy()}
-
-        print("pileup vars", f"{time.time() - start:.2f}")
 
         otherVars = {
             key: events[var.split("_")[0]]["_".join(var.split("_")[1:])].to_numpy()
@@ -344,6 +349,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet230_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40",
                 ]
             )
 
@@ -363,6 +369,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             **genVars,
             **ak4JetVars,
             **ak8FatJetVars,
+            **fatDijetVars,
             **eventVars,
             **pileupVars,
             **otherVars,
@@ -394,50 +401,39 @@ class bbbbSkimmer(processor.ProcessorABC):
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
 
-        # temporary metfilters https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
-        met_filters = [
-            "goodVertices",
-            "globalSuperTightHalo2016Filter",
-            "EcalDeadCellTriggerPrimitiveFilter",
-            "BadPFMuonFilter",
-            "BadPFMuonDzFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter",
-        ]
-        metfilters = np.ones(len(events), dtype="bool")
-        # metfilterkey = "data" if isData else "mc"
-        for mf in met_filters:
+        # metfilters
+        cut_metfilters = np.ones(len(events), dtype="bool")
+        for mf in self.met_filters:
             if mf in events.Flag.fields:
-                metfilters = metfilters & events.Flag[mf]
-        # add_selection("met_filters", metfilters, *selection_args)
+                cut_metfilters = cut_metfilters & events.Flag[mf]
+        add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
         if year == "2022" or year == "2022EE":
-            jetveto_selection = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
-            add_selection("ak4_jetveto", jetveto_selection, *selection_args)
+            cut_jetveto = get_jetveto_event(jets, year, events.run.to_numpy(), isData)
+            add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
+        # at least two fatjets
+        add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
+
+        # BOTH fatjets with pt above self.preselection["fatjet_pt"]
         # TODO: check if fatjet passes pt cut in any of the JEC variations
-        cut = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1)
-        add_selection("ak8_pt", cut, *selection_args)
+        cut_pt = np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1) >= 2
+        add_selection("ak8_pt", cut_pt, *selection_args)
 
+        # BOTH fajets with OR of msd or mpnet
         # TODO: check if fatjet passes mass cut in any of the JMS/R variations
-        # cut_mpnet = np.all(
-        #     ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"], axis=1
-        # )
-        cut_msd = np.all(ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"], axis=1)
-        add_selection("ak8_msd", cut_msd, *selection_args)
+        cut_mass = (
+            np.sum(
+                (ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"])
+                | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"]),
+                axis=1,
+            )
+            >= 2
+        )
+        add_selection("ak8_mass", cut_mass, *selection_args)
 
-        # num_leptons = 2
-        if year == "2018":
-            veto_muon_sel = objects.veto_muons_run2(events.Muon)
-            veto_electron_sel = objects.veto_electrons_run2(events.Electron)
-        else:
-            veto_muon_sel = objects.veto_muons(events.Muon)
-            veto_electron_sel = objects.veto_electrons(events.Electron)
-
-        print("Lepton vetoes", f"{time.time() - start:.2f}")
-
-        # veto leptons
+        # no leptons
         add_selection(
             "0lep",
             (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
@@ -445,11 +441,14 @@ class bbbbSkimmer(processor.ProcessorABC):
         )
 
         # Txbb pre-selection cut
-        # txbb_cut = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
-        # add_selection("ak8bb_txbb0", txbb_cut, *selection_args)
+        cut_txbb = (
+            np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1) >= 1
+        )
+        add_selection("ak8bb_txbb0", cut_txbb, *selection_args)
 
         # VBF veto cut
-        add_selection("vbf_veto", ~(vbf_selection), *selection_args)
+        cut_vbf = (vbf_mass > 500) & (vbf_deta > 4.0)
+        add_selection("vbf_veto", ~(cut_vbf), *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
@@ -465,29 +464,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
 
             add_trig_weights(weights, fatjets, year, num_fatjets_cut)
-
-            # add_VJets_kFactors(weights, events.GenPart, dataset)
-
-            # if dataset.startswith("TTTo"):
-            #     # TODO: need to add uncertainties and rescale yields (?)
-            #     add_top_pt_weight(weights, events)
-
-            # TODO: figure out which of these apply to VBF, single Higgs, ttbar etc.
-
-            """
-            if "GluGlutoHHto4B" in dataset or "WJets" in dataset or "ZJets" in dataset:
-                add_ps_weight(weights, events.PSWeight)
-
-            if "GluGlutoHHto4B" in dataset:
-                if "LHEPdfWeight" in events.fields:
-                    add_pdf_weight(weights, events.LHEPdfWeight)
-                else:
-                    add_pdf_weight(weights, [])
-                if "LHEScaleWeight" in events.fields:
-                    add_scalevar_7pt(weights, events.LHEScaleWeight)
-                else:
-                    add_scalevar_7pt(weights, [])
-            """
 
             # xsec and luminosity and normalization
             # this still needs to be normalized with the acceptance of the pre-selection (done in post processing)
