@@ -152,9 +152,9 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["TQCDothers"] = fatjets.ParticleNetMD_probQCDothers
     else:
         # dummy
-        fatjets["TQCDb"] = fatjets.particleNetMD_Xbb
-        fatjets["TQCDbb"] = fatjets.particleNetMD_Xbb
-        fatjets["TQCDothers"] = fatjets.particleNetMD_Xbb
+        fatjets["TQCDb"] = fatjets["Txbb"]
+        fatjets["TQCDbb"] = fatjets["Txbb"]
+        fatjets["TQCDothers"] = fatjets["Txbb"]
 
     return fatjets
 
