@@ -256,8 +256,6 @@ def get_v12():
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
                 "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
-                # 1M private events (PNet bug)
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private": "/ggHH_cHHH_1/lpcdihiggsboost-crab_PrivateProduction_Summer22_DR_step5_NANOAODSIM_ggHH_cHHH_1_batch2_v1-00000000000000000000000000000000/USER",
             },
             "ZHH": {
                 "ZHH_HHto4B_CV_1_0_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8": "/ZHH_HHto4B_CV_1_0_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM",
@@ -639,7 +637,7 @@ def get_files(dataset, version):
         sites_cfg["blacklist_sites"].append("T2_UK_London_Brunel")
         sites_cfg["blacklist_sites"].append("T2_UK_SGrid_RALPP")
         sites_cfg["blacklist_sites"].append("T1_UK_RAL_Disk")
-
+        # temp?
         sites_cfg["blacklist_sites"].append("T1_US_FNAL_Disk")
 
         if "QCD-4Jets_HT-600to800" in dataset:
