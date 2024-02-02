@@ -25,7 +25,6 @@ from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
-from . import utils
 from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
@@ -503,7 +502,7 @@ def get_jmsr(
     for mkey in jmsr_vars:
         tdict = {}
 
-        mass = utils.pad_val(fatjets[mkey], num_jets, axis=1)
+        mass = pad_val(fatjets[mkey], num_jets, axis=1)
 
         if isData:
             tdict[""] = mass
