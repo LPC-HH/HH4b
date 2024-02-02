@@ -646,7 +646,7 @@ def get_files(dataset, version):
         sites_cfg["blacklist_sites"].append("T2_UK_SGrid_RALPP")
         sites_cfg["blacklist_sites"].append("T1_UK_RAL_Disk")
         # temp?
-        # sites_cfg["blacklist_sites"].append("T1_US_FNAL_Disk")
+        sites_cfg["blacklist_sites"].append("T1_US_FNAL_Disk")
 
         if "QCD-4Jets_HT-600to800" in dataset:
             sites_cfg["blacklist_sites"].append("T3_KR_KNU")
