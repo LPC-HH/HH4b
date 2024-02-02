@@ -46,6 +46,7 @@ four beauty quarks (b).
   - [Combine](#combine)
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
+  - [Moving datasets (WIP)](#moving-datasets-wip)
 
 ## Setting up package
 
@@ -253,4 +254,11 @@ All via the below script, with a bunch of options (see script):
 
 ```bash
 run_blinded_hh4b.sh --workspace --bfit --limits
+```
+
+## Moving datasets (WIP)
+
+```bash
+rucio list-dataset-replicas cms:
+rucio add-rule cms:/DATASET 1 T1_US_FNAL_Disk --activity "User AutoApprove" --lifetime [# of seconds] --ask-approval --comment ''
 ```
