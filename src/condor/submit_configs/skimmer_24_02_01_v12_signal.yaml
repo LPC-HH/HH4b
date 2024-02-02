@@ -2,9 +2,9 @@
    "2022EE": {
         "JetMET": {
             "subsamples": [
-                "Run2022E",
-                "Run2022F",
-                "Run2022G",
+                "JetMET_Run2022E",
+                "JetMET_Run2022F",
+                "JetMET_Run2022G",
             ],
             "files_per_job": 8,
         },

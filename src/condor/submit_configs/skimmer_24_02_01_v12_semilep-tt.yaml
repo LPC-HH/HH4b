@@ -2,17 +2,17 @@
    "2022EE": {
         "EGamma": {
             "subsamples": [
-                "Run2022E",
-                "Run2022F",
-                "Run2022G",
+                "EGamma_Run2022E",
+                "EGamma_Run2022F",
+                "EGamma_Run2022G",
             ],
             "files_per_job": 8,
         },
         "Muon": {
             "subsamples": [
-                "Run2022E",
-                "Run2022F",
-                "Run2022G",
+                "Muon_Run2022E",
+                "Muon_Run2022F",
+                "Muon_Run2022G",
             ],
             "files_per_job": 8,
         },
