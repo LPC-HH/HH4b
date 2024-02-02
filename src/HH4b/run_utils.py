@@ -151,7 +151,13 @@ def parse_common_args(parser):
 
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
     parser.add_argument("--chunksize", default=20000, help="chunk size", type=int)
-    parser.add_argument("--region", help="region", default="signal", choices=["signal"], type=str)
+    parser.add_argument(
+        "--region",
+        help="region",
+        default="signal",
+        choices=["signal", "semilep-tt", "had-tt"],
+        type=str,
+    )
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
     parser.add_argument("--apply-selection", dest="apply_selection", action="store_true", help=help)
     parser.add_argument(
