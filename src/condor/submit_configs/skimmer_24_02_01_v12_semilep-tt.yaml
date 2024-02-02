@@ -20,7 +20,7 @@
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "VJets": {
             "subsamples": [
-	        "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-200to400",
                 "Wto2Q-3Jets_HT-400to600",
                 "Wto2Q-3Jets_HT-600to800",
                 "Wto2Q-3Jets_HT-800",
