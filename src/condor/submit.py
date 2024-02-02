@@ -41,7 +41,7 @@ def main(args):
 
     username = os.environ["USER"]
 
-    tag = f"{args.tag}_{args.nano_version}"
+    tag = f"{args.tag}_{args.nano_version}_{args.region}"
     local_dir = Path(f"condor/{args.processor}/{tag}")
     homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
     outdir = homedir / tag
