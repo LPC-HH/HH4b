@@ -131,6 +131,7 @@ hh = {
 for key, value in hh.items():
     xsecs[key] = value
     xsecs[f"{key}_TSG"] = value
+    xsecs[f"{key}_Private"] = value
     xsecs[f"{key}_TSG_Pu60"] = value
 
 # TSG Samples (?)
@@ -201,6 +202,7 @@ xsecs["ZJetsToQQ_HT-800toInf_13TeV"] = 12.91
 # xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"]
 
 xsecs["GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8"] = 0.27395244
+xsecs["GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8"] = 27.8
 xsecs["VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8"] = 2.2498257
 xsecs["WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8"] = 0.21348075
 xsecs["WminusH_HToBB_WToLNu_M-125_TuneCP5_13TeV-powheg-pythia8"] = 0.1028193
@@ -213,3 +215,4 @@ xsecs["ggZH_HToBB_ZToBB_M-125_TuneCP5_13TeV-powheg-pythia8"] = 0.04319
 xsecs["ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8"] = 0.2912
 
 xsecs["ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8"] = 0.3707
+xsecs["ZZ_TuneCP5_13TeV-pythia8"] = 16.91

@@ -297,7 +297,7 @@ def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 
 
-def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None):
+def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None, mstring="Mass"):
     """
     Creates Lorentz vector from input events and beginning name, assuming events contain
       {name}Pt, {name}Phi, {name}Eta, {Name}Msd variables
@@ -316,9 +316,7 @@ def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None
                 "pt": get_feat(events, f"{name}Pt", bb_mask),
                 "phi": get_feat(events, f"{name}Phi", bb_mask),
                 "eta": get_feat(events, f"{name}Eta", bb_mask),
-                "M": get_feat(events, f"{name}Msd", bb_mask)
-                if f"{name}Msd" in events or f"ak8{name[2:]}Msd" in events
-                else get_feat(events, f"{name}Mass", bb_mask),
+                "M": get_feat(events, f"{name}{mstring}", bb_mask),
             }
         )
 
@@ -327,9 +325,7 @@ def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None
             "pt": get_feat(events, f"{name}Pt", bb_mask)[mask],
             "phi": get_feat(events, f"{name}Phi", bb_mask)[mask],
             "eta": get_feat(events, f"{name}Eta", bb_mask)[mask],
-            "M": get_feat(events, f"{name}Msd", bb_mask)[mask]
-            if f"{name}Msd" in events or f"ak8{name[2:]}Msd" in events
-            else get_feat(events, f"{name}Mass", bb_mask)[mask],
+            "M": get_feat(events, f"{name}{mstring}", bb_mask)[mask],
         }
     )
 
@@ -568,7 +564,8 @@ def make_selection(
         for cutvar, branges in var_cuts.items():
             if jshift != "" and sample != data_key:
                 var = check_get_jec_var(cutvar, jshift)
-
+            else:
+                var = cutvar
             if isinstance(branges[0], list):
                 # OR the cuts
                 sels = []

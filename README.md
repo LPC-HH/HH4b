@@ -41,10 +41,9 @@ four beauty quarks (b).
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
-  - [Post-processing](#post-processing)
-    - [Create Datacard](#create-datacard)
   - [Combine](#combine)
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
+    - [Create Datacards](#create-datacards)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
   - [Moving datasets (WIP)](#moving-datasets-wip)
 
@@ -212,17 +211,6 @@ Combine all output pickles into one:
 for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --tag $TAG --processor trigger --r --year $year; done
 ```
 
-## Post-processing
-
-### Create Datacard
-
-Need `root==6.22.6`, and https://github.com/rkansal47/rhalphalib installed (see
-[below](#cmssw--combine-quickstart) for how to install both).
-
-```bash
-python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
-```
-
 ## Combine
 
 ### CMSSW + Combine Quickstart
@@ -236,16 +224,41 @@ git clone -b regex-float-parameters https://github.com/rkansal47/HiggsAnalysis-C
 git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 # Important: this scram has to be run from src dir
 scramv1 b clean; scramv1 b
-# rhalphalib to create the datacards:
-git clone https://github.com/rkansal47/rhalphalib
-cd rhalphalib
-pip install -e .  # editable installation
 ```
 
 I also add the combine folder to my PATH in my .bashrc for convenience:
 
 ```
 export PATH="$PATH:/uscms_data/d1/rkansal/hh4b/HH4b/src/HH4b/combine"
+```
+
+### Create Datacards
+
+After activating the CMSSW environment from above, need to install rhalphalib
+and this repo:
+
+```bash
+# rhalphalib
+git clone https://github.com/rkansal47/rhalphalib
+cd rhalphalib
+pip install -e .  # editable installation
+cd ..
+# this repo
+git clone https://github.com/LPC-HH/HH4b.git
+cd HH4b
+pip install -e .  # editable installation
+```
+
+Then, the command is:
+
+```bash
+python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-name $TAG
+```
+
+e.g.
+
+```
+python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2018-cutbased --year 2018
 ```
 
 ### Run fits and diagnostics locally
