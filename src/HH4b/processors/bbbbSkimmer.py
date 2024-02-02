@@ -28,6 +28,8 @@ from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
 from .objects import (
     get_ak8jets,
     good_ak8jets,
+    good_electrons,
+    good_muons,
     veto_electrons,
     veto_electrons_run2,
     veto_muons,
@@ -235,30 +237,13 @@ class bbbbSkimmer(processor.ProcessorABC):
             veto_electron_sel = veto_electrons_run2(events.Electron)
 
         if self._region != "signal":
-            # good_muon_sel = good_muons(events.Muon)
-            good_muon_sel = (
-                (events.Muon.pt >= 30)
-                & (np.abs(events.Muon.eta) < 2.4)
-                & (np.abs(events.Muon.dz) < 0.1)
-                & (np.abs(events.Muon.dxy) < 0.05)
-                & (events.Muon.sip3d <= 4.0)
-                & events.Muon.mediumId
-                & (events.Muon.pfRelIso04_all < 0.15)
-            )
-            good_muons = events.Muon[good_muon_sel]
-            good_muons["id"] = good_muons.charge * (13)
+            good_muon_sel = good_muons(events.Muon)
+            muons = events.Muon[good_muon_sel]
+            muons["id"] = muons.charge * (13)
 
-            # good_electron_sel = good_electrons(events.Electron)
-            good_electron_sel = (
-                (events.Electron.pt >= 30)
-                & (abs(events.Electron.eta) <= 2.4)
-                & (np.abs(events.Electron.dz) < 0.1)
-                & (np.abs(events.Electron.dxy) < 0.05)
-                & (events.Electron.mvaIso_WP90)
-                & (events.Electron.pfRelIso03_all < 0.15)
-            )
-            good_electrons = events.Electron[good_electron_sel]
-            good_electrons["id"] = good_electrons.charge * (11)
+            good_electron_sel = good_electrons(events.Electron)
+            electrons = events.Electron[good_electron_sel]
+            electrons["id"] = electrons.charge * (11)
 
         num_jets = 4
         jets, jec_shifted_jetvars = get_jec_jets(
@@ -333,6 +318,18 @@ class bbbbSkimmer(processor.ProcessorABC):
                 genVars = {**genVars, **vars_dict}
 
         # Jet variables
+        jet_skimvars = self.skim_vars["Jet"]
+        if self._nano_version == "v12":
+            jet_skimvars = {
+                **jet_skimvars,
+                "btagDeepFlavB": "btagDeepFlavB",
+                "btagPNetB": "btagPNetB",
+                "btagPNetCvB": "btagPNetCvB",
+                "btagPNetCvL": "btagPNetCvL",
+                "btagPNetQvG": "btagPNetQvG",
+                "btagRobustParTAK4B": "btagRobustParTAK4B",
+            }
+
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
             for (var, key) in self.skim_vars["Jet"].items()
@@ -461,15 +458,14 @@ class bbbbSkimmer(processor.ProcessorABC):
                 **bbFatDijetVars,
             }
         if self._region == "semilep-tt":
+            # concatenate leptons
+            leptons = ak.concatenate([muons, electrons], axis=1)
+            # sort by pt
+            leptons = leptons[ak.argsort(leptons.pt, ascending=False)]
+
             lepVars = {
-                **{
-                    f"lep{key}": pad_val(good_muons[var], 2, axis=1)
-                    for (var, key) in self.skim_vars["Lepton"].items()
-                },
-                **{
-                    f"lep{key}": pad_val(good_electrons[var], 2, axis=1)
-                    for (var, key) in self.skim_vars["Lepton"].items()
-                },
+                f"lep{key}": pad_val(leptons[var], 2, axis=1)
+                for (var, key) in self.skim_vars["Lepton"].items()
             }
 
             skimmed_events = {
@@ -556,11 +552,25 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         elif self._region == "semilep-tt":
             # >=1 "good" isolated lepton with pT>50
+            add_selection("lepton_pt", np.sum((leptons.pt > 50), axis=1) >= 1, *selection_args)
+
             # >=1 AK8 jets with pT>300, mSD>50
+            cut_pt_msd = (
+                np.sum(
+                    (ak8FatJetVars["ak8FatJetPt"] >= 300) & (ak8FatJetVars["ak8FatJetMsd"] >= 50),
+                    axis=1,
+                )
+                >= 1
+            )
+            add_selection("ak8_pt_msd", cut_pt_msd, *selection_args)
+
             # MET > 50
             add_selection("met_50", met_pt > 50, *selection_args)
 
-            # >=1 AK4 jet with medium DeepJet b-tagging
+            # >=1 AK4 jet with medium b-tagging ( DeepJet)
+            add_selection(
+                "ak4jet_btag", ak.sum((jets.btagDeepFlavB >= 0.3091), axis=1) >= 1, *selection_args
+            )
 
         elif self._region == "had-tt":
             # == 2 AK8 jets with pT>450 and mSD>50
