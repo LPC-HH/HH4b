@@ -158,53 +158,67 @@ def get_v9_private():
     }
 
 
-def get_v9_privatepfnano():
+# ntuples used in run-2 analysis
+def get_v9_hh_private():
     return {
         "2018": {
             "HH": {
-                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8",
-                "GluGlutoHHto4B_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH0_TuneCP5_PSWeights_13TeV-powheg-pythia8",
-                "GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HH/GluGluToHHTo4B_node_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8",
+                "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8": "/store/group/lpcdihiggsboost/NanoTuples/V2p0/MC_Autumn18/v1/GluGluToHHTo4B_node_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8"
             },
+            # "Hbb": {
+            #     "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/GluGluHToBB_M-125_13TeV_powheg_MINLO_NNLOPS_pythia8",
+            #     "VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/VBFHToBB_M-125_13TeV_powheg_pythia8_weightfix",
+            #     "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/WminusH_HToBB_WToLNu_M125_13TeV_powheg_pythia8",
+            #     "WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/WplusH_HToBB_WToLNu_M125_13TeV_powheg_pythia8",
+            # },
+            # "Diboson": {
+            #     "ZZ_TuneCP5_13TeV-pythia8": "/store/group/lpcdihiggsboost/NanoTuples/V2p0/MC_Autumn18/v1/ZZ_TuneCP5_13TeV-pythia8",
+            # },
+            # "QCD": {
+            #     **{
+            #         f"QCD_HT-{qbin}-13TeV": f"/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/QCD_HT{qbin}_TuneCP5_13TeV-madgraphMLM-pythia8"
+            #         for qbin in qcd_ht_bins_run2
+            #     },
+            # },
+            # "TT": {
+            #     "TTToHadronic_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/TTToHadronic_TuneCP5_13TeV-powheg-pythia8",
+            #     "TTTo2L2Nu_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
+            #     "TTToSemiLeptonic_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8",
+            # },
+            # "VJets": {
+            #     "WJetsToQQ_HT-400to600_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/WJetsToQQ_HT400to600_qc19_3j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            #     "WJetsToQQ_HT-600to800_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/WJetsToQQ_HT600to800_qc19_3j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            #     "WJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/WJetsToQQ_HT-800toInf_qc19_3j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            #     "ZJetsToQQ_HT-400to600_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/ZJetsToQQ_HT400to600_qc19_4j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            #     "ZJetsToQQ_HT-600to800_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/ZJetsToQQ_HT600to800_qc19_4j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            #     "ZJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/ZJetsToQQ_HT-800toInf_qc19_4j_TuneCP5_13TeV-madgraphMLM-pythia8",
+            # },
+            # "JetHT": {
+            #     "JetHT_Run2018A": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/data/JetHT/NanoTuples-30Apr2020_Run2018A-17Sep2018-v1",
+            #     "JetHT_Run2018B": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/data/JetHT/NanoTuples-30Apr2020_Run2018B-17Sep2018-v1",
+            #     "JetHT_Run2018C": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/data/JetHT/NanoTuples-30Apr2020_Run2018C-17Sep2018-v1",
+            #     "JetHT_Run2018D": "/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/data/JetHT/NanoTuples-30Apr2020_Run2018D-PromptReco-v2",
+            # },
+        }
+    }
+
+
+def get_v11():
+    return {
+        "2022EE": {
             "Hbb": {
-                "GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8": "/store/group/lpcpfnano/rkansal/v2_3/2018/GluGluHToBB/GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
-                "VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/jdickins/v2_3/2018/VBFHToBB_DipoleRecoilOn/VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8",
-                "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
-                "WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HTo\
-BB/WplusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
-                "ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",
-                "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": "/store/group/lpcpfnano/cmantill/v2_3/2018/HToBB/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8",
+                "GluGluHto2B_PT-200_M-125": "/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
             },
-            "Diboson": {
-                "ZZ_TuneCP5_13TeV-pythia8": "/store/group/lpcpfnano/rkansal/v2_3/2018/Diboson/ZZ_TuneCP5_13TeV-pythia8"
-            },
-            "QCD": {
-                **{
-                    f"QCD_HT-{qbin}-13TeV": f"/store/group/lpcpfnano/cmantill/v2_3/2018/QCD/QCD_HT{qbin}_TuneCP5_PSWeights_13TeV-madgraph-pythia8"
-                    for qbin in qcd_ht_bins_run2
-                },
-            },
-            "TT": {
-                "TTToHadronic_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTToHadronic_TuneCP5_13TeV-powheg-pythia8",
-                "TTTo2L2Nu_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8",
-                "TTToSemiLeptonic_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/TTbar/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8",
-            },
-            "VJets": {
-                "WJetsToQQ_HT-200to400_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "WJetsToQQ_HT-400to600_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "WJetsToQQ_HT-600to800_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "WJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/WJetsToQQ/WJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "ZJetsToQQ_HT-200to400_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-200to400_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "ZJetsToQQ_HT-400to600_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-400to600_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "ZJetsToQQ_HT-600to800_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-600to800_TuneCP5_13TeV-madgraphMLM-pythia8",
-                "ZJetsToQQ_HT-800toInf_13TeV": "/store/group/lpcpfnano/cmantill/v2_3/2018/ZJetsToQQ/ZJetsToQQ_HT-800toInf_TuneCP5_13TeV-madgraphMLM-pythia8",
-            },
-            "JetHT": {
-                "JetHT_Run2018A": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018A",
-                "JetHT_Run2018B": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018B",
-                "JetHT_Run2018C": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018C",
-                "JetHT_Run2018D": "/store/group/lpcpfnano/cmantill/v2_3/2018/JetHT2018/JetHT/JetHT_Run2018D",
-            },
+        }
+    }
+
+
+def get_v11_private():
+    return {
+        "2022EE": {
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v11/2022EE/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
+            }
         }
     }
 
@@ -382,6 +396,8 @@ def get_v12():
                 "HHHTo6B_c3_minus1p5_d4_minus0p5": "/HHHTo6B_c3_minus1p5_d4_minus0p5_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM",
             },
             "HH": {
+                # private 1M events
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private": "/ggHHTo4B_cHHH_1/lpcdihiggsboost-crab_PrivateProduction_Summer22_DR_step4_NANOAODSIM_ggHHTo4B_cHHH_1_batch1_v1-00000000000000000000000000000000/USER",
                 # 3M events
                 "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v1/NANOAODSIM",
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v3/NANOAODSIM",
@@ -618,7 +634,7 @@ def get_files(dataset, version):
         for fj in filesjson:
             if "is_file_valid" in fj:
                 if fj["is_file_valid"] == 0:
-                    print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
+                    # print(f"ERROR: File not valid on DAS: {fj['logical_file_name']}")
                     not_valid.append(fj["logical_file_name"])
                 else:
                     files.append(fj["logical_file_name"])
@@ -635,22 +651,21 @@ def get_files(dataset, version):
 
         # Now query rucio to get the concrete dataset passing the sites filtering options
         sites_cfg = {
-            "whitelist_sites": None,
-            "blacklist_sites": ["T2_FR_IPHC"],
+            "whitelist_sites": [],  # ["T1_US_FNAL_Disk"],
+            "blacklist_sites": [
+                "T2_FR_IPHC" "T2_US_MIT",
+                "T2_US_Vanderbilt",
+                "T2_UK_London_Brunel",
+                "T2_UK_SGrid_RALPP",
+                "T1_UK_RAL_Disk",
+                "T2_PT_NCG_Lisbon",
+            ],
             "regex_sites": None,
         }
-        # append trouble datasets for now..
-        sites_cfg["blacklist_sites"].append("T2_US_MIT")
-        sites_cfg["blacklist_sites"].append("T2_US_Vanderbilt")
-        sites_cfg["blacklist_sites"].append("T2_UK_London_Brunel")
-        sites_cfg["blacklist_sites"].append("T2_UK_SGrid_RALPP")
-        sites_cfg["blacklist_sites"].append("T1_UK_RAL_Disk")
-        # temp?
-        sites_cfg["blacklist_sites"].append("T1_US_FNAL_Disk")
 
-        if "QCD-4Jets_HT-600to800" in dataset:
-            sites_cfg["blacklist_sites"].append("T3_KR_KNU")
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
+
+        # print(dataset, sites)
 
         # Get rid of invalid files
         files_valid = []
@@ -666,7 +681,9 @@ def get_files(dataset, version):
         return files_valid
 
 
+# v9_hh_private
 for version in ["v12"]:
+    # for version in ["v9", "v9_private",  "v11", "v11_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

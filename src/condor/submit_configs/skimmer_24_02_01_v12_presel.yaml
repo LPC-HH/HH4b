@@ -1,0 +1,18 @@
+{
+   "2022EE": {
+        "QCD": {
+            "subsamples": [
+                "QCD_HT-100to200",
+                "QCD_HT-200to400",
+                "QCD_HT-400to600",
+                "QCD_HT-600to800",
+                "QCD_HT-800to1000",
+                "QCD_HT-1000to1200",
+                "QCD_HT-1200to1500",
+                "QCD_HT-1500to2000",
+                "QCD_HT-2000",
+            ],
+            "files_per_job": 2,
+        },
+    },
+}

@@ -77,9 +77,10 @@ def good_electrons(electrons: ElectronArray):
         & (abs(electrons.eta) <= 2.4)
         & (np.abs(electrons.dz) < 0.1)
         & (np.abs(electrons.dxy) < 0.05)
-        & (electrons.mvaIso_WP90)
         & (electrons.pfRelIso03_all < 0.15)
     )
+    if "mvaIso_WP90" in electrons.fields:
+        sel = sel & (electrons.mvaIso_WP90)
     return sel
 
 
@@ -133,7 +134,10 @@ def bregcorr(jets: JetArray):
 
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
+    fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+
     fatjets_fields = fatjets.fields
+
     if "particleNetMD_Xbb" in fatjets_fields:
         fatjets["Txbb"] = ak.nan_to_num(
             fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
@@ -150,28 +154,53 @@ def get_ak8jets(fatjets: FatJetArray):
             nan=-1.0,
         )
         fatjets["Tqcd"] = fatjets.particleNetMD_QCD
+    elif "ParticleNetMD_probXbb" in fatjets_fields:
+        fatjets["Tqcd"] = (
+            fatjets.ParticleNetMD_probQCDb
+            + fatjets.ParticleNetMD_probQCDbb
+            + fatjets.ParticleNetMD_probQCDc
+            + fatjets.ParticleNetMD_probQCDcc
+            + fatjets.ParticleNetMD_probQCDothers
+        )
+        fatjets["Txbb"] = fatjets.ParticleNetMD_probXbb
+        fatjets["Txjj"] = (
+            fatjets.ParticleNetMD_probXbb
+            + fatjets.ParticleNetMD_probXcc
+            + fatjets.ParticleNetMD_probXqq
+        )
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
-        # save both until we confirm which is correct
+        fatjets["Tqcd"] = fatjets.particleNet_QCD
+
+    if "particleNet_mass" not in fatjets_fields:
+        fatjets["particleNet_mass"] = fatjets.mass
+
+    if "particleNet_massCorr" in fatjets_fields:
         fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
         fatjets["particleNet_massraw"] = (
             (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
         )
-        # dummy
-        fatjets["Tqcd"] = fatjets.particleNet_XbbVsQCD
-
-    fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+    else:
+        if "particleNet_mass" not in fatjets_fields:
+            fatjets["particleNet_mass"] = fatjets.mass
+            fatjets["particleNet_massraw"] = fatjets.mass
+        else:
+            fatjets["particleNet_massraw"] = fatjets.particleNet_mass
 
     if "ParticleNetMD_probQCDb" in fatjets_fields:
         fatjets["TQCDb"] = fatjets.ParticleNetMD_probQCDb
         fatjets["TQCDbb"] = fatjets.ParticleNetMD_probQCDbb
         fatjets["TQCDothers"] = fatjets.ParticleNetMD_probQCDothers
+    elif "particleNet_QCD1HF" in fatjets_fields:
+        fatjets["TQCDb"] = fatjets.particleNet_QCD1HF
+        fatjets["TQCDbb"] = fatjets.particleNet_QCD2HF
+        fatjets["TQCDothers"] = fatjets.particleNet_QCD0HF
     else:
         # dummy
-        fatjets["TQCDb"] = fatjets["Txbb"]
-        fatjets["TQCDbb"] = fatjets["Txbb"]
-        fatjets["TQCDothers"] = fatjets["Txbb"]
+        fatjets["TQCDb"] = fatjets.particleNetMD_QCD
+        fatjets["TQCDbb"] = fatjets.particleNetMD_QCD
+        fatjets["TQCDothers"] = fatjets.particleNetMD_QCD
 
     return fatjets
 
