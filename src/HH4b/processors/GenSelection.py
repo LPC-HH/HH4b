@@ -132,17 +132,9 @@ def gen_selection_HHbbbb(
     fatjets["MaxdRH1"] = ak.max(fatjets.metric_table(b_h1), axis=2)
     fatjets["MaxdRH2"] = ak.max(fatjets.metric_table(b_h2), axis=2)
 
-    # print("h1 ",fatjets.metric_table(b_h1) < 0.8)
-    # print("h1sum ", ak.sum(fatjets.metric_table(b_h1) < 0.8, axis=2))
-    # print("bsdr ",fatjets.metric_table(bs_unflat))
-    # print("bs ",fatjets.metric_table(bs_unflat) < 0.8)
-    # print("numb ",num_b_matched)
-    # print("drhiggs", fatjets.metric_table(higgs) < 0.8)
-    # print(fatjets["HiggsMatchIndex"])
-
     num_fatjets = 2
-    ak8FatJetVars = {
-        f"ak8FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    bbFatJetVars = {
+        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -152,8 +144,9 @@ def gen_selection_HHbbbb(
             "MaxdRH2",
         ]
     }
+    print(bbFatJetVars)
 
-    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **ak8FatJetVars}
+    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **bbFatJetVars}
 
 
 def gen_selection_Hbb(
@@ -194,8 +187,8 @@ def gen_selection_Hbb(
     fatjets["NumBMatchedH2"] = ak.sum(fatjets.metric_table(b_h2) < 0.8, axis=2)
 
     num_fatjets = 2
-    ak8FatJetVars = {
-        f"ak8FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    bbFatJetVars = {
+        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -204,4 +197,4 @@ def gen_selection_Hbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars, **ak8FatJetVars}
+    return {**GenHiggsVars, **GenbVars, **bbFatJetVars}

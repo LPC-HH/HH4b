@@ -2,6 +2,7 @@
 
 ```
 python -m build_jec jec_compiled.pkl.gz
+python -m build_jec_run2 jec_compiled_run2.pkl.gz
 ```
 
 ## LUMI recommendations

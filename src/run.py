@@ -98,16 +98,11 @@ def run(p: processor, fileset: dict, args):
     save_parquet = {
         "matching": True,
         "skimmer": True,
-        "trigger_boosted": True,
     }[args.processor]
     save_root = {
         "matching": False,
         "skimmer": True,
-        "trigger_boosted": False,
     }[args.processor]
-
-    if args.save_hist:
-        save_parquet["trigger_boosted"] = False
 
     if save_parquet or save_root:
         # these processors store intermediate files in the "./outparquet" local directory
@@ -174,7 +169,6 @@ def main(args):
     p = run_utils.get_processor(
         args.processor,
         args.save_systematics,
-        args.save_hist,
         args.save_array,
         args.region,
         args.apply_selection,
