@@ -203,7 +203,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         semilep-tt region:
         - HLT OR for both data and MC
         - >=1 "good" isolated lepton with pT>50
-        - >=1 AK8 jets with pT>300, mSD>50
+        - >=1 AK8 jets with pT>250, mSD>50
         - MET > 50
         - >=1 AK4 jet with medium DeepJet
         had tt region:
@@ -590,7 +590,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             # >=2 AK8 jets
             add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
 
-            # >=2 AK8 jets with pT>300
+            # >=2 AK8 jets with pT>250
             # TODO: check if fatjet passes pt cut in any of the JEC variations
             cut_pt = (
                 np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1) >= 2
@@ -638,10 +638,10 @@ class bbbbSkimmer(processor.ProcessorABC):
             # >=1 "good" isolated lepton with pT>50
             add_selection("lepton_pt", np.sum((leptons.pt > 50), axis=1) >= 1, *selection_args)
 
-            # >=1 AK8 jets with pT>300, mSD>50
+            # >=1 AK8 jets with pT>250, mSD>50
             cut_pt_msd = (
                 np.sum(
-                    (ak8FatJetVars["ak8FatJetPt"] >= 300) & (ak8FatJetVars["ak8FatJetMsd"] >= 50),
+                    (ak8FatJetVars["ak8FatJetPt"] >= 250) & (ak8FatJetVars["ak8FatJetMsd"] >= 50),
                     axis=1,
                 )
                 >= 1

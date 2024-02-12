@@ -12,7 +12,7 @@
                 "QCD_HT-1500to2000",
                 "QCD_HT-2000",
             ],
-            "files_per_job": 2,
+            "files_per_job": 5,
         },
     },
 }
