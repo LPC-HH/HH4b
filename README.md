@@ -65,6 +65,8 @@ mamba activate hh4b
 
 ### Installing package
 
+**Remember to install this in your mamba environment**.
+
 ```bash
 # Clone the repository
 git clone https://github.com/LPC-HH/HH4b.git
