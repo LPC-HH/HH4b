@@ -17,6 +17,9 @@ common_samples = {
     # "qcd": ["QCD_PT"],
     "data": [
         "Run2022",
+        "JetMET_Run",
+        "Muon_Run",
+        "EGamma_Run",
     ],
     "ttbar": [
         "TTto2L2Nu",
