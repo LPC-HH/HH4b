@@ -206,9 +206,9 @@ def get_v9_hh_private():
 def get_v11():
     return {
         "2022EE": {
-            "Hbb": {
-                "GluGluHto2B_PT-200_M-125": "/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
-            },
+            # "Hbb": {
+            #    "GluGluHto2B_PT-200_M-125": "/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v1/NANOAODSIM",
+            # },
             "QCD": {
                 **{
                     f"QCD_HT-{qbin}": f"/QCD-4Jets_HT-{qbin}_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EENanoAODv11-126X_mcRun3_2022_realistic_postEE_v1-v2/NANOAODSIM"
@@ -668,7 +668,7 @@ def get_files(dataset, version):
             ],
             "regex_sites": None,
         }
-        if version == "v12":
+        if version == "v12" or version == "v11":
             sites_cfg["whitelist_sites"] = ["T1_US_FNAL_Disk"]
 
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
