@@ -593,7 +593,6 @@ def ratioHistPlot(
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
 
-    
     y_lowlim = ylim_low if ylim_low is not None else 0 if not log else 0.001
 
     if ylim is not None:
