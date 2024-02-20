@@ -285,7 +285,7 @@ def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
     if feat in events:
         return np.nan_to_num(events[feat].to_numpy().squeeze(), -1)
 
-    if feat.startswith("bb"):
+    if feat.startswith("bb") and bb_mask:
         assert bb_mask is not None, "No bb mask given!"
         return events["ak8" + feat[3:]].to_numpy()[bb_mask ^ (int(feat[2]) == 1)].squeeze()
 
