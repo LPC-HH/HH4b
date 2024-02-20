@@ -453,6 +453,7 @@ def ratioHistPlot(
     name: str = "",
     sig_scale_dict=None,
     ylim: int | None = None,
+    ylim_low: int | None = None,
     show: bool = True,
     variation: tuple | None = None,
     plot_data: bool = True,
@@ -592,7 +593,10 @@ def ratioHistPlot(
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
 
-    y_lowlim = 0 if not log else 1e-3
+    if ylim_low is not None:
+        y_lowlim = ylim_low
+    else: 
+        y_lowlim = 0 if not log else 1e-3
     if ylim is not None:
         ax.set_ylim([y_lowlim, ylim])
     else:
