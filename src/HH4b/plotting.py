@@ -595,7 +595,7 @@ def ratioHistPlot(
 
     if ylim_low is not None:
         y_lowlim = ylim_low
-    else: 
+    else:
         y_lowlim = 0 if not log else 1e-3
     if ylim is not None:
         ax.set_ylim([y_lowlim, ylim])
