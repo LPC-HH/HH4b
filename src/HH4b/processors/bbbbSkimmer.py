@@ -64,6 +64,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             "msoftdrop": "Msd",
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
+            "Tqcd": "PNetQCD",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
@@ -87,7 +88,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     preselection = {  # noqa: RUF012
-        "fatjet_pt": 250,
+        "fatjet_pt": 270,
         "fatjet_msd": 60,
         "fatjet_mreg": 60,
         "Txbb0": 0.8,
@@ -389,6 +390,12 @@ class bbbbSkimmer(processor.ProcessorABC):
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
+            }
+        if self._nano_version == "v12_private":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "Txbb_legacy": "PNetXbbLegacy",
+                "particleNet_mass_legacy": "PNetMassLegacy",
             }
 
         ak8FatJetVars = {

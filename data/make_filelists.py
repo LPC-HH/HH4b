@@ -229,6 +229,19 @@ def get_v11_private():
     }
 
 
+def get_v12_private():
+    return {
+        "2022EE": {
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
+            "QCD": {
+                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+        }
+    }
+
+
 def get_v12():
     return {
         "2022": {
@@ -690,7 +703,8 @@ def get_files(dataset, version):
 
 
 # for version in ["v12"]:
-for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
+# for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

@@ -202,6 +202,16 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["TQCDbb"] = fatjets.particleNetMD_QCD
         fatjets["TQCDothers"] = fatjets.particleNetMD_QCD
 
+    if "particleNetLegacy_Xbb" in fatjets_fields:
+        fatjets["Txbb_legacy"] = fatjets.particleNetLegacy_Xbb
+    else:
+        fatjets["Txbb_legacy"] = fatjets["Txbb"]
+
+    if "particleNetLegacy_mass" in fatjets_fields:
+        fatjets["particleNet_mass_legacy"] = fatjets.particleNetLegacy_mass
+    else:
+        fatjets["particleNet_mass_legacy"] = fatjets["particleNet_mass"]
+
     return fatjets
 
 
