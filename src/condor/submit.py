@@ -41,7 +41,7 @@ def main(args):
 
     username = os.environ["USER"]
 
-    tag = f"{args.tag}_{args.nano_version}"
+    tag = f"{args.tag}_{args.nano_version}_{args.region}"
     local_dir = Path(f"condor/{args.processor}/{tag}")
     homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
     outdir = homedir / tag
@@ -56,6 +56,7 @@ def main(args):
     print("Condor work dir: ", local_dir)
     (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
 
+    print(args.subsamples)
     fileset = run_utils.get_fileset(
         args.processor,
         args.year,
@@ -148,7 +149,6 @@ if __name__ == "__main__":
         help="test run or not - test run means only 2 jobs per sample will be created",
     )
     parser.add_argument("--files-per-job", default=20, help="# files per condor job", type=int)
-
     run_utils.add_bool_arg(
         parser, "submit", default=False, help="submit files as well as create them"
     )

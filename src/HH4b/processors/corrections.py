@@ -13,6 +13,7 @@ from __future__ import annotations
 import gzip
 import pathlib
 import pickle
+import random
 from pathlib import Path
 
 import awkward as ak
@@ -25,7 +26,6 @@ from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
-from . import utils
 from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
@@ -50,6 +50,46 @@ pog_jsons = {
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
+}
+
+# Jet mass scale and Jet mass resolution
+# FIXME: Using placeholder Run 2 values !!
+# nominal, down, up
+jmsr_vars = ["msoftdrop", "particleNet_mass"]
+
+jmsValues = {}
+jmrValues = {}
+
+jmrValues["msoftdrop"] = {
+    "2016": [1.00, 1.0, 1.09],
+    "2017": [1.03, 1.00, 1.07],
+    "2018": [1.065, 1.031, 1.099],
+    "2022": [1.0, 1.0, 1.0],
+    "2022EE": [1.0, 1.0, 1.0],
+}
+
+jmsValues["msoftdrop"] = {
+    "2016": [1.00, 0.9906, 1.0094],
+    "2017": [1.0016, 0.978, 0.986],
+    "2018": [0.997, 0.993, 1.001],
+    "2022": [1.0, 1.0, 1.0],
+    "2022EE": [1.0, 1.0, 1.0],
+}
+
+jmrValues["particleNet_mass"] = {
+    "2016": [1.028, 1.007, 1.063],
+    "2017": [1.026, 1.009, 1.059],
+    "2018": [1.031, 1.006, 1.075],
+    "2022": [1.0, 1.0, 1.0],
+    "2022EE": [1.0, 1.0, 1.0],
+}
+
+jmsValues["particleNet_mass"] = {
+    "2016": [1.00, 0.998, 1.002],
+    "2017": [1.002, 0.996, 1.008],
+    "2018": [0.994, 0.993, 1.001],
+    "2022": [1.0, 1.0, 1.0],
+    "2022EE": [1.0, 1.0, 1.0],
 }
 
 
@@ -158,62 +198,6 @@ def get_vpt(genpart, check_offshell=False):
         ].sum()
         return ak.where(ak.is_none(boson.pt), offshell.pt, boson.pt)
     return np.array(ak.fill_none(boson.pt, 0.0))
-
-
-def add_VJets_kFactors(weights, genpart, dataset):
-    """Revised version of add_VJets_NLOkFactor, for both NLO EW and ~NNLO QCD"""
-
-    vjets_kfactors = correctionlib.CorrectionSet.from_file(
-        package_path + "/corrections/ULvjets_corrections.json"
-    )
-
-    common_systs = [
-        "d1K_NLO",
-        "d2K_NLO",
-        "d3K_NLO",
-        "d1kappa_EW",
-    ]
-    zsysts = common_systs + [
-        "Z_d2kappa_EW",
-        "Z_d3kappa_EW",
-    ]
-    znlosysts = [
-        "d1kappa_EW",
-        "Z_d2kappa_EW",
-        "Z_d3kappa_EW",
-    ]
-    wsysts = common_systs + [
-        "W_d2kappa_EW",
-        "W_d3kappa_EW",
-    ]
-
-    def add_systs(systlist, qcdcorr, ewkcorr, vpt):
-        ewknom = ewkcorr.evaluate("nominal", vpt)
-        weights.add("vjets_nominal", qcdcorr * ewknom if qcdcorr is not None else ewknom)
-        ones = np.ones_like(vpt)
-        for syst in systlist:
-            weights.add(
-                syst,
-                ones,
-                ewkcorr.evaluate(syst + "_up", vpt) / ewknom,
-                ewkcorr.evaluate(syst + "_down", vpt) / ewknom,
-            )
-
-    if "ZJetsToQQ_HT" in dataset:
-        vpt = get_vpt(genpart)
-        qcdcorr = vjets_kfactors["ULZ_MLMtoFXFX"].evaluate(vpt)
-        ewkcorr = vjets_kfactors["Z_FixedOrderComponent"]
-        add_systs(zsysts, qcdcorr, ewkcorr, vpt)
-    elif "DYJetsToLL" in dataset:
-        vpt = get_vpt(genpart)
-        qcdcorr = 1
-        ewkcorr = vjets_kfactors["Z_FixedOrderComponent"]
-        add_systs(znlosysts, qcdcorr, ewkcorr, vpt)
-    elif "WJetsToQQ_HT" in dataset or "WJetsToLNu" in dataset:
-        vpt = get_vpt(genpart)
-        qcdcorr = vjets_kfactors["ULW_MLMtoFXFX"].evaluate(vpt)
-        ewkcorr = vjets_kfactors["W_FixedOrderComponent"]
-        add_systs(wsysts, qcdcorr, ewkcorr, vpt)
 
 
 def add_ps_weight(weights, ps_weights):
@@ -344,154 +328,125 @@ def add_scalevar_3pt(weights, var_weights):
     weights.add("QCDscale3pt", nom, up, down)
 
 
-TOP_PDGID = 6
-GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
+class JECs:
+    def __init__(self, year):
+        if year in ["2022", "2022EE"]:
+            jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
+        elif year in ["2016", "2016APV", "2017", "2018"]:
+            jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
+        else:
+            jec_compiled = None
 
+        self.jet_factory = {}
+        self.met_factory = None
 
-def add_top_pt_weight(weights: Weights, events: NanoEventsArray):
-    """https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting"""
-    # finding the two gen tops
-    tops = events.GenPart[
-        (abs(events.GenPart.pdgId) == TOP_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
-    ]
+        if jec_compiled is not None:
+            with gzip.open(jec_compiled, "rb") as filehandler:
+                jmestuff = pickle.load(filehandler)
 
-    # reweighting formula from https://twiki.cern.ch/twiki/bin/view/CMS/TopPtReweighting#TOP_PAG_corrections_based_on_dat
-    # for POWHEG+Pythia8
-    tops_sf = np.exp(0.0615 - 0.0005 * tops.pt)
-    # SF is geometric mean of both tops' weight
-    tops_sf = np.sqrt(tops_sf[:, 0] * tops_sf[:, 1]).to_numpy()
-    weights.add("top_pt", tops_sf)
+            self.jet_factory["ak4"] = jmestuff["jet_factory"]
+            self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
+            self.met_factory = jmestuff["met_factory"]
 
+    def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
+        """add variables needed for JECs"""
+        jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+        jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
+        jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+        if not isData:
+            # gen pT needed for smearing
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        return jets
 
-try:
-    with gzip.open(package_path + "/corrections/jec_compiled.pkl.gz", "rb") as filehandler:
-        jmestuff = pickle.load(filehandler)
+    def get_jec_jets(
+        self,
+        events: NanoEventsArray,
+        jets: FatJetArray,
+        year: str,
+        isData: bool = False,
+        jecs: dict[str, str] | None = None,
+        fatjets: bool = True,
+        applyData: bool = False,
+        dataset: str | None = None,
+        nano_version: str = "v12",
+    ) -> FatJetArray:
+        """
+        If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
+        """
+        # RunC,D,E are re-reco, should wait for new jecs
+        datasets_no_jecs = [
+            "Run2022C_single",
+            "Run2022C",
+            "Run2022D",
+            "Run2022E",
+        ]
+        for dset in datasets_no_jecs:
+            if dataset in dset and nano_version == "v12":
+                return jets, None
 
-    ak4jet_factory = jmestuff["jet_factory"]
-    fatjet_factory = jmestuff["fatjet_factory"]
-except Exception as e:
-    print("Failed loading compiled JECs. Error: ", e)
-
-
-def _add_jec_variables(jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
-    """add variables needed for JECs"""
-    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
-    jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
-    if not isData:
-        # gen pT needed for smearing
-        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
-    return jets
-
-
-def get_jec_jets(
-    events: NanoEventsArray,
-    jets: FatJetArray,
-    year: str,
-    isData: bool = False,
-    jecs: dict[str, str] | None = None,
-    fatjets: bool = True,
-    applyData: bool = False,
-    dataset: str | None = None,
-    nano_version: str = "v12",
-) -> FatJetArray:
-    """
-    If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
-    """
-    # RunC,D,E are re-reco, should wait for new jecs
-    datasets_no_jecs = [
-        "Run2022C_single",
-        "Run2022C",
-        "Run2022D",
-        "Run2022E",
-    ]
-    for dset in datasets_no_jecs:
-        if dataset in dset and nano_version == "v12":
+        if year == "2023":
+            # no corrections available yet
             return jets, None
 
-    if year == "2018" or year == "2023":
-        return jets, None
+        jec_vars = ["pt"]  # variables we are saving that are affected by JECs
+        jet_factory_str = "ak4"
+        if fatjets:
+            jet_factory_str = "ak8"
 
-    jec_vars = ["pt"]  # variables we are saving that are affected by JECs
-    jet_factory = fatjet_factory if fatjets else ak4jet_factory
+        if self.jet_factory[jet_factory_str] is None:
+            return jets, None
 
-    import cachetools
+        import cachetools
 
-    jec_cache = cachetools.Cache(np.inf)
+        jec_cache = cachetools.Cache(np.inf)
 
-    if isData:
-        if year == "2022EE" and (dataset == "Run2022F" or dataset == "Run2022E"):
-            corr_key = f"{year}NOJER_runF"
-        elif year == "2022EE" and dataset == "Run2022G":
-            corr_key = f"{year}NOJER_runG"
-        elif year == "2022" and dataset == "Run2022C":
-            corr_key = f"{year}NOJER_runC"
-        elif year == "2022" and dataset == "Run2022D":
-            corr_key = f"{year}NOJER_runD"
+        if isData:
+            if year == "2022EE" and (dataset == "Run2022F" or dataset == "Run2022E"):
+                corr_key = f"{year}NOJER_runF"
+            elif year == "2022EE" and dataset == "Run2022G":
+                corr_key = f"{year}NOJER_runG"
+            elif year == "2022" and dataset == "Run2022C":
+                corr_key = f"{year}NOJER_runC"
+            elif year == "2022" and dataset == "Run2022D":
+                corr_key = f"{year}NOJER_runD"
+            else:
+                print(dataset, year)
+                print(
+                    "warning, no valid dataset for 2022 corrections, JECs won't be applied to data"
+                )
+                applyData = False
         else:
-            print(dataset, year)
-            print("warning, no valid dataset for 2022 corrections, JECs won't be applied to data")
-            applyData = False
-    else:
-        corr_key = f"{year}mc"
+            corr_key = f"{year}mc"
 
-    apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
+        apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
 
-    # fatjet_factory.build gives an error if there are no jets in event
-    if apply_jecs:
-        jets = jet_factory[corr_key].build(
-            _add_jec_variables(jets, events.Rho.fixedGridRhoFastjetAll, isData), jec_cache
-        )
-
-    # return only jets if no jecs given
-    if jecs is None or isData:
-        return jets, None
-
-    jec_shifted_vars = {}
-
-    for jec_var in jec_vars:
-        tdict = {"": jets[jec_var]}
+        # fatjet_factory.build gives an error if there are no jets in event
         if apply_jecs:
-            for key, shift in jecs.items():
-                for var in ["up", "down"]:
-                    tdict[f"{key}_{var}"] = jets[shift][var][jec_var]
+            rho = (
+                events.Rho.fixedGridRhoFastjetAll
+                if "Rho" in events.fields
+                else events.fixedGridRhoFastjetAll
+            )
+            jets = self.jet_factory[jet_factory_str][corr_key].build(
+                self._add_jec_variables(jets, rho, isData), jec_cache
+            )
 
-        jec_shifted_vars[jec_var] = tdict
+        # return only jets if no jecs given
+        if jecs is None or isData:
+            return jets, None
 
-    return jets, jec_shifted_vars
+        jec_shifted_vars = {}
 
+        for jec_var in jec_vars:
+            tdict = {"": jets[jec_var]}
+            if apply_jecs:
+                for key, shift in jecs.items():
+                    for var in ["up", "down"]:
+                        tdict[f"{key}_{var}"] = jets[shift][var][jec_var]
 
-# Jet mass scale and Jet mass resolution
-# FIXME: Using placeholder Run 2 values !!
-# nominal, down, up
-jmsr_vars = ["msoftdrop", "particleNet_mass"]
+            jec_shifted_vars[jec_var] = tdict
 
-jmsValues = {}
-jmrValues = {}
-
-jmrValues["msoftdrop"] = {
-    "2018": [1.09, 1.04, 1.14],
-    "2022": [1.09, 1.04, 1.14],
-    "2022EE": [1.09, 1.04, 1.14],
-}
-
-jmsValues["msoftdrop"] = {
-    "2018": [0.982, 0.978, 0.986],
-    "2022": [0.982, 0.978, 0.986],
-    "2022EE": [0.982, 0.978, 0.986],
-}
-
-jmrValues["particleNet_mass"] = {
-    "2018": [1.031, 1.006, 1.075],
-    "2022": [1.031, 1.006, 1.075],
-    "2022EE": [1.031, 1.006, 1.075],
-}
-
-jmsValues["particleNet_mass"] = {
-    "2018": [0.994, 0.993, 1.001],
-    "2022": [0.994, 0.993, 1.001],
-    "2022EE": [0.994, 0.993, 1.001],
-}
+        return jets, jec_shifted_vars
 
 
 def get_jmsr(
@@ -503,7 +458,7 @@ def get_jmsr(
     for mkey in jmsr_vars:
         tdict = {}
 
-        mass = utils.pad_val(fatjets[mkey], num_jets, axis=1)
+        mass = pad_val(fatjets[mkey], num_jets, axis=1)
 
         if isData:
             tdict[""] = mass
@@ -516,10 +471,17 @@ def get_jmsr(
             )
             jms_nom, jms_down, jms_up = jmsValues[mkey][year]
 
+            corr_mass_JMRUp = random.gauss(0.0, jmrValues[mkey][year][2] - 1.0)
+            corr_mass = (
+                max(jmrValues[mkey][year][0] - 1.0, 0.0)
+                / (jmrValues[mkey][year][2] - 1.0)
+                * corr_mass_JMRUp
+            )
+
             mass_jms = mass * jms_nom
             mass_jmr = mass * jmr_nom
 
-            tdict[""] = mass_jms * jmr_nom
+            tdict[""] = mass * jms_nom * (1.0 + corr_mass)
             tdict["JMS_down"] = mass_jmr * jms_down
             tdict["JMS_up"] = mass_jmr * jms_up
             tdict["JMR_down"] = mass_jms * jmr_down

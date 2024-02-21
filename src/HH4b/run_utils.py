@@ -85,18 +85,12 @@ def get_fileset(
 def get_processor(
     processor: str,
     save_systematics: bool | None = None,
-    save_hist: bool = False,
     save_array: bool = False,
     region: str | None = None,
     apply_selection: bool | None = None,
     nano_version: str | None = None,
 ):
     # define processor
-    if processor == "trigger_boosted":
-        from HH4b.processors import BoostedTriggerSkimmer
-
-        return BoostedTriggerSkimmer(save_hist=save_hist)
-
     if processor == "matching":
         from HH4b.processors import matchingSkimmer
 
@@ -121,9 +115,9 @@ def parse_common_args(parser):
     parser.add_argument(
         "--processor",
         required=True,
-        help="Trigger processor",
+        help="processor",
         type=str,
-        choices=["trigger_boosted", "skimmer", "matching"],
+        choices=["skimmer", "matching"],
     )
 
     parser.add_argument(
@@ -133,7 +127,16 @@ def parse_common_args(parser):
         "--nano-version",
         type=str,
         required=True,
-        choices=["v9", "v9_private", "v9_privatepfnano", "v10", "v11", "v11_private", "v12"],
+        choices=[
+            "v9",
+            "v9_private",
+            "v9_hh_private",
+            "v10",
+            "v11",
+            "v11_private",
+            "v12",
+            "v12_private",
+        ],
         help="NanoAOD version",
     )
     parser.add_argument(
@@ -151,19 +154,19 @@ def parse_common_args(parser):
 
     parser.add_argument("--maxchunks", default=0, help="max chunks", type=int)
     parser.add_argument("--chunksize", default=20000, help="chunk size", type=int)
-    parser.add_argument("--region", help="region", default="signal", choices=["signal"], type=str)
+    parser.add_argument(
+        "--region",
+        help="region",
+        default="signal",
+        choices=["pre-sel", "signal", "semilep-tt", "had-tt"],
+        type=str,
+    )
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
     parser.add_argument("--apply-selection", dest="apply_selection", action="store_true", help=help)
     parser.add_argument(
         "--no-apply-selection", dest="apply_selection", action="store_false", help=help
     )
     add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
-    add_bool_arg(
-        parser,
-        "save-hist",
-        default=False,
-        help="save histogram as output of the processor (for trigger processor)",
-    )
 
 
 def flatten_dict(var_dict: dict):
