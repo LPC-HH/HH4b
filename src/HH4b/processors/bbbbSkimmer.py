@@ -65,9 +65,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
             "Tqcd": "PNetQCD",
-            "TQCDb": "PNetQCD1HF",
-            "TQCDbb": "PNetQCD2HF",
-            "TQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
@@ -393,6 +390,12 @@ class bbbbSkimmer(processor.ProcessorABC):
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
+            }
+        if self._nano_version == "v12_private":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "Txbb_legacy": "PNetXbbLegacy",
+                "particleNet_mass_legacy": "PNetMassLegacy",
             }
 
         ak8FatJetVars = {
