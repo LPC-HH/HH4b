@@ -64,6 +64,10 @@ class bbbbSkimmer(processor.ProcessorABC):
             "msoftdrop": "Msd",
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
+            "Tqcd": "PNetQCD",
+            "TQCDb": "PNetQCD1HF",
+            "TQCDbb": "PNetQCD2HF",
+            "TQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
@@ -87,7 +91,7 @@ class bbbbSkimmer(processor.ProcessorABC):
     }
 
     preselection = {  # noqa: RUF012
-        "fatjet_pt": 250,
+        "fatjet_pt": 270,
         "fatjet_msd": 60,
         "fatjet_mreg": 60,
         "Txbb0": 0.8,
@@ -378,17 +382,16 @@ class bbbbSkimmer(processor.ProcessorABC):
 
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
-        if year not in ["2022", "2022EE", "2023"]:
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                "TQCDb": "PNetQCDb",
-                "TQCDbb": "PNetQCDbb",
-                "TQCDothers": "PNetQCDothers",
-            }
         if not isData:
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
+            }
+        if self._nano_version == "v12_private":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "Txbb_legacy": "PNetXbbLegacy",
+                "particleNet_mass_legacy": "PNetMassLegacy",
             }
 
         ak8FatJetVars = {
