@@ -7,9 +7,15 @@
 # make dir for output
 mkdir outfiles
 
-# move HH4b folder to src/ to install properly
-mkdir src
-mv HH4b src/
+# shallow clone of single branch (keep repo size as small as possible)
+git clone --single-branch --branch $branch --depth=1 https://github.com/LPC-HH/HH4b
+cd HH4b
+
+# get the latest commit hash and copy it to eos
+commithash=$(git rev-parse HEAD)
+echo "https://github.com/LPC-HH/HH4b/commit/$commithash" > commithash.txt
+xrdcp -f commithash.txt $eosoutgithash
+
 pip install -e .
 
 # run code
@@ -23,3 +29,4 @@ xrdcp -f *.root $eosoutroot
 
 rm *.parquet
 rm *.root
+rm commithash.txt
