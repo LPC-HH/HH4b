@@ -46,6 +46,9 @@ def main(args):
         t2_local_prefix = Path("/ceph/cms/")
         t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
+    else:
+        t2_local_prefix = Path("/eos/uscms/")
+        t2_prefix = "root://cmseos.fnal.gov"
 
     username = os.environ["USER"]
 
@@ -84,8 +87,7 @@ def main(args):
     for sample in fileset:
         for subsample, tot_files in fileset[sample].items():
             print("Submitting " + subsample)
-            eosoutput_dir = t2_prefix / outdir / args.year / subsample
-            eosoutput_dir.mkdir(parents=True, exist_ok=True)
+            eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
             njobs = ceil(tot_files / args.files_per_job)
 
             for j in range(njobs):
