@@ -242,6 +242,22 @@ def get_v12_private():
             },
             "QCD": {
                 "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-200to400": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-2000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "TT": {
+                "TTto4Q": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "JetMET": {
+                "JetMET_Run2022E": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022E",
+                "JetMET_Run2022F": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022F",
+                "JetMET_Run2022G": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022G",
             },
         }
     }
@@ -709,7 +725,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v11", "v11_private"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

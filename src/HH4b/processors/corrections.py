@@ -401,13 +401,13 @@ class JECs:
         jec_cache = cachetools.Cache(np.inf)
 
         if isData:
-            if year == "2022EE" and (dataset == "Run2022F" or dataset == "Run2022E"):
+            if year == "2022EE" and "Run2022F" in dataset:
                 corr_key = f"{year}NOJER_runF"
-            elif year == "2022EE" and dataset == "Run2022G":
+            elif year == "2022EE" and "Run2022G" in dataset:
                 corr_key = f"{year}NOJER_runG"
-            elif year == "2022" and dataset == "Run2022C":
+            elif year == "2022" and "Run2022C" in dataset:
                 corr_key = f"{year}NOJER_runC"
-            elif year == "2022" and dataset == "Run2022D":
+            elif year == "2022" and "Run2022D" in dataset:
                 corr_key = f"{year}NOJER_runD"
             else:
                 print(dataset, year)
