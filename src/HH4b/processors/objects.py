@@ -212,6 +212,8 @@ def get_ak8jets(fatjets: FatJetArray):
     else:
         fatjets["particleNet_mass_legacy"] = fatjets["particleNet_mass"]
 
+    fatjets["pt_raw"] = (1 - fatjets.rawFactor) * fatjets.pt
+
     return fatjets
 
 
