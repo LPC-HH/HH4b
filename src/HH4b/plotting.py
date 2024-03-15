@@ -13,6 +13,7 @@ import mplhep as hep
 import numpy as np
 from hist import Hist
 from hist.intervals import ratio_uncertainty
+from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
 
 from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
@@ -24,12 +25,7 @@ hep.style.use("CMS")
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 
-
-# this is needed for some reason to update the font size for the first plot
-fig, ax = plt.subplots(1, 1, figsize=(12, 12))
-plt.rcParams.update({"font.size": 28})
-plt.close()
-
+mpl.rcParams["font.size"] = 30
 mpl.rcParams["lines.linewidth"] = 2
 mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
@@ -79,6 +75,7 @@ data_err_opts = {
 }
 
 color_by_sample = {
+    "novhhtobb": "aquamarine",
     "gghtobb": "aquamarine",
     "vbfhtobb": "teal",
     "tthtobb": "cadetblue",
@@ -92,10 +89,12 @@ color_by_sample = {
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
     "diboson": "orchid",
+    "dibosonvjets": "orchid",
     "vjets": colours["green"],
 }
 
 label_by_sample = {
+    "novhhtobb": "ggH+VBF+ttH H(bb)",
     "gghtobb": "ggH(bb)",
     "vbfhtobb": "VBFH(bb)",
     "tthtobb": "ttH(bb)",
@@ -108,12 +107,13 @@ label_by_sample = {
     "hh4b-kl5": r"HH 4b ($\kappa_{\lambda}=5$)",
     "hh4b-kl0": r"HH 4b ($\kappa_{\lambda}=0$)",
     "diboson": "VV",
+    "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
     "vjets": r"W/Z$(qq)$ + Jets",
     "data": "Data",
 }
 
-bg_order = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
+bg_order_default = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
 
 
 def plot_hists(
@@ -388,7 +388,7 @@ def _combine_hbb_bgs(hists, bg_keys):
     return h, bg_keys
 
 
-def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation):
+def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation, bg_order):
     # set up samples, colours and labels
     bg_keys = [key for key in bg_order if key in bg_keys]
     bg_colours = [color_by_sample[sample] for sample in bg_keys]
@@ -407,9 +407,9 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation):
         if sig_scale == 1:
             label = label  # noqa: PLW0127
         elif sig_scale <= 100:
-            label = f"{label} $\\times$ {sig_scale:.0f}"
+            label = f"{label} $\\times$ {sig_scale:.2f}"
         else:
-            label = f"{label} $\\times$ {sig_scale:.1e}"
+            label = f"{label} $\\times$ {sig_scale:.2e}"
 
         sig_labels[sig_key] = label
 
@@ -452,11 +452,14 @@ def ratioHistPlot(
     title: str | None = None,
     name: str = "",
     sig_scale_dict=None,
+    xlim: int | None = None,
+    xlim_low: int | None = None,
     ylim: int | None = None,
     ylim_low: int | None = None,
     show: bool = True,
     variation: tuple | None = None,
     plot_data: bool = True,
+    bg_order=None,
     log: bool = False,
     ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
@@ -485,6 +488,7 @@ def ratioHistPlot(
         name (str): name of file to save plot
         sig_scale_dict (Dict[str, float]): if scaling signals in the plot, dictionary of factors
           by which to scale each signal
+        xlim_low (optional): x-limit low on plot
         ylim (optional): y-limit on plot
         show (bool): show plots or not
         variation (Tuple): Tuple of
@@ -501,9 +505,14 @@ def ratioHistPlot(
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
     # hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
 
+    if bg_order is None:
+        bg_order = bg_order_default
+
     bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
-        sig_keys, bg_keys, sig_scale_dict, variation
+        sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
+
+    print("bkg ", bg_keys)
 
     # set up plots
     if axrax is not None:
@@ -524,12 +533,15 @@ def ratioHistPlot(
         fig, (ax, rax) = plt.subplots(
             2,
             1,
-            figsize=(12, 14),
-            gridspec_kw={"height_ratios": [4, 1], "hspace": 0.07},
+            figsize=(12, 12),
+            gridspec_kw={"height_ratios": [3.5, 1], "hspace": 0.18},
             sharex=True,
         )
 
-    plt.rcParams.update({"font.size": 28})
+    # only use integers
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    plt.rcParams.update({"font.size": 30})
 
     # plot histograms
     ax.set_ylabel("Events")
@@ -542,9 +554,10 @@ def ratioHistPlot(
         sort="yield" if sortyield else None,
         stack=True,
         edgecolor="black",
-        linewidth=1,
+        linewidth=2,
         label=bg_labels,
         color=bg_colours,
+        flow="none",
     )
 
     # signal samples
@@ -553,8 +566,10 @@ def ratioHistPlot(
             [hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
             ax=ax,
             histtype="step",
+            linewidth=2,
             label=list(sig_labels.values()),
             color=sig_colours,
+            flow="none",
         )
 
     # plot signal errors
@@ -569,7 +584,7 @@ def ratioHistPlot(
                 yerr=0,
                 ax=ax,
                 histtype="step",
-                label=[f"{sig_key} {skey}" for sig_key in sig_scale_dict],
+                label=[f"{sig_key} {skey:.2f}".format(skey) for sig_key in sig_scale_dict],
                 alpha=0.6,
                 color=sig_colours[: len(sig_keys)],
             )
@@ -582,7 +597,9 @@ def ratioHistPlot(
             yerr=data_err,
             histtype="errorbar",
             label=label_by_sample[data_key],
+            markersize=20,
             color="black",
+            flow="none",
         )
 
     if log:
@@ -592,6 +609,12 @@ def ratioHistPlot(
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+
+    if xlim_low is not None:
+        if xlim is not None:
+            ax.set_xlim(xlim_low, xlim)
+        else:
+            ax.set_xlim(xlim_low, None)
 
     y_lowlim = ylim_low if ylim_low is not None else 0 if not log else 0.001
 
@@ -605,23 +628,33 @@ def ratioHistPlot(
     # plot ratio below
     if plot_data:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        yerr = ratio_uncertainty(hists[data_key, :].values(), bg_tot.values(), "poisson")
+
+        tot_val = bg_tot.values()
+        tot_val_zero_mask = tot_val == 0
+        tot_val[tot_val_zero_mask] = 1
+        data_val = hists[data_key, :].values()
+        data_val[tot_val_zero_mask] = 1
+        yerr = ratio_uncertainty(data_val, tot_val, "poisson")
 
         hep.histplot(
-            hists[data_key, :] / (bg_tot.values() + 1e-5),
+            data_val / tot_val,
+            bg_tot.axes[0].edges,
             yerr=yerr,
             ax=rax,
             histtype="errorbar",
+            markersize=20,
             color="black",
-            capsize=4,
+            capsize=0,
         )
         # print(hists[data_key, :] / (bg_tot.values() + 1e-5))
     else:
         rax.set_xlabel(hists.axes[1].label)
 
-    rax.set_ylabel("Data/MC")
+    rax.set_ylabel("Data/pred.")
     rax.set_ylim(ratio_ylims)
-    rax.grid()
+    minor_locator = mticker.AutoMinorLocator(2)
+    rax.yaxis.set_minor_locator(minor_locator)
+    rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if plot_significance:
         bg_tot = sum([hists[sample, :] for sample in bg_keys]).values()

@@ -373,6 +373,14 @@ class JECs:
         """
         If ``jecs`` is not None, returns the shifted values of variables are affected by JECs.
         """
+
+        rho = (
+            events.Rho.fixedGridRhoFastjetAll
+            if "Rho" in events.fields
+            else events.fixedGridRhoFastjetAll
+        )
+        jets = self._add_jec_variables(jets, rho, isData)
+
         # RunC,D,E are re-reco, should wait for new jecs
         datasets_no_jecs = [
             "Run2022C_single",
@@ -422,14 +430,7 @@ class JECs:
 
         # fatjet_factory.build gives an error if there are no jets in event
         if apply_jecs:
-            rho = (
-                events.Rho.fixedGridRhoFastjetAll
-                if "Rho" in events.fields
-                else events.fixedGridRhoFastjetAll
-            )
-            jets = self.jet_factory[jet_factory_str][corr_key].build(
-                self._add_jec_variables(jets, rho, isData), jec_cache
-            )
+            jets = self.jet_factory[jet_factory_str][corr_key].build(jets, jec_cache)
 
         # return only jets if no jecs given
         if jecs is None or isData:

@@ -8,7 +8,14 @@ from __future__ import annotations
 years = ["2022", "2022EE"]
 
 # in pb^-1
-LUMI = {"2022": 7971.4, "2022EE": 26337.0, "2018": 59830.0}
+LUMI = {
+    "2022": 7971.4,
+    "2022EE": 26337.0,
+    "2018": 59830.0,
+    "2017": 41480.0,
+    "2016": 36330.0,
+    "Run2": 137640.0,
+}
 
 # sample key -> list of samples or selectors
 common_samples = {
