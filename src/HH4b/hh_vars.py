@@ -8,7 +8,14 @@ from __future__ import annotations
 years = ["2022", "2022EE"]
 
 # in pb^-1
-LUMI = {"2022": 7971.4, "2022EE": 20700, "2018": 59830.0}
+LUMI = {
+    "2022": 7971.4,
+    "2022EE": 26337.0,
+    "2018": 59830.0,
+    "2017": 41480.0,
+    "2016": 36330.0,
+    "Run2": 137640.0,
+}
 
 # sample key -> list of samples or selectors
 common_samples = {
@@ -17,6 +24,9 @@ common_samples = {
     # "qcd": ["QCD_PT"],
     "data": [
         "Run2022",
+        "JetMET_Run",
+        "Muon_Run",
+        "EGamma_Run",
     ],
     "ttbar": [
         "TTto2L2Nu",
@@ -89,13 +99,17 @@ samples = {
             "ZJetsToQQ_HT-800toInf_13TeV",
         ],
         "diboson": [
-            # "ZZ_TuneCP5_13TeV-pythia8"
             "ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8",
         ],
+        # "diboson": [
+        #    "ZZ_TuneCP5_13TeV-pythia8"
+        # ],
         "gghtobb": [
             "GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8",
-            # "GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
         ],
+        # "gghtobb": [
+        #    "GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8",
+        # ],
         "vbfhtobb": ["VBFHToBB_M-125_dipoleRecoilOn_TuneCP5_13TeV-powheg-pythia8"],
         "vhtobb": [
             "WminusH_HToBB_WToQQ_M-125_TuneCP5_13TeV-powheg-pythia8",

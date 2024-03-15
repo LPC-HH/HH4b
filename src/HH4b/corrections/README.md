@@ -4,6 +4,12 @@
 python -m build_jec jec_compiled.pkl.gz
 ```
 
+or:
+
+```
+python -m build_jec_run2 jec_compiled_run2.pkl.gz
+```
+
 ## LUMI recommendations
 
 https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
