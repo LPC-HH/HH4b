@@ -98,6 +98,7 @@ def main(args):
                 localsh = f"{local_dir}/{prefix}_{j}.sh"
                 sh_args = {
                     "branch": args.git_branch,
+                    "gituser": args.git_user,
                     "script": args.script,
                     "year": args.year,
                     "starti": j * args.files_per_job,
@@ -158,6 +159,7 @@ def parse_args(parser):
         parser, "submit", default=False, help="submit files as well as create them"
     )
     parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
+    parser.add_argument("--git-user", default="LPC-HH", help="which user's repo to use", type=str)
     run_utils.add_bool_arg(
         parser,
         "allow-diff-local-repo",

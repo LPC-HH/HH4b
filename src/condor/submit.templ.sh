@@ -8,11 +8,11 @@
 mkdir outfiles
 
 # shallow clone of single branch (keep repo size as small as possible)
-git clone --single-branch --branch $branch --depth=1 https://github.com/LPC-HH/HH4b
+git clone --single-branch --branch $branch --depth=1 https://github.com/$gituser/HH4b
 cd HH4b
 
 commithash=$$(git rev-parse HEAD)
-echo "https://github.com/LPC-HH/HH4b/commit/$${commithash}" > commithash.txt
+echo "https://github.com/$gituser/HH4b/commit/$${commithash}" > commithash.txt
 xrdcp -f commithash.txt $eosoutgithash
 
 pip install -e .
