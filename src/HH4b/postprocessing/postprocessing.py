@@ -243,6 +243,7 @@ def get_templates(
     fail_ylim: int | None = None,
     blind_pass: bool = False,
     show: bool = False,
+    energy=13.6,
 ) -> dict[str, Hist]:
     """
     (1) Makes histograms for each region in the ``selection_regions`` dictionary,
@@ -275,7 +276,12 @@ def get_templates(
 
         # make selection, taking JEC/JMC variations into account
         sel, cf = utils.make_selection(
-            region.cuts, events_dict, bb_masks, prev_cutflow=prev_cutflow, jshift=jshift
+            region.cuts,
+            events_dict,
+            bb_masks,
+            weight_key=weight_key,
+            prev_cutflow=prev_cutflow,
+            jshift=jshift,
         )
 
         if template_dir != "":
@@ -293,7 +299,6 @@ def get_templates(
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
-            sig_bb_mask = bb_masks[sig_key][sel[sig_key]]  # noqa: F841
 
             # # TODO: ParticleNetMD Txbb
             # if pass_region:
@@ -327,7 +332,8 @@ def get_templates(
             events = sig_events[sample] if sample in sig_keys else events_dict[sample][sel[sample]]
             if not len(events):
                 continue
-            bb_mask = bb_masks[sample][sel[sample]]
+
+            bb_mask = bb_masks[sample][sel[sample]] if bb_masks is not None else None
             fill_data = _get_fill_data(
                 events, bb_mask, shape_vars, jshift=jshift if sample != data_key else None
             )
@@ -391,34 +397,36 @@ def get_templates(
 
         # plot templates incl variations
         if plot_dir != "" and (not do_jshift or plot_shifts):
-            title = (
-                f"{region.label} Region Pre-Fit Shapes"
-                if not do_jshift
-                else f"{region.label} Region {jshift} Shapes"
-            )
+            for shape_var in shape_vars:
+                title = (
+                    f"{region.label} Region Pre-Fit Shapes"
+                    if not do_jshift
+                    else f"{region.label} Region {jshift} Shapes"
+                )
 
-            plot_params = {
-                "hists": h,
-                "sig_keys": sig_keys if plot_sig_keys is None else plot_sig_keys,
-                "bg_keys": bg_keys,
-                "sig_scale_dict": sig_scale_dict if pass_region else None,
-                "show": show,
-                "year": year,
-                "ylim": pass_ylim if pass_region else fail_ylim,
-                "plot_data": not (rname == "pass" and blind_pass),
-            }
+                plot_params = {
+                    "hists": h,
+                    "sig_keys": sig_keys if plot_sig_keys is None else plot_sig_keys,
+                    "bg_keys": bg_keys,
+                    "sig_scale_dict": sig_scale_dict if pass_region else None,
+                    "show": show,
+                    "year": year,
+                    "ylim": pass_ylim if pass_region else fail_ylim,
+                    "plot_data": not (rname == "pass" and blind_pass),
+                }
 
-            plot_name = (
-                f"{plot_dir}/"
-                f"{'jshifts/' if do_jshift else ''}"
-                f"{rname}_region_{shape_var.var}"
-            )
+                plot_name = (
+                    f"{plot_dir}/"
+                    f"{'jshifts/' if do_jshift else ''}"
+                    f"{rname}_region_{shape_var.var}"
+                )
 
-            plotting.ratioHistPlot(
-                **plot_params,
-                title=title,
-                name=f"{plot_name}{jlabel}.pdf",
-            )
+                plotting.ratioHistPlot(
+                    **plot_params,
+                    title=title,
+                    name=f"{plot_name}{jlabel}.pdf",
+                    energy=energy,
+                )
 
             if not do_jshift and plot_shifts:
                 plot_name = f"{plot_dir}/wshifts/" f"{rname}_region_{shape_var.var}"
@@ -458,10 +466,11 @@ def save_templates(templates: dict[str, Hist], template_file: str, shape_var: Sh
 
     blind_window = shape_var.blind_window
 
-    for label, template in list(templates.items()):
-        blinded_template = deepcopy(template)
-        utils.blindBins(blinded_template, blind_window)
-        templates[f"{label}MCBlinded"] = blinded_template
+    if blind_window is not None:
+        for label, template in list(templates.items()):
+            blinded_template = deepcopy(template)
+            utils.blindBins(blinded_template, blind_window)
+            templates[f"{label}MCBlinded"] = blinded_template
 
     with Path(template_file).open("wb") as f:
         pickle.dump(templates, f)

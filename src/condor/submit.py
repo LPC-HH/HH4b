@@ -3,6 +3,7 @@ Splits the total fileset and creates condor job submission files for the specifi
 
 Author(s): Cristina Mantilla Suarez, Raghav Kansal
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,6 +26,13 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 
 
 def main(args):
+    # check that branch exists
+    assert not bool(
+        os.system(
+            f'git ls-remote --exit-code --heads "https://github.com/LPC-HH/HH4b" "{args.git_branch}"'
+        )
+    ), f"Branch {args.git_branch} does not exist"
+
     if args.site == "lpc":
         t2_local_prefix = Path("/eos/uscms/")
         t2_prefix = "root://cmseos.fnal.gov"
@@ -38,23 +46,26 @@ def main(args):
         t2_local_prefix = Path("/ceph/cms/")
         t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
+    else:
+        t2_local_prefix = Path("/eos/uscms/")
+        t2_prefix = "root://cmseos.fnal.gov"
 
     username = os.environ["USER"]
 
     tag = f"{args.tag}_{args.nano_version}_{args.region}"
-    local_dir = Path(f"condor/{args.processor}/{tag}")
+
+    # make eos dir
     homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
     outdir = homedir / tag
-
-    print("Outputs dir: ", outdir)
+    eos_local_dir = t2_local_prefix / outdir
+    eos_local_dir.mkdir(parents=True, exist_ok=True)
+    print("EOS outputs dir: ", eos_local_dir)
 
     # make local directory
+    local_dir = Path(f"condor/{args.processor}/{tag}")
     logdir = local_dir / "logs"
     logdir.mkdir(parents=True, exist_ok=True)
-
-    # and condor directory
     print("Condor work dir: ", local_dir)
-    (t2_local_prefix / outdir).mkdir(parents=True, exist_ok=True)
 
     print(args.subsamples)
     fileset = run_utils.get_fileset(
@@ -76,10 +87,8 @@ def main(args):
     for sample in fileset:
         for subsample, tot_files in fileset[sample].items():
             print("Submitting " + subsample)
-            os.system(f"mkdir -p {t2_local_prefix}/{outdir}/{args.year}/{subsample}")
-            njobs = ceil(tot_files / args.files_per_job)
-
             eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
+            njobs = ceil(tot_files / args.files_per_job)
 
             for j in range(njobs):
                 if args.test and j == 2:
@@ -92,6 +101,7 @@ def main(args):
 
                 localsh = f"{local_dir}/{prefix}_{j}.sh"
                 sh_args = {
+                    "branch": args.git_branch,
                     "script": args.script,
                     "year": args.year,
                     "starti": j * args.files_per_job,
@@ -104,13 +114,14 @@ def main(args):
                     "eosoutpkl": f"{eosoutput_dir}/pickles/out_{j}.pkl",
                     "eosoutparquet": f"{eosoutput_dir}/parquet/out_{j}.parquet",
                     "eosoutroot": f"{eosoutput_dir}/root/nano_skim_{j}.root",
+                    "eosoutgithash": f"{eosoutput_dir}/githashes/commithash_{j}.txt",
                     "nano_version": args.nano_version,
-                    "save_systematics": "--save-systematics"
-                    if args.save_systematics
-                    else "--no-save-systematics",
-                    "apply_selection": "--apply-selection"
-                    if args.apply_selection
-                    else "--no-apply-selection",
+                    "save_systematics": (
+                        "--save-systematics" if args.save_systematics else "--no-save-systematics"
+                    ),
+                    "apply_selection": (
+                        "--apply-selection" if args.apply_selection else "--no-apply-selection"
+                    ),
                     "region": f"--region {args.region}" if "skimmer" in args.processor else "",
                 }
                 write_template(sh_templ, localsh, sh_args)
@@ -127,10 +138,8 @@ def main(args):
     print(f"Total {nsubmit} jobs")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    run_utils.parse_common_args(parser)
-    parser.add_argument("--script", default="run.py", help="script to run", type=str)
+def parse_args(parser):
+    parser.add_argument("--script", default="src/run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)
     parser.add_argument(
         "--outdir", dest="outdir", default="outfiles", help="directory for output files", type=str
@@ -152,7 +161,12 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(
         parser, "submit", default=False, help="submit files as well as create them"
     )
+    parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
 
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    run_utils.parse_common_args(parser)
+    parse_args(parser)
     args = parser.parse_args()
-
     main(args)

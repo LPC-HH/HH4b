@@ -299,7 +299,11 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
+        print(jets)
+        print(jets["pt_raw"])
+
         met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
+
         print("ak4 JECs", f"{time.time() - start:.2f}")
         jets_sel = (jets.isTight) & (abs(jets.eta) < 4.7)
 
