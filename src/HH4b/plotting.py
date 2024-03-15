@@ -628,10 +628,17 @@ def ratioHistPlot(
     # plot ratio below
     if plot_data:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        yerr = ratio_uncertainty(hists[data_key, :].values(), bg_tot.values(), "poisson")
+
+        tot_val = bg_tot.values()
+        tot_val_zero_mask = tot_val == 0
+        tot_val[tot_val_zero_mask] = 1
+        data_val = hists[data_key, :].values()
+        data_val[tot_val_zero_mask] = 1
+        yerr = ratio_uncertainty(data_val, tot_val, "poisson")
 
         hep.histplot(
-            hists[data_key, :] / (bg_tot.values() + 1e-5),
+            data_val / tot_val,
+            bg_tot.axes[0].edges,
             yerr=yerr,
             ax=rax,
             histtype="errorbar",
