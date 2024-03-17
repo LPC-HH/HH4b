@@ -543,10 +543,11 @@ def get_v12():
         },
         "2023-pre-BPix": {
             "JetMET": {
-                "JetMET_Run2023B": [
-                    "/JetMET0/Run2023B-22Sep2023-v1/NANOAOD",
-                    "/JetMET1/Run2023B-22Sep2023-v2/NANOAOD",
-                ],
+                # B is commissioning ERA
+                # "JetMET_Run2023B": [
+                #     "/JetMET0/Run2023B-22Sep2023-v1/NANOAOD",
+                #     "/JetMET1/Run2023B-22Sep2023-v2/NANOAOD",
+                # ],
                 "JetMET_Run2023C": [
                     "/JetMET0/Run2023C-22Sep2023_v1-v1/NANOAOD",
                     "/JetMET0/Run2023C-22Sep2023_v2-v1/NANOAOD",

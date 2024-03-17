@@ -392,7 +392,7 @@ class JECs:
             if dataset in dset and nano_version == "v12":
                 return jets, None
 
-        if year == "2023":
+        if "2023" in year:
             # no corrections available yet
             return jets, None
 
