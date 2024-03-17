@@ -175,3 +175,11 @@ docker_stderror
 /condor
 
 running_jobs.txt
+
+.bashrc
+.condor_config
+.local/
+
+data/.sites_map.json
+
+*.C

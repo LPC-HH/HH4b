@@ -606,7 +606,9 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     logging.info("rendering combine model")
 
     out_dir = (
-        Path(args.cards_dir) / args.model_name if args.model_name is not None else args.cards_dir
+        Path(f"{args.cards_dir}/{args.model_name}/{args.bin_name}")
+        if args.model_name is not None
+        else args.cards_dir
     )
     model.renderCombine(out_dir)
 
@@ -633,7 +635,11 @@ def main(args):
         for _, axis in enumerate(sample_templates.axes[1:])
     ]
 
+    # modify cards directory to include bin name
     Path(args.cards_dir).mkdir(parents=True, exist_ok=True)
+    if args.model_name is not None:
+        Path(f"{args.cards_dir}/{args.model_name}").mkdir(parents=True, exist_ok=True)
+
     createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars)
 
 
