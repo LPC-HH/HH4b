@@ -166,7 +166,11 @@ def parse_common_args(parser):
     )
 
     parser.add_argument(
-        "--year", help="year", type=str, default="2022", choices=["2018", "2022", "2022EE", "2023"]
+        "--year",
+        help="year",
+        type=str,
+        default="2022",
+        choices=["2018", "2022", "2022EE", "2023-pre-BPix", "2023-BPix"],
     )
     parser.add_argument(
         "--nano-version",
