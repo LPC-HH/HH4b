@@ -411,13 +411,7 @@ class JECs:
         if isData:
             if year == "2022EE" and "Run2022F" in dataset:
                 corr_key = f"{year}NOJER_runF"
-            elif year == "2022EE" and "Run2022E" in dataset:
-                corr_key = f"{year}NOJER_runF"
-            elif year == "2022EE" and "Run2022F" in dataset:
-                corr_key = f"{year}NOJER_runF"
             elif year == "2022EE" and "Run2022G" in dataset:
-                corr_key = f"{year}NOJER_runG"
-            elif year == "2022EE" and dataset == "Run2022G":
                 corr_key = f"{year}NOJER_runG"
             elif year == "2022" and "Run2022C" in dataset:
                 corr_key = f"{year}NOJER_runC"
