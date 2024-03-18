@@ -707,6 +707,7 @@ def ratioHistPlot(
     else:
         hep.cms.label(
             "Work in Progress",
+            fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
             year=year,
