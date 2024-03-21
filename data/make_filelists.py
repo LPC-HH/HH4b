@@ -10,6 +10,12 @@ warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
+# request for non-SM signal samples
+# https://gitlab.cern.ch/cms-hig-mc/mc-hig-requests/-/issues/55
+
+# https://cms-pdmv-prod.web.cern.ch/pmp/present?r=HIG-Run3Summer22wmLHEGS-00351
+
+
 qcd_bins = [
     # "0to80",
     "15to30",  # unclear if these are needed
