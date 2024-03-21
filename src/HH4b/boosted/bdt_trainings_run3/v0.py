@@ -39,7 +39,6 @@ def bdt_dataframe(events):
             "H2T32": events["bbFatJetTau3OverTau2"].to_numpy()[:, 1],
             # fatjet mass
             "H1Msd": events["bbFatJetMsd"].to_numpy()[:, 0],
-            "H2Msd": events["bbFatJetMsd"].to_numpy()[:, 1],
             # fatjet kinematics
             "H1logPt": np.log(h1.pt),
             "H2logPt": np.log(h2.pt),

@@ -181,8 +181,7 @@ def train_model(
     # sorting by importance
     importances = model.feature_importances_
     feature_importances = sorted(zip(list(X_train.columns), importances), key=lambda x: x[1], reverse=True)
-    feature_importance_df = pd.DataFrame.from_dict({"Importance": feature_importances[:, 1]})
-    feature_importance_df.index = feature_importances[:, 0]
+    feature_importance_df = pd.DataFrame.from_dict({"Importance": feature_importances})
     feature_importance_df.to_markdown(f"{model_dir}/feature_importances.md")
 
     return model
