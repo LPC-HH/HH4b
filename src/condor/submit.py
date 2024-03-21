@@ -27,11 +27,7 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 
 def main(args):
     # check that branch exists
-    assert not bool(
-        os.system(
-            f'git ls-remote --exit-code --heads "https://github.com/LPC-HH/HH4b" "{args.git_branch}"'
-        )
-    ), f"Branch {args.git_branch} does not exist"
+    run_utils.check_branch(args.git_branch, args.allow_diff_local_repo)
 
     if args.site == "lpc":
         t2_local_prefix = Path("/eos/uscms/")
@@ -102,6 +98,7 @@ def main(args):
                 localsh = f"{local_dir}/{prefix}_{j}.sh"
                 sh_args = {
                     "branch": args.git_branch,
+                    "gituser": args.git_user,
                     "script": args.script,
                     "year": args.year,
                     "starti": j * args.files_per_job,
@@ -162,6 +159,14 @@ def parse_args(parser):
         parser, "submit", default=False, help="submit files as well as create them"
     )
     parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
+    parser.add_argument("--git-user", default="LPC-HH", help="which user's repo to use", type=str)
+    run_utils.add_bool_arg(
+        parser,
+        "allow-diff-local-repo",
+        default=False,
+        help="Allow the local repo to be different from the specified remote repo (not recommended!)."
+        "If false, submit script will exit if the latest commits locally and on Github are different.",
+    )
 
 
 if __name__ == "__main__":
