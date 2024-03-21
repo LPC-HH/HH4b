@@ -1,3 +1,10 @@
+# Run-3
+
+- To postprocess:
+```
+python3 PostProcess.py --template-dir testrun3 --tag 24Mar2_v12_signal
+```
+
 # Run-2
 
 - To postprocess:
