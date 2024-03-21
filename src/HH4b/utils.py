@@ -282,7 +282,7 @@ def _is_int(s: str) -> bool:
 
 
 def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
-    if feat in events:
+    if feat in events.keys():
         return np.nan_to_num(events[feat].to_numpy().squeeze(), -1)
 
     if feat.startswith("bb") and bb_mask:
@@ -292,6 +292,7 @@ def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
     if _is_int(feat[-1]):
         return np.nan_to_num(events[feat[:-1]].to_numpy()[:, int(feat[-1])].squeeze(), -1)
 
+    return None
 
 def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
@@ -455,8 +456,9 @@ def singleVarHistNoMask(
 def add_selection(name, sel, selection, cutflow, events, weight_key):
     """Adds selection to PackedSelection object and the cutflow"""
     selection.add(name, sel)
+    weight = get_feat(events, weight_key)
     if cutflow is not None:
-        cutflow[name] = np.sum(get_feat(events, weight_key)[selection.all(*selection.names)])
+        cutflow[name] = np.sum(weight[selection.all(*selection.names)])
 
 
 def check_get_jec_var(var, jshift):
