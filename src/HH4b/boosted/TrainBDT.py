@@ -1,14 +1,17 @@
-import argparse
-import numpy as np
-import xgboost as xgb
-import importlib
-import pandas as pd
-from pathlib import Path
-import pickle
-import hist
+from __future__ import annotations
 
-import mplhep as hep
+import argparse
+import importlib
+import pickle
+from pathlib import Path
+
+import hist
 import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+
 plt.rcParams.update({"font.size": 12})
 plt.rcParams["lines.linewidth"] = 2
 plt.rcParams["grid.color"] = "#CCCCCC"
@@ -16,14 +19,14 @@ plt.rcParams["grid.linewidth"] = 0.5
 plt.rcParams["figure.edgecolor"] = "none"
 
 import sys
+
 sys.path.append("./bdt_trainings_run3/")
 
-from HH4b.utils import load_samples, format_columns
-from HH4b.run_utils import add_bool_arg
-
+from sklearn.metrics import roc_curve
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.metrics import roc_curve, auc
+
+from HH4b.run_utils import add_bool_arg
+from HH4b.utils import format_columns, load_samples
 
 
 def load_data(data_path: str, year: str):
@@ -167,7 +170,7 @@ def train_model(
     print("Training model")
     model = xgb.XGBClassifier(**classifier_params)
     print("Training features: ", list(X_train.columns))
-    
+
     trained_model = model.fit(
         X_train,
         y_train,
@@ -180,11 +183,14 @@ def train_model(
 
     # sorting by importance
     importances = model.feature_importances_
-    feature_importances = sorted(zip(list(X_train.columns), importances), key=lambda x: x[1], reverse=True)
+    feature_importances = sorted(
+        zip(list(X_train.columns), importances), key=lambda x: x[1], reverse=True
+    )
     feature_importance_df = pd.DataFrame.from_dict({"Importance": feature_importances})
     feature_importance_df.to_markdown(f"{model_dir}/feature_importances.md")
 
     return model
+
 
 def evaluate_model(
     model_name: str,
@@ -194,18 +200,21 @@ def evaluate_model(
     X_test: pd.DataFrame,
     y_test: pd.DataFrame,
     weights_test: np.ndarray,
-    test_size: float, seed: int, year: str
+    test_size: float,
+    seed: int,
+    year: str,
 ):
     """
     1) Makes ROC curves for testing data
     2) Prints Sig efficiency at Bkg efficiency
     """
+
     # make and save ROCs for testing data
     def find_nearest(array, value):
         array = np.asarray(array)
         idx = (np.abs(array - value)).argmin()
         return idx
-    
+
     y_scores = model.predict_proba(X_test)[:, 1]
 
     print("Test ROC with sample weights")
@@ -222,7 +231,9 @@ def evaluate_model(
     # print FPR, TPR for a couple of tprs
     for tpr_val in [0.10, 0.12, 0.15]:
         idx = find_nearest(tpr, tpr_val)
-        print(f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}")
+        print(
+            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
+        )
 
     # ROC w/o weights
     print("Test ROC without sample weights")
@@ -231,7 +242,9 @@ def evaluate_model(
     # print FPR, TPR for a couple of tprs
     for tpr_val in [0.10, 0.12, 0.15]:
         idx = find_nearest(tpr, tpr_val)
-        print(f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}")
+        print(
+            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
+        )
 
     # plot BDT scores for test samples
     make_bdt_dataframe = importlib.import_module(f"{model_name}")
@@ -263,18 +276,19 @@ def evaluate_model(
         # TODO: add sample weight here...
         h_bdt.fill(bdt=scores[key], cat=key)
 
-    colors = {
-        "ttbar": "b",
-        "hh4b": "k",
-        "qcd": "r"
-    }
+    colors = {"ttbar": "b", "hh4b": "k", "qcd": "r"}
     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
     for key in ["hh4b", "qcd", "ttbar"]:
-        hep.histplot(h_bdt[{"cat": key}], ax=ax, label=f"{key}", histtype="step", linewidth=1,
+        hep.histplot(
+            h_bdt[{"cat": key}],
+            ax=ax,
+            label=f"{key}",
+            histtype="step",
+            linewidth=1,
             color=colors[key],
             density=True,
         )
-    ax.set_yscale('log')
+    ax.set_yscale("log")
     ax.legend(title=r"FatJets $p_T>$300, m$_{SD}$:[50-250] GeV")
     ax.set_ylabel("Density")
     ax.set_title("Pre-Selection")
@@ -325,8 +339,11 @@ def main(args):
         X_test,
         y_test,
         weights_test,
-        args.test_size, args.seed, args.year
+        args.test_size,
+        args.seed,
+        args.year,
     )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

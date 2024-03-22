@@ -1,25 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
+import sys
 
 # temp
-import warnings
-
-import hist
 import numpy as np
 import pandas as pd
-import uproot
-import vector
-import importlib
-
 import xgboost as xgb
 
 from HH4b import postprocessing
 from HH4b.postprocessing import Region
-from HH4b.utils import ShapeVar, load_samples, format_columns
-
-import sys
+from HH4b.utils import ShapeVar, format_columns, load_samples
 
 sys.path.append("../boosted/bdt_trainings_run3/")
 
@@ -120,7 +113,7 @@ def load_run3_samples(args, year):
                 "Zto2Q-4Jets_HT-200to400",
                 "Zto2Q-4Jets_HT-400to600",
                 "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800"
+                "Zto2Q-4Jets_HT-800",
             ],
         },
         "2023-pre-BPix": {
