@@ -58,6 +58,7 @@ common_samples = {
         "WZ",
     ],
     "vjets": [
+        "WtoLNu-4Jets",
         "Wto2Q-3Jets_HT",
         "Zto2Q-4Jets_HT",
     ],
@@ -89,6 +90,7 @@ samples = {
             "TTToSemiLeptonic_13TeV",
         ],
         "vjets": [
+            "WtoLNu-4Jets",
             "WJetsToQQ_HT-200to400_13TeV",
             "WJetsToQQ_HT-400to600_13TeV",
             "WJetsToQQ_HT-600to800_13TeV",
@@ -132,6 +134,8 @@ samples = {
             # "Run2022E",
             "Run2022F",
             "Run2022G",
+            "Muon_Run",
+            "EGamma_Run",
         ],
     },
 }
