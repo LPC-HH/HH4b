@@ -7,14 +7,6 @@ from pathlib import Path
 import pickle
 import hist
 
-import mplhep as hep
-import matplotlib.pyplot as plt
-plt.rcParams.update({"font.size": 12})
-plt.rcParams["lines.linewidth"] = 2
-plt.rcParams["grid.color"] = "#CCCCCC"
-plt.rcParams["grid.linewidth"] = 0.5
-plt.rcParams["figure.edgecolor"] = "none"
-
 import sys
 sys.path.append("./bdt_trainings_run3/")
 
@@ -25,6 +17,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.metrics import roc_curve, auc
 
+import mplhep as hep
+import matplotlib.pyplot as plt
+plt.rcParams.update({"font.size": 12})
+plt.rcParams["lines.linewidth"] = 2
+plt.rcParams["grid.color"] = "#CCCCCC"
+plt.rcParams["grid.linewidth"] = 0.5
+plt.rcParams["figure.edgecolor"] = "none"
 
 def load_data(data_path: str, year: str):
     """
@@ -130,11 +129,8 @@ def preprocess_data(events_dict: dict, model_name: str, test_size: float, seed: 
 
     # Define target
     target = events["target"]
-    # Define weights
-    weights_to_use = events["weight"]
     # Define features
-    features = events
-    features.drop(columns=["target"], inplace=True)
+    features = events.drop(columns=["target"])
 
     # Split the (bdt dataframe) dataset
     X_train, X_test, y_train, y_test = train_test_split(
@@ -144,10 +140,11 @@ def preprocess_data(events_dict: dict, model_name: str, test_size: float, seed: 
         random_state=seed,
         # shuffle=False
     )
+    # drop weights from features
     weights_train = X_train["weight"].copy()
-    X_train.drop(columns=["weight"], inplace=True)
+    X_train = X_train.drop(columns=["weight"])
     weights_test = X_test["weight"].copy()
-    X_test.drop(columns=["weight"], inplace=True)
+    X_test = X_test.drop(columns=["weight"])
 
     return X_train, X_test, y_train, y_test, weights_train, weights_test
 
@@ -194,7 +191,8 @@ def evaluate_model(
     X_test: pd.DataFrame,
     y_test: pd.DataFrame,
     weights_test: np.ndarray,
-    test_size: float, seed: int, year: str
+    #test_size: float, seed: int, 
+    year: str
 ):
     """
     1) Makes ROC curves for testing data
@@ -325,7 +323,8 @@ def main(args):
         X_test,
         y_test,
         weights_test,
-        args.test_size, args.seed, args.year
+        # args.test_size, args.seed, 
+        args.year
     )
 
 if __name__ == "__main__":

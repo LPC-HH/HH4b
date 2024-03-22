@@ -282,7 +282,7 @@ def _is_int(s: str) -> bool:
 
 
 def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
-    if feat in events.keys():
+    if feat in events:
         return np.nan_to_num(events[feat].to_numpy().squeeze(), -1)
 
     if feat.startswith("bb") and bb_mask:

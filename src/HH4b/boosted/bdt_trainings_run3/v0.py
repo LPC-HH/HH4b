@@ -26,7 +26,7 @@ def bdt_dataframe(events):
     )
     hh = h1 + h2
 
-    df = pd.DataFrame(
+    df_events = pd.DataFrame(
         {
             # dihiggs system
             "HHlogPt": np.log(hh.pt),
@@ -56,4 +56,4 @@ def bdt_dataframe(events):
         }
     )
 
-    return df
+    return df_events
