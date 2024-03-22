@@ -85,10 +85,10 @@ def load_run3_samples(args, year):
                 "JetMET_Run2022F",
                 "JetMET_Run2022G",
             ],
-            # "novhhtobb": [
-            #     "GluGluHto2B_PT-200_M-125",
-            #     "VBFHto2B_M-125_dipoleRecoilOn",
-            # ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
             # "qcd": [
             #     "QCD_HT-200to400",
             #     "QCD_HT-400to600",
@@ -108,20 +108,20 @@ def load_run3_samples(args, year):
             # "vbfhh4b": [
             #     "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
             # ],
-            # "diboson": [
-            #     "WW",
-            #     "ZZ",
-            # ],
-            # "vjets": [
-            #     "Wto2Q-3Jets_HT-200to400",
-            #     "Wto2Q-3Jets_HT-400to600",
-            #     "Wto2Q-3Jets_HT-600to800",
-            #     "Wto2Q-3Jets_HT-800",
-            #     "Zto2Q-4Jets_HT-200to400",
-            #     "Zto2Q-4Jets_HT-400to600",
-            #     "Zto2Q-4Jets_HT-600to800",
-            #     "Zto2Q-4Jets_HT-800"
-            # ],
+            "diboson": [
+                "WW",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
         },
         "2023-pre-BPix": {
             "data": [
@@ -299,7 +299,7 @@ def postprocess_run3(args):
     # temporarily used 2022EEMC and scale to full luminosity
     lumi_weight_2022EEtoall = (7971.4 + 26337.0 + 17650.0 + 9451.0) / 26337.0
     events_combined = {}
-    for key in ["data", "hh4b", "ttbar", "vhtobb"]:
+    for key in ["data", "hh4b", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]:
         if key == "data":
             combined = pd.concat(
                 [
@@ -321,7 +321,7 @@ def postprocess_run3(args):
     os.system(f"mkdir -p {templ_dir}/cutflows/{year}")
     os.system(f"mkdir -p {templ_dir}/{year}")
 
-    bkg_keys = ["ttbar", "vhtobb"]
+    bkg_keys = ["ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
     print(events_combined["data"].columns)
 

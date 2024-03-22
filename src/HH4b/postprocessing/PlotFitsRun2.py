@@ -119,7 +119,7 @@ for shape, shape_label in shapes.items():
                 "hists": hists[shape][region],
                 "sig_keys": ["hh4b"],
                 "sig_scale_dict": {"hh4b": 3.8},
-                "bg_keys": ["qcd", "ttbar", "dibosonvjets", "ttbar", "novhhtobb", "vhtobb"],
+                "bg_keys": ["qcd", "dibosonvjets", "ttbar", "novhhtobb", "vhtobb"],
                 "show": True,
                 "year": year,
                 "ylim": ylims[region],

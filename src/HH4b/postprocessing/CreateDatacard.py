@@ -104,6 +104,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "vhtobb"),
+        ("diboson", "diboson"),
+        ("vjets", "vjets"),
     ]
 )
 
