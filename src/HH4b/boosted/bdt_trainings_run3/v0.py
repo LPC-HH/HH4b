@@ -1,9 +1,12 @@
-import vector
-import pandas as pd
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
+import vector
+
 
 def bdt_dataframe(events):
-    """                                                                                
+    """
     Make dataframe with BDT inputs
     NOTE: this function should be saved along with the model for inference usage
     """
@@ -26,7 +29,7 @@ def bdt_dataframe(events):
     )
     hh = h1 + h2
 
-    df = pd.DataFrame(
+    df_events = pd.DataFrame(
         {
             # dihiggs system
             "HHlogPt": np.log(hh.pt),
@@ -56,4 +59,4 @@ def bdt_dataframe(events):
         }
     )
 
-    return df
+    return df_events
