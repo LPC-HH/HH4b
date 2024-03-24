@@ -63,8 +63,8 @@ def load_data(data_path: str, year: str):
             ("('bbFatJetPt', '1')", ">=", 300),
             ("('bbFatJetMsd', '0')", "<=", 250),
             ("('bbFatJetMsd', '1')", "<=", 250),
-            ("('bbFatJetMsd', '0')", ">=", 50),
-            ("('bbFatJetMsd', '1')", ">=", 50),
+            ("('bbFatJetMsd', '0')", ">=", 30),
+            ("('bbFatJetMsd', '1')", ">=", 30),
         ],
     ]
     load_columns = [
