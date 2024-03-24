@@ -294,6 +294,7 @@ def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
 
     return None
 
+
 def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 

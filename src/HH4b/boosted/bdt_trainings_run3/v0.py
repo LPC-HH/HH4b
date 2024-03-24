@@ -1,9 +1,12 @@
-import vector
-import pandas as pd
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
+import vector
+
 
 def bdt_dataframe(events):
-    """                                                                                
+    """
     Make dataframe with BDT inputs
     NOTE: this function should be saved along with the model for inference usage
     """

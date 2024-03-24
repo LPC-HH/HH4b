@@ -1,25 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
+import sys
 
 # temp
-import warnings
-
-import hist
 import numpy as np
 import pandas as pd
-import uproot
-import vector
-import importlib
-
 import xgboost as xgb
 
 from HH4b import postprocessing
 from HH4b.postprocessing import Region
-from HH4b.utils import ShapeVar, load_samples, format_columns
-
-import sys
+from HH4b.utils import ShapeVar, format_columns, load_samples
 
 sys.path.append("../boosted/bdt_trainings_run3/")
 
@@ -120,7 +113,7 @@ def load_run3_samples(args, year):
                 "Zto2Q-4Jets_HT-200to400",
                 "Zto2Q-4Jets_HT-400to600",
                 "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800"
+                "Zto2Q-4Jets_HT-800",
             ],
         },
         "2023-pre-BPix": {
@@ -253,7 +246,7 @@ def scan_fom(events_combined):
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 print(
-                    f"Xbb_Cut: {xbb_cut}, BDT_Cut: {bdt_cut:.2f}, NBkg: {nevents_data}, NSig: {nevents_signal:.2f}, FOM: {figure_of_merit:.2f}"
+                    f"Xbb_Cut: {xbb_cut}, BDT_Cut: {bdt_cut:.2f}, NBkg: {nevents_data}, NSig: {nevents_signal:.2f}, FigOfMerit: {figure_of_merit:.2f}"
                 )
 
         if len(cuts) > 0:
