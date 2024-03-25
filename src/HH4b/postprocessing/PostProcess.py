@@ -158,7 +158,7 @@ def load_run3_samples(args, year):
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    model_name = "v0"
+    model_name = "v0_msd30"
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{model_name}/trained_bdt.model")
     # get function
     make_bdt_dataframe = importlib.import_module(f"{model_name}")
@@ -181,6 +181,7 @@ def load_run3_samples(args, year):
         bdt_events["bdt_score"] = bdt_score
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H2Xbb"] = events_dict[key]["bbFatJetPNetXbb"].to_numpy()[:, 1]
+        bdt_events["H2PNetMass"] = events_dict[key]["bbFatJetPNetMass"].to_numpy()[:, 1]
 
         # add more columns (e.g. uncertainties etc)
         bdt_events["weight"] = 1
@@ -198,7 +199,7 @@ def load_run3_samples(args, year):
             "Category",
         ] = 4
 
-        columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "weight"]
+        columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "H2PNetMass", "weight"]
         events_dict_postprocess[key] = bdt_events[columns]
 
     return events_dict_postprocess
@@ -273,11 +274,16 @@ def postprocess_run3(args):
         ),
     }
 
+    label_by_mass = {
+        "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
+        "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
+    }
+
     # variable to fit
     fit_shape_var = ShapeVar(
-        "H2Msd",
-        r"$m^{2}_\mathrm{SD}$ (GeV)",
-        [17, 50, 220],
+        args.mass,
+        label_by_mass[args.mass],
+        [16, 60, 220],
         reg=True,
         blind_window=[110, 140],
     )
@@ -358,6 +364,9 @@ if __name__ == "__main__":
         type=str,
         default="2022,2022EE,2023-pre-BPix,2023-BPix",
         help="years to postprocess",
+    )
+    parser.add_argument(
+        "--mass", type=str, choices=["H2Msd", "H2PNetMass"], help="mass variable to make template"
     )
     args = parser.parse_args()
 
