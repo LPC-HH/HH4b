@@ -512,8 +512,6 @@ def ratioHistPlot(
         sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
 
-    print("bkg ", bg_keys)
-
     # set up plots
     if axrax is not None:
         if plot_significance:
@@ -547,18 +545,19 @@ def ratioHistPlot(
     ax.set_ylabel("Events")
 
     # background samples
-    hep.histplot(
-        [hists[sample, :] for sample in bg_keys],
-        ax=ax,
-        histtype="fill",
-        sort="yield" if sortyield else None,
-        stack=True,
-        edgecolor="black",
-        linewidth=2,
-        label=bg_labels,
-        color=bg_colours,
-        flow="none",
-    )
+    if len(bg_keys) > 0:
+        hep.histplot(
+            [hists[sample, :] for sample in bg_keys],
+            ax=ax,
+            histtype="fill",
+            sort="yield" if sortyield else None,
+            stack=True,
+            edgecolor="black",
+            linewidth=2,
+            label=bg_labels,
+            color=bg_colours,
+            flow="none",
+        )
 
     # signal samples
     if len(sig_scale_dict):
@@ -626,7 +625,7 @@ def ratioHistPlot(
     ax.set_xlabel("")
 
     # plot ratio below
-    if plot_data:
+    if plot_data and len(bg_keys) > 0:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
 
         tot_val = bg_tot.values()
@@ -646,6 +645,8 @@ def ratioHistPlot(
             color="black",
             capsize=0,
         )
+
+        rax.set_xlabel(hists.axes[1].label)
         # print(hists[data_key, :] / (bg_tot.values() + 1e-5))
     else:
         rax.set_xlabel(hists.axes[1].label)

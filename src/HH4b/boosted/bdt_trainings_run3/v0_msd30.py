@@ -13,7 +13,7 @@ def bdt_dataframe(events):
             "pt": events["bbFatJetPt"].to_numpy()[:, 0],
             "phi": events["bbFatJetPhi"].to_numpy()[:, 0],
             "eta": events["bbFatJetEta"].to_numpy()[:, 0],
-            "M": events["bbFatJetMsd"].to_numpy()[:, 0],
+            "M": events["bbFatJetPNetMass"].to_numpy()[:, 0],
         }
     )
     h2 = vector.array(
@@ -21,7 +21,7 @@ def bdt_dataframe(events):
             "pt": events["bbFatJetPt"].to_numpy()[:, 1],
             "phi": events["bbFatJetPhi"].to_numpy()[:, 1],
             "eta": events["bbFatJetEta"].to_numpy()[:, 1],
-            "M": events["bbFatJetMsd"].to_numpy()[:, 1],
+            "M": events["bbFatJetPNetMass"].to_numpy()[:, 1],
         }
     )
     hh = h1 + h2
