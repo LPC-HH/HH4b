@@ -675,10 +675,10 @@ class bbbbSkimmer(processor.ProcessorABC):
             )
 
         elif self._region == "had-tt":
-            # == 2 AK8 jets with pT>450 and mSD>50
+            # == 2 AK8 jets with pT>300 and mSD>40
             cut_pt_msd = (
                 np.sum(
-                    (ak8FatJetVars["ak8FatJetPt"] >= 450) & (ak8FatJetVars["ak8FatJetMsd"] >= 50),
+                    (ak8FatJetVars["ak8FatJetPt"] >= 300) & (ak8FatJetVars["ak8FatJetMsd"] >= 40),
                     axis=1,
                 )
                 == 2
@@ -690,8 +690,8 @@ class bbbbSkimmer(processor.ProcessorABC):
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
             # == 2 AK8 jets with Tau3OverTau2 < 0.46
-            cut_t32 = np.sum(ak8FatJetVars["ak8FatJetTau3OverTau2"] < 0.46, axis=1) == 2
-            add_selection("ak8bb_t32", cut_t32, *selection_args)
+            # cut_t32 = np.sum(ak8FatJetVars["ak8FatJetTau3OverTau2"] < 0.46, axis=1) == 2
+            # add_selection("ak8bb_t32", cut_t32, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
