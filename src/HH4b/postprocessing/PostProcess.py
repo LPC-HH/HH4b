@@ -270,7 +270,7 @@ def scan_fom(events_combined):
     eff, bins_x, bins_y = h_sb.to_numpy()
     fig, ax = plt.subplots(1, 1, figsize=(16, 12))
     cbar = hep.hist2dplot(h_sb, ax=ax, cmin=4, cmax=9, flow="none")
-    cbar.cbar.set_label(r"FOM", size=18)
+    cbar.cbar.set_label(r"Fig Of Merit", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
     for i in range(len(bins_x) - 1):
         for j in range(len(bins_y) - 1):
@@ -285,7 +285,7 @@ def scan_fom(events_combined):
                     fontsize=10,
                 )
     fig.tight_layout()
-    fig.savefig("fom.png")
+    fig.savefig("figofmerit.png")
 
 
 def scan_sb(events_combined):
