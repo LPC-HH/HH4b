@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 import sys
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -17,23 +17,15 @@ from HH4b.hh_vars import (
     data_key,
     samples,
     sig_keys,
-    years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import CUT_MAX_VAL, ShapeVar
+from HH4b.utils import CUT_MAX_VAL, ShapeVar, Syst
 
 
 @dataclass
 class Region:
     cuts: dict = None
-    label: str = None
-
-
-@dataclass
-class Syst:
-    samples: list[str] = None
-    years: list[str] = field(default_factory=lambda: years)
     label: str = None
 
 
@@ -159,7 +151,15 @@ def postprocess(years):
         for input_dir, in_samples in dirs.items():
             events_dict = {
                 **events_dict,
-                **utils.load_samples(input_dir, in_samples, year, filters, columns),
+                **utils.load_samples(
+                    input_dir,
+                    in_samples,
+                    year,
+                    filters,
+                    columns,
+                    variations=True,
+                    weight_shifts=weight_shifts,
+                ),
             }
 
         # samples_loaded = list(events_dict.keys())
