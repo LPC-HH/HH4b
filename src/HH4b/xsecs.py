@@ -154,6 +154,24 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
+xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0
+xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0
+xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6
+xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1
+xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496
+xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75
+xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221
+xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128
+xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"] = 302.0
+xsecs["Zto2Q-2Jets_PTQQ-100to200_2J"] = 343.9
+xsecs["Zto2Q-2Jets_PTQQ-200to400_1J"] = 21.64
+xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"] = 48.36
+xsecs["Zto2Q-2Jets_PTQQ-400to600_1J"] = 0.7376
+xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"] = 2.683
+xsecs["Zto2Q-2Jets_PTQQ-600_1J"] = 0.08717
+xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
+
+xsecs["WtoLNu-2Jets"] = 64481.58
 """
 Cross Sections for 13 TeV.
 """
@@ -189,18 +207,10 @@ xsecs["WJetsToQQ_HT-400to600_13TeV"] = 277.0
 xsecs["WJetsToQQ_HT-600to800_13TeV"] = 59.06
 xsecs["WJetsToQQ_HT-800toInf_13TeV"] = 28.75
 
-# xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"]
-# xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"]
-# xsecs["Wto2Q-2Jets_PTQQ-600_2J"]
-
 xsecs["ZJetsToQQ_HT-200to400_13TeV"] = 1012.0
 xsecs["ZJetsToQQ_HT-400to600_13TeV"] = 114.5
 xsecs["ZJetsToQQ_HT-600to800_13TeV"] = 25.41
 xsecs["ZJetsToQQ_HT-800toInf_13TeV"] = 12.91
-
-# xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"]
-# xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"]
-# xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"]
 
 xsecs["GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8"] = 0.27395244
 xsecs["GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8"] = 27.8

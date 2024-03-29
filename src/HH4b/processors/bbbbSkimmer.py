@@ -130,6 +130,16 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
                 ],
+                "2023-pre-BPix": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet420_MassSD30",
+                ],
+                "2023-BPix": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet420_MassSD30",
+                ],
             },
             "semilep-tt": {
                 "2022": [
@@ -237,7 +247,7 @@ class bbbbSkimmer(processor.ProcessorABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023"]
+        is_run3 = year in ["2022", "2022EE", "2023-pre-BPix", "2023-BPix"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
@@ -299,10 +309,11 @@ class bbbbSkimmer(processor.ProcessorABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print(jets)
-        print(jets["pt_raw"])
 
-        met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
+        if JEC_loader.met_factory is not None:
+            met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
+        else:
+            met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
         jets_sel = (jets.isTight) & (abs(jets.eta) < 4.7)
@@ -664,10 +675,10 @@ class bbbbSkimmer(processor.ProcessorABC):
             )
 
         elif self._region == "had-tt":
-            # == 2 AK8 jets with pT>450 and mSD>50
+            # == 2 AK8 jets with pT>300 and mSD>40
             cut_pt_msd = (
                 np.sum(
-                    (ak8FatJetVars["ak8FatJetPt"] >= 450) & (ak8FatJetVars["ak8FatJetMsd"] >= 50),
+                    (ak8FatJetVars["ak8FatJetPt"] >= 300) & (ak8FatJetVars["ak8FatJetMsd"] >= 40),
                     axis=1,
                 )
                 == 2
@@ -679,8 +690,8 @@ class bbbbSkimmer(processor.ProcessorABC):
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
             # == 2 AK8 jets with Tau3OverTau2 < 0.46
-            cut_t32 = np.sum(ak8FatJetVars["ak8FatJetTau3OverTau2"] < 0.46, axis=1) == 2
-            add_selection("ak8bb_t32", cut_t32, *selection_args)
+            # cut_t32 = np.sum(ak8FatJetVars["ak8FatJetTau3OverTau2"] < 0.46, axis=1) == 2
+            # add_selection("ak8bb_t32", cut_t32, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
