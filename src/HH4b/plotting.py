@@ -126,6 +126,7 @@ def plot_hists(
     logy=True,
     density=False,
     stack=True,
+    show=False,
     bbox_to_anchor=(1.05, 1),
     energy=13.6,
 ):
@@ -353,7 +354,13 @@ def plot_hists(
         if not outpath.exists():
             outpath.mkdir(parents=True)
 
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
+        
 
 
 def _combine_hbb_bgs(hists, bg_keys):
