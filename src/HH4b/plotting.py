@@ -360,7 +360,6 @@ def plot_hists(
             plt.close()
 
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
-        
 
 
 def _combine_hbb_bgs(hists, bg_keys):
