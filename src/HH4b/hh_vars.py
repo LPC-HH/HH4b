@@ -62,8 +62,10 @@ common_samples = {
         "WW",
         "WZ",
     ],
-    "vjets": [
+    "vjetslnu": [
         "WtoLNu-4Jets",
+    ],
+    "vjets": [
         "Wto2Q-3Jets_HT",
         "Zto2Q-4Jets_HT",
     ],
@@ -94,8 +96,10 @@ samples = {
             "TTToHadronic_13TeV",
             "TTToSemiLeptonic_13TeV",
         ],
-        "vjets": [
+        "vjetslnu": [
             "WtoLNu-4Jets",
+        ],
+        "vjets": [
             "WJetsToQQ_HT-200to400_13TeV",
             "WJetsToQQ_HT-400to600_13TeV",
             "WJetsToQQ_HT-600to800_13TeV",
@@ -148,7 +152,7 @@ samples = {
 data_key = "data"
 qcd_key = "qcd"
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb"]
-bg_keys = [qcd_key, "ttbar", "diboson", "vjets"] + hbb_bg_keys
+bg_keys = [qcd_key, "ttbar", "diboson", "vjets", "vjetslnu"] + hbb_bg_keys
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = []  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf

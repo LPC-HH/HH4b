@@ -91,6 +91,7 @@ color_by_sample = {
     "diboson": "orchid",
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
+    "vjetslnu": colours["orange"],
 }
 
 label_by_sample = {
@@ -110,10 +111,21 @@ label_by_sample = {
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
     "vjets": r"W/Z$(qq)$ + Jets",
+    "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
 }
 
-bg_order_default = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
+bg_order_default = [
+    "vbfhtobb",
+    "vhtobb",
+    "tthtobb",
+    "gghtobb",
+    "diboson",
+    "vjets",
+    "vjetslnu",
+    "ttbar",
+    "qcd",
+]
 
 
 def plot_hists(
