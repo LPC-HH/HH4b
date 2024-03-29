@@ -154,9 +154,11 @@ class bbbbSkimmer(processor.ProcessorABC):
             "had-tt": {
                 "2022": [
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
                 "2022EE": [
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
             },
             "pre-sel": {
@@ -408,6 +410,11 @@ class bbbbSkimmer(processor.ProcessorABC):
                 "Txbb_legacy": "PNetXbbLegacy",
                 "particleNet_mass_legacy": "PNetMassLegacy",
             }
+        if self._nano_version == "v12_private" or self._nano_version == "v12":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "particleNetWithMass_TvsQCD": "particleNetWithMass_TvsQCD",
+            }
 
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
@@ -418,7 +425,6 @@ class bbbbSkimmer(processor.ProcessorABC):
             f"bbFatJet{key}": pad_val(fatjets_xbb[var], 2, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
-
         print("Jet vars", f"{time.time() - start:.2f}")
 
         """
@@ -484,6 +490,8 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8DiPFJet250_250_MassSD50",
+                    "AK8DiPFJet260_260_MassSD30",
                 ]
             )
 

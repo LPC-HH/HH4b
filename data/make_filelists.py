@@ -593,6 +593,7 @@ def get_v12():
                     "/Muon1/Run2023C-22Sep2023_v4-v1/NANOAOD",
                 ],
             },
+            # add egamma
             "MuonEG": {
                 "MuonEG_Run2023C": [
                     "/MuonEG/Run2023C-22Sep2023_v1-v1/NANOAOD",
