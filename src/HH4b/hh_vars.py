@@ -157,6 +157,8 @@ sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = []  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
+norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
+
 # TODO
 jecs = {
     # "JES": "JES_jes",
