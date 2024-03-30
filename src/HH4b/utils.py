@@ -44,7 +44,7 @@ class ShapeVar:
     label: str = None
     bins: list[int] = None
     reg: bool = True
-    blind_window: list[int] = None
+    blind_window: list[float] = None
     significance_dir: str = "right"
     plot_args: dict = None
 
@@ -326,6 +326,11 @@ def add_to_cutflow(
     ]
 
 
+def get_key_index(h: Hist, axis_name: str):
+    """Get the index of a key in a Hist's first axis"""
+    return np.where(np.array(list(h.axes[0])) == axis_name)[0][0]
+
+
 def getParticles(particle_list, particle_type):
     """
     Finds particles in `particle_list` of type `particle_type`
@@ -369,6 +374,17 @@ def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
         return np.nan_to_num(events[feat[:-1]].to_numpy()[:, int(feat[-1])].squeeze(), -1)
 
     return None
+
+
+def tau32FittedSF_4(events: pd.DataFrame):
+    tau32 = {"ak8FatJetTau3OverTau20": get_feat(events, "ak8FatJetTau3OverTau20")}[
+        "ak8FatJetTau3OverTau20"
+    ]
+    return np.where(
+        tau32 < 0.5,
+        18.4912 - 235.086 * tau32 + 1098.94 * tau32**2 - 2163 * tau32**3 + 1530.59 * tau32**4,
+        1,
+    )
 
 
 def get_feat_first(events: pd.DataFrame, feat: str):
@@ -435,6 +451,7 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
+    sf: list[str] | None = None,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -450,6 +467,63 @@ def singleVarHist(
           each sample
     """
     samples = list(events_dict.keys())
+
+    h = Hist(
+        hist.axis.StrCategory(samples, name="Sample"),
+        shape_var.axis,
+        storage="weight",
+    )
+
+    var = shape_var.var
+
+    for sample in samples:
+        events = events_dict[sample]
+        if sample == "data" and var.endswith(("_up", "_down")):
+            fill_var = "_".join(var.split("_")[:-2])
+        else:
+            fill_var = var
+
+        # TODO: add b1, b2 assignment if needed
+        fill_data = {var: get_feat(events, fill_var)}
+        weight = events[weight_key].to_numpy().squeeze()
+
+        if selection is not None:
+            sel = selection[sample]
+            fill_data[var] = fill_data[var][sel]
+            weight = weight[sel]
+
+        if sf is not None and sample == "ttbar":
+            weight = weight * tau32FittedSF_4(events)
+
+        if len(fill_data[var]):
+            h.fill(Sample=sample, **fill_data, weight=weight)
+
+    if shape_var.blind_window is not None:
+        blindBins(h, shape_var.blind_window, data_key)
+
+    return h
+
+
+def singleVarHistSel(
+    events_dict: dict[str, pd.DataFrame],
+    shape_var: ShapeVar,
+    samples: list[str],
+    weight_key: str = "finalWeight",
+    selection: dict | None = None,
+) -> Hist:
+    """
+    Makes and fills a histogram for variable `var` using data in the `events` dict.
+
+    Args:
+        events (dict): a dict of events of format
+          {sample1: {var1: np.array, var2: np.array, ...}, sample2: ...}
+        shape_var (ShapeVar): ShapeVar object specifying the variable, label, binning, and (optionally) a blinding window.
+        weight_key (str, optional): which weight to use from events, if different from 'weight'
+        blind_region (list, optional): region to blind for data, in format [low_cut, high_cut].
+          Bins in this region will be set to 0 for data.
+        selection (dict, optional): if performing a selection first, dict of boolean arrays for
+          each sample
+    """
 
     h = Hist(
         hist.axis.StrCategory(samples, name="Sample"),
