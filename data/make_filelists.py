@@ -242,30 +242,228 @@ def get_v11_private():
 
 def get_v12_private():
     return {
-        "2022EE": {
-            "HH": {
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/HH/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
+        "2022": {
+            "Hbb": {
+                "GluGluHto2B_PT-200_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/",
+                "VBFHto2B_M-125_dipoleRecoilOn": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/VBFHto2B_M-125_dipoleRecoilOn_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Nu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ttHto2B_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
             },
             "QCD": {
-                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-200to400": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-2000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
-                "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-100to200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-200to400": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                # "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
             },
             "TT": {
-                "TTto4Q": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
-                "TTtoLNu2Q": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto4Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/TT/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "Diboson": {
+                "WW": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/diboson/WW_TuneCP5_13p6TeV_pythia8/",
+                "WZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/diboson/WZ_TuneCP5_13p6TeV_pythia8/",
+                "ZZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
+            },
+            "VJets": {
+                "Wto2Q-3Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                # "Wto2Q-3Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/"
+                "Zto2Q-4Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
             },
             "JetMET": {
-                "JetMET_Run2022E": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022E",
-                "JetMET_Run2022F": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022F",
-                "JetMET_Run2022G": "/store/user/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/JetMET/JetMET/JetMET_Run2022G",
+                "JetMET_Run2022C_single": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/JetMET/JetHT/JetHT_Run2022C/",
+                "JetMET_Run2022C": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/JetMET/JetMET/JetMET_Run2022C/",
+                "JetMET_Run2022D": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/JetMET/JetMET/JetMET_Run2022D/",
             },
-        }
+        },
+        "2022EE": {
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/HH4b/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
+            # "Hbb": {
+            #     "GluGluHto2B_PT-200_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/",
+            #     "VBFHto2B_M-125_dipoleRecoilOn": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/VBFHto2B_M-125_dipoleRecoilOn_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "WminusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "WminusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "WplusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "WplusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ggZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ggZH_Hto2B_Zto2Nu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ggZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            #     "ttHto2B_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Hbb/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            # },
+            "QCD": {
+                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                # "QCD_HT-100to200": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-200to400": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "TT": {
+                "TTto4Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": "/store/group/lpcdihiggsboost/cmantill/NanoAOD_v12/2022EE/TT/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
+            "Diboson": {
+                "WW": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/diboson/WW_TuneCP5_13p6TeV_pythia8/",
+                "WZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/diboson/WZ_TuneCP5_13p6TeV_pythia8/",
+                "ZZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
+            },
+            # "VJets": {
+            #     "Wto2Q-3Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Wto2Q-3Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Wto2Q-3Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Wto2Q-3Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/",
+            #     "Zto2Q-4Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Zto2Q-4Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Zto2Q-4Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            #     "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            # },
+            "JetMET": {
+                "JetMET_Run2022E": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022E",
+                "JetMET_Run2022F": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022F",
+                "JetMET_Run2022G": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022G",
+            },
+        },
+        "2023": {
+            "JetMET": {
+                "JetMET_Run2023C": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v3/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v4/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v3/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v4/",
+                ],
+            },
+            "Hbb": {
+                "GluGluHto2B_PT-200_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/",
+                "VBFHto2B_M-125_dipoleRecoilOn": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/VBFHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Nu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ttHto2B_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Hbb/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
+            "QCD": {
+                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-100to200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-200to400": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "TT": {
+                "TTto4Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/TT/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "Diboson": {
+                # "WW": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/diboson/WW_TuneCP5_13p6TeV_pythia8/",
+                "WZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/diboson/WZ_TuneCP5_13p6TeV_pythia8/",
+                "ZZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
+            },
+            "VJets": {
+                "Wto2Q-3Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Wto2Q-3Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            },
+        },
+        "2023-BPix": {
+            "JetMET": {
+                "JetMET_Run2023D": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET0/JetMET_Run2023D_0v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET0/JetMET_Run2023D_0v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET1/JetMET_Run2023D_1v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET1/JetMET_Run2023D_1v2/",
+                ],
+            },
+            "Hbb": {
+                "GluGluHto2B_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/GluGluHto2B_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/",
+                # "GluGluHto2B_PT-200_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/",
+                "VBFHto2B_M-125_dipoleRecoilOn": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/VBFHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/WminusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WminusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/WminusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_Wto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/WplusH_Hto2B_Wto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "WplusH_Hto2B_WtoLNu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/WplusH_Hto2B_WtoLNu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2L_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ggZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Nu_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ggZH_Hto2B_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ggZH_Hto2B_Zto2Q_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ZH_Hto2B_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+                "ttHto2B_M-125": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Hbb/ttHto2B_M-125_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
+            "QCD": {
+                "QCD_HT-1000to1200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-100to200": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                # "QCD_HT-200to400": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-400to600": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1500to2000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-1500to2000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-1200to1500": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-1200to1500_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-600to800": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "QCD_HT-800to1000": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/QCD/QCD-4Jets_HT-800to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+            },
+            "TT": {
+                "TTto4Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/TT/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTto2L2Nu": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/TT/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8",
+                "TTtoLNu2Q": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/TT/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8",
+            },
+            "Diboson": {
+                "WW": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/diboson/WW_TuneCP5_13p6TeV_pythia8/",
+                "WZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/diboson/WZ_TuneCP5_13p6TeV_pythia8/",
+                "ZZ": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
+            },
+            "VJets": {
+                "Wto2Q-3Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Wto2Q-3Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Wto2Q-3Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Wto2Q-3Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Wto2Q-3Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Wto2Q-3Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8",
+                "Zto2Q-4Jets_HT-200to400": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Zto2Q-4Jets_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-400to600": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Zto2Q-4Jets_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-600to800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Zto2Q-4Jets_HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+                "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
+            },
+        },
     }
 
 
@@ -561,7 +759,7 @@ def get_v12():
                 "EGamma_Run2022G": "/EGamma/Run2022G-22Sep2023-v2/NANOAOD",
             },
         },
-        "2023-pre-BPix": {
+        "2023": {
             "JetMET": {
                 # B is commissioning ERA
                 # "JetMET_Run2023B": [
@@ -862,7 +1060,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

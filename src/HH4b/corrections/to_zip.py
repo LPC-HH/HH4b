@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-import glob
-import os
+"""
+# first untar
+for ifile in glob.glob("*.tar.gz"):
+    os.system(f"tar -xvzf {ifile}")
+
+# gzip
+for ifile in glob.glob("*.txt"):
+    os.system(f"gzip {ifile}")
 
 for ifile in glob.glob("*.txt.gz"):
-    # os.system(f"gzip {ifile}")
     new_name = None
     if (
         "L1FastJet" in ifile
@@ -25,3 +30,14 @@ for ifile in glob.glob("*.txt.gz"):
     if new_name:
         # print(f"mv {ifile} {new_name}")
         os.system(f"mv {ifile} {new_name}")
+
+
+for ifile in glob.glob("*.txt.gz"):
+    new_name = None
+    if ("Summer22EE_22Sep2023" in ifile
+        or "Summer22_22Sep2023" in ifile):
+        new_name = ifile.replace("_22Sep2023", "22Sep2023")
+    if new_name:
+        #print(f"mv {ifile} {new_name}")
+        os.system(f"mv {ifile} {new_name}")
+"""
