@@ -108,8 +108,8 @@ def get_pog_json(obj: str, year: str) -> str:
         year = {
             "2022": "2022_Summer22",
             "2022EE": "2022_Summer22EE",
-            "2023-pre-BPix": "2023_Summer23",
-            "2023-BPix": "2023_Summer23BPix",
+            "2023": "2023_Summer23",
+            "2023BPix": "2023_Summer23BPix",
         }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -410,7 +410,7 @@ class JECs:
             jets = self.jet_factory[jet_factory_str][corr_key].build(jets, jec_cache)
 
         # return only jets if no variations are given
-        if jecs is None:
+        if jecs is None or isData:
             return jets, None
 
         jec_shifted_vars = {}

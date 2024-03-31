@@ -24,7 +24,7 @@ from .corrections import (
     add_trig_weights,
     get_jetveto_event,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -39,7 +39,11 @@ from .SkimmerABC import SkimmerABC
 from .utils import P4, PAD_VAL, add_selection, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
-gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
+gen_selection_dict = {
+    "HHto4B": gen_selection_HHbbbb,
+    "HToBB": gen_selection_Hbb,
+    "TTto4Q": gen_selection_Top,
+}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -132,14 +136,14 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
                 ],
-                "2023-pre-BPix": [
+                "2023": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
-                "2023-BPix": [
+                "2023BPix": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
@@ -156,6 +160,14 @@ class bbbbSkimmer(SkimmerABC):
                     "Ele32_WPTight_Gsf",
                     "IsoMu27",
                 ],
+                "2023": [
+                    "Ele32_WPTight_Gsf",
+                    "IsoMu27",
+                ],
+                "2023BPix": [
+                    "Ele32_WPTight_Gsf",
+                    "IsoMu27",
+                ],
             },
             "had-tt": {
                 "2022": [
@@ -165,6 +177,16 @@ class bbbbSkimmer(SkimmerABC):
                 "2022EE": [
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                ],
+                "2023": [
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
+                "2023BPix": [
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
         }
@@ -230,7 +252,7 @@ class bbbbSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023-pre-BPix", "2023-BPix"]
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
@@ -409,20 +431,21 @@ class bbbbSkimmer(SkimmerABC):
         print("Jet vars", f"{time.time() - start:.2f}")
 
         """
-        # Jet JEC variables
-        for var in ["pt"]:
-            key = self.skim_vars["Jet"][var]
-            for shift, vals in jec_shifted_jetvars[var].items():
-                if shift != "":
-                    ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+        if self._region == "signal":
+            # Jet JEC variables
+            for var in ["pt"]:
+                key = self.skim_vars["Jet"][var]
+                for shift, vals in jec_shifted_jetvars[var].items():
+                    if shift != "":
+                        ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
 
-        # FatJet JEC variables
-        for var in ["pt"]:
-            key = self.skim_vars["FatJet"][var]
-            for shift, vals in jec_shifted_fatjetvars[var].items():
-                if shift != "":
-                    # TODO: add also for bb jets
-                    ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
+            # FatJet JEC variables
+            for var in ["pt"]:
+                key = self.skim_vars["FatJet"][var]
+                for shift, vals in jec_shifted_fatjetvars[var].items():
+                    if shift != "":
+                        # TODO: add also for bb jets
+                        ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
         """
 
         """

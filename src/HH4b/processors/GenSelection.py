@@ -197,3 +197,70 @@ def gen_selection_Hbb(
     }
 
     return {**GenHiggsVars, **GenbVars, **bbFatJetVars}
+
+
+def gen_selection_Top(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list, # noqa: ARG001
+    skim_vars: dict,
+):
+    """Get Hadronic Top and children information"""
+
+    # finding tops
+    tops = events.GenPart[
+        (abs(events.GenPart.pdgId) == TOP_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    GenTopVars = {f"GenTop{key}": tops[var].to_numpy() for (var, key) in skim_vars.items()}
+
+    daughters = ak.flatten(tops.distinctChildren, axis=2)
+    daughters = daughters[daughters.hasFlags(["fromHardProcess", "isLastCopy"])]
+    daughters_pdgId = abs(daughters.pdgId)
+
+    wboson_daughters = ak.flatten(daughters[(daughters_pdgId == W_PDGID)].distinctChildren, axis=2)
+    wboson_daughters = wboson_daughters[
+        wboson_daughters.hasFlags(["fromHardProcess", "isLastCopy"])
+    ]
+
+    bquark = daughters[(daughters_pdgId == 5)]
+    matched_to_top = fatjets.metric_table(tops) < 0.8
+    is_fatjet_matched = ak.any(matched_to_top, axis=2)
+
+    qs_0 = ak.firsts(wboson_daughters[:, 0:1])
+    qs_1 = ak.firsts(wboson_daughters[:, 1:2])
+    qs_2 = ak.firsts(wboson_daughters[:, 2:3])
+    qs_3 = ak.firsts(wboson_daughters[:, 3:4])
+    bs_0 = ak.firsts(bquark[:, 0:1])
+    bs_1 = ak.firsts(bquark[:, 1:2])
+
+    numtop1 = ak.values_astype(fatjets.delta_r(qs_0) < 0.8, np.int32) + ak.values_astype(
+        fatjets.delta_r(qs_1) < 0.8, np.int32
+    )
+    numtop2 = ak.values_astype(fatjets.delta_r(qs_2) < 0.8, np.int32) + ak.values_astype(
+        fatjets.delta_r(qs_3) < 0.8, np.int32
+    )
+
+    fatjets["TopMatch"] = is_fatjet_matched
+    fatjets["TopMatchIndex"] = ak.mask(
+        ak.argmin(fatjets.metric_table(tops), axis=2), fatjets["TopMatch"] == 1
+    )
+    fatjets["NumBMatchedTop1"] = ak.values_astype(fatjets.delta_r(bs_0) < 0.8, np.int32)
+    fatjets["NumBMatchedTop2"] = ak.values_astype(fatjets.delta_r(bs_1) < 0.8, np.int32)
+    fatjets["NumQMatchedTop1"] = numtop1
+    fatjets["NumQMatchedTop2"] = numtop2
+
+    num_fatjets = 2
+    bbFatJetVars = {
+        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "TopMatch",
+            "TopMatchIndex",
+            "NumBMatchedTop1",
+            "NumBMatchedTop2",
+            "NumQMatchedTop1",
+            "NumQMatchedTop2",
+        ]
+    }
+
+    return {**GenTopVars, **bbFatJetVars}
