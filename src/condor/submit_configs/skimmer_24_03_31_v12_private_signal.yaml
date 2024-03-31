@@ -10,11 +10,6 @@
         },
         "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
-        "HH": {"subsamples": [
-          "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG","GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private",
-          ],
-          "files_per_job": {"GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": 5,"GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private": 5,}
-        },
         "Hbb": {
           "subsamples": [
             "GluGluHto2B_PT-200_M-125",
@@ -38,20 +33,6 @@
             ],
             "files_per_job": 6,
         },
-        "QCD": {
-            "subsamples": [
-                "QCD_HT-100to200",
-                "QCD_HT-200to400",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-            "files_per_job": 10,
-        },
    },
    "2022EE": {
         "JetMET": {
@@ -65,10 +46,8 @@
         "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "HH": {"subsamples": [
-            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
             "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
             "files_per_job": {
-              "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": 1,
               "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 2,
             }
         },
@@ -100,17 +79,6 @@
             "files_per_job": 6,
         },
         "QCD": {
-            "subsamples": [
-                "QCD_HT-100to200",
-                "QCD_HT-200to400",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
             "files_per_job": 10,
         },
     },
@@ -149,9 +117,6 @@
             "ZH_Hto2B_Zto2Q_M-125"
           ],
           "files_per_job": 10},
-        "QCD": {
-            "files_per_job": 10,
-        },
     },
     "2023BPix": {
         "JetMET": {
@@ -184,8 +149,5 @@
             "ZH_Hto2B_Zto2Q_M-125"
           ],
           "files_per_job": 10},
-        "QCD": {
-            "files_per_job": 10,
-        },
     },
 }
