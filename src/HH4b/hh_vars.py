@@ -159,9 +159,8 @@ sig_keys = sig_keys_ggf + sig_keys_vbf
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
-# TODO
 jecs = {
-    # "JES": "JES_jes",
+    "JES": "JES_jes",
     # "JER": "JER",
 }
 

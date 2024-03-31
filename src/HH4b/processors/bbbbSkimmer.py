@@ -173,6 +173,8 @@ class bbbbSkimmer(SkimmerABC):
 
         self._systematics = save_systematics
 
+        self.jecs = HH4b.hh_vars.jecs
+
         self._nano_version = nano_version
 
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
@@ -259,7 +261,7 @@ class bbbbSkimmer(SkimmerABC):
         #########################
         print("starting object selection", f"{time.time() - start:.2f}")
 
-        run = events.run.to_numpy()
+        # run = events.run.to_numpy()
 
         if is_run3:
             veto_muon_sel = veto_muons(events.Muon)
@@ -283,8 +285,7 @@ class bbbbSkimmer(SkimmerABC):
             events.Jet,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=False,
             applyData=True,
             dataset=dataset,
@@ -313,8 +314,7 @@ class bbbbSkimmer(SkimmerABC):
             fatjets,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=True,
             applyData=True,
             dataset=dataset,
@@ -593,8 +593,8 @@ class bbbbSkimmer(SkimmerABC):
         add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
-        if year == "2022" or year == "2022EE":
-            cut_jetveto = get_jetveto_event(jets, year, run, isData)
+        if is_run3:
+            cut_jetveto = get_jetveto_event(jets, year)
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":

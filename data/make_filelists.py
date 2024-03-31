@@ -351,14 +351,20 @@ def get_v12_private():
         },
         "2023": {
             "JetMET": {
-                "JetMET_Run2023C": [
+                "JetMET_Run2023Cv1": [
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v1/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v2/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v3/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v4/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v1/",
+                ],
+                "JetMET_Run2023Cv2": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v2/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v2/",
+                ],
+                "JetMET_Run2023Cv3": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v3/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v3/",
+                ],
+                "JetMET_Run2023Cv4": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v4/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET1/JetMET_Run2023C_1v4/",
                 ],
             },
@@ -766,46 +772,44 @@ def get_v12():
                 #     "/JetMET0/Run2023B-22Sep2023-v1/NANOAOD",
                 #     "/JetMET1/Run2023B-22Sep2023-v2/NANOAOD",
                 # ],
-                "JetMET_Run2023C": [
+                "JetMET_Run2023Cv1": [
                     "/JetMET0/Run2023C-22Sep2023_v1-v1/NANOAOD",
-                    "/JetMET0/Run2023C-22Sep2023_v2-v1/NANOAOD",
-                    "/JetMET0/Run2023C-22Sep2023_v3-v1/NANOAOD",
-                    "/JetMET0/Run2023C-22Sep2023_v4-v1/NANOAOD",
                     "/JetMET1/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                ],
+                "JetMET_Run2023Cv2": [
+                    "/JetMET0/Run2023C-22Sep2023_v2-v1/NANOAOD",
                     "/JetMET1/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                ],
+                "JetMET_Run2023Cv3": [
+                    "/JetMET0/Run2023C-22Sep2023_v3-v1/NANOAOD",
                     "/JetMET1/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                ],
+                "JetMET_Run2023Cv4": [
+                    "/JetMET0/Run2023C-22Sep2023_v4-v1/NANOAOD",
                     "/JetMET1/Run2023C-22Sep2023_v4-v1/NANOAOD",
                 ],
             },
             # should use Muon0+Muon1
             # 22Sep2023 refers to 2022 Re-Mini+Re-Nano, that were built on top of particle rereco tag 27Jul2023 (for ERAs CDE) and on top of promptReco (for ERAs FG)
             "Muon": {
-                "Muon_Run2023C": [
+                "Muon_Run2023Cv1": [
                     "/Muon0/Run2023C-22Sep2023_v1-v1/NANOAOD",
-                    "/Muon0/Run2023C-22Sep2023_v2-v1/NANOAOD",
-                    "/Muon0/Run2023C-22Sep2023_v3-v1/NANOAOD",
-                    "/Muon0/Run2023C-22Sep2023_v4-v1/NANOAOD",
                     "/Muon1/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                ],
+                "Muon_Run2023Cv2": [
+                    "/Muon0/Run2023C-22Sep2023_v2-v1/NANOAOD",
                     "/Muon1/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                ],
+                "Muon_Run2023Cv3": [
+                    "/Muon0/Run2023C-22Sep2023_v3-v1/NANOAOD",
                     "/Muon1/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                ],
+                "Muon_Run2023Cv4": [
+                    "/Muon0/Run2023C-22Sep2023_v4-v1/NANOAOD",
                     "/Muon1/Run2023C-22Sep2023_v4-v1/NANOAOD",
                 ],
             },
             # add egamma
-            "MuonEG": {
-                "MuonEG_Run2023C": [
-                    "/MuonEG/Run2023C-22Sep2023_v1-v1/NANOAOD",
-                    "/MuonEG/Run2023C-22Sep2023_v2-v1/NANOAOD",
-                    "/MuonEG/Run2023C-22Sep2023_v3-v1/NANOAOD",
-                    "/MuonEG/Run2023C-22Sep2023_v4-v1/NANOAOD",
-                ],
-            },
-            "ParkingHH": {
-                "ParkingHH_Run2023C": [
-                    "/ParkingHH/Run2023C-22Sep2023_v3-v1/NANOAOD",
-                    "/ParkingHH/Run2023C-22Sep2023_v4-v1/NANOAOD",
-                ],
-            },
             "QCD": {
                 "QCD_HT-1000to1200": "/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
                 "QCD_HT-100to200": "/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
@@ -893,18 +897,6 @@ def get_v12():
                     "/Muon0/Run2023D-22Sep2023_v2-v1/NANOAOD",
                     "/Muon1/Run2023D-22Sep2023_v1-v1/NANOAOD",
                     "/Muon1/Run2023D-22Sep2023_v2-v1/NANOAOD",
-                ],
-            },
-            "MuonEG": {
-                "MuonEG_Run2023D": [
-                    "/MuonEG/Run2023D-22Sep2023_v1-v1/NANOAOD",
-                    "/MuonEG/Run2023D-22Sep2023_v2-v1/NANOAOD",
-                ],
-            },
-            "ParkingHH": {
-                "ParkingHH_Run2023D": [
-                    "/ParkingHH/Run2023D-22Sep2023_v1-v1/NANOAOD",
-                    "/ParkingHH/Run2023D-22Sep2023_v2-v1/NANOAOD",
                 ],
             },
             "QCD": {
