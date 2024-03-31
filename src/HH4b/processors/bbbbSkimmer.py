@@ -78,6 +78,7 @@ class bbbbSkimmer(SkimmerABC):
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
+            "particleNet_mass_legacy": "PNetMassLegacy",
         },
         "GenHiggs": P4,
         "Event": {
@@ -411,7 +412,6 @@ class bbbbSkimmer(SkimmerABC):
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "Txbb_legacy": "PNetXbbLegacy",
-                "particleNet_mass_legacy": "PNetMassLegacy",
             }
         if self._nano_version == "v12_private" or self._nano_version == "v12":
             fatjet_skimvars = {
