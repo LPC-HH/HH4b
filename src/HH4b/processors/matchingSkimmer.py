@@ -148,7 +148,7 @@ class matchingSkimmer(processor.ProcessorABC):
         print("Before jets ", f"{time.time() - start:.2f}")
 
         jets = events.Jet
-        jets = jets[objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)]
+        jets = jets[objects.good_ak4jets(jets, year)]
         central_jets_sel = np.abs(jets.eta) < 2.5
         central_jets = jets[central_jets_sel]
         ht = ak.sum(jets.pt, axis=1)

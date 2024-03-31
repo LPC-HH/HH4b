@@ -22,10 +22,9 @@ from .corrections import (
     JECs,
     add_pileup_weight,
     add_trig_weights,
-    get_jetveto,
     get_jetveto_event,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -40,7 +39,11 @@ from .SkimmerABC import SkimmerABC
 from .utils import P4, PAD_VAL, add_selection, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
-gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
+gen_selection_dict = {
+    "HHto4B": gen_selection_HHbbbb,
+    "HToBB": gen_selection_Hbb,
+    "TTto4Q": gen_selection_Top,
+}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -133,13 +136,17 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
                 ],
-                "2023-pre-BPix": [
+                "2023": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
-                "2023-BPix": [
+                "2023BPix": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
@@ -153,37 +160,33 @@ class bbbbSkimmer(SkimmerABC):
                     "Ele32_WPTight_Gsf",
                     "IsoMu27",
                 ],
+                "2023": [
+                    "Ele32_WPTight_Gsf",
+                    "IsoMu27",
+                ],
+                "2023BPix": [
+                    "Ele32_WPTight_Gsf",
+                    "IsoMu27",
+                ],
             },
             "had-tt": {
                 "2022": [
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
                 "2022EE": [
                     "AK8PFJet425_SoftDropMass40",
-                ],
-            },
-            "pre-sel": {
-                "2018": [
-                    "PFJet500",
-                    "AK8PFJet500",
-                    "AK8PFJet360_TrimMass30",
-                    "AK8PFJet380_TrimMass30",
-                    "AK8PFJet400_TrimMass30",
-                    "AK8PFHT750_TrimMass50",
-                    "AK8PFHT800_TrimMass50",
-                    "PFHT1050",
-                ],
-                "2022": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                    "AK8PFJet425_SoftDropMass40",
-                    "Ele32_WPTight_Gsf",
-                    "IsoMu27",
                 ],
-                "2022EE": [
-                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                "2023": [
                     "AK8PFJet425_SoftDropMass40",
-                    "Ele32_WPTight_Gsf",
-                    "IsoMu27",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
+                "2023BPix": [
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
         }
@@ -191,6 +194,8 @@ class bbbbSkimmer(SkimmerABC):
         self.HLTs = HLTs[region]
 
         self._systematics = save_systematics
+
+        self.jecs = HH4b.hh_vars.jecs
 
         self._nano_version = nano_version
 
@@ -206,9 +211,6 @@ class bbbbSkimmer(SkimmerABC):
         ]
 
         """
-        pre-sel region:
-        - >=1 AK8 jets with pT>250
-        - >=1 AK8 jets (ordered by pT) mSD >= 40
         signal region:
         - HLT OR for both data and MC
           - in Run-2 only applied for data
@@ -250,7 +252,7 @@ class bbbbSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023-pre-BPix", "2023-BPix"]
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
@@ -281,7 +283,7 @@ class bbbbSkimmer(SkimmerABC):
         #########################
         print("starting object selection", f"{time.time() - start:.2f}")
 
-        run = events.run.to_numpy()
+        # run = events.run.to_numpy()
 
         if is_run3:
             veto_muon_sel = veto_muons(events.Muon)
@@ -305,8 +307,7 @@ class bbbbSkimmer(SkimmerABC):
             events.Jet,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=False,
             applyData=True,
             dataset=dataset,
@@ -319,13 +320,7 @@ class bbbbSkimmer(SkimmerABC):
             met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
-        jets_sel = (jets.isTight) & (abs(jets.eta) < 4.7)
-
-        if year == "2022" or year == "2022EE":
-            jet_veto = get_jetveto(jets, year, run, isData)
-            jet_veto = jet_veto & (jets.pt > 15)
-            jets_sel = jets_sel & ~jet_veto
-
+        jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
         if not is_run3:
             jets_sel = jets_sel & ((jets.pt >= 50) | (jets.puId >= 6))
 
@@ -341,8 +336,7 @@ class bbbbSkimmer(SkimmerABC):
             fatjets,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=True,
             applyData=True,
             dataset=dataset,
@@ -419,6 +413,11 @@ class bbbbSkimmer(SkimmerABC):
                 "Txbb_legacy": "PNetXbbLegacy",
                 "particleNet_mass_legacy": "PNetMassLegacy",
             }
+        if self._nano_version == "v12_private" or self._nano_version == "v12":
+            fatjet_skimvars = {
+                **fatjet_skimvars,
+                "particleNetWithMass_TvsQCD": "particleNetWithMass_TvsQCD",
+            }
 
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
@@ -429,24 +428,24 @@ class bbbbSkimmer(SkimmerABC):
             f"bbFatJet{key}": pad_val(fatjets_xbb[var], 2, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
-
         print("Jet vars", f"{time.time() - start:.2f}")
 
         """
-        # Jet JEC variables
-        for var in ["pt"]:
-            key = self.skim_vars["Jet"][var]
-            for shift, vals in jec_shifted_jetvars[var].items():
-                if shift != "":
-                    ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+        if self._region == "signal":
+            # Jet JEC variables
+            for var in ["pt"]:
+                key = self.skim_vars["Jet"][var]
+                for shift, vals in jec_shifted_jetvars[var].items():
+                    if shift != "":
+                        ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
 
-        # FatJet JEC variables
-        for var in ["pt"]:
-            key = self.skim_vars["FatJet"][var]
-            for shift, vals in jec_shifted_fatjetvars[var].items():
-                if shift != "":
-                    # TODO: add also for bb jets
-                    ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
+            # FatJet JEC variables
+            for var in ["pt"]:
+                key = self.skim_vars["FatJet"][var]
+                for shift, vals in jec_shifted_fatjetvars[var].items():
+                    if shift != "":
+                        # TODO: add also for bb jets
+                        ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
         """
 
         """
@@ -495,6 +494,12 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8DiPFJet250_250_MassSD50",
+                    "AK8DiPFJet260_260_MassSD30",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p10",
+                    "AK8PFJet250_SoftDropMass40_PNetBB0p06",
                 ]
             )
 
@@ -545,7 +550,7 @@ class bbbbSkimmer(SkimmerABC):
             **trigObjFatJetVars,
         }
 
-        if self._region == "signal" or self._region == "pre-sel":
+        if self._region == "signal":
             # TODO: add shifts from JECs and JSMR
             bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
 
@@ -561,7 +566,7 @@ class bbbbSkimmer(SkimmerABC):
                 **bbFatDijetVars,
             }
 
-        if self._region == "semilep-tt" or self._region == "pre-sel":
+        if self._region == "semilep-tt":
             # concatenate leptons
             leptons = ak.concatenate([muons, electrons], axis=1)
             # sort by pt
@@ -611,8 +616,8 @@ class bbbbSkimmer(SkimmerABC):
         add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
-        if year == "2022" or year == "2022EE":
-            cut_jetveto = get_jetveto_event(jets, year, run, isData)
+        if is_run3:
+            cut_jetveto = get_jetveto_event(jets, year)
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
@@ -631,7 +636,10 @@ class bbbbSkimmer(SkimmerABC):
             cut_mass = (
                 np.sum(
                     (ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"])
-                    | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"]),
+                    | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"])
+                    | (
+                        ak8FatJetVars["ak8FatJetPNetMassLegacy"] >= self.preselection["fatjet_mreg"]
+                    ),
                     axis=1,
                 )
                 >= 2
@@ -791,9 +799,18 @@ class bbbbSkimmer(SkimmerABC):
                 weights_dict[f"weight_{systematic}"] = weights.weight(modifier=systematic)
 
                 if utils.remove_variation_suffix(systematic) in norm_preserving_weights:
-                    var_weight = weights.partial_weight(
-                        include=norm_preserving_weights, modifier=systematic
-                    )
+                    var_weight = weights.partial_weight(include=norm_preserving_weights)
+                    # modify manually
+                    if "Down" in systematic and systematic not in weights._modifiers:
+                        var_weight = (
+                            var_weight / weights._modifiers[systematic.replace("Down", "Up")]
+                        )
+                    else:
+                        var_weight = var_weight * weights._modifiers[systematic]
+
+                    # var_weight = weights.partial_weight(
+                    #    include=norm_preserving_weights, modifier=systematic
+                    # )
 
                     # need to save total # events for each variation for normalization in post-processing
                     totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
