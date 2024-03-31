@@ -247,8 +247,8 @@ def scan_fom(events_combined):
         figure_of_merits = []
         cuts = []
         for bdt_cut in bdt_cuts:
-            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)  # * 2.15
-            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)  # * 2.15
+            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
+            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
 
             figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
 
@@ -326,18 +326,20 @@ def scan_sb(events_combined):
 
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
-            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)  # * 2.15
-            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)  # * 2.15
+            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
+            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
+
             figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
 
             if nevents_signal > 0.5:
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
 
             # print(figure_of_merit)
+
+    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.7, flow="none")
     eff, bins_x, bins_y = h_sb.to_numpy()
     fig, ax = plt.subplots(1, 1, figsize=(14, 14))
     cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.5, flow="none")
-    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.7, flow="none")
     cbar.cbar.set_label(r"$S/\sqrt{S+B}$", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
     for i in range(len(bins_x) - 1):

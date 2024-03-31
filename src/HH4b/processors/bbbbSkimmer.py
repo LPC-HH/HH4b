@@ -15,12 +15,13 @@ import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
-from .common import LUMI
+import HH4b
+
+from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
     add_trig_weights,
-    get_jetveto,
     get_jetveto_event,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
@@ -34,7 +35,8 @@ from .objects import (
     veto_muons,
     veto_muons_run2,
 )
-from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
+from .SkimmerABC import SkimmerABC
+from .utils import P4, PAD_VAL, add_selection, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb}
@@ -43,7 +45,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class bbbbSkimmer(processor.ProcessorABC):
+class bbbbSkimmer(SkimmerABC):
     """
     Skims nanoaod files, saving selected branches and events passing preselection cuts
     (and triggers for data).
@@ -132,11 +134,15 @@ class bbbbSkimmer(processor.ProcessorABC):
                 ],
                 "2023-pre-BPix": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
                 "2023-BPix": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
@@ -161,30 +167,6 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
             },
-            "pre-sel": {
-                "2018": [
-                    "PFJet500",
-                    "AK8PFJet500",
-                    "AK8PFJet360_TrimMass30",
-                    "AK8PFJet380_TrimMass30",
-                    "AK8PFJet400_TrimMass30",
-                    "AK8PFHT750_TrimMass50",
-                    "AK8PFHT800_TrimMass50",
-                    "PFHT1050",
-                ],
-                "2022": [
-                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                    "AK8PFJet425_SoftDropMass40",
-                    "Ele32_WPTight_Gsf",
-                    "IsoMu27",
-                ],
-                "2022EE": [
-                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-                    "AK8PFJet425_SoftDropMass40",
-                    "Ele32_WPTight_Gsf",
-                    "IsoMu27",
-                ],
-            },
         }
 
         self.HLTs = HLTs[region]
@@ -205,9 +187,6 @@ class bbbbSkimmer(processor.ProcessorABC):
         ]
 
         """
-        pre-sel region:
-        - >=1 AK8 jets with pT>250
-        - >=1 AK8 jets (ordered by pT) mSD >= 40
         signal region:
         - HLT OR for both data and MC
           - in Run-2 only applied for data
@@ -265,11 +244,11 @@ class bbbbSkimmer(processor.ProcessorABC):
             gen_weights = None
 
         n_events = len(events) if isData else np.sum(gen_weights)
+        selection = PackedSelection()
 
         cutflow = OrderedDict()
         cutflow["all"] = n_events
-        selection = PackedSelection()
-        weights = Weights(len(events), storeIndividual=True)
+
         selection_args = (selection, cutflow, isData, gen_weights)
 
         # JEC factory loader
@@ -318,13 +297,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
-        jets_sel = (jets.isTight) & (abs(jets.eta) < 4.7)
-
-        if year == "2022" or year == "2022EE":
-            jet_veto = get_jetveto(jets, year, run, isData)
-            jet_veto = jet_veto & (jets.pt > 15)
-            jets_sel = jets_sel & ~jet_veto
-
+        jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
         if not is_run3:
             jets_sel = jets_sel & ((jets.pt >= 50) | (jets.puId >= 6))
 
@@ -373,6 +346,14 @@ class bbbbSkimmer(processor.ProcessorABC):
             if d in dataset:
                 vars_dict = gen_selection_dict[d](events, jets, fatjets_xbb, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
+
+        # used for normalization to cross section below
+        gen_selected = (
+            selection.all(*selection.names)
+            if len(selection.names)
+            else np.ones(len(events)).astype(bool)
+        )
+        logging.info(f"Passing gen selection: {np.sum(gen_selected)} / {len(events)}")
 
         # Jet variables
         jet_skimvars = self.skim_vars["Jet"]
@@ -490,8 +471,12 @@ class bbbbSkimmer(processor.ProcessorABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet425_SoftDropMass40",
                     "AK8DiPFJet250_250_MassSD50",
                     "AK8DiPFJet260_260_MassSD30",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p10",
+                    "AK8PFJet250_SoftDropMass40_PNetBB0p06",
                 ]
             )
 
@@ -542,7 +527,7 @@ class bbbbSkimmer(processor.ProcessorABC):
             **trigObjFatJetVars,
         }
 
-        if self._region == "signal" or self._region == "pre-sel":
+        if self._region == "signal":
             # TODO: add shifts from JECs and JSMR
             bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
 
@@ -558,7 +543,7 @@ class bbbbSkimmer(processor.ProcessorABC):
                 **bbFatDijetVars,
             }
 
-        if self._region == "semilep-tt" or self._region == "pre-sel":
+        if self._region == "semilep-tt":
             # concatenate leptons
             leptons = ak.concatenate([muons, electrons], axis=1)
             # sort by pt
@@ -707,52 +692,21 @@ class bbbbSkimmer(processor.ProcessorABC):
         # Weights
         ######################
 
+        totals_dict = {"nevents": n_events}
+
         if isData:
-            skimmed_events["weight"] = np.ones(len(events))
+            skimmed_events["weight"] = np.ones(n_events)
         else:
-            weights.add("genweight", gen_weights)
+            weights_dict, totals_temp = self.add_weights(
+                events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+            )
+            skimmed_events = {**skimmed_events, **weights_dict}
+            totals_dict = {**totals_dict, **totals_temp}
 
-            add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        ##############################
+        # Reshape and apply selections
+        ##############################
 
-            # TODO: update trigger weights with those derived by Armen
-            add_trig_weights(weights, fatjets, year, num_fatjets_cut)
-
-            # xsec and luminosity and normalization
-            # this still needs to be normalized with the acceptance of the pre-selection (done in post processing)
-            if dataset in self.XSECS:
-                xsec = self.XSECS[dataset]
-                weight_norm = xsec * LUMI[year]
-            else:
-                logger.warning("Weight not normalized to cross section")
-                weight_norm = 1
-
-            systematics = [""]
-            if self._systematics:
-                systematics += list(weights.variations)
-
-            # TODO: need to be careful about the sum of gen weights used for the LHE/QCDScale uncertainties
-            logger.debug("weights", extra=weights._weights.keys())
-
-            # TEMP: save each individual weight
-            for key in weights._weights:
-                skimmed_events[f"single_weight_{key}"] = weights.partial_weight([key])
-
-            for systematic in systematics:
-                if systematic in weights.variations:
-                    weight = weights.weight(modifier=systematic)
-                    weight_name = f"weight_{systematic}"
-                elif systematic == "":
-                    weight = weights.weight()
-                    weight_name = "weight"
-
-                # includes genWeight (or signed genWeight)
-                skimmed_events[weight_name] = weight * weight_norm
-
-                if systematic == "":
-                    # to check in postprocessing for xsec & lumi normalisation
-                    skimmed_events["weight_noxsec"] = weight
-
-        # reshape and apply selections
         sel_all = selection.all(*selection.names)
 
         skimmed_events = {
@@ -760,10 +714,9 @@ class bbbbSkimmer(processor.ProcessorABC):
             for (key, value) in skimmed_events.items()
         }
 
-        dataframe = to_pandas(skimmed_events)
-
+        dataframe = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-        dump_table(dataframe, fname)
+        self.dump_table(dataframe, fname)
 
         if self._save_array:
             output = {}
@@ -779,10 +732,82 @@ class bbbbSkimmer(processor.ProcessorABC):
             }
 
         print("Return ", f"{time.time() - start:.2f}")
-        return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
+        return {year: {dataset: {"totals": totals_dict, "cutflow": cutflow}}}
 
     def postprocess(self, accumulator):
         return accumulator
+
+    def add_weights(
+        self, events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+    ) -> tuple[dict, dict]:
+        """Adds weights and variations, saves totals for all norm preserving weights and variations"""
+        weights = Weights(len(events), storeIndividual=True)
+        weights.add("genweight", gen_weights)
+
+        add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+
+        # TODO: update trigger weights with those derived by Armen
+        add_trig_weights(weights, fatjets, year, num_fatjets_cut)
+
+        logger.debug("weights", extra=weights._weights.keys())
+
+        ###################### Save all the weights and variations ######################
+
+        # these weights should not change the overall normalization, so are saved separately
+        norm_preserving_weights = HH4b.hh_vars.norm_preserving_weights
+
+        # dictionary of all weights and variations
+        weights_dict = {}
+        # dictionary of total # events for norm preserving variations for normalization in postprocessing
+        totals_dict = {}
+
+        # nominal
+        weights_dict["weight"] = weights.weight()
+
+        # norm preserving weights, used to do normalization in post-processing
+        weight_np = weights.partial_weight(include=norm_preserving_weights)
+        totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
+
+        if self._systematics:
+            for systematic in list(weights.variations):
+                weights_dict[f"weight_{systematic}"] = weights.weight(modifier=systematic)
+
+                if utils.remove_variation_suffix(systematic) in norm_preserving_weights:
+                    var_weight = weights.partial_weight(include=norm_preserving_weights)
+                    # modify manually
+                    if "Down" in systematic and systematic not in self._modifiers:
+                        var_weight = (
+                            var_weight / weights._modifiers[systematic.replace("Down", "Up")]
+                        )
+                    else:
+                        var_weight = var_weight * weights._modifiers[systematic]
+
+                    # var_weight = weights.partial_weight(
+                    #    include=norm_preserving_weights, modifier=systematic
+                    # )
+
+                    # need to save total # events for each variation for normalization in post-processing
+                    totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
+
+            # TEMP: save each individual weight TODO: remove
+            for key in weights._weights:
+                weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
+
+        ###################### alpha_S and PDF variations ######################
+
+        # TODO
+
+        ###################### Normalization (Step 1) ######################
+
+        weight_norm = self.get_dataset_norm(year, dataset)
+        # normalize all the weights to xsec, needs to be divided by totals in Step 2 in post-processing
+        for key, val in weights_dict.items():
+            weights_dict[key] = val * weight_norm
+
+        # save the unnormalized weight, to confirm that it's been normalized in post-processing
+        weights_dict["weight_noxsec"] = weights.weight()
+
+        return weights_dict, totals_dict
 
     def getFatDijetVars(
         self, bbFatJetVars: dict, pt_shift: str | None = None, mass_shift: str | None = None

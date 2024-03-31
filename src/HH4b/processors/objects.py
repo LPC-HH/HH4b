@@ -96,24 +96,17 @@ def loose_taus(taus: TauArray):
 
 
 # ak4 jet definition
-def good_ak4jets(jets: JetArray, year: str, run: np.ndarray, isData: bool):
+def good_ak4jets(jets: JetArray, year: str):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
 
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
-    sel = (jets.isTight) & (abs(jets.eta) < 4.7)
+    sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
 
     if year == "2018":
         pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
         sel = sel & pu_id
-
-    if year == "2022" or year == "2022EE":
-        from .corrections import get_jetveto
-
-        jet_veto = get_jetveto(jets, year, run, isData)
-        jet_veto = jet_veto & (jets.pt > 15)
-        sel = sel & ~jet_veto
 
     return sel
 

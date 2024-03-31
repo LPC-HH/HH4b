@@ -144,7 +144,6 @@ def gen_selection_HHbbbb(
             "MaxdRH2",
         ]
     }
-    print(bbFatJetVars)
 
     return {**GenHiggsVars, **GenbVars, **ak4JetVars, **bbFatJetVars}
 
