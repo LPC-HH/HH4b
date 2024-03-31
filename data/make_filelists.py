@@ -408,7 +408,7 @@ def get_v12_private():
                 "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
             },
         },
-        "2023-BPix": {
+        "2023BPix": {
             "JetMET": {
                 "JetMET_Run2023D": [
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET0/JetMET_Run2023D_0v1/",
@@ -878,7 +878,7 @@ def get_v12():
                 "Zto2Q-4Jets_HT-800": "/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v1/NANOAODSIM",
             },
         },
-        "2023-BPix": {
+        "2023BPix": {
             "JetMET": {
                 "JetMET_Run2023D": [
                     "/JetMET0/Run2023D-22Sep2023_v1-v1/NANOAOD",
@@ -1060,7 +1060,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12_private"]:
+for version in ["v12", "v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
