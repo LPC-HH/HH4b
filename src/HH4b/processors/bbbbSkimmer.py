@@ -636,7 +636,10 @@ class bbbbSkimmer(SkimmerABC):
             cut_mass = (
                 np.sum(
                     (ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"])
-                    | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"]),
+                    | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"])
+                    | (
+                        ak8FatJetVars["ak8FatJetPNetMassLegacy"] >= self.preselection["fatjet_mreg"]
+                    ),
                     axis=1,
                 )
                 >= 2
