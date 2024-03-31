@@ -203,7 +203,7 @@ def gen_selection_Top(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
     fatjets: FatJetArray,
-    selection_args: list, # noqa: ARG001
+    selection_args: list,  # noqa: ARG001
     skim_vars: dict,
 ):
     """Get Hadronic Top and children information"""
