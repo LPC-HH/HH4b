@@ -334,8 +334,6 @@ def scan_sb(events_combined):
             if nevents_signal > 0.5:
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
 
-            # print(figure_of_merit)
-
     # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.7, flow="none")
     eff, bins_x, bins_y = h_sb.to_numpy()
     fig, ax = plt.subplots(1, 1, figsize=(14, 14))

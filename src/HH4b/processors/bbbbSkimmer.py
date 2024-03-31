@@ -798,7 +798,7 @@ class bbbbSkimmer(SkimmerABC):
                 if utils.remove_variation_suffix(systematic) in norm_preserving_weights:
                     var_weight = weights.partial_weight(include=norm_preserving_weights)
                     # modify manually
-                    if "Down" in systematic and systematic not in self._modifiers:
+                    if "Down" in systematic and systematic not in weights._modifiers:
                         var_weight = (
                             var_weight / weights._modifiers[systematic.replace("Down", "Up")]
                         )
