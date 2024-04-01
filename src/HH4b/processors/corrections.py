@@ -93,10 +93,6 @@ jmsValues["particleNet_mass"] = {
 }
 
 
-def get_Prompt_year(year: str) -> str:
-    return f"{year}_Prompt"
-
-
 def get_UL_year(year: str) -> str:
     return f"{year}_UL"
 
@@ -107,9 +103,14 @@ def get_pog_json(obj: str, year: str) -> str:
     except:
         print(f"No json for {obj}")
 
-    # TODO: fix prompt when switching to re-reco 23Sep datasets
-    year = get_Prompt_year(year) if year == "2022" else year
     year = get_UL_year(year) if year == "2018" else year
+    if "2022" in year or "2023" in year:
+        year = {
+            "2022": "2022_Summer22",
+            "2022EE": "2022_Summer22EE",
+            "2023": "2023_Summer23",
+            "2023BPix": "2023_Summer23BPix",
+        }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
@@ -118,65 +119,47 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
     nPU = np.clip(nPU, 0, 99)
     # print(list(nPU))
 
-    if year == "2018":
+    if "Pu60" in dataset or "Pu70" in dataset:
+        # pileup profile from data
+        path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
+        pileup_profile = uproot.open(path_pileup)["pileup"]
+        pileup_profile = pileup_profile.to_numpy()[0]
+        # normalise
+        pileup_profile /= pileup_profile.sum()
+
+        # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
+        # pileup profile from MC
+        pu_name = "Pu60" if "Pu60" in dataset else "Pu70"
+        path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
+        pileup_MC = np.load(path_pileup_dataset)
+
+        # avoid division by 0 (?)
+        pileup_MC[pileup_MC == 0.0] = 1
+        pileup_correction = pileup_profile / pileup_MC
+        # remove large MC reweighting factors to prevent artifacts
+        pileup_correction[pileup_correction > 10] = 10
+        sf = pileup_correction[nPU]
+        # no uncertainties
+        weights.add("pileup", sf)
+
+    else:
+        # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
         values = {}
 
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-        y = year
-        year_to_corr = {
+        corr = {
             "2018": "Collisions18_UltraLegacy_goldenJSON",
-        }
+            "2022": "Collisions2022_355100_357900_eraBCD_GoldenJson",
+            "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
+            "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
+            "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
+        }[year]
         # evaluate and clip up to 10 to avoid large weights
-        values["nominal"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "nominal"), 0, 10)
-        values["up"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "up"), 0, 10)
-        values["down"] = np.clip(cset[year_to_corr[y]].evaluate(nPU, "down"), 0, 10)
+        values["nominal"] = np.clip(cset[corr].evaluate(nPU, "nominal"), 0, 10)
+        values["up"] = np.clip(cset[corr].evaluate(nPU, "up"), 0, 10)
+        values["down"] = np.clip(cset[corr].evaluate(nPU, "down"), 0, 10)
 
         weights.add("pileup", values["nominal"], values["up"], values["down"])
-
-    # TODO: Switch to official recommendation when and if any
-    else:
-        if "Pu60" in dataset or "Pu70" in dataset:
-            # pileup profile from data
-            path_pileup = package_path + "/corrections/data/MyDataPileupHistogram2022FG.root"
-            pileup_profile = uproot.open(path_pileup)["pileup"]
-            pileup_profile = pileup_profile.to_numpy()[0]
-            # normalise
-            pileup_profile /= pileup_profile.sum()
-
-            # https://indico.cern.ch/event/695872/contributions/2877123/attachments/1593469/2522749/pileup_ppd_feb_2018.pdf
-            # pileup profile from MC
-            pu_name = "Pu60" if "Pu60" in dataset else "Pu70"
-            path_pileup_dataset = package_path + f"/corrections/data/pileup/{pu_name}.npy"
-            pileup_MC = np.load(path_pileup_dataset)
-
-            # avoid division by 0 (?)
-            pileup_MC[pileup_MC == 0.0] = 1
-
-            print("Data profile  ", np.round(pileup_profile, 3))
-            print("MC profile ", np.round(pileup_MC, 3))
-
-            pileup_correction = pileup_profile / pileup_MC
-            print("correction ", np.round(pileup_correction, 2))
-
-            # remove large MC reweighting factors to prevent artifacts
-            pileup_correction[pileup_correction > 10] = 10
-
-            print("correction ", np.round(pileup_correction, 2))
-
-            sf = pileup_correction[nPU]
-            print("sf ", sf)
-
-            # no uncertainties
-            weights.add("pileup", sf)
-
-        else:
-            y = year.replace("EE", "")
-            cset = correctionlib.CorrectionSet.from_file(
-                package_path + f"/corrections/{y}_puWeights.json.gz"
-            )
-            name = f"Collisions_{y}_PromptReco_goldenJSON"
-            nominal = np.clip(cset[name].evaluate(nPU, "nominal"), 0, 10)
-            weights.add("pileup", nominal)
 
 
 def get_vpt(genpart, check_offshell=False):
@@ -330,7 +313,7 @@ def add_scalevar_3pt(weights, var_weights):
 
 class JECs:
     def __init__(self, year):
-        if year in ["2022", "2022EE"]:
+        if year in ["2022", "2022EE", "2023", "2023BPix"]:
             jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
         elif year in ["2016", "2016APV", "2017", "2018"]:
             jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
@@ -381,19 +364,10 @@ class JECs:
         )
         jets = self._add_jec_variables(jets, rho, isData)
 
-        # RunC,D,E are re-reco, should wait for new jecs
-        datasets_no_jecs = [
-            "Run2022C_single",
-            "Run2022C",
-            "Run2022D",
-            "Run2022E",
-        ]
-        for dset in datasets_no_jecs:
-            if dataset in dset and nano_version == "v12":
-                return jets, None
-
-        if "2023" in year:
-            # no corrections available yet
+        apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
+        if "v12" not in nano_version:
+            apply_jecs = False
+        if not apply_jecs:
             return jets, None
 
         jec_vars = ["pt"]  # variables we are saving that are affected by JECs
@@ -402,6 +376,7 @@ class JECs:
             jet_factory_str = "ak8"
 
         if self.jet_factory[jet_factory_str] is None:
+            print("No factory available")
             return jets, None
 
         import cachetools
@@ -409,28 +384,24 @@ class JECs:
         jec_cache = cachetools.Cache(np.inf)
 
         if isData:
-            if year == "2022EE" and "Run2022F" in dataset:
-                corr_key = f"{year}NOJER_runF"
+            if year == "2022":
+                corr_key = f"{year}_runCD"
             elif year == "2022EE" and "Run2022E" in dataset:
-                corr_key = f"{year}NOJER_runF"
+                corr_key = f"{year}_runE"
             elif year == "2022EE" and "Run2022F" in dataset:
-                corr_key = f"{year}NOJER_runF"
+                corr_key = f"{year}_runF"
             elif year == "2022EE" and "Run2022G" in dataset:
-                corr_key = f"{year}NOJER_runG"
-            elif year == "2022EE" and dataset == "Run2022G":
-                corr_key = f"{year}NOJER_runG"
-            elif year == "2022" and "Run2022C" in dataset:
-                corr_key = f"{year}NOJER_runC"
-            elif year == "2022" and "Run2022D" in dataset:
-                corr_key = f"{year}NOJER_runD"
+                corr_key = f"{year}_runG"
+            elif year == "2023":
+                corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
+            elif year == "2023BPix":
+                corr_key = "2023BPix_runD"
             else:
                 print(dataset, year)
-                print(
-                    "warning, no valid dataset for 2022 corrections, JECs won't be applied to data"
-                )
+                print("warning, no valid dataset, JECs won't be applied to data")
                 applyData = False
         else:
-            corr_key = f"{year}mc"
+            corr_key = f"{year}mcnoJER" if "2023" in year else f"{year}mc"
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
 
@@ -438,7 +409,7 @@ class JECs:
         if apply_jecs:
             jets = self.jet_factory[jet_factory_str][corr_key].build(jets, jec_cache)
 
-        # return only jets if no jecs given
+        # return only jets if no variations are given
         if jecs is None or isData:
             return jets, None
 
@@ -503,12 +474,14 @@ def get_jmsr(
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.
 # apply to both Data and MC
 # https://cms-talk.web.cern.ch/t/jet-veto-maps-for-run3-data/18444?u=anmalara
-def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
-    # https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/JME_2022_Prompt_jetvetomaps.html
-    # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    # for samples related to RunEFG, it is recommended to utilize the vetomap that has been derived for RunEFG
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
+# https://cms-talk.web.cern.ch/t/jes-for-2022-re-reco-cde-and-prompt-fg/32873
+def get_jetveto_event(jets: JetArray, year: str):
+    """
+    Get event selection that rejects events with jets in the veto map
+    """
 
+    # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):
@@ -517,62 +490,16 @@ def get_jetveto(jets: JetArray, year: str, run: np.ndarray, isData: bool):
         veto = cset[csetstr].evaluate("jetvetomap", j_eta, j_phi)
         return ak.unflatten(veto, nj)
 
-    if isData:
-        jet_veto = (
-            # RunCD
-            (
-                (run >= FirstRun_2022C)
-                & (run <= LastRun_2022D)
-                & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0)
-            )
-            |
-            # RunE (and later?)
-            ((run >= FirstRun_2022E) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0))
-        )
-    else:
-        if year == "2022":
-            jet_veto = get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0
-        else:
-            jet_veto = get_veto(j, nj, "Winter22Run3_RunE_V1") > 0
+    corr_str = {
+        "2022": "Summer22_23Sep2023_RunCD_V1",
+        "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
+        "2023": "Summer23Prompt23_RunC_V1",
+        "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+    }[year]
 
-    return jet_veto
+    jet_veto = get_veto(j, nj, corr_str) > 0
 
-
-def get_jetveto_event(jets: JetArray, year: str, run: np.ndarray, isData: bool):
-    """
-    Get event selection that rejects events with jets in the veto map
-    """
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year.replace("EE", "")))
-
-    j, nj = ak.flatten(jets), ak.num(jets)
-
-    def get_veto(j, nj, csetstr):
-        j_phi = np.clip(np.array(j.phi), -3.1415, 3.1415)
-        j_eta = np.clip(np.array(j.eta), -4.7, 4.7)
-        veto = cset[csetstr].evaluate("jetvetomap_eep", j_eta, j_phi)
-        return ak.unflatten(veto, nj)
-
-    if isData:
-        event_sel = (
-            # Run CD
-            (run >= FirstRun_2022C)
-            & (run <= LastRun_2022D)
-            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1))
-        ) | (
-            # RunE
-            (run >= FirstRun_2022E)
-            & ~(ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1))
-        )
-    else:
-        if year == "2022":
-            event_sel = ~(
-                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunCD_V1") > 0), axis=1)
-            )
-        else:
-            event_sel = ~(
-                ak.any((jets.pt > 30) & (get_veto(j, nj, "Winter22Run3_RunE_V1") > 0), axis=1)
-            )
-
+    event_sel = ~(ak.any((jets.pt > 15) & jet_veto, axis=1))
     return event_sel
 
 

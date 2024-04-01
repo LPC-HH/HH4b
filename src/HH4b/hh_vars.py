@@ -12,8 +12,8 @@ LUMI = {
     "2022": 7971.4,
     "2022EE": 26337.0,
     "2022All": 34308.0,
-    "2023-pre-BPix": 17650.0,
-    "2023-BPix": 9451.0,
+    "2023": 17650.0,
+    "2023BPix": 9451.0,
     "2023All": 27101.0,
     "2022-2023": 61409.0,
     "2018": 59830.0,
@@ -157,9 +157,10 @@ sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = []  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
-# TODO
+norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
+
 jecs = {
-    # "JES": "JES_jes",
+    "JES": "JES_jes",
     # "JER": "JER",
 }
 
