@@ -80,14 +80,14 @@ parser.add_argument(
     type=int,
     help="order of polynomial for TF.",
 )
-
+parser.add_argument("--bin-name", default="pass_bin1", type=str, help="pass bin name")
 parser.add_argument("--model-name", default=None, type=str, help="output model name")
 parser.add_argument(
     "--year",
     help="year",
     type=str,
     default="2022EE",
-    choices=["2022EE", "2018"],
+    choices=["2022EE", "2022-2023"],
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
@@ -103,10 +103,9 @@ qcd_data_key = "qcd_datadriven"
 mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
-        ("vjets", "vjets"),
-        ("diboson", "diboson"),
-        ("gghtobb", "gghtobb"),
         ("vhtobb", "vhtobb"),
+        ("diboson", "diboson"),
+        ("vjets", "vjets"),
     ]
 )
 
@@ -129,11 +128,8 @@ for key in all_sig_keys:
 all_mc = list(mc_samples.keys())
 
 
-if args.year != "all":
-    years = [args.year]
-    full_lumi = LUMI[args.year]
-else:
-    full_lumi = np.sum(list(LUMI.values()))
+years = [args.year]
+full_lumi = LUMI[args.year]
 
 
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
@@ -477,6 +473,7 @@ def fill_regions(
 
 
 def alphabet_fit(
+    pass_bin: str,
     model: rl.Model,
     shape_vars: list[ShapeVar],
     templates_summed: dict,
@@ -488,7 +485,7 @@ def alphabet_fit(
 
     # QCD overall pass / fail efficiency
     qcd_eff = (
-        templates_summed["pass"][qcd_key, :].sum().value
+        templates_summed[pass_bin][qcd_key, :].sum().value
         / templates_summed["fail"][qcd_key, :].sum().value
     )
 
@@ -513,7 +510,7 @@ def alphabet_fit(
     )
 
     for blind_str in ["", "MCBlinded"]:
-        passChName = f"pass{blind_str}".replace("_", "")
+        passChName = f"{pass_bin}{blind_str}".replace("_", "")
         failChName = f"fail{blind_str}".replace("_", "")
         failCh = model[failChName]
         passCh = model[passChName]
@@ -565,7 +562,7 @@ def alphabet_fit(
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
     regions: list[str] = [
-        f"{pf}{blind_str}" for pf in ["pass", "fail"] for blind_str in ["", "MCBlinded"]
+        f"{pf}{blind_str}" for pf in [args.bin_name, "fail"] for blind_str in ["", "MCBlinded"]
     ]
 
     # build actual fit model now
@@ -586,7 +583,14 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         args.bblite,
     ]
 
-    fit_args = [model, shape_vars, templates_summed, args.scale_templates, args.min_qcd_val]
+    fit_args = [
+        args.bin_name,
+        model,
+        shape_vars,
+        templates_summed,
+        args.scale_templates,
+        args.min_qcd_val,
+    ]
 
     fill_regions(*fill_args)
     alphabet_fit(*fit_args)

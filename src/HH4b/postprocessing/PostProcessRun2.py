@@ -508,7 +508,7 @@ def postprocess_run2(args):
         r"$m^{2}_\mathrm{Reg}$ (GeV)",
         [17, 50, 220],
         reg=True,
-        blind_window=[110, 140],
+        # blind_window=[110, 140],
     )
 
     data_yield = {}

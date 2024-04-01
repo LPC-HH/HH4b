@@ -11,6 +11,11 @@ years = ["2022", "2022EE"]
 LUMI = {
     "2022": 7971.4,
     "2022EE": 26337.0,
+    "2022All": 34308.0,
+    "2023": 17650.0,
+    "2023BPix": 9451.0,
+    "2023All": 27101.0,
+    "2022-2023": 61409.0,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -57,6 +62,9 @@ common_samples = {
         "WW",
         "WZ",
     ],
+    "vjetslnu": [
+        "WtoLNu-4Jets",
+    ],
     "vjets": [
         "Wto2Q-3Jets_HT",
         "Zto2Q-4Jets_HT",
@@ -87,6 +95,9 @@ samples = {
             "TTTo2L2Nu_13TeV",
             "TTToHadronic_13TeV",
             "TTToSemiLeptonic_13TeV",
+        ],
+        "vjetslnu": [
+            "WtoLNu-4Jets",
         ],
         "vjets": [
             "WJetsToQQ_HT-200to400_13TeV",
@@ -132,6 +143,8 @@ samples = {
             # "Run2022E",
             "Run2022F",
             "Run2022G",
+            "Muon_Run",
+            "EGamma_Run",
         ],
     },
 }
@@ -139,14 +152,15 @@ samples = {
 data_key = "data"
 qcd_key = "qcd"
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb"]
-bg_keys = [qcd_key, "ttbar", "diboson", "vjets"] + hbb_bg_keys
+bg_keys = [qcd_key, "ttbar", "diboson", "vjets", "vjetslnu"] + hbb_bg_keys
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = []  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
-# TODO
+norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
+
 jecs = {
-    # "JES": "JES_jes",
+    "JES": "JES_jes",
     # "JER": "JER",
 }
 
