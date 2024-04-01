@@ -173,6 +173,10 @@ xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
 
 xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["WtoLNu-2Jets"] = 64481.58
+xsecs["WtoLNu-2Jets_0J"] = 55760.0
+xsecs["WtoLNu-2Jets_1J"] = 9529.0
+xsecs["WtoLNu-2Jets_2J"] = 3532.0
+
 """
 Cross Sections for 13 TeV.
 """
