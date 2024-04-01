@@ -2,6 +2,7 @@
 Skimmer for matching studies
 Author(s): Raghav Kansal, Cristina Suarez
 """
+
 from __future__ import annotations
 
 import itertools
@@ -479,9 +480,7 @@ class matchingSkimmer(processor.ProcessorABC):
 
             # compute \delta d
             k = 125 / 120
-            delta_d = np.absolute(mjj_sorted[:, :, 0] - k * mjj_sorted[:, :, 1]) / np.sqrt(
-                1 + k**2
-            )
+            delta_d = np.absolute(mjj_sorted[:, :, 0] - k * mjj_sorted[:, :, 1]) / np.sqrt(1 + k**2)
 
             # take combination with smallest distance to the diagonal
             index_mindhh = ak.argmin(delta_d, axis=-1)
