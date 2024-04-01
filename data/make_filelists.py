@@ -809,7 +809,24 @@ def get_v12():
                     "/Muon1/Run2023C-22Sep2023_v4-v1/NANOAOD",
                 ],
             },
-            # add egamma
+            "EGamma": {
+                "EGamma_Run2023Cv1": [
+                    "/EGamma0/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                    "/EGamma1/Run2023C-22Sep2023_v1-v1/NANOAOD",
+                ],
+                "EGamma_Run2023Cv2": [
+                    "/EGamma0/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                    "/EGamma1/Run2023C-22Sep2023_v2-v1/NANOAOD",
+                ],
+                "EGamma_Run2023Cv3": [
+                    "/EGamma0/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                    "/EGamma1/Run2023C-22Sep2023_v3-v1/NANOAOD",
+                ],
+                "EGamma_Run2023Cv4": [
+                    "/EGamma0/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                    "/EGamma1/Run2023C-22Sep2023_v4-v1/NANOAOD",
+                ],
+            },
             "QCD": {
                 "QCD_HT-1000to1200": "/QCD-4Jets_HT-1000to1200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
                 "QCD_HT-100to200": "/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
@@ -897,6 +914,14 @@ def get_v12():
                     "/Muon0/Run2023D-22Sep2023_v2-v1/NANOAOD",
                     "/Muon1/Run2023D-22Sep2023_v1-v1/NANOAOD",
                     "/Muon1/Run2023D-22Sep2023_v2-v1/NANOAOD",
+                ],
+            },
+            "EGamma": {
+                "EGamma_Run2023D": [
+                    "/EGamma0/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                    "/EGamma0/Run2023D-22Sep2023_v2-v1/NANOAOD",
+                    "/EGamma1/Run2023D-22Sep2023_v1-v1/NANOAOD",
+                    "/EGamma1/Run2023D-22Sep2023_v2-v1/NANOAOD",
                 ],
             },
             "QCD": {
@@ -1052,7 +1077,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12_private"]:
+for version in ["v12"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
