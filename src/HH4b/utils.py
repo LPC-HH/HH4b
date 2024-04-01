@@ -108,7 +108,10 @@ def get_cutflow(pickles_path, year, sample_name):
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-        out_dict = pickle.load(file)
+        try:
+            out_dict = pickle.load(file)
+        except RuntimeError:
+            print(f"Problem opening {pickles_path}/{file_name}")
         cutflow = out_dict[year][sample_name]["cutflow"]  # index by year, then sample name
 
     for file_name in out_pickles[1:]:
@@ -128,12 +131,18 @@ def get_nevents(pickles_path, year, sample_name):
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-        out_dict = pickle.load(file)
+        try:
+            out_dict = pickle.load(file)
+        except EOFError:
+            print(f"Problem opening {pickles_path}/{file_name}")
         nevents = out_dict[year][sample_name]["nevents"]  # index by year, then sample name
 
     for file_name in out_pickles[1:]:
         with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-            out_dict = pickle.load(file)
+            try:
+                out_dict = pickle.load(file)
+            except EOFError:
+                print(f"Problem opening {pickles_path}/{file_name}")
             nevents += out_dict[year][sample_name]["nevents"]
 
     return nevents
@@ -399,8 +408,12 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if len(fill_data[var]):
+        if isinstance(fill_data[var], list):
+            if len(fill_data[var])>0: 
+                h.fill(Sample=sample, **fill_data, weight=weight)
+        else:
             h.fill(Sample=sample, **fill_data, weight=weight)
+            
 
     if shape_var.blind_window is not None:
         blindBins(h, shape_var.blind_window, data_key)

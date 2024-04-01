@@ -91,6 +91,7 @@ color_by_sample = {
     "diboson": "orchid",
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
+    "vjetslnu": "seagreen",
 }
 
 label_by_sample = {
@@ -110,10 +111,11 @@ label_by_sample = {
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
     "vjets": r"W/Z$(qq)$ + Jets",
+    "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
 }
 
-bg_order_default = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
+bg_order_default = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjetslnu", "vjets", "ttbar", "qcd"]
 
 
 def plot_hists(
@@ -461,6 +463,7 @@ def ratioHistPlot(
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
+    logx: bool = False,
     ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
     significance_dir: str = "right",
@@ -603,6 +606,8 @@ def ratioHistPlot(
 
     if log:
         ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
