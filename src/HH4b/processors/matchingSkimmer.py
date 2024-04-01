@@ -18,7 +18,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 from . import objects
 from .common import LUMI
 from .GenSelection import gen_selection_HHbbbb
-from .utils import P4, PAD_VAL, add_selection, dump_table, pad_val, to_pandas
+from .utils import P4, PAD_VAL, add_selection, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
@@ -148,7 +148,7 @@ class matchingSkimmer(processor.ProcessorABC):
         print("Before jets ", f"{time.time() - start:.2f}")
 
         jets = events.Jet
-        jets = jets[objects.good_ak4jets(jets, year, events.run.to_numpy(), isData)]
+        jets = jets[objects.good_ak4jets(jets, year)]
         central_jets_sel = np.abs(jets.eta) < 2.5
         central_jets = jets[central_jets_sel]
         ht = ak.sum(jets.pt, axis=1)
@@ -417,12 +417,10 @@ class matchingSkimmer(processor.ProcessorABC):
                 for (key, value) in skimmed_events.items()
             }
 
-        dataframe = to_pandas(skimmed_events)
-
+        dataframe = self.to_pandas(skimmed_events)
         print("To Pandas", f"{time.time() - start:.2f}")
-
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
-        dump_table(dataframe, fname)
+        self.dump_table(dataframe, fname)
 
         return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
 

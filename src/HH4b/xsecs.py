@@ -85,6 +85,7 @@ xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
 
 # Higgs
 # SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
+xsecs["GluGluHto2B_M-125"] = 30.2 * BR_HBB
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
 xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB
@@ -170,6 +171,7 @@ xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"] = 2.683
 xsecs["Zto2Q-2Jets_PTQQ-600_1J"] = 0.08717
 xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
 
+xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["WtoLNu-2Jets"] = 64481.58
 """
 Cross Sections for 13 TeV.

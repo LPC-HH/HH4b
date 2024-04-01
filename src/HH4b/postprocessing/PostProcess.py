@@ -5,6 +5,10 @@ import importlib
 import os
 import sys
 
+import hist
+import matplotlib.pyplot as plt
+import mplhep as hep
+
 # temp
 import numpy as np
 import pandas as pd
@@ -158,7 +162,7 @@ def load_run3_samples(args, year):
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    model_name = "v0"
+    model_name = "v0_msd30"
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{model_name}/trained_bdt.model")
     # get function
     make_bdt_dataframe = importlib.import_module(f"{model_name}")
@@ -181,6 +185,7 @@ def load_run3_samples(args, year):
         bdt_events["bdt_score"] = bdt_score
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H2Xbb"] = events_dict[key]["bbFatJetPNetXbb"].to_numpy()[:, 1]
+        bdt_events["H2PNetMass"] = events_dict[key]["bbFatJetPNetMass"].to_numpy()[:, 1]
 
         # add more columns (e.g. uncertainties etc)
         bdt_events["weight"] = 1
@@ -198,7 +203,7 @@ def load_run3_samples(args, year):
             "Category",
         ] = 4
 
-        columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "weight"]
+        columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "H2PNetMass", "weight"]
         events_dict_postprocess[key] = bdt_events[columns]
 
     return events_dict_postprocess
@@ -232,11 +237,16 @@ def scan_fom(events_combined):
         # get yield between 95 and 135
         return np.sum(events["weight"][cut_xbb & cut_bdt & cut_msd])
 
-    xbb_cuts = [0.8, 0.9, 0.95, 0.98]
+    xbb_cuts = np.arange(0.8, 0.98, 0.02)
+    bdt_cuts = np.arange(0.8, 1, 0.01)
+    h_sb = hist.Hist(
+        hist.axis.Variable(bdt_cuts, name="bdt_cut"),
+        hist.axis.Variable(xbb_cuts, name="xbb_cut"),
+    )
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
-        for bdt_cut in np.arange(0.01, 1, 0.01):
+        for bdt_cut in bdt_cuts:
             nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
             nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
 
@@ -245,9 +255,10 @@ def scan_fom(events_combined):
             if nevents_signal > 0.5:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
-                print(
-                    f"Xbb_Cut: {xbb_cut}, BDT_Cut: {bdt_cut:.2f}, NBkg: {nevents_data}, NSig: {nevents_signal:.2f}, FigOfMerit: {figure_of_merit:.2f}"
-                )
+                # print(
+                #    f"Xbb_Cut: {xbb_cut}, BDT_Cut: {bdt_cut:.2f}, NBkg: {nevents_data}, NSig: {nevents_signal:.2f}, FigOfMerit: {figure_of_merit:.2f}"
+                # )
+                h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
 
         if len(cuts) > 0:
             cuts = np.array(cuts)
@@ -255,6 +266,94 @@ def scan_fom(events_combined):
             smallest = np.argmin(figure_of_merits)
 
             print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
+
+    eff, bins_x, bins_y = h_sb.to_numpy()
+    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=4, cmax=9, flow="none")
+    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=3, cmax=9, flow="none")
+    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.ax.get_yaxis().labelpad = 15
+    for i in range(len(bins_x) - 1):
+        for j in range(len(bins_y) - 1):
+            if eff[i, j] > 0:
+                ax.text(
+                    (bins_x[i] + bins_x[i + 1]) / 2,
+                    (bins_y[j] + bins_y[j + 1]) / 2,
+                    eff[i, j].round(2),
+                    color="black",
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                )
+    fig.tight_layout()
+    fig.savefig("figofmerit.png")
+
+
+def scan_sb(events_combined):
+    """
+    Scan s/sqrt(s+b)
+    """
+
+    def get_nevents_data(events, xbb_cut, bdt_cut):
+        cut_xbb = events["H2Xbb"] > xbb_cut
+        cut_bdt = events["bdt_score"] > bdt_cut
+        cut_msd = (events["H2Msd"] > 50) & (events["H2Msd"] < 220)
+
+        # get yield between 75-95
+        cut_msd_0 = (events["H2Msd"] < 95) & (events["H2Msd"] > 75)
+
+        # get yield between 145-165
+        cut_msd_1 = (events["H2Msd"] < 165) & (events["H2Msd"] > 145)
+
+        return np.sum(cut_msd_0 & cut_xbb & cut_bdt & cut_msd) + np.sum(
+            cut_msd_1 & cut_xbb & cut_bdt & cut_msd
+        )
+
+    def get_nevents_signal(events, xbb_cut, bdt_cut):
+        cut_xbb = events["H2Xbb"] > xbb_cut
+        cut_bdt = events["bdt_score"] > bdt_cut
+        cut_msd = (events["H2Msd"] > 95) & (events["H2Msd"] < 145)
+
+        # get yield between 95 and 145
+        return np.sum(events["weight"][cut_xbb & cut_bdt & cut_msd])
+
+    xbb_cuts = np.arange(0.8, 0.98, 0.02)
+    bdt_cuts = np.arange(0.8, 1, 0.01)
+    h_sb = hist.Hist(
+        hist.axis.Variable(bdt_cuts, name="bdt_cut"),
+        hist.axis.Variable(xbb_cuts, name="xbb_cut"),
+    )
+
+    for xbb_cut in xbb_cuts:
+        for bdt_cut in bdt_cuts:
+            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
+            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
+
+            figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
+
+            if nevents_signal > 0.5:
+                h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+
+    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.7, flow="none")
+    eff, bins_x, bins_y = h_sb.to_numpy()
+    fig, ax = plt.subplots(1, 1, figsize=(14, 14))
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=0.1, cmax=0.5, flow="none")
+    cbar.cbar.set_label(r"$S/\sqrt{S+B}$", size=18)
+    cbar.cbar.ax.get_yaxis().labelpad = 15
+    for i in range(len(bins_x) - 1):
+        for j in range(len(bins_y) - 1):
+            if eff[i, j] > 0:
+                ax.text(
+                    (bins_x[i] + bins_x[i + 1]) / 2,
+                    (bins_y[j] + bins_y[j + 1]) / 2,
+                    eff[i, j].round(2),
+                    color="black",
+                    ha="center",
+                    va="center",
+                    fontsize=12,
+                )
+    fig.tight_layout()
+    fig.savefig("s_over_b.png")
 
 
 def postprocess_run3(args):
@@ -273,11 +372,16 @@ def postprocess_run3(args):
         ),
     }
 
+    label_by_mass = {
+        "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
+        "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
+    }
+
     # variable to fit
     fit_shape_var = ShapeVar(
-        "H2Msd",
-        r"$m^{2}_\mathrm{SD}$ (GeV)",
-        [17, 50, 220],
+        args.mass,
+        label_by_mass[args.mass],
+        [16, 60, 220],
         reg=True,
         blind_window=[110, 140],
     )
@@ -308,6 +412,7 @@ def postprocess_run3(args):
         events_combined[key] = combined
 
     scan_fom(events_combined)
+    scan_sb(events_combined)
 
     templ_dir = f"./templates/{args.template_dir}"
     year = "2022-2023"
@@ -358,6 +463,13 @@ if __name__ == "__main__":
         type=str,
         default="2022,2022EE,2023-pre-BPix,2023-BPix",
         help="years to postprocess",
+    )
+    parser.add_argument(
+        "--mass",
+        type=str,
+        default="H2Msd",
+        choices=["H2Msd", "H2PNetMass"],
+        help="mass variable to make template",
     )
     args = parser.parse_args()
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 import sys
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -17,23 +17,15 @@ from HH4b.hh_vars import (
     data_key,
     samples,
     sig_keys,
-    years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import CUT_MAX_VAL, ShapeVar
+from HH4b.utils import CUT_MAX_VAL, ShapeVar, Syst
 
 
 @dataclass
 class Region:
     cuts: dict = None
-    label: str = None
-
-
-@dataclass
-class Syst:
-    samples: list[str] = None
-    years: list[str] = field(default_factory=lambda: years)
     label: str = None
 
 
@@ -159,7 +151,15 @@ def postprocess(years):
         for input_dir, in_samples in dirs.items():
             events_dict = {
                 **events_dict,
-                **utils.load_samples(input_dir, in_samples, year, filters, columns),
+                **utils.load_samples(
+                    input_dir,
+                    in_samples,
+                    year,
+                    filters,
+                    columns,
+                    variations=True,
+                    weight_shifts=weight_shifts,
+                ),
             }
 
         # samples_loaded = list(events_dict.keys())
@@ -346,30 +346,12 @@ def get_templates(
                     if sample in wsyst.samples and year in wsyst.years:
                         # print(wshift)
                         for skey, shift in [("Down", "down"), ("Up", "up")]:
-                            if "QCDscale" in wshift:
-                                # QCDscale7pt/QCDscale4
-                                # https://github.com/LPC-HH/HHLooper/blob/master/python/prepare_card_SR_final.py#L263-L288
-                                sweight = (
-                                    weight
-                                    * (
-                                        events[f"weight_QCDscale7pt{skey}"][0]
-                                        / events["weight_QCDscale4"]
-                                    )
-                                    .to_numpy()
-                                    .squeeze()
-                                )
-                            else:
-                                # reweight based on diff between up/down and nominal weights
-                                sweight = (
-                                    weight
-                                    * (
-                                        events[f"weight_{wshift}{skey}"][0]
-                                        / events["weight_nonorm"]
-                                    )
-                                    .to_numpy()
-                                    .squeeze()
-                                )
-                            h.fill(Sample=f"{sample}_{wshift}_{shift}", **fill_data, weight=sweight)
+                            # reweight based on diff between up/down and nominal weights
+                            h.fill(
+                                Sample=f"{sample}_{wshift}_{shift}",
+                                **fill_data,
+                                weight=events[f"weight_{wshift}{skey}"].to_numpy().squeeze(),
+                            )
 
         if pass_region:
             # blind signal mass windows in pass region in data

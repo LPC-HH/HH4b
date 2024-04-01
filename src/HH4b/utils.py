@@ -6,11 +6,11 @@ Author: Raghav Kansal
 from __future__ import annotations
 
 import contextlib
-import logging
 import pickle
 import time
+import warnings
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from os import listdir
 from pathlib import Path
 
@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from hist import Hist
 
-from .hh_vars import data_key, jec_shifts, jmsr_shifts
+from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights, years
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
@@ -44,7 +44,7 @@ class ShapeVar:
     label: str = None
     bins: list[int] = None
     reg: bool = True
-    blind_window: list[int] = None
+    blind_window: list[float] = None
     significance_dir: str = "right"
     plot_args: dict = None
 
@@ -57,6 +57,13 @@ class ShapeVar:
                 self.axis = hist.axis.Variable(self.bins, name=self.var, label=self.label)
         else:
             self.axis = None
+
+
+@dataclass
+class Syst:
+    samples: list[str] = None
+    years: list[str] = field(default_factory=lambda: years)
+    label: str = None
 
 
 @contextlib.contextmanager
@@ -148,6 +155,27 @@ def get_nevents(pickles_path, year, sample_name):
     return nevents
 
 
+def get_pickles(pickles_path, year, sample_name):
+    """Accumulates all pickles in ``pickles_path`` directory"""
+    from coffea.processor.accumulator import accumulate
+
+    out_pickles = [f for f in listdir(pickles_path) if f != ".DS_Store"]
+
+    file_name = out_pickles[0]
+    with Path(f"{pickles_path}/{file_name}").open("rb") as file:
+        # out = pickle.load(file)[year][sample_name]  # TODO: uncomment and delete below
+        out = pickle.load(file)[year]
+        sample_name = next(iter(out.keys()))
+        out = out[sample_name]
+
+    for file_name in out_pickles[1:]:
+        with Path(f"{pickles_path}/{file_name}").open("rb") as file:
+            out_dict = pickle.load(file)[year][sample_name]
+            out = accumulate([out, out_dict])
+
+    return out
+
+
 def check_selector(sample: str, selector: str | list[str]):
     if not isinstance(selector, (list, tuple)):
         selector = [selector]
@@ -175,17 +203,62 @@ def format_columns(columns: list):
     return ret_columns
 
 
+def _normalize_weights(
+    events: pd.DataFrame,
+    totals: dict,
+    sample: str,
+    isData: bool,
+    variations: bool = True,
+    weight_shifts: dict[str, Syst] = None,
+):
+    """Normalize weights and all the variations"""
+    # don't need any reweighting for data
+    if isData:
+        events["finalWeight"] = events["weight"]
+        return
+
+    # check weights are scaled
+    if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
+        warnings.warn(f"{sample} has not been scaled by its xsec and lumi!", stacklevel=1)
+
+    events["finalWeight"] = events["weight"] / totals["np_nominal"]
+
+    if not variations:
+        return
+
+    # normalize all the variations
+    for wvar in weight_shifts:
+        if f"weight_{wvar}Up" not in events:
+            continue
+
+        for shift in ["Up", "Down"]:
+            wlabel = wvar + shift
+            if wvar in norm_preserving_weights:
+                # normalize by their totals
+                events[f"weight_{wlabel}"] /= totals[f"np_{wlabel}"]
+            else:
+                # normalize by the nominal
+                events[f"weight_{wlabel}"] /= totals["np_nominal"]
+
+    # normalize scale and PDF weights
+    for wkey in ["scale_weights", "pdf_weights"]:
+        if wkey in events:
+            # .to_numpy() makes it way faster
+            events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
+
+
 def load_samples(
-    data_dir: str,
+    data_dir: Path,
     samples: dict[str, str],
     year: str,
-    filters: list | None = None,
-    columns: list | None = None,
-    columns_mc: list | None = None,
+    filters: list = None,
+    columns: list = None,
+    variations: bool = True,
+    weight_shifts: dict[str, Syst] = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
-    Reweights samples by nevents.
+    Divides MC samples by the total pre-skimming, to take the acceptance into account.
 
     Args:
         data_dir (str): path to data directory.
@@ -193,52 +266,55 @@ def load_samples(
         year (str): year.
         filters (List): Optional filters when loading data.
         columns (List): Optional columns to load.
+        variations (bool): Normalize variations as well (saves time to not do so). Defaults to True.
+        weight_shifts (Dict[str, Syst]): dictionary of weight shifts to consider.
 
     Returns:
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
 
     """
-
-    from os import listdir
-
-    full_samples_list = listdir(f"{data_dir}/{year}")
+    data_dir = Path(data_dir) / year
+    full_samples_list = listdir(data_dir)  # get all directories in data_dir
     events_dict = {}
 
+    # label - key of sample in events_dict
+    # selector - string used to select directories to load in for this sample
     for label, selector in samples.items():
-        events_dict[label] = []
+        events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
+            # check if this directory passes our selector string
             if not check_selector(sample, selector):
                 continue
 
-            if not Path(f"{data_dir}/{year}/{sample}/parquet").exists():
-                logging.warning(f"No parquet file for {sample}")
+            sample_path = data_dir / sample
+            parquet_path, pickles_path = sample_path / "parquet", sample_path / "pickles"
+
+            # no parquet directory?
+            if not parquet_path.exists():
+                warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-            load_columns = columns if label == data_key else columns_mc
+            # print(f"Loading {sample}")
+            events = pd.read_parquet(parquet_path, filters=filters, columns=columns)
 
-            print(f"Loading {sample}")
-            events = pd.read_parquet(
-                f"{data_dir}/{year}/{sample}/parquet", filters=filters, columns=load_columns
+            # no events?
+            if not len(events):
+                warnings.warn(f"No events for {sample}!", stacklevel=1)
+                continue
+
+            # normalize by total events
+            totals = get_pickles(pickles_path, year, sample)["totals"]
+            _normalize_weights(
+                events,
+                totals,
+                sample,
+                isData=label == data_key,
+                variations=variations,
+                weight_shifts=weight_shifts,
             )
-            not_empty = len(events) > 0
-            pickles_path = f"{data_dir}/{year}/{sample}/pickles"
 
-            if label != data_key:
-                n_events = get_nevents(pickles_path, year, sample)
-
-                if not_empty and n_events is not None:
-                    if "weight_noxsec" in events and np.all(
-                        events["weight"] == events["weight_noxsec"]
-                    ):
-                        logging.warning(f"{sample} has not been scaled by its xsec and lumi")
-
-                    events["weight_nonorm"] = events["weight"]
-                    events["weight"] /= n_events
-
-            if not_empty:
-                events_dict[label].append(events)
-
-            logging.info(f"Loaded {sample: <50}: {len(events)} entries")
+            events_dict[label].append(events)
+            print(f"Loaded {sample: <50}: {len(events)} entries")
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
@@ -257,6 +333,11 @@ def add_to_cutflow(
     cutflow[key] = [
         np.sum(events_dict[sample][weight_key]).squeeze() for sample in list(cutflow.index)
     ]
+
+
+def get_key_index(h: Hist, axis_name: str):
+    """Get the index of a key in a Hist's first axis"""
+    return np.where(np.array(list(h.axes[0])) == axis_name)[0][0]
 
 
 def getParticles(particle_list, particle_type):
@@ -302,6 +383,17 @@ def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
         return np.nan_to_num(events[feat[:-1]].to_numpy()[:, int(feat[-1])].squeeze(), -1)
 
     return None
+
+
+def tau32FittedSF_4(events: pd.DataFrame):
+    tau32 = {"ak8FatJetTau3OverTau20": get_feat(events, "ak8FatJetTau3OverTau20")}[
+        "ak8FatJetTau3OverTau20"
+    ]
+    return np.where(
+        tau32 < 0.5,
+        18.4912 - 235.086 * tau32 + 1098.94 * tau32**2 - 2163 * tau32**3 + 1530.59 * tau32**4,
+        1,
+    )
 
 
 def get_feat_first(events: pd.DataFrame, feat: str):
@@ -368,6 +460,7 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
+    sf: list[str] | None = None,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -408,10 +501,64 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if isinstance(fill_data[var], list):
-            if len(fill_data[var])>0: 
-                h.fill(Sample=sample, **fill_data, weight=weight)
+        if sf is not None and sample == "ttbar":
+            weight = weight * tau32FittedSF_4(events)
+
+        if len(fill_data[var]):
+            h.fill(Sample=sample, **fill_data, weight=weight)
+
+    if shape_var.blind_window is not None:
+        blindBins(h, shape_var.blind_window, data_key)
+
+    return h
+
+
+def singleVarHistSel(
+    events_dict: dict[str, pd.DataFrame],
+    shape_var: ShapeVar,
+    samples: list[str],
+    weight_key: str = "finalWeight",
+    selection: dict | None = None,
+) -> Hist:
+    """
+    Makes and fills a histogram for variable `var` using data in the `events` dict.
+
+    Args:
+        events (dict): a dict of events of format
+          {sample1: {var1: np.array, var2: np.array, ...}, sample2: ...}
+        shape_var (ShapeVar): ShapeVar object specifying the variable, label, binning, and (optionally) a blinding window.
+        weight_key (str, optional): which weight to use from events, if different from 'weight'
+        blind_region (list, optional): region to blind for data, in format [low_cut, high_cut].
+          Bins in this region will be set to 0 for data.
+        selection (dict, optional): if performing a selection first, dict of boolean arrays for
+          each sample
+    """
+
+    h = Hist(
+        hist.axis.StrCategory(samples, name="Sample"),
+        shape_var.axis,
+        storage="weight",
+    )
+
+    var = shape_var.var
+
+    for sample in samples:
+        events = events_dict[sample]
+        if sample == "data" and var.endswith(("_up", "_down")):
+            fill_var = "_".join(var.split("_")[:-2])
         else:
+            fill_var = var
+
+        # TODO: add b1, b2 assignment if needed
+        fill_data = {var: get_feat(events, fill_var)}
+        weight = events[weight_key].to_numpy().squeeze()
+
+        if selection is not None:
+            sel = selection[sample]
+            fill_data[var] = fill_data[var][sel]
+            weight = weight[sel]
+
+        if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
             
 
@@ -623,83 +770,6 @@ def make_selection(
         cutflow = pd.concat((prev_cutflow, cutflow), axis=1)
 
     return selection, cutflow
-
-
-def getSigSidebandBGYields(
-    mass_key: str,
-    sig_key: str,
-    mass_cuts: list[int],
-    events_dict: dict[str, pd.DataFrame],
-    bb_masks: dict[str, pd.DataFrame],
-    weight_key: str = "finalWeight",
-    selection: dict | None = None,
-):
-    """
-    Get signal and background yields in the `mass_cuts` range ([mass_cuts[0], mass_cuts[1]]),
-    using the data in the sideband regions as the bg estimate
-    """
-
-    # get signal features
-    sig_mass = get_feat(events_dict[sig_key], mass_key, bb_masks[sig_key])
-    sig_weight = get_feat(events_dict[sig_key], weight_key, bb_masks[sig_key])
-
-    if selection is not None:
-        sig_mass = sig_mass[selection[sig_key]]
-        sig_weight = sig_weight[selection[sig_key]]
-
-    # get data features
-    data_mass = get_feat(events_dict[data_key], mass_key, bb_masks[data_key])
-    data_weight = get_feat(events_dict[data_key], weight_key, bb_masks[data_key])
-
-    if selection is not None:
-        data_mass = data_mass[selection[data_key]]
-        data_weight = data_weight[selection[data_key]]
-
-    # signal yield
-    sig_cut = (sig_mass > mass_cuts[0]) * (sig_mass < mass_cuts[1])
-    sig_yield = np.sum(sig_weight[sig_cut])
-
-    # sideband regions
-    mass_range = mass_cuts[1] - mass_cuts[0]
-    low_mass_range = [mass_cuts[0] - mass_range / 2, mass_cuts[0]]
-    high_mass_range = [mass_cuts[1], mass_cuts[1] + mass_range / 2]
-
-    # get data yield in sideband regions
-    low_data_cut = (data_mass > low_mass_range[0]) * (data_mass < low_mass_range[1])
-    high_data_cut = (data_mass > high_mass_range[0]) * (data_mass < high_mass_range[1])
-    bg_yield = np.sum(data_weight[low_data_cut]) + np.sum(data_weight[high_data_cut])
-
-    return sig_yield, bg_yield
-
-
-def getSignalPlotScaleFactor(
-    events_dict: dict[str, pd.DataFrame],
-    sig_keys: list[str],
-    weight_key: str = "finalWeight",
-    selection: dict | None = None,
-):
-    """Get scale factor for signals in histogram plots"""
-    sig_scale_dict = {}
-
-    if selection is None:
-        data_sum = np.sum(events_dict[data_key][weight_key])
-        for sig_key in sig_keys:
-            sig_scale_dict[sig_key] = data_sum / np.sum(events_dict[sig_key][weight_key])
-    else:
-        data_sum = np.sum(events_dict[data_key][weight_key][selection[data_key]])
-        for sig_key in sig_keys:
-            sig_scale_dict[sig_key] = (
-                data_sum / events_dict[sig_key][weight_key][selection[sig_key]]
-            )
-
-    return sig_scale_dict
-
-
-def mxmy(sample):
-    mY = int(sample.split("-")[-1])
-    mX = int(sample.split("NMSSM_XToYHTo2W2BTo4Q2B_MX-")[1].split("_")[0])
-
-    return (mX, mY)
 
 
 def merge_dictionaries(dict1, dict2):

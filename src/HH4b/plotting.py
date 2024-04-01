@@ -91,7 +91,7 @@ color_by_sample = {
     "diboson": "orchid",
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
-    "vjetslnu": "seagreen",
+    "vjetslnu": colours["orange"],
 }
 
 label_by_sample = {
@@ -115,7 +115,17 @@ label_by_sample = {
     "data": "Data",
 }
 
-bg_order_default = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjetslnu", "vjets", "ttbar", "qcd"]
+bg_order_default = [
+    "vbfhtobb",
+    "vhtobb",
+    "tthtobb",
+    "gghtobb",
+    "diboson",
+    "vjets",
+    "vjetslnu",
+    "ttbar",
+    "qcd",
+]
 
 
 def plot_hists(
@@ -128,6 +138,7 @@ def plot_hists(
     logy=True,
     density=False,
     stack=True,
+    show=False,
     bbox_to_anchor=(1.05, 1),
     energy=13.6,
 ):
@@ -354,6 +365,11 @@ def plot_hists(
         outpath = Path("plots")
         if not outpath.exists():
             outpath.mkdir(parents=True)
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
 
