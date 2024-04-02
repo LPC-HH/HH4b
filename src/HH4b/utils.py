@@ -169,12 +169,13 @@ def get_pickles(pickles_path, year, sample_name):
         out = out[sample_name]
 
     for file_name in out_pickles[1:]:
-        with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-            out_dict = pickle.load(file)[year][sample_name]
-            out = accumulate([out, out_dict])
-
+        try:
+            with Path(f"{pickles_path}/{file_name}").open("rb") as file:
+                out_dict = pickle.load(file)[year][sample_name]
+                out = accumulate([out, out_dict])
+        except:
+            warnings.warn(f"Not able to open file {pickles_path}/{file_name}")
     return out
-
 
 def check_selector(sample: str, selector: str | list[str]):
     if not isinstance(selector, (list, tuple)):
@@ -255,6 +256,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
+    #select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -302,16 +304,37 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
+            """
+            # select events if in testing
+            if select_testing:
+                if year == "2022EE" and label in ["qcd", "ttbar", "hh4b"]:
+                    # hard code
+                    print(events["weight"])
+                    evt_list = np.load(f"bdt_trainings_run3/v1_msd30/inferences/2022EE/evt_{label}.npy")
+                    events_tmp = events[["event"]].droplevel(1, axis=1)
+                    events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
+                    events = events[events.index.isin(events_tmp.index)]
+            """
+
             # normalize by total events
-            totals = get_pickles(pickles_path, year, sample)["totals"]
-            _normalize_weights(
-                events,
-                totals,
-                sample,
-                isData=label == data_key,
-                variations=variations,
-                weight_shifts=weight_shifts,
-            )
+            pickles = get_pickles(pickles_path, year, sample)
+            if "totals" in pickles:
+                totals = pickles["totals"]
+                _normalize_weights(
+                    events,
+                    totals,
+                    sample,
+                    isData=label == data_key,
+                    variations=variations,
+                    weight_shifts=weight_shifts,
+                )
+            else:
+                if label == data_key:
+                    events["finalWeight"] = events["weight"]
+                else:
+                    n_events = get_nevents(pickles_path, year, sample)
+                    events["weight_nonorm"] = events["weight"]
+                    events["finalWeight"] = events["weight"] / n_events
 
             events_dict[label].append(events)
             print(f"Loaded {sample: <50}: {len(events)} entries")
@@ -461,6 +484,7 @@ def singleVarHist(
     weight_key: str = "finalWeight",
     selection: dict | None = None,
     sf: list[str] | None = None,
+    apply_tt_sf: bool = False
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -501,7 +525,7 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and sample == "ttbar":
+        if sf is not None and sample == "ttbar" and apply_tt_sf:
             weight = weight * tau32FittedSF_4(events)
 
         if len(fill_data[var]):
