@@ -19,7 +19,7 @@ limits=0
 seed=42
 numtoys=100
 order=0
-sample="HHbbVV"
+sample="HH4b"
 
 options=$(getopt -o "tfdlo:s:" --long "cardstag:,templatestag:,sample:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:" -- "$@")
 eval set -- "$options"
@@ -85,7 +85,7 @@ goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys"
 # Set up fit args
 ####################################################################################################
 
-templates_dir="/uscms_data/d1/rkansal/HHbbVV/src/HHbbVV/postprocessing/templates/${templates_tag}"
+templates_dir="/uscms/home/cmantill/nobackup/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
 cards_dir="cards/f_tests/${cards_tag}/"
 mkdir -p "${cards_dir}"
 echo "Saving datacards to ${cards_dir}"
@@ -101,7 +101,7 @@ maskunblindedargs="mask_pass=1,mask_fail=1,mask_passBlinded=0,mask_failBlinded=0
 # freeze qcd params in blinded bins
 setparamsblinded=""
 freezeparamsblinded=""
-for bin in {5..9}
+for bin in {5..10}
 do
     setparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin}=0,"
     freezeparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin},"
@@ -133,15 +133,15 @@ do
     # make workspace, background-only fit, GoF on data if they don't already exist
     if [ ! -f "./higgsCombineData.GoodnessOfFit.mH125.root" ]; then
         echo "Making workspace, doing b-only fit and gof on data"
-        /uscms_data/d1/rkansal/HHbbVV/src/HHbbVV/combine/run_blinded.sh -wbg
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -wbg
     fi
 
     if [ $dfit = 1 ]; then
-        /uscms_data/d1/rkansal/HHbbVV/src/HHbbVV/combine/run_blinded.sh -d
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -d
     fi
 
     if [ $limits = 1 ]; then
-        /uscms_data/d1/rkansal/HHbbVV/src/HHbbVV/combine/run_blinded.sh -l
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -l
     fi
 
     cd - || exit
