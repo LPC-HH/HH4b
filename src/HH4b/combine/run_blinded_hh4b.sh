@@ -60,9 +60,6 @@ while true; do
         -d|--dfit)
             dfit=1
             ;;
-        -r|--resonant)
-            resonant=1
-            ;;
         -g|--gofdata)
             gofdata=1
             ;;
@@ -107,7 +104,7 @@ while true; do
     shift
 done
 
-echo "Arguments: resonant=$resonant workspace=$workspace bfit=$bfit limits=$limits \
+echo "Arguments: workspace=$workspace bfit=$bfit limits=$limits \
 significance=$significance dfit=$dfit gofdata=$gofdata goftoys=$goftoys \
 seed=$seed numtoys=$numtoys"
 
@@ -212,7 +209,7 @@ if [ $limits = 1 ]; then
     echo "Expected limits"
     combine -M AsymptoticLimits -m 125 -n "" -d ${wsm_snapshot}.root --snapshotName MultiDimFit -v 9 \
     --saveWorkspace --saveToys --bypassFrequentistFit \
-    "${unblindedparams}",r=0 -s "$seed" \
+    ${unblindedparams},r=0 -s "$seed" \
     --floatParameters "${freezeparamsblinded}",r --toysFrequentist --run blind 2>&1 | tee $outsdir/AsymptoticLimits.txt
 fi
 
@@ -221,7 +218,7 @@ if [ $significance = 1 ]; then
     echo "Expected significance"
     combine -M Significance -d ${wsm_snapshot}.root -n "" --significance -m 125 --snapshotName MultiDimFit -v 9 \
     -t -1 --expectSignal=1 --saveWorkspace --saveToys --bypassFrequentistFit \
-    "${unblindedparams}",r=1 \
+    ${unblindedparams},r=1 \
     --floatParameters "${freezeparamsblinded}",r --toysFrequentist 2>&1 | tee $outsdir/Significance.txt
 fi
 
@@ -318,6 +315,6 @@ if [ "$bias" != -1 ]; then
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
     -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-5" --rMax 40 \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
-    "${unblindedparams}",r="$bias" --floatParameters "${freezeparamsblinded}" \
+    ${unblindedparams},r="$bias" --floatParameters "${freezeparamsblinded}" \
     --robustFit=1 -t "$numtoys" -s "$seed" 2>&1 | tee "$outsdir/bias${bias}seed${seed}.txt"
 fi

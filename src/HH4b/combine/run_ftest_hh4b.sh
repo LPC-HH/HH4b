@@ -166,8 +166,8 @@ if [ $goftoys = 1 ]; then
     echo "Toys for $order order fit"
     combine -M GenerateOnly -m 125 -d ${wsm_snapshot}.root \
     --snapshotName MultiDimFit --bypassFrequentistFit \
-    --setParameters "${maskunblindedargs},${setparamsblinded},r=0" \
-    --freezeParameters "${freezeparamsblinded},r" \
+    --setParameters ${maskunblindedargs},${setparamsblinded},r=0 \
+    --freezeParameters ${freezeparamsblinded},r \
     -n "Toys${toys_name}" -t "$numtoys" --saveToys -s "$seed" -v 9 2>&1 | tee "$outsdir/gentoys.txt"
 
     cd - || exit
