@@ -266,6 +266,18 @@ All via the below script, with a bunch of options (see script):
 run_blinded_hh4b.sh --workspace --bfit --limits
 ```
 
+
+#### F-tests locally
+
+This will take 5-10 minutes for 100 toys **will take forever for more than >>100!**.
+
+```bash
+# automatically make workspaces and do the background-only fit for orders 0 - 3
+run_ftest_hh4b.sh --cardstag run3-bdt-apr2 --templatestag Apr2 --year 2022-2023 # -dl for saving shapes and limits
+# run f-test for desired order
+run_ftest_hh4b.sh --cardstag run3-bdt-apr2 --goftoys --ffits --numtoys 100 --seed 444 --order 0
+```
+
 ## Moving datasets (WIP)
 
 ```bash
