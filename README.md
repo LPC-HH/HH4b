@@ -238,12 +238,12 @@ and this repo:
 # rhalphalib
 git clone https://github.com/rkansal47/rhalphalib
 cd rhalphalib
-pip install -e .  # editable installation
+pip3 install -e . --user  # editable installation not working
 cd ..
 # this repo
 git clone https://github.com/LPC-HH/HH4b.git
 cd HH4b
-pip install -e .  # editable installation
+pip3 install . --user  # editable installation not working
 ```
 
 Then, the command is:
