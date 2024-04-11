@@ -53,14 +53,14 @@ four beauty quarks (b).
 
 First, create a virtual environment (`micromamba` is recommended):
 
-````bash
+```bash
 # Download the micromamba setup script (change if needed for your machine https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
 # Install: (the micromamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
 "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
 # You may need to restart your shell
 micromamba create -n hh4b python=3.10 -c conda-forge
 micromamba activate hh4b
-````
+```
 
 ### Installing package
 
@@ -94,7 +94,8 @@ python3 -m pip install -e .
 
 For submitting to condor, all you need is python >= 3.7.
 
-For running locally, follow the same virtual environment setup instructions above and install `coffea`
+For running locally, follow the same virtual environment setup instructions
+above and install `coffea`
 
 ```bash
 micromamba activate hh4b
