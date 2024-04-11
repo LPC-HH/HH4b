@@ -101,7 +101,7 @@ maskunblindedargs="mask_pass=1,mask_fail=1,mask_passBlinded=0,mask_failBlinded=0
 # freeze qcd params in blinded bins
 setparamsblinded=""
 freezeparamsblinded=""
-for bin in {5..10}
+for bin in {4..8}
 do
     setparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin}=0,"
     freezeparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin},"
