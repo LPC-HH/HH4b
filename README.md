@@ -266,10 +266,10 @@ All via the below script, with a bunch of options (see script):
 run_blinded_hh4b.sh --workspace --bfit --limits
 ```
 
-
 #### F-tests locally
 
-This will take 5-10 minutes for 100 toys **will take forever for more than >>100!**.
+This will take 5-10 minutes for 100 toys **will take forever for more
+than >>100!**.
 
 ```bash
 # automatically make workspaces and do the background-only fit for orders 0 - 3
