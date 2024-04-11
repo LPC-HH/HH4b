@@ -2,6 +2,7 @@
 Skimmer for bbbb analysis with FatJets.
 Author(s): Raghav Kansal, Cristina Suarez
 """
+
 from __future__ import annotations
 
 import logging
