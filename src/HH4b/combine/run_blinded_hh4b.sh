@@ -130,9 +130,9 @@ outsdir=${cards_dir}/outs
 mkdir -p $outsdir
 
 # args
-ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt pass=${cards_dir}/pass.txt passMCBlinded=${cards_dir}/passMCBlinded.txt"
-maskunblindedargs="mask_pass=1,mask_fail=1,mask_passMCBlinded=0,mask_failMCBlinded=0"
-maskblindedargs="mask_pass=0,mask_fail=0,mask_passMCBlinded=1,mask_failMCBlinded=1"
+ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt"
+maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_failMCBlinded=0"
+maskblindedargs="mask_passbin1=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_failMCBlinded=1"
 
 # freeze qcd params in blinded bins
 setparamsblinded=""

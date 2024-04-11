@@ -83,7 +83,7 @@ while true; do
 done
 
 echo "Arguments: cardstag=$cards_tag sample=$sample templatestag=$templates_tag dfit=$dfit \
-goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys"
+goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$year"
 
 
 ####################################################################################################
@@ -101,7 +101,7 @@ wsm_snapshot=higgsCombineSnapshot.MultiDimFit.mH125
 outsdir="./outs"
 
 # nonresonant args
-maskunblindedargs="mask_pass=1,mask_fail=1,mask_passBlinded=0,mask_failBlinded=0"
+maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passMCBlinded=0,mask_failMCBlinded=0"
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -126,7 +126,7 @@ do
     model_name="nTF_${ord}"
 
     # create datacards if they don't already exist
-    if [ ! -f "${cards_dir}/${model_name}/pass.txt" ]; then
+    if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
         --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --sig-sample $sample --year "${year}"
