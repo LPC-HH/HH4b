@@ -20,8 +20,9 @@ seed=42
 numtoys=100
 order=0
 sample="HH4b"
+year="2022EE"
 
-options=$(getopt -o "tfdlo:s:" --long "cardstag:,templatestag:,sample:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:" -- "$@")
+options=$(getopt -o "tfdlo:s:y" --long "cardstag:,templatestag:,sample:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:,year:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -61,6 +62,10 @@ while true; do
         --numtoys)
             shift
             numtoys=$1
+            ;;
+        --year)
+            shift
+            year=$1
             ;;
         --)
             shift
@@ -124,7 +129,7 @@ do
     if [ ! -f "${cards_dir}/${model_name}/pass.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --sig-sample $sample
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --sig-sample $sample --year "${year}"
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
