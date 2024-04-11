@@ -19,10 +19,9 @@ limits=0
 seed=42
 numtoys=100
 order=0
-sample="HH4b"
 year="2022EE"
 
-options=$(getopt -o "tfdlo:s:y" --long "cardstag:,templatestag:,sample:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:,year:" -- "$@")
+options=$(getopt -o "tfdlo:s:y" --long "cardstag:,templatestag:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:,year:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -46,10 +45,6 @@ while true; do
         --templatestag)
             shift
             templates_tag=$1
-            ;;
-        -s|--sample)
-            shift
-            sample=$1
             ;;
         -o|--order)
             shift
@@ -82,7 +77,7 @@ while true; do
     shift
 done
 
-echo "Arguments: cardstag=$cards_tag sample=$sample templatestag=$templates_tag dfit=$dfit \
+echo "Arguments: cardstag=$cards_tag templatestag=$templates_tag dfit=$dfit \
 goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$year"
 
 
@@ -100,7 +95,7 @@ wsm_snapshot=higgsCombineSnapshot.MultiDimFit.mH125
 
 outsdir="./outs"
 
-# nonresonant args
+# nonresoant args
 maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passMCBlinded=0,mask_failMCBlinded=0"
 
 # freeze qcd params in blinded bins
@@ -129,7 +124,7 @@ do
     if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --sig-sample $sample --year "${year}"
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}"
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
