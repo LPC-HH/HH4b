@@ -1,15 +1,17 @@
-#!/usr/bin/env python
 """
 A script to generate a BinnedValues-JSON file for pileup reweighting of MC
 https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/misc/LUM/makePUReWeightJSON.py
 """
+
 from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
-import numpy as np
 
 mcPUProfiles = {
     # ========#
@@ -162,7 +164,8 @@ def getRatio(numBins, numCont, denBins, denCont):
     for ni in range(inMn, inMx):
         if numBins[ni + 1] > denBins[di + 1]:
             di += 1
-        assert (denBins[di] <= numBins[ni]) and (numBins[ni + 1] <= denBins[di + 1])
+        assert denBins[di] <= numBins[ni]
+        assert numBins[ni + 1] <= denBins[di + 1]
         if denCont[di] == 0.0:
             ratio[ni - inMn] = 1.0  ## not in denominator -> will not be used, so any value works
         else:
@@ -245,7 +248,6 @@ def main():
     logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
     if args.makePlot:
         try:
-            import matplotlib
 
             # matplotlib.use("agg")
             from matplotlib import pyplot as plt
@@ -263,14 +265,14 @@ def main():
             args.gzip = False
     if args.listmcprofiles:
         logger.info(
-            "The known PU profiles are: {0}".format(", ".join(repr(k) for k in mcPUProfiles))
+            "The known PU profiles are: {}".format(", ".join(repr(k) for k in mcPUProfiles))
         )
         return
     elif args.mcfiles:
         if args.mcprofile:
             logger.warning("MC PU profile and MC files are passed - extracting from the files")
         logger.info(
-            "Extracting the MC profile from {0} in the {1} tree of: {2}".format(
+            "Extracting the MC profile from {} in the {} tree of: {}".format(
                 args.mcreweightvar, args.mctreename, ", ".join(args.mcfiles)
             )
         )
@@ -424,7 +426,7 @@ def main():
         with gzip.open(outN, "wb") as outF, io.TextIOWrapper(outF, encoding="utf-8") as outE:
             json.dump(out, outE)
     else:
-        with open(args.output, "w") as outF:
+        with Path(args.output).open("w") as outF:
             json.dump(out, outF)
 
     if args.makePlot:
@@ -474,8 +476,8 @@ def main():
         if args.output.endswith(".json"):
             plt.savefig(args.output.replace(".json", ".png"))
         """
-        import mplhep as hep
         import matplotlib.ticker as mticker
+        import mplhep as hep
 
         hep.style.use(["CMS", "firamath"])
         formatter = mticker.ScalarFormatter(useMathText=True)
@@ -489,7 +491,7 @@ def main():
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         dBinCenters = 0.5 * (mcPUBins[:-1] + mcPUBins[1:])
         nBinCenters = 0.5 * (nomBins[:-1] + nomBins[1:])
-        rBinCenters = 0.5 * (ratioBins[:-1] + ratioBins[1:])
+        0.5 * (ratioBins[:-1] + ratioBins[1:])
         ax.hist(
             dBinCenters, bins=mcPUBins, weights=mcPUVals, histtype="step", label="MC", color="blue"
         )
