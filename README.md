@@ -220,7 +220,7 @@ cmsenv
 git clone -b v9.2.0 https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
 git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 # Important: this scram has to be run from src dir
-scramv1 b clean; scramv1 b
+scramv1 b clean; scramv1 b -j 4
 ```
 
 I also add the combine folder to my PATH in my .bashrc for convenience:
@@ -238,7 +238,7 @@ and this repo:
 # rhalphalib
 git clone https://github.com/rkansal47/rhalphalib
 cd rhalphalib
-pip3 install -e . --user  # editable installation not working
+pip3 install -e . --user  # editable installation
 cd ..
 # this repo
 git clone https://github.com/LPC-HH/HH4b.git
@@ -266,10 +266,10 @@ All via the below script, with a bunch of options (see script):
 run_blinded_hh4b.sh --workspace --bfit --limits
 ```
 
-
 #### F-tests locally
 
-This will take 5-10 minutes for 100 toys **will take forever for more than >>100!**.
+This will take 5-10 minutes for 100 toys **will take forever for more
+than >>100!**.
 
 ```bash
 # automatically make workspaces and do the background-only fit for orders 0 - 3
