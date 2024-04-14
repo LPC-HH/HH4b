@@ -163,9 +163,12 @@ nuisance_params = {
     # ),
     # combined Scale+mtop uncertainty
     # remove for use with inference (assuming correct implementation there)
-    "THU_HH": Syst(prior="lnN", samples=sig_keys_ggf, 
-                   value={"hh4b": 1.06, "hh4b-kl0": 1.08, "hh4b-kl2p45": 1.06, "hh4b-kl5": 1.18}, 
-                   value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87}), 
+    "THU_HH": Syst(
+        prior="lnN",
+        samples=sig_keys_ggf,
+        value={"hh4b": 1.06, "hh4b-kl0": 1.08, "hh4b-kl2p45": 1.06, "hh4b-kl5": 1.18},
+        value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
+    ),
 }
 
 # add temporary uncertainties
