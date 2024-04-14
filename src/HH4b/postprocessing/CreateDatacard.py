@@ -170,6 +170,8 @@ nuisance_params = {
         value={"hh4b": 1.06, "hh4b-kl0": 1.08, "hh4b-kl2p45": 1.06, "hh4b-kl5": 1.18},
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
     ),
+    # apply 2022 uncertainty to all MC (until 2023 rec.)
+    "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
 
 # add temporary uncertainties
