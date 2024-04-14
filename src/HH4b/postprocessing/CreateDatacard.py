@@ -161,8 +161,9 @@ nuisance_params = {
     # f"{CMS_PARAMS_LABEL}_triggerEffSF_uncorrelated": Syst(
     #     prior="lnN", samples=all_mc, diff_regions=True
     # ),
-    # combined Scale+mtop uncertainty
-    # remove for use with inference (assuming correct implementation there)
+    # THU_HH: combined Scale+mtop uncertainty from
+    # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH#Latest_recommendations_for_gluon
+    # remove for use with inference (assuming correct kl-dependent implementation there)
     "THU_HH": Syst(
         prior="lnN",
         samples=sig_keys_ggf,
