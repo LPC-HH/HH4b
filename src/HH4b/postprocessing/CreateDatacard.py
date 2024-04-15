@@ -488,6 +488,7 @@ def alphabet_fit(
         templates_summed[pass_bin][qcd_key, :].sum().value
         / templates_summed["fail"][qcd_key, :].sum().value
     )
+    print("qcd eff ", qcd_eff)
 
     # transfer factor
     tf_dataResidual = rl.BasisPoly(

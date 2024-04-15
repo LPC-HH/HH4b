@@ -44,10 +44,10 @@ hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
 samples = list(hist_label_map.values())
 
 fit_shape_var = ShapeVar(
-    # "H2Msd",
-    "H2PNetMass",
-    # r"$m^{2}_\mathrm{SD}$ (GeV)",
-    r"$m^{2}_\mathrm{reg}$ (GeV)",
+    "H2Msd",
+    # "H2PNetMass",
+    r"$m^{2}_\mathrm{SD}$ (GeV)",
+    # r"$m^{2}_\mathrm{reg}$ (GeV)",
     [16, 60, 220],
     # [17, 50, 220],
     reg=True,

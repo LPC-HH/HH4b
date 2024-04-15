@@ -27,84 +27,48 @@ def load_run3_samples(args, year):
 
     samples_run3 = {
         "2022": {
-            # "ttbar": [
-            #     "TTto4Q",
-            #     "TTtoLNu2Q",
-            #     "TTto2L2Nu",
-            # ],
-            # "hh4b": [
-            #     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
-            # ],
             "data": [
                 "JetMET_Run2022C",
                 "JetMET_Run2022C_single",
                 "JetMET_Run2022D",
             ],
-            # "novhhtobb": [
-            #     "GluGluHto2B_PT-200_M-125",
-            #     "VBFHto2B_M-125_dipoleRecoilOn",
-            # ],
-            # "vhtobb": [
-            #     "WminusH_Hto2B_Wto2Q_M-125",
-            #     "WplusH_Hto2B_Wto2Q_M-125",
-            #     "ZH_Hto2B_Zto2Q_M-125",
-            #     "ggZH_Hto2B_Zto2Q_M-125",
-            # ],
-            # "vbfhh4b": [
-            #     "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-            # ],
-            # "diboson": [
-            #     "WW",
-            #     "ZZ",
-            # ],
-            # "vjets": [
-            #     "Wto2Q-3Jets_HT-200to400",
-            #     "Wto2Q-3Jets_HT-400to600",
-            #     "Wto2Q-3Jets_HT-600to800",
-            #     "Wto2Q-3Jets_HT-800",
-            #     "Zto2Q-4Jets_HT-200to400",
-            #     "Zto2Q-4Jets_HT-400to600",
-            #     "Zto2Q-4Jets_HT-600to800",
-            #     "Zto2Q-4Jets_HT-800"
-            # ],
-        },
-        "2022EE": {
             "ttbar": [
                 "TTto4Q",
+            ],
+            "ttlep": [
+                "TTtoLNu2Q",
+                "TTto2L2Nu",
+            ],
+        },
+        "2022EE": {
+            "data": [
+                "JetMET_Run2022E",
+                "JetMET_Run2022F",
+                "JetMET_Run2022G",
+            ],
+            "ttbar": [
+                "TTto4Q",
+            ],
+            "ttlep": [
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
             "hh4b": [
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
             ],
-            "data": [
-                "JetMET_Run2022E",
-                "JetMET_Run2022F",
-                "JetMET_Run2022G",
-            ],
             "novhhtobb": [
                 "GluGluHto2B_PT-200_M-125",
                 "VBFHto2B_M-125_dipoleRecoilOn",
             ],
-            # "qcd": [
-            #     "QCD_HT-200to400",
-            #     "QCD_HT-400to600",
-            #     "QCD_HT-600to800",
-            #     "QCD_HT-800to1000",
-            #     "QCD_HT-1000to1200",
-            #     "QCD_HT-1200to1500",
-            #     "QCD_HT-1500to2000",
-            #     "QCD_HT-2000",
-            # ],
             "vhtobb": [
                 "WminusH_Hto2B_Wto2Q_M-125",
                 "WplusH_Hto2B_Wto2Q_M-125",
                 "ZH_Hto2B_Zto2Q_M-125",
                 "ggZH_Hto2B_Zto2Q_M-125",
             ],
-            # "vbfhh4b": [
-            #     "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-            # ],
+            "vbfhh4b": [
+                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+            ],
             "diboson": [
                 "WW",
                 "ZZ",
@@ -119,15 +83,39 @@ def load_run3_samples(args, year):
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800",
             ],
+            "qcd": [
+                "QCD_HT-200to400",
+                "QCD_HT-400to600",
+                "QCD_HT-600to800",
+                "QCD_HT-800to1000",
+                "QCD_HT-1000to1200",
+                "QCD_HT-1200to1500",
+                "QCD_HT-1500to2000",
+                "QCD_HT-2000",
+            ],
         },
-        "2023-pre-BPix": {
+        "2023": {
             "data": [
                 "JetMET_Run2023C",
             ],
+            "ttbar": [
+                "TTto4Q",
+            ],
+            "ttlep": [
+                "TTtoLNu2Q",
+                "TTto2L2Nu",
+            ],
         },
-        "2023-BPix": {
+        "2023BPix": {
             "data": [
                 "JetMET_Run2023D",
+            ],
+            "ttbar": [
+                "TTto4Q",
+            ],
+            "ttlep": [
+                "TTtoLNu2Q",
+                "TTto2L2Nu",
             ],
         },
     }
@@ -135,6 +123,7 @@ def load_run3_samples(args, year):
     load_columns = [
         ("weight", 1),
         ("MET_pt", 1),
+        ("event", 1),
         ("nFatJets", 1),
         ("bbFatJetPt", 2),
         ("bbFatJetEta", 2),
@@ -162,10 +151,22 @@ def load_run3_samples(args, year):
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    model_name = "v0_msd30"
+    model_name = "v1_msd30_nomulticlass"
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{model_name}/trained_bdt.model")
     # get function
-    make_bdt_dataframe = importlib.import_module(f"{model_name}")
+    make_bdt_dataframe = importlib.import_module("v1_msd30")
+
+    if year == "2023":
+        load_columns_year = load_columns + [
+            ("AK8PFJet230_SoftDropMass40_PNetBB0p06", 1),
+            ("AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35", 1),
+        ]
+    elif year == "2023BPix":
+        load_columns_year = load_columns + [("AK8PFJet230_SoftDropMass40_PNetBB0p06", 1)]
+    else:
+        load_columns_year = load_columns + [
+            ("AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35", 1)
+        ]
 
     # pre-selection
     events_dict = load_samples(
@@ -173,8 +174,19 @@ def load_run3_samples(args, year):
         samples_run3[year],
         year,
         filters=filters,
-        columns_mc=format_columns(load_columns),
+        variations=False,
+        columns=format_columns(load_columns_year),
     )
+
+    HLTs = {
+        "2022": ["AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35"],
+        "2022EE": ["AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35"],
+        "2023": [
+            "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+            "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        ],
+        "2023BPix": ["AK8PFJet230_SoftDropMass40_PNetBB0p06"],
+    }
 
     # inference and assign score
     events_dict_postprocess = {}
@@ -183,19 +195,44 @@ def load_run3_samples(args, year):
         bdt_score = bdt_model.predict_proba(bdt_events)[:, 1]
 
         bdt_events["bdt_score"] = bdt_score
+        bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H2Xbb"] = events_dict[key]["bbFatJetPNetXbb"].to_numpy()[:, 1]
         bdt_events["H2PNetMass"] = events_dict[key]["bbFatJetPNetMass"].to_numpy()[:, 1]
 
+        # add HLTs
+        bdt_events["hlt"] = np.any(
+            np.array(
+                [
+                    events_dict[key][trigger].to_numpy()[:, 0]
+                    for trigger in HLTs[year]
+                    if trigger in events_dict[key]
+                ]
+            ),
+            axis=0,
+        )
+
         # add more columns (e.g. uncertainties etc)
-        bdt_events["weight"] = 1
-        if key != "data":
-            bdt_events["weight"] = events_dict[key]["weight"].to_numpy()[:, 0]
+        bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+
+        # add selection to testing events
+        bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
+        if year == "2022EE" and key in ["qcd", "ttbar", "hh4b"]:
+            evt_list = np.load(
+                f"../boosted/bdt_trainings_run3/{model_name}/inferences/2022EE/evt_{key}.npy"
+            )
+            bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
+            bdt_events["weight"] *= 1 / 0.4
+
+        # extra selection
+        bdt_events = bdt_events[bdt_events["hlt"] == 1]
+        bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
+        bdt_events = bdt_events[bdt_events["H2Msd"] > 30]
 
         # define category
         bdt_events["Category"] = 5  # all events
         bdt_events.loc[
-            (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.93),
+            (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.97),
             "Category",
         ] = 1
         bdt_events.loc[
@@ -269,7 +306,7 @@ def scan_fom(events_combined):
 
     eff, bins_x, bins_y = h_sb.to_numpy()
     fig, ax = plt.subplots(1, 1, figsize=(16, 12))
-    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=4, cmax=9, flow="none")
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=7, cmax=12, flow="none")
     # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=3, cmax=9, flow="none")
     cbar.cbar.set_label(r"Fig Of Merit", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
@@ -376,6 +413,7 @@ def postprocess_run3(args):
         "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
         "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
     }
+    window_by_mass = {"H2Msd": [110, 140], "H2PNetMass": [115, 145]}
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -383,7 +421,7 @@ def postprocess_run3(args):
         label_by_mass[args.mass],
         [16, 60, 220],
         reg=True,
-        blind_window=[110, 140],
+        blind_window=window_by_mass[args.mass],
     )
 
     # load samples
@@ -396,20 +434,21 @@ def postprocess_run3(args):
     # temporarily used 2022EEMC and scale to full luminosity
     lumi_weight_2022EEtoall = (7971.4 + 26337.0 + 17650.0 + 9451.0) / 26337.0
     events_combined = {}
-    for key in ["data", "hh4b", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]:
-        if key == "data":
+    for key in ["data", "qcd", "hh4b", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]:
+        if key in ["data", "ttbar", "ttlep"]:
             combined = pd.concat(
                 [
                     events_dict_postprocess["2022"][key],
                     events_dict_postprocess["2022EE"][key],
-                    events_dict_postprocess["2023-pre-BPix"][key],
-                    events_dict_postprocess["2023-BPix"][key],
+                    events_dict_postprocess["2023"][key],
+                    events_dict_postprocess["2023BPix"][key],
                 ]
             )
         else:
             combined = events_dict_postprocess["2022EE"][key].copy()
             combined["weight"] = combined["weight"] * lumi_weight_2022EEtoall
         events_combined[key] = combined
+    events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
     scan_fom(events_combined)
     scan_sb(events_combined)
@@ -419,7 +458,7 @@ def postprocess_run3(args):
     os.system(f"mkdir -p {templ_dir}/cutflows/{year}")
     os.system(f"mkdir -p {templ_dir}/{year}")
 
-    bkg_keys = ["ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
+    bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
     print(events_combined["data"].columns)
 
@@ -461,7 +500,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--years",
         type=str,
-        default="2022,2022EE,2023-pre-BPix,2023-BPix",
+        default="2022,2022EE,2023,2023BPix",
         help="years to postprocess",
     )
     parser.add_argument(
