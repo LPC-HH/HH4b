@@ -473,7 +473,7 @@ def fill_regions(
 
         if bblite and args.mcstats:
             # tie MC stats parameters together in blinded and "unblinded" region
-            channel_name = region
+            channel_name = region_noblinded
             ch.autoMCStats(
                 channel_name=f"{CMS_PARAMS_LABEL}_{channel_name}",
                 threshold=args.mcstats_threshold,
