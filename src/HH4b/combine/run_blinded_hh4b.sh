@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086
 
 ####################################################################################################
 # Script for fits
@@ -60,9 +61,6 @@ while true; do
         -d|--dfit)
             dfit=1
             ;;
-        -r|--resonant)
-            resonant=1
-            ;;
         -g|--gofdata)
             gofdata=1
             ;;
@@ -107,7 +105,7 @@ while true; do
     shift
 done
 
-echo "Arguments: resonant=$resonant workspace=$workspace bfit=$bfit limits=$limits \
+echo "Arguments: workspace=$workspace bfit=$bfit limits=$limits \
 significance=$significance dfit=$dfit gofdata=$gofdata goftoys=$goftoys \
 seed=$seed numtoys=$numtoys"
 
@@ -130,9 +128,9 @@ outsdir=${cards_dir}/outs
 mkdir -p $outsdir
 
 # args
-ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt pass=${cards_dir}/pass.txt passMCBlinded=${cards_dir}/passMCBlinded.txt"
-maskunblindedargs="mask_pass=1,mask_fail=1,mask_passMCBlinded=0,mask_failMCBlinded=0"
-maskblindedargs="mask_pass=0,mask_fail=0,mask_passMCBlinded=1,mask_failMCBlinded=1"
+ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt"
+maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_failMCBlinded=0"
+maskblindedargs="mask_passbin1=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_failMCBlinded=1"
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -212,7 +210,7 @@ if [ $limits = 1 ]; then
     echo "Expected limits"
     combine -M AsymptoticLimits -m 125 -n "" -d ${wsm_snapshot}.root --snapshotName MultiDimFit -v 9 \
     --saveWorkspace --saveToys --bypassFrequentistFit \
-    "${unblindedparams}",r=0 -s "$seed" \
+    ${unblindedparams},r=0 -s "$seed" \
     --floatParameters "${freezeparamsblinded}",r --toysFrequentist --run blind 2>&1 | tee $outsdir/AsymptoticLimits.txt
 fi
 
@@ -221,7 +219,7 @@ if [ $significance = 1 ]; then
     echo "Expected significance"
     combine -M Significance -d ${wsm_snapshot}.root -n "" --significance -m 125 --snapshotName MultiDimFit -v 9 \
     -t -1 --expectSignal=1 --saveWorkspace --saveToys --bypassFrequentistFit \
-    "${unblindedparams}",r=1 \
+    ${unblindedparams},r=1 \
     --floatParameters "${freezeparamsblinded}",r --toysFrequentist 2>&1 | tee $outsdir/Significance.txt
 fi
 
@@ -316,8 +314,9 @@ if [ "$bias" != -1 ]; then
     # setting verbose > 0 here can lead to crazy large output files (~10-100GB!) because of getting
     # stuck in negative yield areas
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-5" --rMax 40 \
+    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-15" --rMax 20 \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
-    "${unblindedparams}",r="$bias" --floatParameters "${freezeparamsblinded}" \
-    --robustFit=1 -t "$numtoys" -s "$seed" 2>&1 | tee "$outsdir/bias${bias}seed${seed}.txt"
+    ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
+    --robustFit=1 -t "$numtoys" -s "$seed" \
+    --X-rtd MINIMIZER_MaxCalls=1000000 --cminDefaultMinimizerTolerance 0.1 2>&1 | tee "$outsdir/bias${bias}seed${seed}.txt"
 fi

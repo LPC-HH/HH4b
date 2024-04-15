@@ -51,17 +51,16 @@ four beauty quarks (b).
 
 ### Creating a virtual environment
 
-First, create a virtual environment (mamba is recommended):
+First, create a virtual environment (`micromamba` is recommended):
 
-````bash
 ```bash
-# Download the mamba setup script (change if needed for your machine https://github.com/conda-forge/miniforge#mambaforge)
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-# Install: (the mamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
-./Mambaforge-Linux-x86_64.sh  # follow instructions in the installation
-mamba create -n hh4b python=3.10
-mamba activate hh4b
-````
+# Download the micromamba setup script (change if needed for your machine https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
+# Install: (the micromamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+# You may need to restart your shell
+micromamba create -n hh4b python=3.10 -c conda-forge
+micromamba activate hh4b
+```
 
 ### Installing package
 
@@ -95,15 +94,11 @@ python3 -m pip install -e .
 
 For submitting to condor, all you need is python >= 3.7.
 
-For running locally:
+For running locally, follow the same virtual environment setup instructions
+above and install `coffea`
 
 ```bash
-# Download the mamba setup script (change if needed for your machine https://github.com/conda-forge/miniforge#mambaforge)
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-# Install: (the mamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
-./Mambaforge-Linux-x86_64.sh  # follow instructions in the installation
-mamba create -n hh4b python=3.10
-mamba activate hh4b
+micromamba activate hh4b
 pip install coffea
 ```
 
@@ -221,11 +216,11 @@ for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --ta
 cmsrel CMSSW_11_3_4
 cd CMSSW_11_3_4/src
 cmsenv
-# need my fork until regex for float parameters is merged and released
-git clone -b regex-float-parameters https://github.com/rkansal47/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+# float regex PR was merged so we should be able to switch to the main branch now:
+git clone -b v9.2.0 https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
 git clone -b v2.0.0 https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 # Important: this scram has to be run from src dir
-scramv1 b clean; scramv1 b
+scramv1 b clean; scramv1 b -j 4
 ```
 
 I also add the combine folder to my PATH in my .bashrc for convenience:
@@ -243,12 +238,12 @@ and this repo:
 # rhalphalib
 git clone https://github.com/rkansal47/rhalphalib
 cd rhalphalib
-pip install -e .  # editable installation
+pip3 install -e . --user  # editable installation
 cd ..
 # this repo
 git clone https://github.com/LPC-HH/HH4b.git
 cd HH4b
-pip install -e .  # editable installation
+pip3 install . --user  # editable installation not working
 ```
 
 Then, the command is:
@@ -269,6 +264,18 @@ All via the below script, with a bunch of options (see script):
 
 ```bash
 run_blinded_hh4b.sh --workspace --bfit --limits
+```
+
+#### F-tests locally
+
+This will take 5-10 minutes for 100 toys **will take forever for more
+than >>100!**.
+
+```bash
+# automatically make workspaces and do the background-only fit for orders 0 - 3
+run_ftest_hh4b.sh --cardstag run3-bdt-apr2 --templatestag Apr2 --year 2022-2023 # -dl for saving shapes and limits
+# run f-test for desired order
+run_ftest_hh4b.sh --cardstag run3-bdt-apr2 --goftoys --ffits --numtoys 100 --seed 444 --order 0
 ```
 
 ## Moving datasets (WIP)
