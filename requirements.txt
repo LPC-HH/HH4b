@@ -13,4 +13,5 @@ PyYAML==6.0.1
 tqdm==4.65.0
 uproot==4.3.7
 vector==1.1.0
+xgboost
 xxhash
