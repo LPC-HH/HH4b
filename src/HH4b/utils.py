@@ -295,7 +295,18 @@ def load_samples(
                 continue
 
             # normalize by total events
-            totals = get_pickles(pickles_path, year, sample)["totals"]
+            try:
+                totals = get_pickles(pickles_path, year, sample)["totals"]
+            except KeyError:
+                pickles = get_pickles(pickles_path, year, sample)
+                totals = {
+                    "np_nominal": pickles["nevents"],
+                    **{
+                        f"np_{key}": pickles["nevents"]
+                        for key in norm_preserving_weights + ["scale_weights", "pdf_weights"]
+                    },
+                }
+
             _normalize_weights(
                 events,
                 totals,
