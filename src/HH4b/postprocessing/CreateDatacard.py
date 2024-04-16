@@ -524,6 +524,8 @@ def alphabet_fit(
         ]
     )
 
+    fail_qcd_samples = {}
+
     for blind_str in ["", MCB_LABEL]:
         failChName = f"fail{blind_str}".replace("_", "")
         failCh = model[failChName]
@@ -562,6 +564,8 @@ def alphabet_fit(
         )
         failCh.addSample(fail_qcd)
 
+        fail_qcd_samples[blind_str] = fail_qcd
+
     ##########################
     # Now do signal regions
     ##########################
@@ -594,7 +598,7 @@ def alphabet_fit(
                 f"{passChName}_{CMS_PARAMS_LABEL}_qcd_datadriven",
                 rl.Sample.BACKGROUND,
                 tf_params_pass,
-                fail_qcd,
+                fail_qcd_samples[blind_str],
                 min_val=min_qcd_val,
             )
             passCh.addSample(pass_qcd)
