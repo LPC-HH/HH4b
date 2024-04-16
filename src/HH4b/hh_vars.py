@@ -3,6 +3,7 @@ Common variables
 
 Authors: Raghav Kansal, Cristina Suarez
 """
+
 from __future__ import annotations
 
 years = ["2022", "2022EE"]

@@ -422,7 +422,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation, bg_order):
     sig_colours = [color_by_sample[sig_key] for sig_key in sig_keys]
     sig_labels = OrderedDict()
     for sig_key, sig_scale in sig_scale_dict.items():
-        label = sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
+        label = label_by_sample.get(sig_key, sig_key)
 
         if sig_scale == 1:
             label = label  # noqa: PLW0127
@@ -704,10 +704,7 @@ def ratioHistPlot(
             [(_asimov_significance(sig, bg_tot), edges) for sig in sigs],
             ax=sax,
             histtype="step",
-            label=[
-                sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
-                for sig_key in sig_scale_dict
-            ],
+            label=[label_by_sample.get(sig_key, sig_key) for sig_key in sig_scale_dict],
             color=sig_colours[: len(sig_keys)],
         )
 
