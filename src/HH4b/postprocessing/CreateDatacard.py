@@ -516,7 +516,7 @@ def alphabet_fit(
     # Setup fail region first
     ##########################
 
-    # qcd params
+    # Independent nuisances to float QCD in each fail bin
     qcd_params = np.array(
         [
             rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_tf_dataResidual_Bin{i}", 0)
@@ -526,6 +526,7 @@ def alphabet_fit(
 
     for blind_str in ["", MCB_LABEL]:
         failChName = f"fail{blind_str}".replace("_", "")
+        logging.info(f"Setting up fail region {failChName}")
         failCh = model[failChName]
 
         # sideband fail
