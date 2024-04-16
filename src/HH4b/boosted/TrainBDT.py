@@ -118,9 +118,11 @@ def load_data(data_path: str, year: str):
     return events_dict
 
 
-def preprocess_data(events_dict: dict, config_name: str, test_size: float, seed: int, multiclass: bool):
+def preprocess_data(
+    events_dict: dict, config_name: str, test_size: float, seed: int, multiclass: bool
+):
     training_keys = ["hh4b", "qcd", "ttbar"]
-    
+
     # dataframe function
     make_bdt_dataframe = importlib.import_module(f"{config_name}")
     events_dict_bdt = {}
@@ -134,7 +136,7 @@ def preprocess_data(events_dict: dict, config_name: str, test_size: float, seed:
     # if doing multiclass classification, encode each process separately
     label_encoder = LabelEncoder()
     label_encoder.fit(training_keys)
-    
+
     events = pd.concat(
         [events_dict_bdt["hh4b"], events_dict_bdt["qcd"], events_dict_bdt["ttbar"]],
         keys=["hh4b", "qcd", "ttbar"],
@@ -287,18 +289,20 @@ def evaluate_model(
     hh4b_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(hh4b_test)
     hh4b_preds = model.predict_proba(hh4b_bdt_dataframe)
 
-    print("hh4b ",hh4b_preds)
+    print("hh4b ", hh4b_preds)
     scores["hh4b"] = hh4b_preds[:, 1]
 
     # save scores and indices for testing dataset
     # TODO: add shifts (e.g. JECs etc)
     (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
     np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
-    np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices) 
+    np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
 
     for key in events_dict:
-        if key!="hh4b":
-            scores[key] = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))[:, 1]
+        if key != "hh4b":
+            scores[key] = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))[
+                :, 1
+            ]
     print("Scores ", scores)
     print("HH4b  indices", hh4b_indices)
 
@@ -308,7 +312,7 @@ def evaluate_model(
     h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
     for key in events_dict:
         h_bdt.fill(bdt=scores[key], cat=key)
-        if key=="hh4b":
+        if key == "hh4b":
             h_bdt_weight.fill(bdt=scores[key], cat=key, weight=hh4b_test["weight"])
         else:
             h_bdt_weight.fill(bdt=scores[key], cat=key, weight=events_dict[key]["weight"])
@@ -318,7 +322,14 @@ def evaluate_model(
         "no_weight": h_bdt,
     }
     for h_key, h in hists.items():
-        colors = {"ttbar": "b", "hh4b": "k", "qcd": "r", "vhtobb": "g", "vjets": "pink", "ttlep": "violet"}
+        colors = {
+            "ttbar": "b",
+            "hh4b": "k",
+            "qcd": "r",
+            "vhtobb": "g",
+            "vjets": "pink",
+            "ttlep": "violet",
+        }
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         for key in events_dict:
             hep.histplot(
@@ -331,14 +342,18 @@ def evaluate_model(
                 density=True,
             )
         ax.set_yscale("log")
-        ax.legend(title=r"FatJets $p_T>$300, \n m$_{SD}$:[30-250] GeV", bbox_to_anchor=(1.03, 1), loc="upper left")
+        ax.legend(
+            title=r"FatJets $p_T>$300, \n m$_{SD}$:[30-250] GeV",
+            bbox_to_anchor=(1.03, 1),
+            loc="upper left",
+        )
         ax.set_ylabel("Density")
         ax.set_title("Pre-Selection")
         ax.xaxis.grid(True, which="major")
         ax.yaxis.grid(True, which="major")
         fig.tight_layout()
-        fig.savefig(model_dir / f"bdt_shape_{h_key}.png")    
-    
+        fig.savefig(model_dir / f"bdt_shape_{h_key}.png")
+
     # Plot and save ROC figure
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     bkg_colors = {
@@ -347,7 +362,7 @@ def evaluate_model(
         "merged": "orange",
     }
     for bkg in ["qcd", "ttbar", "merged"]:
-        if bkg!="merged":
+        if bkg != "merged":
             scores_roc = np.concatenate((scores["hh4b"], scores[bkg]))
             sig_jets_score = scores["hh4b"]
             bkg_jets_score = scores[bkg]
@@ -368,13 +383,13 @@ def evaluate_model(
     ax.set_xlabel("Signal efficiency")
     ax.set_ylabel("Background efficiency")
     ax.set_xlim([0.0, 0.5])
-    #ax.set_ylim([0, 0.002])
+    # ax.set_ylim([0, 0.002])
     ax.set_ylim([0, 0.01])
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
     ax.legend(title=r"Background sample", bbox_to_anchor=(1.03, 1), loc="upper left")
     fig.tight_layout()
-    fig.savefig(model_dir / f"roc_weights.png")
+    fig.savefig(model_dir / "roc_weights.png")
 
     # look into mass sculpting
     cat_axis = hist.axis.StrCategory([], name="Sample", growth=True)
@@ -414,11 +429,12 @@ def evaluate_model(
             fig.tight_layout()
             fig.savefig(model_dir / f"{hkey}2_{key}.png")
 
+
 def main(args):
     events_dict = load_data(args.data_path, args.year)
 
-    X_train, X_test, y_train, y_test, weights_train, weights_test, yt_train, yt_test = preprocess_data(
-        events_dict, args.config_name, args.test_size, args.seed, args.multiclass
+    X_train, X_test, y_train, y_test, weights_train, weights_test, yt_train, yt_test = (
+        preprocess_data(events_dict, args.config_name, args.test_size, args.seed, args.multiclass)
     )
 
     model_dir = Path(f"./bdt_trainings_run3/{args.model_name}/")
@@ -447,7 +463,7 @@ def main(args):
             model_dir,
             **classifier_params,
         )
-        
+
     evaluate_model(
         args.config_name,
         events_dict,
@@ -459,9 +475,10 @@ def main(args):
         weights_test,
         # args.test_size, args.seed,
         args.year,
-        args.multiclass
+        args.multiclass,
     )
-    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -496,5 +513,5 @@ if __name__ == "__main__":
 
     if args.config_name is None:
         args.config_name = args.model_name
-    
+
     main(args)
