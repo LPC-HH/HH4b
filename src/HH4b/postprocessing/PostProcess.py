@@ -502,6 +502,18 @@ def postprocess_run3(args):
             },
             label="Bin1",
         ),
+        "pass_bin2": Region(
+            cuts={
+                "Category": [2, 3],
+            },
+            label="Bin2",
+        ),
+        "pass_bin3": Region(
+            cuts={
+                "Category": [3, 4],
+            },
+            label="Bin3",
+        ),
         "fail": Region(
             cuts={
                 "Category": [4, 5],
