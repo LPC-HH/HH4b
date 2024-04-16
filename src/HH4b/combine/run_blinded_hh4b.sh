@@ -324,8 +324,23 @@ if [ "$bias" != -1 ]; then
     echo "Bias test with bias $bias"
     # setting verbose > 0 here can lead to crazy large output files (~10-100GB!) because of getting
     # stuck in negative yield areas
+
+    if [ $passbin = 1 ]; then
+	rmin="-15"
+	rmax="20"
+    elif [ $passbin = 2 ]; then
+	rmin="-30"
+	rmax="40"
+    elif [ $passbin = 3 ]; then
+	rmin="-150"
+	rmax="200"
+    else
+	rmin="-15"
+	rmax="20"
+    fi
+
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-15" --rMax 20 \
+    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
     ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
     --robustFit=1 -t "$numtoys" -s "$seed" \
