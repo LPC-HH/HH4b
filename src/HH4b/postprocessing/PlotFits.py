@@ -20,7 +20,13 @@ parser.add_argument(
 )
 parser.add_argument("--plots-dir", help="plots directory", type=str)
 parser.add_argument("--signal-scale", help="scale signal by", default=1.0, type=float)
-parser.add_argument("--bin-name", default="passbin1", help="pass category", type=str)
+parser.add_argument(
+    "--regions",
+    default="all",
+    type=str,
+    help="regions to plot",
+    choices=["passbin1", "passbin2", "passbin3", "all"],
+)
 args = parser.parse_args()
 
 signal_scale = args.signal_scale
@@ -63,14 +69,22 @@ shapes = {
 
 selection_regions_labels = {
     "passbin1": "Pass Bin1",
+    "passbin2": "Pass Bin2",
+    "passbin3": "Pass Bin3",
     "fail": "Fail",
 }
 ylims = {
     "passbin1": 20,
+    "passbin2": 50,
+    "passbin3": 400,
     "fail": 45000,
 }
 
-bins = [args.bin_name, "fail"]
+if args.regions == "all":
+    signal_regions = ["passbin1", "passbin2", "passbin3"]
+else:
+    signal_regions = [args.regions]
+bins = [*signal_regions, "fail"]
 selection_regions = {key: selection_regions_labels[key] for key in bins}
 
 data_key = "data"
