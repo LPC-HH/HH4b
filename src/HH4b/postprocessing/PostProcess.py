@@ -234,7 +234,12 @@ def load_run3_samples(args, year):
         mask_bin1 = (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.97)
         bdt_events.loc[mask_bin1, "Category"] = 1
         mask_corner = (bdt_events["H2Xbb"] < 0.9) & (bdt_events["bdt_score"] < 0.97)
-        mask_bin2 = (bdt_events["H2Xbb"] > 0.8 ) & (bdt_events["bdt_score"] > 0.7) & ~(mask_bin1) & ~(mask_corner)
+        mask_bin2 = (
+            (bdt_events["H2Xbb"] > 0.8)
+            & (bdt_events["bdt_score"] > 0.7)
+            & ~(mask_bin1)
+            & ~(mask_corner)
+        )
         bdt_events.loc[mask_bin2, "Category"] = 2
         mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > 0.03)
         bdt_events.loc[mask_bin3, "Category"] = 3
@@ -338,7 +343,12 @@ def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97):
     def get_nevents_data(events, xbb_cut, bdt_cut):
         cut_bin1 = (events["H2Xbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
         cut_corner = (events["H2Xbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
-        cut_bin2 = (events["H2Xbb"] > xbb_cut) & (events["bdt_score"] > bdt_cut) & ~(cut_bin1) & ~(cut_corner)
+        cut_bin2 = (
+            (events["H2Xbb"] > xbb_cut)
+            & (events["bdt_score"] > bdt_cut)
+            & ~(cut_bin1)
+            & ~(cut_corner)
+        )
         cut_msd = (events["H2Msd"] > 50) & (events["H2Msd"] < 220)
 
         # get yield between 75-95
@@ -347,14 +357,17 @@ def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97):
         # get yield between 135-155
         cut_msd_1 = (events["H2Msd"] < 155) & (events["H2Msd"] > 135)
 
-        return np.sum(cut_msd_0 & cut_bin2 & cut_msd) + np.sum(
-            cut_msd_1 & cut_bin2 & cut_msd
-        )
+        return np.sum(cut_msd_0 & cut_bin2 & cut_msd) + np.sum(cut_msd_1 & cut_bin2 & cut_msd)
 
     def get_nevents_signal(events, xbb_cut, bdt_cut):
         cut_bin1 = (events["H2Xbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
         cut_corner = (events["H2Xbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
-        cut_bin2 = (events["H2Xbb"] > xbb_cut) & (events["bdt_score"] > bdt_cut) & ~(cut_bin1) & ~(cut_corner)
+        cut_bin2 = (
+            (events["H2Xbb"] > xbb_cut)
+            & (events["bdt_score"] > bdt_cut)
+            & ~(cut_bin1)
+            & ~(cut_corner)
+        )
         cut_msd = (events["H2Msd"] > 95) & (events["H2Msd"] < 135)
 
         # get yield between 95 and 135
