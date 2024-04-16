@@ -231,12 +231,15 @@ def load_run3_samples(args, year):
 
         # define category
         bdt_events["Category"] = 5  # all events
+        mask_bin1 = (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.97)
+        bdt_events.loc[mask_bin1, "Category"] = 1
+        mask_corner = (bdt_events["H2Xbb"] < 0.9) & (bdt_events["bdt_score"] < 0.97)
+        mask_bin2 = (bdt_events["H2Xbb"] > 0.8 ) & (bdt_events["bdt_score"] > 0.7) & ~(mask_bin1) & ~(mask_corner)
+        bdt_events.loc[mask_bin2, "Category"] = 2
+        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > 0.03)
+        bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
-            (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.97),
-            "Category",
-        ] = 1
-        bdt_events.loc[
-            (bdt_events["H2Xbb"] < 0.9) & (bdt_events["bdt_score"] > 0.03),
+            (bdt_events["H2Xbb"] < 0.8) & (bdt_events["bdt_score"] > 0.03),
             "Category",
         ] = 4
 
@@ -324,6 +327,90 @@ def scan_fom(events_combined):
                 )
     fig.tight_layout()
     fig.savefig("figofmerit.png")
+    fig.savefig("figofmerit.pdf")
+
+
+def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97):
+    """
+    Scan figure of merit for bin2
+    """
+
+    def get_nevents_data(events, xbb_cut, bdt_cut):
+        cut_bin1 = (events["H2Xbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_corner = (events["H2Xbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
+        cut_bin2 = (events["H2Xbb"] > xbb_cut) & (events["bdt_score"] > bdt_cut) & ~(cut_bin1) & ~(cut_corner)
+        cut_msd = (events["H2Msd"] > 50) & (events["H2Msd"] < 220)
+
+        # get yield between 75-95
+        cut_msd_0 = (events["H2Msd"] < 95) & (events["H2Msd"] > 75)
+
+        # get yield between 135-155
+        cut_msd_1 = (events["H2Msd"] < 155) & (events["H2Msd"] > 135)
+
+        return np.sum(cut_msd_0 & cut_bin2 & cut_msd) + np.sum(
+            cut_msd_1 & cut_bin2 & cut_msd
+        )
+
+    def get_nevents_signal(events, xbb_cut, bdt_cut):
+        cut_bin1 = (events["H2Xbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_corner = (events["H2Xbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
+        cut_bin2 = (events["H2Xbb"] > xbb_cut) & (events["bdt_score"] > bdt_cut) & ~(cut_bin1) & ~(cut_corner)
+        cut_msd = (events["H2Msd"] > 95) & (events["H2Msd"] < 135)
+
+        # get yield between 95 and 135
+        return np.sum(events["weight"][cut_bin2 & cut_msd])
+
+    xbb_cuts = np.arange(0.7, 0.86, 0.02)
+    bdt_cuts = np.arange(0.65, 0.85, 0.01)
+    h_sb = hist.Hist(
+        hist.axis.Variable(bdt_cuts, name="bdt_cut"),
+        hist.axis.Variable(xbb_cuts, name="xbb_cut"),
+    )
+    for xbb_cut in xbb_cuts:
+        figure_of_merits = []
+        cuts = []
+        for bdt_cut in bdt_cuts:
+            nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
+            nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
+
+            figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
+
+            if nevents_signal > 0.5:
+                cuts.append(bdt_cut)
+                figure_of_merits.append(figure_of_merit)
+                # print(
+                #    f"Xbb_Cut: {xbb_cut}, BDT_Cut: {bdt_cut:.2f}, NBkg: {nevents_data}, NSig: {nevents_signal:.2f}, FigOfMerit: {figure_of_merit:.2f}"
+                # )
+                h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+
+        if len(cuts) > 0:
+            cuts = np.array(cuts)
+            figure_of_merits = np.array(figure_of_merits)
+            smallest = np.argmin(figure_of_merits)
+
+            print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
+
+    eff, bins_x, bins_y = h_sb.to_numpy()
+    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=18, cmax=25, flow="none")
+    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=3, cmax=9, flow="none")
+    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.ax.get_yaxis().labelpad = 15
+    for i in range(len(bins_x) - 1):
+        for j in range(len(bins_y) - 1):
+            if eff[i, j] > 0:
+                ax.text(
+                    (bins_x[i] + bins_x[i + 1]) / 2,
+                    (bins_y[j] + bins_y[j + 1]) / 2,
+                    eff[i, j].round(2),
+                    color="black",
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                )
+    fig.tight_layout()
+    fig.savefig("figofmerit_bin2.png")
+    fig.savefig("figofmerit_bin2.pdf")
 
 
 def scan_sb(events_combined):
@@ -391,6 +478,7 @@ def scan_sb(events_combined):
                 )
     fig.tight_layout()
     fig.savefig("s_over_b.png")
+    fig.savefig("s_over_b.pdf")
 
 
 def postprocess_run3(args):
@@ -451,6 +539,7 @@ def postprocess_run3(args):
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
     scan_fom(events_combined)
+    scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97)
     scan_sb(events_combined)
 
     templ_dir = f"./templates/{args.template_dir}"
