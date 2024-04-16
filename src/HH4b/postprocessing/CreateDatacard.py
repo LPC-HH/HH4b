@@ -585,7 +585,6 @@ def alphabet_fit(
         )
         tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
         tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
-        
 
         for blind_str in ["", MCB_LABEL]:
             passChName = f"{sr}{blind_str}".replace("_", "")
@@ -665,10 +664,11 @@ def main(args):
 
     # [mH(bb)]
     shape_vars = [
-        ShapeVar(name=axis.name, 
-                 bins=axis.edges, 
-                 orders={sr: args.nTF[i] for i, sr in enumerate(signal_regions)},
-             )
+        ShapeVar(
+            name=axis.name,
+            bins=axis.edges,
+            orders={sr: args.nTF[i] for i, sr in enumerate(signal_regions)},
+        )
         for _, axis in enumerate(sample_templates.axes[1:])
     ]
 
