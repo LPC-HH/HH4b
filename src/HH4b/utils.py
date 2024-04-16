@@ -177,6 +177,7 @@ def get_pickles(pickles_path, year, sample_name):
             warnings.warn(f"Not able to open file {pickles_path}/{file_name}")
     return out
 
+
 def check_selector(sample: str, selector: str | list[str]):
     if not isinstance(selector, (list, tuple)):
         selector = [selector]
@@ -256,7 +257,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
-    #select_testing: bool = False,
+    # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -484,7 +485,7 @@ def singleVarHist(
     weight_key: str = "finalWeight",
     selection: dict | None = None,
     sf: list[str] | None = None,
-    apply_tt_sf: bool = False
+    apply_tt_sf: bool = False,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -584,7 +585,6 @@ def singleVarHistSel(
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
-            
 
     if shape_var.blind_window is not None:
         blindBins(h, shape_var.blind_window, data_key)
