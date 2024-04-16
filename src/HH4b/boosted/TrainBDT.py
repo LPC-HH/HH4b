@@ -135,7 +135,7 @@ def preprocess_data(
     # concatenate data
     # if doing multiclass classification, encode each process separately
     label_encoder = LabelEncoder()
-    label_encoder.fit(training_keys)
+    label_encoder.classes_ = np.array(training_keys)  # need this to maintain training keys order
 
     events = pd.concat(
         [events_dict_bdt["hh4b"], events_dict_bdt["qcd"], events_dict_bdt["ttbar"]],
