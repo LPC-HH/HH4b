@@ -48,7 +48,7 @@ class ShapeVar:
 
     name: str = None
     bins: np.ndarray = None  # bin edges
-    order: int = None  # TF order
+    orders: dict = None  # TF order: dict of categories -> order
 
     def __post_init__(self):
         # use bin centers for polynomial fit

@@ -85,6 +85,7 @@ color_by_sample = {
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
     "ttbar": colours["darkblue"],
+    "ttlep": "cadetblue",
     "qcd": colours["canary"],
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
@@ -110,6 +111,7 @@ label_by_sample = {
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
+    "ttlep": r"$t\bar{t}$ + Jets (Lep)",
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
@@ -420,7 +422,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation, bg_order):
     sig_colours = [color_by_sample[sig_key] for sig_key in sig_keys]
     sig_labels = OrderedDict()
     for sig_key, sig_scale in sig_scale_dict.items():
-        label = sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
+        label = label_by_sample.get(sig_key, sig_key)
 
         if sig_scale == 1:
             label = label  # noqa: PLW0127
@@ -479,6 +481,7 @@ def ratioHistPlot(
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
+    logx: bool = False,
     ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
     significance_dir: str = "right",
@@ -621,6 +624,8 @@ def ratioHistPlot(
 
     if log:
         ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
@@ -699,10 +704,7 @@ def ratioHistPlot(
             [(_asimov_significance(sig, bg_tot), edges) for sig in sigs],
             ax=sax,
             histtype="step",
-            label=[
-                sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
-                for sig_key in sig_scale_dict
-            ],
+            label=[label_by_sample.get(sig_key, sig_key) for sig_key in sig_scale_dict],
             color=sig_colours[: len(sig_keys)],
         )
 
