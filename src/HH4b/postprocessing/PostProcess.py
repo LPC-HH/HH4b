@@ -14,9 +14,9 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from HH4b import postprocessing
+from HH4b import postprocessing, run_utils
 from HH4b.postprocessing import Region
-from HH4b.utils import ShapeVar, format_columns, load_samples
+from HH4b.utils import ShapeVar, load_samples
 
 sys.path.append("../boosted/bdt_trainings_run3/")
 
@@ -181,8 +181,8 @@ def load_run3_samples(args, year):
         samples_run3[year],
         year,
         filters=filters,
+        columns=load_columns_year,
         variations=False,
-        columns=format_columns(load_columns_year),
     )
 
     HLTs = {
@@ -512,10 +512,11 @@ def postprocess_run3(args):
         events_combined[key] = combined
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
-    scan_fom(events_combined, mass=args.mass)
-    scan_fom_bin2(
-        events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
-    )
+    if args.fom_scan:
+        scan_fom(events_combined, mass=args.mass)
+        scan_fom_bin2(
+            events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
+        )
 
     templ_dir = f"./templates/{args.template_dir}"
     year = "2022-2023"
@@ -574,6 +575,7 @@ if __name__ == "__main__":
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
+    run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scan")
     args = parser.parse_args()
 
     postprocess_run3(args)
