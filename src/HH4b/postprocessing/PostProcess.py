@@ -21,6 +21,12 @@ from HH4b.utils import ShapeVar, format_columns, load_samples
 sys.path.append("../boosted/bdt_trainings_run3/")
 
 
+XBB_CUT_BIN1 = 0.92 # 0.9 
+BDT_CUT_BIN1 = 0.94 # 0.97
+XBB_CUT_BIN2 = 0.8
+BDT_CUT_BIN2 = 0.7
+BDT_CUT_FAIL = 0.03
+
 def load_run3_samples(args, year):
     # modify as needed
     input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{args.tag}"
@@ -231,20 +237,20 @@ def load_run3_samples(args, year):
 
         # define category
         bdt_events["Category"] = 5  # all events
-        mask_bin1 = (bdt_events["H2Xbb"] > 0.9) & (bdt_events["bdt_score"] > 0.97)
+        mask_bin1 = (bdt_events["H2Xbb"] > XBB_CUT_BIN1) & (bdt_events["bdt_score"] > BDT_CUT_BIN1)
         bdt_events.loc[mask_bin1, "Category"] = 1
-        mask_corner = (bdt_events["H2Xbb"] < 0.9) & (bdt_events["bdt_score"] < 0.97)
+        mask_corner = (bdt_events["H2Xbb"] < XBB_CUT_BIN1) & (bdt_events["bdt_score"] < BDT_CUT_BIN1)
         mask_bin2 = (
-            (bdt_events["H2Xbb"] > 0.8)
-            & (bdt_events["bdt_score"] > 0.7)
+            (bdt_events["H2Xbb"] > XBB_CUT_BIN2)
+            & (bdt_events["bdt_score"] > BDT_CUT_BIN2)
             & ~(mask_bin1)
             & ~(mask_corner)
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
-        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > 0.03)
+        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL)
         bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
-            (bdt_events["H2Xbb"] < 0.8) & (bdt_events["bdt_score"] > 0.03),
+            (bdt_events["H2Xbb"] < XBB_CUT_BIN2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL),
             "Category",
         ] = 4
 
@@ -339,7 +345,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
 
 
 def scan_fom_bin2(
-    events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, fom="2sqrt(b)/s", mass="H2Msd"
+    events_combined, xbb_cut_bin1=0.92, bdt_cut_bin1=0.94, fom="2sqrt(b)/s", mass="H2Msd"
 ):
     """
     Scan figure of merit for bin2
@@ -504,7 +510,7 @@ def postprocess_run3(args):
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
     scan_fom(events_combined, mass=args.mass)
-    scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, mass=args.mass)
+    scan_fom_bin2(events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass)
 
     templ_dir = f"./templates/{args.template_dir}"
     year = "2022-2023"
