@@ -74,14 +74,20 @@ add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
 parser.add_argument(
     "--sig-sample", default=None, type=str, help="can specify a specific signal key"
 )
-
 parser.add_argument(
     "--nTF",
-    default=1,
+    default=None,
+    nargs="*",
     type=int,
-    help="order of polynomial for TF.",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
 )
-parser.add_argument("--bin-name", default="pass_bin1", type=str, help="pass bin name")
+parser.add_argument(
+    "--regions",
+    default="all",
+    type=str,
+    help="regions for which to make cards",
+    choices=["pass_bin1", "pass_bin2", "pass_bin3", "all"],
+)
 parser.add_argument("--model-name", default=None, type=str, help="output model name")
 parser.add_argument(
     "--year",
@@ -97,8 +103,19 @@ args = parser.parse_args()
 
 
 CMS_PARAMS_LABEL = "CMS_bbbb_hadronic"
+MCB_LABEL = "MCBlinded"
 qcd_data_key = "qcd_datadriven"
 
+if args.nTF is None:
+    if args.regions == "all":
+        args.nTF = [0, 0, 1]
+    else:
+        args.nTF = [0]
+
+if args.regions == "all":
+    signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
+else:
+    signal_regions = [args.regions]
 
 # (name in templates, name in cards)
 mc_samples = OrderedDict(
@@ -169,6 +186,7 @@ nuisance_params = {
         samples=sig_keys_ggf,
         value={"hh4b": 1.06, "hh4b-kl0": 1.08, "hh4b-kl2p45": 1.06, "hh4b-kl5": 1.18},
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
+        diff_samples=True,
     ),
     # apply 2022 uncertainty to all MC (until 2023 rec.)
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
@@ -341,8 +359,8 @@ def fill_regions(
         region_templates = templates_summed[region]
 
         pass_region = region.startswith("pass")
-        region_noblinded = region.split("MCBlinded")[0]
-        blind_str = "MCBlinded" if region.endswith("MCBlinded") else ""
+        region_noblinded = region.split(MCB_LABEL)[0]
+        blind_str = MCB_LABEL if region.endswith(MCB_LABEL) else ""
 
         logging.info("starting region: %s" % region)
         ch = rl.Channel(region.replace("_", ""))  # can't have '_'s in name
@@ -473,7 +491,7 @@ def fill_regions(
 
         if bblite and args.mcstats:
             # tie MC stats parameters together in blinded and "unblinded" region
-            channel_name = region
+            channel_name = region_noblinded
             ch.autoMCStats(
                 channel_name=f"{CMS_PARAMS_LABEL}_{channel_name}",
                 threshold=args.mcstats_threshold,
@@ -485,7 +503,6 @@ def fill_regions(
 
 
 def alphabet_fit(
-    pass_bin: str,
     model: rl.Model,
     shape_vars: list[ShapeVar],
     templates_summed: dict,
@@ -495,25 +512,11 @@ def alphabet_fit(
     shape_var = shape_vars[0]
     m_obs = rl.Observable(shape_var.name, shape_var.bins)
 
-    # QCD overall pass / fail efficiency
-    qcd_eff = (
-        templates_summed[pass_bin][qcd_key, :].sum().value
-        / templates_summed["fail"][qcd_key, :].sum().value
-    )
+    ##########################
+    # Setup fail region first
+    ##########################
 
-    # transfer factor
-    tf_dataResidual = rl.BasisPoly(
-        f"{CMS_PARAMS_LABEL}_tf_dataResidual",
-        (shape_var.order,),
-        [shape_var.name],
-        basis="Bernstein",
-        limits=(-20, 20),
-        square_params=True,
-    )
-    tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
-    tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
-
-    # qcd params
+    # Independent nuisances to float QCD in each fail bin
     qcd_params = np.array(
         [
             rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_tf_dataResidual_Bin{i}", 0)
@@ -521,11 +524,12 @@ def alphabet_fit(
         ]
     )
 
-    for blind_str in ["", "MCBlinded"]:
-        passChName = f"{pass_bin}{blind_str}".replace("_", "")
+    fail_qcd_samples = {}
+
+    for blind_str in ["", MCB_LABEL]:
         failChName = f"fail{blind_str}".replace("_", "")
+        logging.info(f"Setting up fail region {failChName}")
         failCh = model[failChName]
-        passCh = model[passChName]
 
         # sideband fail
         # was integer, and numpy complained about subtracting float from it
@@ -561,20 +565,50 @@ def alphabet_fit(
         )
         failCh.addSample(fail_qcd)
 
-        pass_qcd = rl.TransferFactorSample(
-            f"{passChName}_{CMS_PARAMS_LABEL}_qcd_datadriven",
-            rl.Sample.BACKGROUND,
-            tf_params_pass,
-            fail_qcd,
-            min_val=min_qcd_val,
+        fail_qcd_samples[blind_str] = fail_qcd
+
+    ##########################
+    # Now do signal regions
+    ##########################
+
+    for sr in signal_regions:
+        # QCD overall pass / fail efficiency
+        qcd_eff = (
+            templates_summed[sr][qcd_key, :].sum().value
+            / templates_summed["fail"][qcd_key, :].sum().value
         )
-        passCh.addSample(pass_qcd)
+        print("qcd eff ", qcd_eff)
+
+        # transfer factor
+        tf_dataResidual = rl.BasisPoly(
+            f"{CMS_PARAMS_LABEL}_tf_dataResidual_{sr}",
+            (shape_var.orders[sr],),
+            [shape_var.name],
+            basis="Bernstein",
+            limits=(-20, 20),
+            square_params=True,
+        )
+        tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
+        tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
+
+        for blind_str in ["", MCB_LABEL]:
+            passChName = f"{sr}{blind_str}".replace("_", "")
+            passCh = model[passChName]
+
+            pass_qcd = rl.TransferFactorSample(
+                f"{passChName}_{CMS_PARAMS_LABEL}_qcd_datadriven",
+                rl.Sample.BACKGROUND,
+                tf_params_pass,
+                fail_qcd_samples[blind_str],
+                min_val=min_qcd_val,
+            )
+            passCh.addSample(pass_qcd)
 
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
     regions: list[str] = [
-        f"{pf}{blind_str}" for pf in [args.bin_name, "fail"] for blind_str in ["", "MCBlinded"]
+        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in ["", MCB_LABEL]
     ]
 
     # build actual fit model now
@@ -596,7 +630,6 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     ]
 
     fit_args = [
-        args.bin_name,
         model,
         shape_vars,
         templates_summed,
@@ -636,7 +669,11 @@ def main(args):
 
     # [mH(bb)]
     shape_vars = [
-        ShapeVar(name=axis.name, bins=axis.edges, order=args.nTF)
+        ShapeVar(
+            name=axis.name,
+            bins=axis.edges,
+            orders={sr: args.nTF[i] for i, sr in enumerate(signal_regions)},
+        )
         for _, axis in enumerate(sample_templates.axes[1:])
     ]
 

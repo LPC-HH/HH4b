@@ -20,8 +20,9 @@ seed=42
 numtoys=100
 order=0
 year="2022EE"
+passbin=1
 
-options=$(getopt -o "tfdlo:s:y" --long "cardstag:,templatestag:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:,year:" -- "$@")
+options=$(getopt -o "tfdlo:s:y" --long "cardstag:,templatestag:,goftoys,ffits,dfit,limits,order:,numtoys:,seed:,year:,passbin:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -62,6 +63,10 @@ while true; do
             shift
             year=$1
             ;;
+        --passbin)
+            shift
+            passbin=$1
+	    ;;
         --)
             shift
             break;;
@@ -78,14 +83,14 @@ while true; do
 done
 
 echo "Arguments: cardstag=$cards_tag templatestag=$templates_tag dfit=$dfit \
-goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$year"
+goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$year passbin=$passbin"
 
 
 ####################################################################################################
 # Set up fit args
 ####################################################################################################
 
-templates_dir="/uscms/home/cmantill/nobackup/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
+templates_dir="/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
 cards_dir="cards/f_tests/${cards_tag}/"
 mkdir -p "${cards_dir}"
 echo "Saving datacards to ${cards_dir}"
@@ -96,7 +101,7 @@ wsm_snapshot=higgsCombineSnapshot.MultiDimFit.mH125
 outsdir="./outs"
 
 # nonresoant args
-maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passMCBlinded=0,mask_failMCBlinded=0"
+maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -118,13 +123,13 @@ freezeparamsblinded=${freezeparamsblinded%,}
 
 for ord in {0..3}
 do
-    model_name="nTF_${ord}"
+    model_name="passbin${passbin}_nTF_${ord}"
 
     # create datacards if they don't already exist
     if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}"
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" --regions pass_bin${passbin}
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
@@ -133,15 +138,15 @@ do
     # make workspace, background-only fit, GoF on data if they don't already exist
     if [ ! -f "./higgsCombineData.GoodnessOfFit.mH125.root" ]; then
         echo "Making workspace, doing b-only fit and gof on data"
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -wbg
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -wbg --passbin=${passbin}
     fi
 
     if [ $dfit = 1 ]; then
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -d
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -d --passbin=${passbin}
     fi
 
     if [ $limits = 1 ]; then
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -l
+	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -l --passbin=${passbin}
     fi
 
     cd - || exit
@@ -152,7 +157,7 @@ done
 # Generate toys for lower order
 ####################################################################################################
 
-model_name="nTF_$order"
+model_name="passbin${passbin}_nTF_${order}"
 toys_name=$order
 cd "${cards_dir}/${model_name}/" || exit
 toys_file="$(pwd)/higgsCombineToys${toys_name}.GenerateOnly.mH125.$seed.root"
@@ -181,7 +186,7 @@ fi
 if [ $ffits = 1 ]; then
     for ord in $order $((order+1))
     do
-        model_name="nTF_${ord}"
+	model_name="passbin${passbin}_nTF_${ord}"
         echo "Fits for $model_name"
 
         cd "${cards_dir}/${model_name}/" || exit

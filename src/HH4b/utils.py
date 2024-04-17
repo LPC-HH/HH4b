@@ -116,7 +116,10 @@ def get_cutflow(pickles_path, year, sample_name):
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-        out_dict = pickle.load(file)
+        try:
+            out_dict = pickle.load(file)
+        except RuntimeError:
+            print(f"Problem opening {pickles_path}/{file_name}")
         cutflow = out_dict[year][sample_name]["cutflow"]  # index by year, then sample name
 
     for file_name in out_pickles[1:]:
@@ -136,12 +139,18 @@ def get_nevents(pickles_path, year, sample_name):
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-        out_dict = pickle.load(file)
+        try:
+            out_dict = pickle.load(file)
+        except EOFError:
+            print(f"Problem opening {pickles_path}/{file_name}")
         nevents = out_dict[year][sample_name]["nevents"]  # index by year, then sample name
 
     for file_name in out_pickles[1:]:
         with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-            out_dict = pickle.load(file)
+            try:
+                out_dict = pickle.load(file)
+            except EOFError:
+                print(f"Problem opening {pickles_path}/{file_name}")
             nevents += out_dict[year][sample_name]["nevents"]
 
     return nevents
@@ -161,10 +170,12 @@ def get_pickles(pickles_path, year, sample_name):
         out = out[sample_name]
 
     for file_name in out_pickles[1:]:
-        with Path(f"{pickles_path}/{file_name}").open("rb") as file:
-            out_dict = pickle.load(file)[year][sample_name]
-            out = accumulate([out, out_dict])
-
+        try:
+            with Path(f"{pickles_path}/{file_name}").open("rb") as file:
+                out_dict = pickle.load(file)[year][sample_name]
+                out = accumulate([out, out_dict])
+        except:
+            warnings.warn(f"Not able to open file {pickles_path}/{file_name}", stacklevel=1)
     return out
 
 
@@ -247,6 +258,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
+    # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -294,6 +306,18 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
+            """
+            # select events if in testing
+            if select_testing:
+                if year == "2022EE" and label in ["qcd", "ttbar", "hh4b"]:
+                    # hard code
+                    print(events["weight"])
+                    evt_list = np.load(f"bdt_trainings_run3/v1_msd30/inferences/2022EE/evt_{label}.npy")
+                    events_tmp = events[["event"]].droplevel(1, axis=1)
+                    events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
+                    events = events[events.index.isin(events_tmp.index)]
+            """
+
             # normalize by total events
             try:
                 totals = get_pickles(pickles_path, year, sample)["totals"]
@@ -315,7 +339,7 @@ def load_samples(
                 variations=variations,
                 weight_shifts=weight_shifts,
             )
-
+            
             events_dict[label].append(events)
             print(f"Loaded {sample: <50}: {len(events)} entries")
 
@@ -464,6 +488,7 @@ def singleVarHist(
     weight_key: str = "finalWeight",
     selection: dict | None = None,
     sf: list[str] | None = None,
+    apply_tt_sf: bool = False,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -504,7 +529,7 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and sample == "ttbar":
+        if sf is not None and sample == "ttbar" and apply_tt_sf:
             weight = weight * tau32FittedSF_4(events)
 
         if len(fill_data[var]):

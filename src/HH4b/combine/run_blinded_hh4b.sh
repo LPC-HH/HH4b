@@ -40,8 +40,9 @@ impactsc=0
 seed=42
 numtoys=100
 bias=-1
+passbin=1
 
-options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:" -- "$@")
+options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:,passbin:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -90,6 +91,10 @@ while true; do
             shift
             bias=$1
             ;;
+        --passbin)
+            shift
+            passbin=$1
+            ;;
         --)
             shift
             break;;
@@ -107,7 +112,7 @@ done
 
 echo "Arguments: workspace=$workspace bfit=$bfit limits=$limits \
 significance=$significance dfit=$dfit gofdata=$gofdata goftoys=$goftoys \
-seed=$seed numtoys=$numtoys"
+seed=$seed numtoys=$numtoys passbin=$passbin"
 
 
 ####################################################################################################
@@ -128,9 +133,15 @@ outsdir=${cards_dir}/outs
 mkdir -p $outsdir
 
 # args
-ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt"
-maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_failMCBlinded=0"
-maskblindedargs="mask_passbin1=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_failMCBlinded=1"
+if [ $passbin = 0 ]; then
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt passbin2=${cards_dir}/passbin2.txt passbin2MCBlinded=${cards_dir}/passbin2MCBlinded.txt passbin3=${cards_dir}/passbin3.txt passbin3MCBlinded=${cards_dir}/passbin3MCBlinded.txt"
+    maskunblindedargs="mask_passbin1=1,mask_passbin2=1,mask_passbin3=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_passbin2MCBlinded=0,mask_passbin3MCBlinded=0,mask_failMCBlinded=0"
+    maskblindedargs="mask_passbin1=0,mask_passbin2=0,mask_passbin3=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_passbin2MCBlinded=1,mask_passbin3MCBlinded=1,mask_failMCBlinded=1"
+else
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin${passbin}=${cards_dir}/passbin${passbin}.txt passbin1MCBlinded=${cards_dir}/passbin${passbin}MCBlinded.txt"
+    maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
+    maskblindedargs="mask_passbin${passbin}=0,mask_fail=0,mask_passbin${passbin}MCBlinded=1,mask_failMCBlinded=1"
+fi
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -195,8 +206,8 @@ if [ $bfit = 1 ]; then
     echo "Blinded background-only fit"
     combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 \
     --cminDefaultMinimizerStrategy 1 \
-    --setParameters "${maskunblindedargs}","${setparamsblinded}",r=0  \
-    --freezeParameters r,"${freezeparamsblinded}" \
+    --setParameters ${maskunblindedargs},${setparamsblinded},r=0  \
+    --freezeParameters r,${freezeparamsblinded} \
     -n Snapshot 2>&1 | tee $outsdir/MultiDimFit.txt
 else
     if [ ! -f "higgsCombineSnapshot.MultiDimFit.mH125.root" ]; then
@@ -211,7 +222,7 @@ if [ $limits = 1 ]; then
     combine -M AsymptoticLimits -m 125 -n "" -d ${wsm_snapshot}.root --snapshotName MultiDimFit -v 9 \
     --saveWorkspace --saveToys --bypassFrequentistFit \
     ${unblindedparams},r=0 -s "$seed" \
-    --floatParameters "${freezeparamsblinded}",r --toysFrequentist --run blind 2>&1 | tee $outsdir/AsymptoticLimits.txt
+    --floatParameters ${freezeparamsblinded},r --toysFrequentist --run blind 2>&1 | tee $outsdir/AsymptoticLimits.txt
 fi
 
 
@@ -220,15 +231,15 @@ if [ $significance = 1 ]; then
     combine -M Significance -d ${wsm_snapshot}.root -n "" --significance -m 125 --snapshotName MultiDimFit -v 9 \
     -t -1 --expectSignal=1 --saveWorkspace --saveToys --bypassFrequentistFit \
     ${unblindedparams},r=1 \
-    --floatParameters "${freezeparamsblinded}",r --toysFrequentist 2>&1 | tee $outsdir/Significance.txt
+    --floatParameters ${freezeparamsblinded},r --toysFrequentist 2>&1 | tee $outsdir/Significance.txt
 fi
 
 
 if [ $dfit = 1 ]; then
     echo "Fit Diagnostics"
     combine -M FitDiagnostics -m 125 -d ${wsm}.root \
-    --setParameters "${maskunblindedargs}","${setparamsblinded}" \
-    --freezeParameters "${freezeparamsblinded}" \
+    --setParameters ${maskunblindedargs},${setparamsblinded} \
+    --freezeParameters ${freezeparamsblinded} \
     --cminDefaultMinimizerStrategy 1 \
     -n Blinded --ignoreCovWarning -v 9 2>&1 | tee $outsdir/FitDiagnostics.txt
     # --saveShapes --saveNormalizations --saveWithUncertainties --saveOverallShapes \
@@ -243,7 +254,7 @@ if [ $gofdata = 1 ]; then
     echo "GoF on data"
     combine -M GoodnessOfFit -d ${wsm_snapshot}.root --algo saturated -m 125 \
     --snapshotName MultiDimFit --bypassFrequentistFit \
-    --setParameters "${maskunblindedargs}",r=0 \
+    --setParameters ${maskunblindedargs},r=0 \
     --freezeParameters r \
     -n Data -v 9 2>&1 | tee $outsdir/GoF_data.txt
 fi
@@ -253,7 +264,7 @@ if [ "$goftoys" = 1 ]; then
     echo "GoF on toys"
     combine -M GoodnessOfFit -d ${wsm_snapshot}.root --algo saturated -m 125 \
     --snapshotName MultiDimFit --bypassFrequentistFit \
-    --setParameters "${maskunblindedargs}",r=0 \
+    --setParameters ${maskunblindedargs},r=0 \
     --freezeParameters r --saveToys \
     -n Toys -v 9 -s "$seed" -t "$numtoys" --toysFrequentist 2>&1 | tee $outsdir/GoF_toys.txt
 fi
@@ -271,7 +282,7 @@ if [ "$impactsi" = 1 ]; then
     combineTool.py -M Impacts --snapshotName MultiDimFit -m 125 -n "impacts" \
     -t -1 --bypassFrequentistFit --toysFrequentist --expectSignal 1 \
     -d ${wsm_snapshot}.root --doInitialFit --robustFit 1 \
-    "${unblindedparams}" --floatParameters "${freezeparamsblinded}" \
+    ${unblindedparams} --floatParameters ${freezeparamsblinded} \
      --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_init.txt
 fi
 
@@ -284,7 +295,7 @@ if [ "$impactsf" != 0 ]; then
     combine -M MultiDimFit -n _paramFit_impacts_"$impactsf" --algo impact --redefineSignalPOIs r -P "$impactsf" \
     --floatOtherPOIs 1 --saveInactivePOI 1 --snapshotName MultiDimFit -d ${wsm_snapshot}.root \
     -t -1 --bypassFrequentistFit --toysFrequentist --expectSignal 1 --robustFit 1 \
-    "${unblindedparams}" --floatParameters "${freezeparamsblinded}" \
+    ${unblindedparams} --floatParameters ${freezeparamsblinded} \
     --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 -m 125 | tee $outsdir/Impacts_"$impactsf".txt
 
     # Old Impacts command:
@@ -301,8 +312,8 @@ if [ "$impactsc" != 0 ]; then
     echo "Collecting impacts"
     combineTool.py -M Impacts --snapshotName MultiDimFit \
     -m 125 -n "impacts" -d ${wsm_snapshot}.root \
-    --setParameters "${maskblindedargs}" --floatParameters "${freezeparamsblinded}" \
-    -t -1 --named "$impactsc" \
+    --setParameters ${maskblindedargs} --floatParameters ${freezeparamsblinded} \
+    -t -1 --named $impactsc \
     --setParameterRanges r=-0.5,20 -v 1 -o impacts.json 2>&1 | tee $outsdir/Impacts_collect.txt
 
     plotImpacts.py -i impacts.json -o impacts
@@ -313,8 +324,23 @@ if [ "$bias" != -1 ]; then
     echo "Bias test with bias $bias"
     # setting verbose > 0 here can lead to crazy large output files (~10-100GB!) because of getting
     # stuck in negative yield areas
+
+    if [ $passbin = 1 ]; then
+	rmin="-15"
+	rmax="20"
+    elif [ $passbin = 2 ]; then
+	rmin="-30"
+	rmax="40"
+    elif [ $passbin = 3 ]; then
+	rmin="-150"
+	rmax="200"
+    else
+	rmin="-15"
+	rmax="20"
+    fi
+
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-15" --rMax 20 \
+    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
     ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
     --robustFit=1 -t "$numtoys" -s "$seed" \
