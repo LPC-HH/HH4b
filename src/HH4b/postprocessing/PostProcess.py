@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import os
 import sys
+from pathlib import Path
 
 import hist
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from HH4b import postprocessing, run_utils
+from HH4b import hh_vars, postprocessing, run_utils, utils
 from HH4b.postprocessing import Region
 from HH4b.utils import ShapeVar, load_samples
 
@@ -181,7 +181,7 @@ def load_run3_samples(args, year):
         samples_run3[year],
         year,
         filters=filters,
-        columns=load_columns_year,
+        columns=utils.format_columns(load_columns_year),
         variations=False,
     )
 
@@ -229,7 +229,7 @@ def load_run3_samples(args, year):
                 f"../boosted/bdt_trainings_run3/{model_name}/inferences/2022EE/evt_{key}.npy"
             )
             bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
-            bdt_events["weight"] *= 1 / 0.4
+            bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
 
         # extra selection
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
@@ -310,7 +310,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
             elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
-                raise RuntimeError
+                raise ValueError("Invalid FOM")
 
             if nevents_signal > 0.5:
                 cuts.append(bdt_cut)
@@ -344,7 +344,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
                 )
     fig.tight_layout()
     fig.savefig("figofmerit.png")
-    fig.savefig("figofmerit.pdf")
+    fig.savefig("figofmerit.pdf", bbox_inches="tight")
 
 
 def scan_fom_bin2(
@@ -406,7 +406,7 @@ def scan_fom_bin2(
             elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
-                raise RuntimeError
+                raise ValueError("Invalid FOM")
 
             if nevents_signal > 0.5:
                 cuts.append(bdt_cut)
@@ -487,9 +487,8 @@ def postprocess_run3(args):
     )
 
     # load samples
-    years = args.years.split(",")
     events_dict_postprocess = {}
-    for year in years:
+    for year in args.years:
         events_dict_postprocess[year] = load_run3_samples(args, year)
 
     # create combined datasets
@@ -518,10 +517,10 @@ def postprocess_run3(args):
             events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
         )
 
-    templ_dir = f"./templates/{args.template_dir}"
+    templ_dir = Path("templates") / args.templates_tag
     year = "2022-2023"
-    os.system(f"mkdir -p {templ_dir}/cutflows/{year}")
-    os.system(f"mkdir -p {templ_dir}/{year}")
+    (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+    (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
@@ -540,21 +539,21 @@ def postprocess_run3(args):
         bg_keys=bkg_keys,
         plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
-        show=True,
+        show=False,
         energy=13.6,
     )
 
     # save templates per year
-    postprocessing.save_templates(templates, f"{templ_dir}/{year}_templates.pkl", fit_shape_var)
+    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--template-dir",
+        "--templates-tag",
         type=str,
         required=True,
-        help="output pickle directory of hist.Hist templates",
+        help="output pickle directory of hist.Hist templates inside the ./templates dir",
     )
     parser.add_argument(
         "--tag",
@@ -565,7 +564,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--years",
         type=str,
-        default="2022,2022EE,2023,2023BPix",
+        nargs="+",
+        default=hh_vars.years,
+        choices=hh_vars.years,
         help="years to postprocess",
     )
     parser.add_argument(

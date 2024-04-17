@@ -6,7 +6,7 @@ Authors: Raghav Kansal, Cristina Suarez
 
 from __future__ import annotations
 
-years = ["2022", "2022EE"]
+years = ["2022", "2022EE", "2023", "2023BPix"]
 
 # in pb^-1
 LUMI = {
