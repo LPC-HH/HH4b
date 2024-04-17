@@ -17,7 +17,8 @@
 #
 # Specify seed with --seed (default 42) and number of toys with --numtoys (default 100)
 #
-# Usage ./run_blinded_hh4b.sh [-wblsdgt] [--numtoys 100] [--seed 42]
+# Usage ./run_blinded_hh4b.sh [-wblsdgt] [--numtoys 100] [--seed 42] [--passbin 1]
+# --passbin X will do the fit only for bin X, or if X = 0 (default), will do for all
 #
 # Author: Raghav Kansal
 ####################################################################################################
@@ -40,7 +41,7 @@ impactsc=0
 seed=42
 numtoys=100
 bias=-1
-passbin=1
+passbin=0
 
 options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:,passbin:" -- "$@")
 eval set -- "$options"

@@ -21,13 +21,6 @@ from HH4b.utils import ShapeVar, load_samples
 sys.path.append("../boosted/bdt_trainings_run3/")
 
 
-XBB_CUT_BIN1 = 0.92  # 0.9
-BDT_CUT_BIN1 = 0.94  # 0.97
-XBB_CUT_BIN2 = 0.8
-BDT_CUT_BIN2 = 0.68  # 0.7
-BDT_CUT_FAIL = 0.03
-
-
 def load_run3_samples(args, year):
     # modify as needed
     input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{args.tag}"
@@ -238,22 +231,24 @@ def load_run3_samples(args, year):
 
         # define category
         bdt_events["Category"] = 5  # all events
-        mask_bin1 = (bdt_events["H2Xbb"] > XBB_CUT_BIN1) & (bdt_events["bdt_score"] > BDT_CUT_BIN1)
+        mask_bin1 = (bdt_events["H2Xbb"] > args.txbb_wps[0]) & (
+            bdt_events["bdt_score"] > args.bdt_wps[0]
+        )
         bdt_events.loc[mask_bin1, "Category"] = 1
-        mask_corner = (bdt_events["H2Xbb"] < XBB_CUT_BIN1) & (
-            bdt_events["bdt_score"] < BDT_CUT_BIN1
+        mask_corner = (bdt_events["H2Xbb"] < args.txbb_wps[0]) & (
+            bdt_events["bdt_score"] < args.bdt_wps[0]
         )
         mask_bin2 = (
-            (bdt_events["H2Xbb"] > XBB_CUT_BIN2)
-            & (bdt_events["bdt_score"] > BDT_CUT_BIN2)
+            (bdt_events["H2Xbb"] > args.txbb_wps[1])
+            & (bdt_events["bdt_score"] > args.bdt_wps[1])
             & ~(mask_bin1)
             & ~(mask_corner)
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
-        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL)
+        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2])
         bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
-            (bdt_events["H2Xbb"] < XBB_CUT_BIN2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL),
+            (bdt_events["H2Xbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2]),
             "Category",
         ] = 4
 
@@ -514,8 +509,14 @@ def postprocess_run3(args):
     if args.fom_scan:
         scan_fom(events_combined, mass=args.mass)
         scan_fom_bin2(
-            events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
+            events_combined,
+            xbb_cut_bin1=args.txbb_wps[0],
+            bdt_cut_bin1=args.bdt_wps[0],
+            mass=args.mass,
         )
+
+    if not args.templates:
+        return
 
     templ_dir = Path("templates") / args.templates_tag
     year = "2022-2023"
@@ -576,7 +577,25 @@ if __name__ == "__main__":
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
+
+    parser.add_argument(
+        "--txbb-wps",
+        type=float,
+        nargs=2,
+        default=[0.92, 0.8],
+        help="TXbb Bin 1, Bin 2 WPs",
+    )
+
+    parser.add_argument(
+        "--bdt-wps",
+        type=float,
+        nargs=3,
+        default=[0.94, 0.68, 0.03],
+        help="BDT Bin 1, Bin 2, Fail WPs",
+    )
+
     run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scan")
+    run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     args = parser.parse_args()
 
     postprocess_run3(args)

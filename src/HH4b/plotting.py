@@ -577,7 +577,7 @@ def ratioHistPlot(
             linewidth=2,
             label=bg_labels,
             color=bg_colours,
-            flow="none",
+            # flow="none",
         )
 
     # signal samples
@@ -589,7 +589,7 @@ def ratioHistPlot(
             linewidth=2,
             label=list(sig_labels.values()),
             color=sig_colours,
-            flow="none",
+            # flow="none",
         )
 
     # plot signal errors
@@ -619,7 +619,7 @@ def ratioHistPlot(
             label=label_by_sample[data_key],
             markersize=20,
             color="black",
-            flow="none",
+            # flow="none",
         )
 
     if log:
