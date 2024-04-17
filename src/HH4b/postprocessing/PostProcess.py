@@ -262,7 +262,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
     def get_nevents_data(events, xbb_cut, bdt_cut):
         cut_xbb = events["H2Xbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
-        cut_msd = (events["H2Msd"] > 30)
+        cut_msd = events["H2Msd"] > 30
 
         # get yield between 75-95
         cut_mass_0 = (events[mass] < 95) & (events[mass] > 75)
@@ -298,7 +298,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
 
             if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
-            elif fom == "2sqrt(b)/s": 
+            elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
                 raise RuntimeError
@@ -338,7 +338,9 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
     fig.savefig("figofmerit.pdf")
 
 
-def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, fom="2sqrt(b)/s", mass="H2Msd"):
+def scan_fom_bin2(
+    events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, fom="2sqrt(b)/s", mass="H2Msd"
+):
     """
     Scan figure of merit for bin2
     """
@@ -352,7 +354,7 @@ def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, fom="2sq
             & ~(cut_bin1)
             & ~(cut_corner)
         )
-        cut_msd = (events["H2Msd"] > 30)
+        cut_msd = events["H2Msd"] > 30
 
         # get yield between 75-95
         cut_mass_0 = (events[mass] < 95) & (events[mass] > 75)
@@ -371,7 +373,7 @@ def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97, fom="2sq
             & ~(cut_bin1)
             & ~(cut_corner)
         )
-        cut_msd = (events["H2Msd"] > 30)
+        cut_msd = events["H2Msd"] > 30
         cut_mass = (events[mass] > 95) & (events[mass] < 135)
 
         # get yield between 95 and 135
