@@ -339,7 +339,7 @@ def load_samples(
                 variations=variations,
                 weight_shifts=weight_shifts,
             )
-            
+
             events_dict[label].append(events)
             print(f"Loaded {sample: <50}: {len(events)} entries")
 
