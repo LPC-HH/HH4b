@@ -24,7 +24,7 @@ sys.path.append("../boosted/bdt_trainings_run3/")
 XBB_CUT_BIN1 = 0.92  # 0.9
 BDT_CUT_BIN1 = 0.94  # 0.97
 XBB_CUT_BIN2 = 0.8
-BDT_CUT_BIN2 = 0.68 # 0.7
+BDT_CUT_BIN2 = 0.68  # 0.7
 BDT_CUT_FAIL = 0.03
 
 
