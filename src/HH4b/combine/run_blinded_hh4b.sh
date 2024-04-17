@@ -40,8 +40,9 @@ impactsc=0
 seed=42
 numtoys=100
 bias=-1
+passbin=1
 
-options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:" -- "$@")
+options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:,passbin:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -90,6 +91,10 @@ while true; do
             shift
             bias=$1
             ;;
+        --passbin)
+            shift
+            passbin=$1
+            ;;
         --)
             shift
             break;;
@@ -107,7 +112,7 @@ done
 
 echo "Arguments: workspace=$workspace bfit=$bfit limits=$limits \
 significance=$significance dfit=$dfit gofdata=$gofdata goftoys=$goftoys \
-seed=$seed numtoys=$numtoys"
+seed=$seed numtoys=$numtoys passbin=$passbin"
 
 
 ####################################################################################################
@@ -128,9 +133,15 @@ outsdir=${cards_dir}/outs
 mkdir -p $outsdir
 
 # args
-ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt"
-maskunblindedargs="mask_passbin1=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_failMCBlinded=0"
-maskblindedargs="mask_passbin1=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_failMCBlinded=1"
+if [ $passbin = 0 ]; then
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt passbin2=${cards_dir}/passbin2.txt passbin2MCBlinded=${cards_dir}/passbin2MCBlinded.txt passbin3=${cards_dir}/passbin3.txt passbin3MCBlinded=${cards_dir}/passbin3MCBlinded.txt"
+    maskunblindedargs="mask_passbin1=1,mask_passbin2=1,mask_passbin3=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_passbin2MCBlinded=0,mask_passbin3MCBlinded=0,mask_failMCBlinded=0"
+    maskblindedargs="mask_passbin1=0,mask_passbin2=0,mask_passbin3=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_passbin2MCBlinded=1,mask_passbin3MCBlinded=1,mask_failMCBlinded=1"
+else
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin${passbin}=${cards_dir}/passbin${passbin}.txt passbin1MCBlinded=${cards_dir}/passbin${passbin}MCBlinded.txt"
+    maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
+    maskblindedargs="mask_passbin${passbin}=0,mask_fail=0,mask_passbin${passbin}MCBlinded=1,mask_failMCBlinded=1"
+fi
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -313,8 +324,23 @@ if [ "$bias" != -1 ]; then
     echo "Bias test with bias $bias"
     # setting verbose > 0 here can lead to crazy large output files (~10-100GB!) because of getting
     # stuck in negative yield areas
+
+    if [ $passbin = 1 ]; then
+	rmin="-15"
+	rmax="20"
+    elif [ $passbin = 2 ]; then
+	rmin="-30"
+	rmax="40"
+    elif [ $passbin = 3 ]; then
+	rmin="-150"
+	rmax="200"
+    else
+	rmin="-15"
+	rmax="20"
+    fi
+
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin "-15" --rMax 20 \
+    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
     ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
     --robustFit=1 -t "$numtoys" -s "$seed" \

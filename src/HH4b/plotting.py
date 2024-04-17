@@ -85,6 +85,7 @@ color_by_sample = {
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
     "ttbar": colours["darkblue"],
+    "ttlep": "cadetblue",
     "qcd": colours["canary"],
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
@@ -110,6 +111,7 @@ label_by_sample = {
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
+    "ttlep": r"$t\bar{t}$ + Jets (Lep)",
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
@@ -479,6 +481,7 @@ def ratioHistPlot(
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
+    logx: bool = False,
     ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
     significance_dir: str = "right",
@@ -621,6 +624,8 @@ def ratioHistPlot(
 
     if log:
         ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
