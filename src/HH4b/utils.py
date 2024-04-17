@@ -175,7 +175,7 @@ def get_pickles(pickles_path, year, sample_name):
                 out_dict = pickle.load(file)[year][sample_name]
                 out = accumulate([out, out_dict])
         except:
-            warnings.warn(f"Not able to open file {pickles_path}/{file_name}")
+            warnings.warn(f"Not able to open file {pickles_path}/{file_name}", stacklevel=1)
     return out
 
 
