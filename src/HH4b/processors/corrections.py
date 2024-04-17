@@ -8,6 +8,7 @@ See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
 
 Authors: Raghav Kansal, Cristina Suarez
 """
+
 from __future__ import annotations
 
 import gzip

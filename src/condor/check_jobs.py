@@ -3,6 +3,7 @@ Checks that there is an output for each job submitted.
 
 Author: Raghav Kansal
 """
+
 from __future__ import annotations
 
 import argparse
