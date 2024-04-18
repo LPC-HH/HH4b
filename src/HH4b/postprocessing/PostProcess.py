@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import os
 import sys
+from pathlib import Path
 
 import hist
 import matplotlib.pyplot as plt
@@ -14,18 +14,11 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from HH4b import postprocessing
+from HH4b import hh_vars, postprocessing, run_utils, utils
 from HH4b.postprocessing import Region
-from HH4b.utils import ShapeVar, format_columns, load_samples
+from HH4b.utils import ShapeVar, load_samples
 
 sys.path.append("../boosted/bdt_trainings_run3/")
-
-
-XBB_CUT_BIN1 = 0.92  # 0.9
-BDT_CUT_BIN1 = 0.94  # 0.97
-XBB_CUT_BIN2 = 0.8
-BDT_CUT_BIN2 = 0.68  # 0.7
-BDT_CUT_FAIL = 0.03
 
 
 def load_run3_samples(args, year):
@@ -144,15 +137,11 @@ def load_run3_samples(args, year):
         ("bbFatJetPNetQCD2HF", 2),
     ]
 
-    # to-do change this to msd>30
     filters = [
         [
             ("('bbFatJetPt', '0')", ">=", 300),
             ("('bbFatJetPt', '1')", ">=", 300),
-            ("('bbFatJetMsd', '0')", "<=", 250),
-            ("('bbFatJetMsd', '1')", "<=", 250),
-            ("('bbFatJetMsd', '0')", ">=", 50),
-            ("('bbFatJetMsd', '1')", ">=", 50),
+            ("('bbFatJetMsd', '0')", ">=", 30),
         ],
     ]
 
@@ -181,8 +170,8 @@ def load_run3_samples(args, year):
         samples_run3[year],
         year,
         filters=filters,
+        columns=utils.format_columns(load_columns_year),
         variations=False,
-        columns=format_columns(load_columns_year),
     )
 
     HLTs = {
@@ -229,7 +218,7 @@ def load_run3_samples(args, year):
                 f"../boosted/bdt_trainings_run3/{model_name}/inferences/2022EE/evt_{key}.npy"
             )
             bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
-            bdt_events["weight"] *= 1 / 0.4
+            bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
 
         # extra selection
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
@@ -238,22 +227,24 @@ def load_run3_samples(args, year):
 
         # define category
         bdt_events["Category"] = 5  # all events
-        mask_bin1 = (bdt_events["H2Xbb"] > XBB_CUT_BIN1) & (bdt_events["bdt_score"] > BDT_CUT_BIN1)
+        mask_bin1 = (bdt_events["H2Xbb"] > args.txbb_wps[0]) & (
+            bdt_events["bdt_score"] > args.bdt_wps[0]
+        )
         bdt_events.loc[mask_bin1, "Category"] = 1
-        mask_corner = (bdt_events["H2Xbb"] < XBB_CUT_BIN1) & (
-            bdt_events["bdt_score"] < BDT_CUT_BIN1
+        mask_corner = (bdt_events["H2Xbb"] < args.txbb_wps[0]) & (
+            bdt_events["bdt_score"] < args.bdt_wps[0]
         )
         mask_bin2 = (
-            (bdt_events["H2Xbb"] > XBB_CUT_BIN2)
-            & (bdt_events["bdt_score"] > BDT_CUT_BIN2)
+            (bdt_events["H2Xbb"] > args.txbb_wps[1])
+            & (bdt_events["bdt_score"] > args.bdt_wps[1])
             & ~(mask_bin1)
             & ~(mask_corner)
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
-        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL)
+        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2])
         bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
-            (bdt_events["H2Xbb"] < XBB_CUT_BIN2) & (bdt_events["bdt_score"] > BDT_CUT_FAIL),
+            (bdt_events["H2Xbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2]),
             "Category",
         ] = 4
 
@@ -310,7 +301,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
             elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
-                raise RuntimeError
+                raise ValueError("Invalid FOM")
 
             if nevents_signal > 0.5:
                 cuts.append(bdt_cut)
@@ -344,7 +335,7 @@ def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
                 )
     fig.tight_layout()
     fig.savefig("figofmerit.png")
-    fig.savefig("figofmerit.pdf")
+    fig.savefig("figofmerit.pdf", bbox_inches="tight")
 
 
 def scan_fom_bin2(
@@ -406,7 +397,7 @@ def scan_fom_bin2(
             elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
-                raise RuntimeError
+                raise ValueError("Invalid FOM")
 
             if nevents_signal > 0.5:
                 cuts.append(bdt_cut)
@@ -487,9 +478,8 @@ def postprocess_run3(args):
     )
 
     # load samples
-    years = args.years.split(",")
     events_dict_postprocess = {}
-    for year in years:
+    for year in args.years:
         events_dict_postprocess[year] = load_run3_samples(args, year)
 
     # create combined datasets
@@ -512,15 +502,22 @@ def postprocess_run3(args):
         events_combined[key] = combined
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
-    scan_fom(events_combined, mass=args.mass)
-    scan_fom_bin2(
-        events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
-    )
+    if args.fom_scan:
+        scan_fom(events_combined, mass=args.mass)
+        scan_fom_bin2(
+            events_combined,
+            xbb_cut_bin1=args.txbb_wps[0],
+            bdt_cut_bin1=args.bdt_wps[0],
+            mass=args.mass,
+        )
 
-    templ_dir = f"./templates/{args.template_dir}"
+    if not args.templates:
+        return
+
+    templ_dir = Path("templates") / args.templates_tag
     year = "2022-2023"
-    os.system(f"mkdir -p {templ_dir}/cutflows/{year}")
-    os.system(f"mkdir -p {templ_dir}/{year}")
+    (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+    (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
@@ -539,21 +536,21 @@ def postprocess_run3(args):
         bg_keys=bkg_keys,
         plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
-        show=True,
+        show=False,
         energy=13.6,
     )
 
     # save templates per year
-    postprocessing.save_templates(templates, f"{templ_dir}/{year}_templates.pkl", fit_shape_var)
+    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--template-dir",
+        "--templates-tag",
         type=str,
         required=True,
-        help="output pickle directory of hist.Hist templates",
+        help="output pickle directory of hist.Hist templates inside the ./templates dir",
     )
     parser.add_argument(
         "--tag",
@@ -564,7 +561,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--years",
         type=str,
-        default="2022,2022EE,2023,2023BPix",
+        nargs="+",
+        default=hh_vars.years,
+        choices=hh_vars.years,
         help="years to postprocess",
     )
     parser.add_argument(
@@ -574,6 +573,25 @@ if __name__ == "__main__":
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
+
+    parser.add_argument(
+        "--txbb-wps",
+        type=float,
+        nargs=2,
+        default=[0.92, 0.8],
+        help="TXbb Bin 1, Bin 2 WPs",
+    )
+
+    parser.add_argument(
+        "--bdt-wps",
+        type=float,
+        nargs=3,
+        default=[0.94, 0.68, 0.03],
+        help="BDT Bin 1, Bin 2, Fail WPs",
+    )
+
+    run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scan")
+    run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     args = parser.parse_args()
 
     postprocess_run3(args)

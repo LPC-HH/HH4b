@@ -441,7 +441,7 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: dict[str, Hist], template_file: str, shape_var: ShapeVar):
+def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
@@ -454,7 +454,7 @@ def save_templates(templates: dict[str, Hist], template_file: str, shape_var: Sh
             utils.blindBins(blinded_template, blind_window)
             templates[f"{label}MCBlinded"] = blinded_template
 
-    with Path(template_file).open("wb") as f:
+    with template_file.open("wb") as f:
         pickle.dump(templates, f)
 
     print("Saved templates to", template_file)
