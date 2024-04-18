@@ -254,7 +254,7 @@ def load_run3_samples(args, year):
     return events_dict_postprocess
 
 
-def scan_fom(events_combined):
+def scan_figom(events_combined):
     """
     Scan figure of merit
     """
@@ -335,7 +335,7 @@ def scan_fom(events_combined):
     fig.savefig("figofmerit.pdf")
 
 
-def scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97):
+def scan_figom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97):
     """
     Scan figure of merit for bin2
     """
@@ -563,8 +563,8 @@ def postprocess_run3(args):
         events_combined[key] = combined
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
-    scan_fom(events_combined)
-    scan_fom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97)
+    scan_figom(events_combined)
+    scan_figom_bin2(events_combined, xbb_cut_bin1=0.9, bdt_cut_bin1=0.97)
     scan_sb(events_combined)
 
     templ_dir = f"./templates/{args.template_dir}"
