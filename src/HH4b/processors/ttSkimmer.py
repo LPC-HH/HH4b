@@ -17,6 +17,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import HH4b
 
+from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
