@@ -124,6 +124,7 @@ mc_samples = OrderedDict(
         ("vhtobb", "vhtobb"),
         ("diboson", "diboson"),
         ("vjets", "vjets"),
+        ("tthtobb", "tthtobb"),
     ]
 )
 
