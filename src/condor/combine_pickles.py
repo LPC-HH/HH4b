@@ -3,6 +3,7 @@ Combines Coffea processor output pickle files
 
 Author(s): Raghav Kansal
 """
+
 from __future__ import annotations
 
 import argparse

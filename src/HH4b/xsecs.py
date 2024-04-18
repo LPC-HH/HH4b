@@ -1,6 +1,7 @@
 """
 Cross Sections for 13.6 TeV,
 """
+
 from __future__ import annotations
 
 BR_WQQ = 0.676
@@ -85,6 +86,7 @@ xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
 
 # Higgs
 # SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
+xsecs["GluGluHto2B_M-125"] = 30.2 * BR_HBB
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
 xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB
@@ -153,6 +155,29 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
+xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0
+xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0
+xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6
+xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1
+xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496
+xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75
+xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221
+xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128
+xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"] = 302.0
+xsecs["Zto2Q-2Jets_PTQQ-100to200_2J"] = 343.9
+xsecs["Zto2Q-2Jets_PTQQ-200to400_1J"] = 21.64
+xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"] = 48.36
+xsecs["Zto2Q-2Jets_PTQQ-400to600_1J"] = 0.7376
+xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"] = 2.683
+xsecs["Zto2Q-2Jets_PTQQ-600_1J"] = 0.08717
+xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
+
+xsecs["WtoLNu-4Jets"] = 55390.0
+xsecs["WtoLNu-2Jets"] = 64481.58
+xsecs["WtoLNu-2Jets_0J"] = 55760.0
+xsecs["WtoLNu-2Jets_1J"] = 9529.0
+xsecs["WtoLNu-2Jets_2J"] = 3532.0
+
 """
 Cross Sections for 13 TeV.
 """
@@ -188,18 +213,10 @@ xsecs["WJetsToQQ_HT-400to600_13TeV"] = 277.0
 xsecs["WJetsToQQ_HT-600to800_13TeV"] = 59.06
 xsecs["WJetsToQQ_HT-800toInf_13TeV"] = 28.75
 
-# xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"]
-# xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"]
-# xsecs["Wto2Q-2Jets_PTQQ-600_2J"]
-
 xsecs["ZJetsToQQ_HT-200to400_13TeV"] = 1012.0
 xsecs["ZJetsToQQ_HT-400to600_13TeV"] = 114.5
 xsecs["ZJetsToQQ_HT-600to800_13TeV"] = 25.41
 xsecs["ZJetsToQQ_HT-800toInf_13TeV"] = 12.91
-
-# xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"]
-# xsecs["Zto2Q-2Jets_PTQQ-200to400_2J"]
-# xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"]
 
 xsecs["GluGluHToBB_Pt-200ToInf_M-125_TuneCP5_MINLO_13TeV-powheg-pythia8"] = 0.27395244
 xsecs["GluGluHToBB_M-125_TuneCP5_MINLO_NNLOPS_13TeV-powheg-pythia8"] = 27.8

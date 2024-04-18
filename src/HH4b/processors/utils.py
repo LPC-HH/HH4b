@@ -3,14 +3,11 @@ Common functions for processors.
 
 Author(s): Raghav Kansal
 """
-from __future__ import annotations
 
-import os
-from pathlib import Path
+from __future__ import annotations
 
 import awkward as ak
 import numpy as np
-import pandas as pd
 from coffea.analysis_tools import PackedSelection
 
 P4 = {
@@ -101,32 +98,10 @@ def select_dicts(dicts_list: list[dict[str, np.ndarray]], sel: np.ndarray):
     }
 
 
-def to_pandas(events: dict[str, np.array]):
-    """
-    Convert our dictionary of numpy arrays into a pandas data frame
-    Uses multi-index columns for numpy arrays with >1 dimension
-    (e.g. FatJet arrays with two columns)
-    """
-    return pd.concat(
-        [pd.DataFrame(v) for k, v in events.items()],
-        axis=1,
-        keys=list(events.keys()),
-    )
-
-
-def dump_table(pddf: pd.DataFrame, fname: str, odir_str: str | None = None) -> None:
-    """
-    Saves pandas dataframe events to './outparquet'
-    """
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-
-    local_dir = (Path() / "outparquet").resolve()
-    if odir_str:
-        local_dir += odir_str
-    os.system(f"mkdir -p {local_dir}")
-
-    # need to write with pyarrow as pd.to_parquet doesn't support different types in
-    # multi-index column names
-    table = pa.Table.from_pandas(pddf)
-    pq.write_table(table, f"{local_dir}/{fname}")
+def remove_variation_suffix(var: str):
+    """removes the variation suffix from the variable name"""
+    if var.endswith("Down"):
+        return var.split("Down")[0]
+    elif var.endswith("Up"):
+        return var.split("Up")[0]
+    return var

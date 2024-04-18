@@ -13,6 +13,7 @@ import mplhep as hep
 import numpy as np
 from hist import Hist
 from hist.intervals import ratio_uncertainty
+from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
 
 from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
@@ -24,12 +25,7 @@ hep.style.use("CMS")
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 
-
-# this is needed for some reason to update the font size for the first plot
-fig, ax = plt.subplots(1, 1, figsize=(12, 12))
-plt.rcParams.update({"font.size": 28})
-plt.close()
-
+mpl.rcParams["font.size"] = 30
 mpl.rcParams["lines.linewidth"] = 2
 mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
@@ -79,6 +75,7 @@ data_err_opts = {
 }
 
 color_by_sample = {
+    "novhhtobb": "aquamarine",
     "gghtobb": "aquamarine",
     "vbfhtobb": "teal",
     "tthtobb": "cadetblue",
@@ -88,14 +85,18 @@ color_by_sample = {
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
     "ttbar": colours["darkblue"],
+    "ttlep": "cadetblue",
     "qcd": colours["canary"],
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
     "diboson": "orchid",
+    "dibosonvjets": "orchid",
     "vjets": colours["green"],
+    "vjetslnu": colours["orange"],
 }
 
 label_by_sample = {
+    "novhhtobb": "ggH+VBF+ttH H(bb)",
     "gghtobb": "ggH(bb)",
     "vbfhtobb": "VBFH(bb)",
     "tthtobb": "ttH(bb)",
@@ -108,12 +109,25 @@ label_by_sample = {
     "hh4b-kl5": r"HH 4b ($\kappa_{\lambda}=5$)",
     "hh4b-kl0": r"HH 4b ($\kappa_{\lambda}=0$)",
     "diboson": "VV",
+    "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
+    "ttlep": r"$t\bar{t}$ + Jets (Lep)",
     "vjets": r"W/Z$(qq)$ + Jets",
+    "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
 }
 
-bg_order = ["vbfhtobb", "vhtobb", "tthtobb", "gghtobb", "diboson", "vjets", "ttbar", "qcd"]
+bg_order_default = [
+    "vbfhtobb",
+    "vhtobb",
+    "tthtobb",
+    "gghtobb",
+    "diboson",
+    "vjets",
+    "vjetslnu",
+    "ttbar",
+    "qcd",
+]
 
 
 def plot_hists(
@@ -126,6 +140,7 @@ def plot_hists(
     logy=True,
     density=False,
     stack=True,
+    show=False,
     bbox_to_anchor=(1.05, 1),
     energy=13.6,
 ):
@@ -353,6 +368,11 @@ def plot_hists(
         if not outpath.exists():
             outpath.mkdir(parents=True)
 
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
         plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
 
 
@@ -388,7 +408,7 @@ def _combine_hbb_bgs(hists, bg_keys):
     return h, bg_keys
 
 
-def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation):
+def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation, bg_order):
     # set up samples, colours and labels
     bg_keys = [key for key in bg_order if key in bg_keys]
     bg_colours = [color_by_sample[sample] for sample in bg_keys]
@@ -402,14 +422,14 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, variation):
     sig_colours = [color_by_sample[sig_key] for sig_key in sig_keys]
     sig_labels = OrderedDict()
     for sig_key, sig_scale in sig_scale_dict.items():
-        label = sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
+        label = label_by_sample.get(sig_key, sig_key)
 
         if sig_scale == 1:
             label = label  # noqa: PLW0127
         elif sig_scale <= 100:
-            label = f"{label} $\\times$ {sig_scale:.0f}"
+            label = f"{label} $\\times$ {sig_scale:.2f}"
         else:
-            label = f"{label} $\\times$ {sig_scale:.1e}"
+            label = f"{label} $\\times$ {sig_scale:.2e}"
 
         sig_labels[sig_key] = label
 
@@ -452,12 +472,16 @@ def ratioHistPlot(
     title: str | None = None,
     name: str = "",
     sig_scale_dict=None,
+    xlim: int | None = None,
+    xlim_low: int | None = None,
     ylim: int | None = None,
     ylim_low: int | None = None,
     show: bool = True,
     variation: tuple | None = None,
     plot_data: bool = True,
+    bg_order=None,
     log: bool = False,
+    logx: bool = False,
     ratio_ylims: list[float] | None = None,
     plot_significance: bool = False,
     significance_dir: str = "right",
@@ -485,6 +509,7 @@ def ratioHistPlot(
         name (str): name of file to save plot
         sig_scale_dict (Dict[str, float]): if scaling signals in the plot, dictionary of factors
           by which to scale each signal
+        xlim_low (optional): x-limit low on plot
         ylim (optional): y-limit on plot
         show (bool): show plots or not
         variation (Tuple): Tuple of
@@ -501,8 +526,11 @@ def ratioHistPlot(
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
     # hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
 
+    if bg_order is None:
+        bg_order = bg_order_default
+
     bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
-        sig_keys, bg_keys, sig_scale_dict, variation
+        sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
 
     # set up plots
@@ -524,28 +552,33 @@ def ratioHistPlot(
         fig, (ax, rax) = plt.subplots(
             2,
             1,
-            figsize=(12, 14),
-            gridspec_kw={"height_ratios": [4, 1], "hspace": 0.07},
+            figsize=(12, 12),
+            gridspec_kw={"height_ratios": [3.5, 1], "hspace": 0.18},
             sharex=True,
         )
 
-    plt.rcParams.update({"font.size": 28})
+    # only use integers
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    plt.rcParams.update({"font.size": 30})
 
     # plot histograms
     ax.set_ylabel("Events")
 
     # background samples
-    hep.histplot(
-        [hists[sample, :] for sample in bg_keys],
-        ax=ax,
-        histtype="fill",
-        sort="yield" if sortyield else None,
-        stack=True,
-        edgecolor="black",
-        linewidth=1,
-        label=bg_labels,
-        color=bg_colours,
-    )
+    if len(bg_keys) > 0:
+        hep.histplot(
+            [hists[sample, :] for sample in bg_keys],
+            ax=ax,
+            histtype="fill",
+            sort="yield" if sortyield else None,
+            stack=True,
+            edgecolor="black",
+            linewidth=2,
+            label=bg_labels,
+            color=bg_colours,
+            # flow="none",
+        )
 
     # signal samples
     if len(sig_scale_dict):
@@ -553,8 +586,10 @@ def ratioHistPlot(
             [hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
             ax=ax,
             histtype="step",
+            linewidth=2,
             label=list(sig_labels.values()),
             color=sig_colours,
+            # flow="none",
         )
 
     # plot signal errors
@@ -569,7 +604,7 @@ def ratioHistPlot(
                 yerr=0,
                 ax=ax,
                 histtype="step",
-                label=[f"{sig_key} {skey}" for sig_key in sig_scale_dict],
+                label=[f"{sig_key} {skey:.2f}".format(skey) for sig_key in sig_scale_dict],
                 alpha=0.6,
                 color=sig_colours[: len(sig_keys)],
             )
@@ -582,16 +617,26 @@ def ratioHistPlot(
             yerr=data_err,
             histtype="errorbar",
             label=label_by_sample[data_key],
+            markersize=20,
             color="black",
+            # flow="none",
         )
 
     if log:
         ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+
+    if xlim_low is not None:
+        if xlim is not None:
+            ax.set_xlim(xlim_low, xlim)
+        else:
+            ax.set_xlim(xlim_low, None)
 
     y_lowlim = ylim_low if ylim_low is not None else 0 if not log else 0.001
 
@@ -603,25 +648,37 @@ def ratioHistPlot(
     ax.set_xlabel("")
 
     # plot ratio below
-    if plot_data:
+    if plot_data and len(bg_keys) > 0:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        yerr = ratio_uncertainty(hists[data_key, :].values(), bg_tot.values(), "poisson")
+
+        tot_val = bg_tot.values()
+        tot_val_zero_mask = tot_val == 0
+        tot_val[tot_val_zero_mask] = 1
+        data_val = hists[data_key, :].values()
+        data_val[tot_val_zero_mask] = 1
+        yerr = ratio_uncertainty(data_val, tot_val, "poisson")
 
         hep.histplot(
-            hists[data_key, :] / (bg_tot.values() + 1e-5),
+            data_val / tot_val,
+            bg_tot.axes[0].edges,
             yerr=yerr,
             ax=rax,
             histtype="errorbar",
+            markersize=20,
             color="black",
-            capsize=4,
+            capsize=0,
         )
+
+        rax.set_xlabel(hists.axes[1].label)
         # print(hists[data_key, :] / (bg_tot.values() + 1e-5))
     else:
         rax.set_xlabel(hists.axes[1].label)
 
-    rax.set_ylabel("Data/MC")
+    rax.set_ylabel("Data/pred.")
     rax.set_ylim(ratio_ylims)
-    rax.grid()
+    minor_locator = mticker.AutoMinorLocator(2)
+    rax.yaxis.set_minor_locator(minor_locator)
+    rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if plot_significance:
         bg_tot = sum([hists[sample, :] for sample in bg_keys]).values()
@@ -647,10 +704,7 @@ def ratioHistPlot(
             [(_asimov_significance(sig, bg_tot), edges) for sig in sigs],
             ax=sax,
             histtype="step",
-            label=[
-                sig_key if sig_key not in label_by_sample else label_by_sample[sig_key]
-                for sig_key in sig_scale_dict
-            ],
+            label=[label_by_sample.get(sig_key, sig_key) for sig_key in sig_scale_dict],
             color=sig_colours[: len(sig_keys)],
         )
 
@@ -674,6 +728,7 @@ def ratioHistPlot(
     else:
         hep.cms.label(
             "Work in Progress",
+            fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
             year=year,
@@ -750,3 +805,138 @@ def mesh2d(
             plt.show()
         else:
             plt.close()
+
+
+def multiROCCurveGrey(
+    rocs: dict, sig_effs: list[float], plot_dir: Path, name: str = "", show: bool = False
+):
+    """Plot multiple ROC curves (e.g. train and test) + multiple signals"""
+    xlim = [0, 1]
+    ylim = [1e-6, 1]
+    line_style = {"colors": "lightgrey", "linestyles": "dashed"}
+
+    plt.figure(figsize=(12, 12))
+    for roc_sigs in rocs.values():
+        for roc in roc_sigs.values():
+            plt.plot(
+                roc["tpr"],
+                roc["fpr"],
+                label=roc["label"],
+                linewidth=2,
+            )
+
+            for sig_eff in sig_effs:
+                y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
+                plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
+                plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
+
+    hep.cms.label(data=False, rlabel="")
+    plt.yscale("log")
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Background efficiency")
+    plt.xlim(*xlim)
+    plt.ylim(*ylim)
+    plt.legend(loc="upper left")
+
+    if len(name):
+        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def _find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
+
+def ROCCurve(
+    roc: dict,
+    xlim=None,
+    ylim=None,
+    thresholds=None,
+    plot_dir: Path = None,
+    name: str = "",
+    show: bool = False,
+):
+    if ylim is None:
+        ylim = [1e-06, 1]
+    if xlim is None:
+        xlim = [0, 1]
+    if thresholds is None:
+        thresholds = []
+
+    th_colours = [
+        # "#36213E",
+        # "#9381FF",
+        # "#1f78b4",
+        # "#a6cee3",
+        # "#32965D",
+        "#7CB518",
+        # "#EDB458",
+        # "#ff7f00",
+        "#a70000",
+    ]
+
+    plt.figure(figsize=(12, 12))
+    plt.plot(
+        roc["tpr"],
+        roc["fpr"],
+        linewidth=2,
+    )
+
+    pths = {th: [[], []] for th in thresholds}
+    for th in thresholds:
+        idx = _find_nearest(roc["thresholds"], th)
+        pths[th][0].append(roc["tpr"][idx])
+        pths[th][1].append(roc["fpr"][idx])
+
+    for k, th in enumerate(thresholds):
+        plt.scatter(
+            *pths[th],
+            marker="o",
+            s=80,
+            label=(rf"$T_{{Xbb}}$ > {th}"),
+            color=th_colours[k],
+            zorder=100,
+        )
+
+        plt.vlines(
+            x=pths[th][0],
+            ymin=0,
+            ymax=pths[th][1],
+            color=th_colours[k],
+            linestyles="dashed",
+            alpha=0.5,
+        )
+
+        plt.hlines(
+            y=pths[th][1],
+            xmin=0,
+            xmax=pths[th][0],
+            color=th_colours[k],
+            linestyles="dashed",
+            alpha=0.5,
+        )
+
+    hep.cms.label(
+        data=False,
+        rlabel="",
+    )
+    plt.yscale("log")
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Background efficiency")
+    plt.xlim(*xlim)
+    plt.ylim(*ylim)
+    plt.legend()
+
+    if len(name):
+        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
