@@ -256,7 +256,7 @@ def evaluate_model(
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
-    y_test: pd.DataFrame, # noqa
+    y_test: pd.DataFrame,  # noqa
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
     # test_size: float, seed: int,
@@ -278,7 +278,7 @@ def evaluate_model(
     y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
 
     # WARNING, if using multiclass should use y_Test?
-    
+
     print("Test ROC with sample weights")
     fpr, tpr, thresholds = roc_curve(yt_test, y_scores, sample_weight=weights_test)
 
@@ -654,10 +654,10 @@ def main(args):
         model,
         model_dir,
         X_test,
-        #y_test,
+        # y_test,
         yt_test,
         weights_test,
-        #args.year,
+        # args.year,
         args.multiclass,
     )
 
