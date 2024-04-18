@@ -243,20 +243,21 @@ def find_nearest(array, value):
 
 
 def multiclass_ROC(
-    #config_name: str,
-    #events_dict: dict,
+    config_name: str,
+    events_dict: dict,
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
-    #y_test: pd.DataFrame,
+    y_test: pd.DataFrame,  
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
-    #test_size: float, seed: int,
-    #year: str,
+    test_size: float, seed: int,
+    year: str,
+    multiclass: bool,
+    legacy: bool,
 ):
     #TODO: select probabilities in y_scores for mc -> binary
-    #TODO: identify use of "scores"
-    #TODO: figure out why hh4b_test and events dict are here
+    
 
     # make and save ROCs for training and testing data
     rocs = OrderedDict()
@@ -290,9 +291,6 @@ def multiclass_ROC(
                 f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
             )
 
-        #include test of ROC without weights?
-
-        # plot BDT scores for test samples?
 
         # Plot and save ROC figure
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -334,19 +332,18 @@ def multiclass_ROC(
 
 
 def evaluate_model(
+    config_name: str,
+    events_dict: dict,
     model: xgb.XGBClassifier,
-    model_dir: str,
-    train: dict[str, pd.DataFrame],
-    X_test: dict[str, pd.DataFrame],
-    test_size: float,
-    sig_keys: list[str],
-    training_keys: list[str],
-    label_encoder: LabelEncoder,
-    equalize_sig_bg: bool,
-    bdtVars: list[str],
-    txbb_threshold: float = 0.98,
+    model_dir: Path,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,  # noqa: ARG001
+    yt_test: pd.DataFrame,
+    weights_test: np.ndarray,
+    test_size: float, seed: int,
     year: str,
-    multiclass: bool = False,
+    multiclass: bool,
+    legacy: bool,
 ):
     """
     1) Saves feature importance
@@ -354,9 +351,7 @@ def evaluate_model(
     3) Combined ROC Curve
     4) Plots BDT score shape
     """
-    #TODO: figure out default value error above
-    #TODO: figure out why hh4b_test and events dict are here
-
+    
     print("Evaluating model")
 
     if multiclass:
