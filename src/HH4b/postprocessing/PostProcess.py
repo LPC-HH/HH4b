@@ -604,7 +604,8 @@ def postprocess_run3(args):
     for year in args.years:
         events_dict_postprocess[year], cutflows[year] = load_run3_samples(args, year)
 
-    processes = ["data", "qcd", "hh4b", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]
+    bkg_keys = ["qcd", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]
+    processes = ["data", "hh4b"] + bkg_keys
 
     # create combined datasets
     # temporarily used 2022EEMC and scale to full luminosity
@@ -624,7 +625,9 @@ def postprocess_run3(args):
             combined = events_dict_postprocess["2022EE"][key].copy()
             combined["weight"] = combined["weight"] * lumi_weight_2022EEtoall
         events_combined[key] = combined
+    # combine ttbar
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
+    events_combined["others"] = pd.concat([events_combined["diboson"], events_combined["vjets"], events_combined["novhhtobb"])
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
@@ -659,8 +662,6 @@ def postprocess_run3(args):
 
     for cyear in args.years:
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
-
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
     print(events_combined["data"].columns)
 
@@ -741,4 +742,5 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "legacy", default=False, help="using legacy pnet txbb and mass")
     args = parser.parse_args()
 
+    print(args)
     postprocess_run3(args)
