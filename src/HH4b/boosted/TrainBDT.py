@@ -31,6 +31,7 @@ plt.rcParams["grid.linewidth"] = 0.5
 plt.rcParams["figure.edgecolor"] = "none"
 plt.style.use(hep.style.CMS)
 
+
 def load_data(data_path: str, year: str):
     """
     Load samples
@@ -327,20 +328,18 @@ def evaluate_model(
         weights[key] = test_dataset["finalWeight"]
         mass_dict[key] = test_dataset["bbFatJetPNetMass"].to_numpy()[:, 1]
         msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
-        xbb_dict[key]= test_dataset["bbFatJetPNetXbb"].to_numpy()[:, 1]
-    for key in ["vhtobb","vjets","ttlep"]:
-        preds = model.predict_proba(
-            make_bdt_dataframe.bdt_dataframe(events_dict[key])
-        )
+        xbb_dict[key] = test_dataset["bbFatJetPNetXbb"].to_numpy()[:, 1]
+    for key in ["vhtobb", "vjets", "ttlep"]:
+        preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
         scores[key] = preds[:, 0] if multiclass else preds[:, 1]
         weights[key] = events_dict[key]["finalWeight"]
         xbb_dict[key] = events_dict[key]["bbFatJetPNetXbb"].to_numpy()[:, 1]
 
     # save scores and indices for testing dataset
     # TODO: add shifts (e.g. JECs etc)
-    #(model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-    #np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
-    #np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
+    # (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
+    # np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
+    # np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
 
     print("Scores ", scores)
 
@@ -386,7 +385,11 @@ def evaluate_model(
             )
         ax.set_yscale("log")
         ax.legend(
-            title=r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8" + "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV",
+            title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
+            + "\n"
+            + "Xbb$^{0}$>0.8"
+            + "\n"
+            + r"m$_{SD}^{(0,1)}$:[30-250] GeV",
             bbox_to_anchor=(1.03, 1),
             loc="upper left",
         )
@@ -426,7 +429,7 @@ def evaluate_model(
             scores_weights = np.concatenate([weights["hh4b"], weights[bkg]])
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
-            #fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
+            # fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
             scores_roc = np.concatenate([scores["hh4b"], scores["qcd"], scores["ttbar"]])
             sig_jets_score = scores["hh4b"]
             bkg_jets_score = np.concatenate([scores["qcd"], scores["ttbar"]])
@@ -438,7 +441,6 @@ def evaluate_model(
             )
             scores_weights = np.concatenate([weights["hh4b"], weights["qcd"], scores["ttbar"]])
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
-
 
         ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
 
@@ -485,9 +487,18 @@ def evaluate_model(
     ax.set_ylim([0, 0.07])
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
-    ax.legend(title=r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8" + "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV" + "\n", bbox_to_anchor=(1.03, 1), loc="upper left")
+    ax.legend(
+        title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
+        + "\n"
+        + "Xbb$^{0}$>0.8"
+        + "\n"
+        + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
+        + "\n",
+        bbox_to_anchor=(1.03, 1),
+        loc="upper left",
+    )
     fig.tight_layout()
-    fig.savefig(model_dir / f"roc_weights.png")
+    fig.savefig(model_dir / "roc_weights.png")
 
     # look into mass sculpting
     cat_axis = hist.axis.StrCategory([], name="Sample", growth=True)
@@ -545,7 +556,7 @@ def evaluate_model(
     hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
     bdt_cuts = [0, 0.03, 0.7, 0.9, 0.97]
     xbb_cuts = [0, 0.8, 0.9, 0.92]
-    for	xbb_cut in xbb_cuts:
+    for xbb_cut in xbb_cuts:
         for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b"]:
             events = events_dict[key]
             if key in msd_dict:
@@ -570,7 +581,10 @@ def evaluate_model(
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 for cut in bdt_cuts:
                     hep.histplot(
-                        h[{"Sample": key, "Cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True
+                        h[{"Sample": key, "Cut": str(cut)}],
+                        lw=2,
+                        label=f"BDT > {cut}",
+                        density=True,
                     )
                 ax.legend()
                 ax.set_ylabel("Density")
@@ -579,8 +593,8 @@ def evaluate_model(
                 ax.yaxis.grid(True, which="major")
                 fig.tight_layout()
                 fig.savefig(model_dir / f"{hkey}2_{key}_xbbcut{xbb_cut}.png")
-                
-                
+
+
 def main(args):
     events_dict = load_data(args.data_path, args.year)
 
