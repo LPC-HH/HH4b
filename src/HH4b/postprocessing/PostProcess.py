@@ -536,6 +536,15 @@ def postprocess_run3(args):
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
     (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
+    if len(args.years) > 1:
+        cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+        for cut in cutflows[args.years[0]]:
+            cutflow_combined[cut] = np.sum(
+                [cutflows[year][cut].to_numpy() for year in args.years], axis=0
+            )
+        print(cutflow_combined)
+        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow.csv")
+
     for year in args.years:
         cutflows[year].to_csv(templ_dir / "cutflows" / year / "preselection_cutflow.csv")
 
