@@ -2,11 +2,12 @@
 Skimmer for tt analysis with FatJets.
 Author(s): Billy Li, Raghav Kansal, Cristina Suarez
 """
+
 from __future__ import annotations
+
 import logging
 import time
 from collections import OrderedDict
-from copy import deepcopy
 
 import awkward as ak
 import numpy as np
@@ -20,21 +21,13 @@ from .corrections import (
     JECs,
     add_pileup_weight,
     add_trig_weights,
-    get_jetveto_event,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
 from .objects import (
     get_ak8jets,
-    good_ak8jets,
-    good_electrons,
-    good_muons,
-    veto_electrons,
-    veto_electrons_run2,
-    veto_muons,
-    veto_muons_run2,
 )
 from .SkimmerABC import SkimmerABC
-from .utils import P4, PAD_VAL, add_selection, pad_val
+from .utils import P4, add_selection, pad_val
 
 MU_PDGID = 13
 
@@ -92,7 +85,7 @@ class ttSkimmer(SkimmerABC):
         # },
     }
 
-    # preselection = {  # noqa: RUF012
+    # preselection = {
     #     "fatjet_pt": 270,
     #     "fatjet_msd": 60,
     #     "fatjet_mreg": 60,
@@ -126,7 +119,7 @@ class ttSkimmer(SkimmerABC):
         "pt": 25,  # from JME-18-002
         "eta": 2.4,
         "delta_phi_muon": 2,
-        "btagWP": 0.2605, #2022E M
+        "btagWP": 0.2605,  # 2022E M
         "num": 1,
         # "closest_muon_dr": 0.4,
         # "closest_muon_ptrel": 25,
@@ -313,7 +306,6 @@ class ttSkimmer(SkimmerABC):
 
         print("Vars", f"{time.time() - start:.2f}")
 
-
         # A sumary of https://www.notion.so/Create-processor-TT-mass-regression-6f0a714558474bd192732698bd85ff9e
         #########################
         # Selection Starts
@@ -397,7 +389,6 @@ class ttSkimmer(SkimmerABC):
 
         add_selection("ak8_jet", fatjet_selector, *selection_args)
 
-
         # OR-ing HLT triggers
         for trigger in self.HLTs[year]:
             if trigger not in events.HLT.fields:
@@ -463,7 +454,6 @@ class ttSkimmer(SkimmerABC):
         dataframe = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(dataframe, fname)
-
 
         if self._save_array:
             output = {}

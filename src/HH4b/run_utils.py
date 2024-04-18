@@ -110,7 +110,6 @@ def get_processor(
             nano_version=nano_version,
         )
 
-
     if processor == "ttSkimmer":
         from HH4b.processors import ttSkimmer
 
