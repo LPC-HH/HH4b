@@ -137,15 +137,11 @@ def load_run3_samples(args, year):
         ("bbFatJetPNetQCD2HF", 2),
     ]
 
-    # to-do change this to msd>30
     filters = [
         [
             ("('bbFatJetPt', '0')", ">=", 300),
             ("('bbFatJetPt', '1')", ">=", 300),
-            ("('bbFatJetMsd', '0')", "<=", 250),
-            ("('bbFatJetMsd', '1')", "<=", 250),
-            ("('bbFatJetMsd', '0')", ">=", 50),
-            ("('bbFatJetMsd', '1')", ">=", 50),
+            ("('bbFatJetMsd', '0')", ">=", 30),
         ],
     ]
 
