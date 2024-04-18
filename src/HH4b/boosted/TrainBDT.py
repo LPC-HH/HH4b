@@ -1,11 +1,11 @@
 from __future__ import annotations
-
+import pickle
 import argparse
 import importlib
 import pickle
 import sys
 from pathlib import Path
-
+from collections import OrderedDict
 import hist
 import matplotlib.pyplot as plt
 import mplhep as hep
@@ -118,6 +118,10 @@ def load_data(data_path: str, year: str):
         }
 
     return events_dict
+
+def get_weights(dataframe: pd.DataFrame):
+    weights = dataframe['weight'].to_numpy()
+    return weights
 
 
 def preprocess_data(
@@ -232,177 +236,283 @@ def train_model(
 
     return model
 
-
-def evaluate_model(
-    config_name: str,
-    events_dict: dict,
-    model: xgb.XGBClassifier,
-    model_dir: Path,
-    X_test: pd.DataFrame,
-    # y_test: pd.DataFrame,
-    yt_test: pd.DataFrame,
-    weights_test: np.ndarray,
-    # test_size: float, seed: int,
-    year: str,
-    multiclass: bool,
-):
-    """
-    1) Makes ROC curves for testing data
-    2) Prints Sig efficiency at Bkg efficiency
-    """
-
-    # make and save ROCs for testing data
-    def find_nearest(array, value):
+def find_nearest(array, value):
         array = np.asarray(array)
         idx = (np.abs(array - value)).argmin()
         return idx
 
+
+def multiclass_ROC(
+    #config_name: str,
+    #events_dict: dict,
+    model: xgb.XGBClassifier,
+    model_dir: Path,
+    X_test: pd.DataFrame,
+    #y_test: pd.DataFrame,
+    yt_test: pd.DataFrame,
+    weights_test: np.ndarray,
+    #test_size: float, seed: int,
+    #year: str,
+):
+    #TODO: select probabilities in y_scores for mc -> binary
+    #TODO: identify use of "scores"
+    #TODO: figure out why hh4b_test and events dict are here
+
+    # make and save ROCs for training and testing data
+    rocs = OrderedDict()
+    signals = ["hh4b", "vbf"]
+    #make inference
     y_scores = model.predict_proba(X_test)
-    y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
+    #y_scores = y_scores[:, 0]  #check what this selects and if it makes sense
 
-    print("Test ROC with sample weights")
-    fpr, tpr, thresholds = roc_curve(yt_test, y_scores, sample_weight=weights_test)
+    for i,signal in enumerate(signals):
+        y_score = y_scores[:,0] #check which columns correspond to this
 
-    roc_info = {
-        "fpr": fpr,
-        "tpr": tpr,
-        "thresholds": thresholds,
-    }
-    with (model_dir / "roc_dict.pkl").open("wb") as f:
-        pickle.dump(roc_info, f)
+        #modify X_test to work for binary
+        ################
 
-    # print FPR, TPR for a couple of tprs
-    for tpr_val in [0.10, 0.12, 0.15]:
-        idx = find_nearest(tpr, tpr_val)
-        print(
-            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
-        )
 
-    # ROC w/o weights
-    print("Test ROC without sample weights")
-    fpr, tpr, thresholds = roc_curve(yt_test, y_scores)
+        fpr, tpr, thresholds = roc_curve(yt_test, y_scores, sample_weight=weights_test)
 
-    # print FPR, TPR for a couple of tprs
-    for tpr_val in [0.10, 0.12, 0.15]:
-        idx = find_nearest(tpr, tpr_val)
-        print(
-            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
-        )
-
-    # plot BDT scores for test samples
-    make_bdt_dataframe = importlib.import_module(f"{config_name}")
-
-    print("Perform inference on test signal sample")
-    # get hh4b scores from full dataframe
-    scores = {}
-    hh4b_indices = X_test[X_test.index.get_level_values(0) == "hh4b"].index.get_level_values(1)
-    # x_train, x_test = train_test_split(events_dict["hh4b"], test_size=test_size, random_state=seed)
-    # hh4b_indices = x_test.index
-    hh4b_test = events_dict["hh4b"].loc[hh4b_indices]
-    hh4b_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(hh4b_test)
-    hh4b_preds = model.predict_proba(hh4b_bdt_dataframe)
-
-    print("hh4b ", hh4b_preds)
-    scores["hh4b"] = hh4b_preds[:, 1]
-
-    # save scores and indices for testing dataset
-    # TODO: add shifts (e.g. JECs etc)
-    (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-    np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
-    np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
-
-    for key in events_dict:
-        if key != "hh4b":
-            scores[key] = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))[
-                :, 1
-            ]
-    print("Scores ", scores)
-    print("HH4b  indices", hh4b_indices)
-
-    bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
-    cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
-    h_bdt = hist.Hist(bdt_axis, cat_axis)
-    h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
-    for key in events_dict:
-        h_bdt.fill(bdt=scores[key], cat=key)
-        if key == "hh4b":
-            h_bdt_weight.fill(bdt=scores[key], cat=key, weight=hh4b_test["weight"])
-        else:
-            h_bdt_weight.fill(bdt=scores[key], cat=key, weight=events_dict[key]["weight"])
-
-    hists = {
-        "weight": h_bdt_weight,
-        "no_weight": h_bdt,
-    }
-    for h_key, h in hists.items():
-        colors = {
-            "ttbar": "b",
-            "hh4b": "k",
-            "qcd": "r",
-            "vhtobb": "g",
-            "vjets": "pink",
-            "ttlep": "violet",
+        roc_info = {
+            "fpr": fpr,
+            "tpr": tpr,
+            "thresholds": thresholds,
         }
-        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-        for key in events_dict:
-            hep.histplot(
-                h[{"cat": key}],
-                ax=ax,
-                label=f"{key}",
-                histtype="step",
-                linewidth=1,
-                color=colors[key],
-                density=True,
+
+        with (model_dir / "roc_dict.pkl").open("wb") as f:
+            pickle.dump(roc_info, f)
+
+        # print FPR, TPR for a couple of tprs
+        for tpr_val in [0.10, 0.12, 0.15]:
+            idx = find_nearest(tpr, tpr_val)
+            print(
+                f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
             )
-        ax.set_yscale("log")
-        ax.legend(
-            title=r"FatJets $p_T>$300, \n m$_{SD}$:[30-250] GeV",
-            bbox_to_anchor=(1.03, 1),
-            loc="upper left",
-        )
-        ax.set_ylabel("Density")
-        ax.set_title("Pre-Selection")
+
+        #include test of ROC without weights?
+
+        # plot BDT scores for test samples?
+
+        # Plot and save ROC figure
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+        bkg_colors = {
+            "qcd": "r",
+            "ttbar": "blue",
+            "merged": "orange",
+        }
+        for bkg in ["qcd", "ttbar", "merged"]:
+            if bkg != "merged":
+                scores_roc = np.concatenate((scores["hh4b"], scores[bkg]))
+                sig_jets_score = scores["hh4b"]
+                bkg_jets_score = scores[bkg]
+                scores_true = np.concatenate(
+                    [
+                        np.ones(len(sig_jets_score)),
+                        np.zeros(len(bkg_jets_score)),
+                    ]
+                )
+                scores_weights = np.concatenate([hh4b_test["weight"], events_dict[bkg]["weight"]])
+                fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+            else:
+                fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
+
+            ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=bkg)
+
+        ax.set_title(r"FatJets pT > 300 GeV, Xbb>0.8, m$_{SD}$:[30-250] GeV")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.set_xlim([0.0, 0.5])
+        # ax.set_ylim([0, 0.002])
+        ax.set_ylim([0, 0.01])
         ax.xaxis.grid(True, which="major")
         ax.yaxis.grid(True, which="major")
+        ax.legend(title=r"Background sample", bbox_to_anchor=(1.03, 1), loc="upper left")
         fig.tight_layout()
-        fig.savefig(model_dir / f"bdt_shape_{h_key}.png")
+        fig.savefig(f"{model_dir}/roc_{signal}.png")
 
-    # Plot and save ROC figure
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    bkg_colors = {
-        "qcd": "r",
-        "ttbar": "blue",
-        "merged": "orange",
-    }
-    for bkg in ["qcd", "ttbar", "merged"]:
-        if bkg != "merged":
-            scores_roc = np.concatenate((scores["hh4b"], scores[bkg]))
-            sig_jets_score = scores["hh4b"]
-            bkg_jets_score = scores[bkg]
-            scores_true = np.concatenate(
-                [
-                    np.ones(len(sig_jets_score)),
-                    np.zeros(len(bkg_jets_score)),
-                ]
+
+
+def evaluate_model(
+    model: xgb.XGBClassifier,
+    model_dir: str,
+    train: dict[str, pd.DataFrame],
+    X_test: dict[str, pd.DataFrame],
+    test_size: float,
+    sig_keys: list[str],
+    training_keys: list[str],
+    label_encoder: LabelEncoder,
+    equalize_sig_bg: bool,
+    bdtVars: list[str],
+    txbb_threshold: float = 0.98,
+    year: str,
+    multiclass: bool = False,
+):
+    """
+    1) Saves feature importance
+    2) Makes ROC curves for training and testing data
+    3) Combined ROC Curve
+    4) Plots BDT score shape
+    """
+    #TODO: figure out default value error above
+    #TODO: figure out why hh4b_test and events dict are here
+
+    print("Evaluating model")
+
+    if multiclass:
+        #send to other function
+        multiclass_ROC(model, model_dir, X_test, yt_test, weights_test)
+
+    else:
+        # make and save ROCs for testing data
+
+        y_scores = model.predict_proba(X_test)
+        y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
+
+
+        print("Test ROC with sample weights")
+        fpr, tpr, thresholds = roc_curve(yt_test, y_scores, sample_weight=weights_test)
+
+        roc_info = {
+            "fpr": fpr,
+            "tpr": tpr,
+            "thresholds": thresholds,
+        }
+        with (model_dir / "roc_dict.pkl").open("wb") as f:
+            pickle.dump(roc_info, f)
+
+        # print FPR, TPR for a couple of tprs
+        for tpr_val in [0.10, 0.12, 0.15]:
+            idx = find_nearest(tpr, tpr_val)
+            print(
+                f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
             )
-            scores_weights = np.concatenate([hh4b_test["weight"], events_dict[bkg]["weight"]])
-            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
-        else:
-            fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
 
-        ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=bkg)
+        # ROC w/o weights
+        print("Test ROC without sample weights")
+        fpr, tpr, thresholds = roc_curve(yt_test, y_scores)
 
-    ax.set_title(r"FatJets pT > 300 GeV, Xbb>0.8, m$_{SD}$:[30-250] GeV")
-    ax.set_xlabel("Signal efficiency")
-    ax.set_ylabel("Background efficiency")
-    ax.set_xlim([0.0, 0.5])
-    # ax.set_ylim([0, 0.002])
-    ax.set_ylim([0, 0.01])
-    ax.xaxis.grid(True, which="major")
-    ax.yaxis.grid(True, which="major")
-    ax.legend(title=r"Background sample", bbox_to_anchor=(1.03, 1), loc="upper left")
-    fig.tight_layout()
-    fig.savefig(model_dir / "roc_weights.png")
+        # print FPR, TPR for a couple of tprs
+        for tpr_val in [0.10, 0.12, 0.15]:
+            idx = find_nearest(tpr, tpr_val)
+            print(
+                f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
+            )
+
+        # plot BDT scores for test samples
+        make_bdt_dataframe = importlib.import_module(f"{config_name}")
+
+        print("Perform inference on test signal sample")
+        # get hh4b scores from full dataframe
+        scores = {}
+        hh4b_indices = X_test[X_test.index.get_level_values(0) == "hh4b"].index.get_level_values(1)
+        # x_train, x_test = train_test_split(events_dict["hh4b"], test_size=test_size, random_state=seed)
+        # hh4b_indices = x_test.index
+        hh4b_test = events_dict["hh4b"].loc[hh4b_indices]
+        hh4b_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(hh4b_test)
+        hh4b_preds = model.predict_proba(hh4b_bdt_dataframe)
+
+        print("hh4b ", hh4b_preds)
+        scores["hh4b"] = hh4b_preds[:, 1]
+
+        # save scores and indices for testing dataset
+        # TODO: add shifts (e.g. JECs etc)
+        (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
+        np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
+        np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
+
+        for key in events_dict:
+            if key != "hh4b":
+                scores[key] = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))[
+                    :, 1
+                ]
+        print("Scores ", scores)
+        print("HH4b  indices", hh4b_indices)
+
+        bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
+        cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
+        h_bdt = hist.Hist(bdt_axis, cat_axis)
+        h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
+        for key in events_dict:
+            h_bdt.fill(bdt=scores[key], cat=key)
+            if key == "hh4b":
+                h_bdt_weight.fill(bdt=scores[key], cat=key, weight=hh4b_test["weight"])
+            else:
+                h_bdt_weight.fill(bdt=scores[key], cat=key, weight=events_dict[key]["weight"])
+
+        hists = {
+            "weight": h_bdt_weight,
+            "no_weight": h_bdt,
+        }
+        for h_key, h in hists.items():
+            colors = {
+                "ttbar": "b",
+                "hh4b": "k",
+                "qcd": "r",
+                "vhtobb": "g",
+                "vjets": "pink",
+                "ttlep": "violet",
+            }
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+            for key in events_dict:
+                hep.histplot(
+                    h[{"cat": key}],
+                    ax=ax,
+                    label=f"{key}",
+                    histtype="step",
+                    linewidth=1,
+                    color=colors[key],
+                    density=True,
+                )
+            ax.set_yscale("log")
+            ax.legend(
+                title=r"FatJets $p_T>$300, \n m$_{SD}$:[30-250] GeV",
+                bbox_to_anchor=(1.03, 1),
+                loc="upper left",
+            )
+            ax.set_ylabel("Density")
+            ax.set_title("Pre-Selection")
+            ax.xaxis.grid(True, which="major")
+            ax.yaxis.grid(True, which="major")
+            fig.tight_layout()
+            fig.savefig(model_dir / f"bdt_shape_{h_key}.png")
+
+        # Plot and save ROC figure
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+        bkg_colors = {
+            "qcd": "r",
+            "ttbar": "blue",
+            "merged": "orange",
+        }
+        for bkg in ["qcd", "ttbar", "merged"]:
+            if bkg != "merged":
+                scores_roc = np.concatenate((scores["hh4b"], scores[bkg]))
+                sig_jets_score = scores["hh4b"]
+                bkg_jets_score = scores[bkg]
+                scores_true = np.concatenate(
+                    [
+                        np.ones(len(sig_jets_score)),
+                        np.zeros(len(bkg_jets_score)),
+                    ]
+                )
+                scores_weights = np.concatenate([hh4b_test["weight"], events_dict[bkg]["weight"]])
+                fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+            else:
+                fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
+
+            ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=bkg)
+
+        ax.set_title(r"FatJets pT > 300 GeV, Xbb>0.8, m$_{SD}$:[30-250] GeV")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.set_xlim([0.0, 0.5])
+        # ax.set_ylim([0, 0.002])
+        ax.set_ylim([0, 0.01])
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
+        ax.legend(title=r"Background sample", bbox_to_anchor=(1.03, 1), loc="upper left")
+        fig.tight_layout()
+        fig.savefig(model_dir / "roc_weights.png")
 
     # look into mass sculpting
     cat_axis = hist.axis.StrCategory([], name="Sample", growth=True)
