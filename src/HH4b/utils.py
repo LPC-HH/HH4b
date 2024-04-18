@@ -25,6 +25,7 @@ from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights,
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
+PAD_VAL = -99999
 
 
 @dataclass
@@ -422,7 +423,8 @@ def tau32FittedSF_4(events: pd.DataFrame):
         1,
     )
 
-def makeHH (events: pd.DataFrame, key: str, mass: str):
+
+def makeHH(events: pd.DataFrame, key: str, mass: str):
 
     h1 = vector.array(
         {
@@ -446,47 +448,12 @@ def makeHH (events: pd.DataFrame, key: str, mass: str):
 
     hh = h1 + h2
     # Fill dummy is h1 or h2 is missing
-    hh = vector.where(mask_invalid, vector.obj(pt=-99999.000000, phi=-99999.000000, eta=-99999.000000, M=-99999.000000), hh)
+    hh = vector.where(
+        mask_invalid,
+        vector.obj(pt=-99999.000000, phi=-99999.000000, eta=-99999.000000, M=-99999.000000),
+        hh,
+    )
     return hh
-
-
-def ttbar_pTjjSF(year, events: pd.DataFrame, mass: str = "bbFatJetPNetMass"):
-    SF_2022 = [
-        (0, 0.886178),
-        (35, 1.02858),
-        (75, 1.04224),
-        (130, 1.05555),
-        (200, 1.0296),
-        (315, 0.845703),
-        (450, 0.699666),
-        (700, 0.439261),
-        (1000, 1)
-    ]
-    SF_2023 = [
-        (0, 0.876845),
-        (50, 0.984064),
-        (100, 0.99184),
-        (150, 1.17205),
-        (250, 1.36115),
-        (450, 1.13521),
-        (750, 1)
-    ]
-    hh = makeHH(events, "ttbar", mass)    
-    SF = 1.0
-    SFs = None
-    if year == "2022":
-        SFs = SF_2022
-    elif year == "2023":
-        SFs = SF_2023
-    else:
-        return SF
-
-    for i in range(len(SFs)):
-        if hh.pt >= SFs[i][0]:
-            if i == len(SFs) - 1 or hh.pt < SFs[i + 1][0]:
-                SF = SFs[i][1]
-
-    return SF
 
 
 def get_feat_first(events: pd.DataFrame, feat: str):
@@ -553,9 +520,6 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
-    sf: list[str] | None = None,
-    apply_tt_sf: bool = False,
-    year: str | None = None,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -596,8 +560,8 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
-            weight = weight * tau32FittedSF_4(events)*ttbar_pTjjSF(year,events)
+        # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
+        #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
