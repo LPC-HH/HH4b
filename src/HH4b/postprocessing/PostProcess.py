@@ -105,6 +105,26 @@ def load_run3_samples(args, year):
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
+            ],
         },
         "2023BPix": {
             "data": [
