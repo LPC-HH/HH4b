@@ -389,6 +389,7 @@ def scan_fom(
 
             print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
 
+    print(f"Plotting FOM scan for Bin 1 in {plot_dir}")
     plotting.plot_fom(h_sb, plot_dir)
 
 
@@ -459,6 +460,7 @@ def scan_fom_bin2(
 
             print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
 
+    print(f"Plotting FOM scan for Bin 2 in {plot_dir}")
     plotting.plot_fom(h_sb, plot_dir, name="figofmerit_bin2")
 
 
@@ -536,10 +538,13 @@ def postprocess_run3(args):
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
     if args.fom_scan:
-        scan_fom(events_combined, mass_window=window_by_mass[args.mass], mass=args.mass)
+        plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
+        plot_dir.mkdir(exist_ok=True, parents=True)
+        scan_fom(events_combined, window_by_mass[args.mass], plot_dir, mass=args.mass)
         scan_fom_bin2(
             events_combined,
-            mass_window=window_by_mass[args.mass],
+            window_by_mass[args.mass],
+            plot_dir,
             xbb_cut_bin1=args.txbb_wps[0],
             bdt_cut_bin1=args.bdt_wps[0],
             mass=args.mass,
