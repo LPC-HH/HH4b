@@ -188,7 +188,6 @@ def postprocess(years):
 
 def _get_fill_data(
     events: pd.DataFrame,
-    bb_mask: dict[str, pd.DataFrame],
     shape_vars: list[ShapeVar],
     jshift: str = "",
 ):
@@ -196,7 +195,6 @@ def _get_fill_data(
         shape_var.var: utils.get_feat(
             events,
             shape_var.var if jshift == "" else utils.check_get_jec_var(shape_var.var, jshift),
-            bb_mask,
         )
         for shape_var in shape_vars
     }
@@ -223,7 +221,6 @@ def bb_assignment(events_dict: dict[str, pd.DataFrame]) -> dict[str, pd.DataFram
 
 def get_templates(
     events_dict: dict[str, pd.DataFrame],
-    bb_masks: dict[str, pd.DataFrame],
     year: str,
     sig_keys: list[str],
     selection_regions: dict[str, Region],
@@ -278,7 +275,6 @@ def get_templates(
         sel, cf = utils.make_selection(
             region.cuts,
             events_dict,
-            bb_masks,
             weight_key=weight_key,
             prev_cutflow=prev_cutflow,
             jshift=jshift,
@@ -333,9 +329,8 @@ def get_templates(
             if not len(events):
                 continue
 
-            bb_mask = bb_masks[sample][sel[sample]] if bb_masks is not None else None
             fill_data = _get_fill_data(
-                events, bb_mask, shape_vars, jshift=jshift if sample != data_key else None
+                events, shape_vars, jshift=jshift if sample != data_key else None
             )
             weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
@@ -441,7 +436,7 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: dict[str, Hist], template_file: str, shape_var: ShapeVar):
+def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
@@ -454,7 +449,7 @@ def save_templates(templates: dict[str, Hist], template_file: str, shape_var: Sh
             utils.blindBins(blinded_template, blind_window)
             templates[f"{label}MCBlinded"] = blinded_template
 
-    with Path(template_file).open("wb") as f:
+    with template_file.open("wb") as f:
         pickle.dump(templates, f)
 
     print("Saved templates to", template_file)

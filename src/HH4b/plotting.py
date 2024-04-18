@@ -577,7 +577,7 @@ def ratioHistPlot(
             linewidth=2,
             label=bg_labels,
             color=bg_colours,
-            flow="none",
+            # flow="none",
         )
 
     # signal samples
@@ -589,7 +589,7 @@ def ratioHistPlot(
             linewidth=2,
             label=list(sig_labels.values()),
             color=sig_colours,
-            flow="none",
+            # flow="none",
         )
 
     # plot signal errors
@@ -619,7 +619,7 @@ def ratioHistPlot(
             label=label_by_sample[data_key],
             markersize=20,
             color="black",
-            flow="none",
+            # flow="none",
         )
 
     if log:
@@ -805,3 +805,170 @@ def mesh2d(
             plt.show()
         else:
             plt.close()
+
+
+def multiROCCurveGrey(
+    rocs: dict, sig_effs: list[float], plot_dir: Path, name: str = "", show: bool = False
+):
+    """Plot multiple ROC curves (e.g. train and test) + multiple signals"""
+    xlim = [0, 1]
+    ylim = [1e-6, 1]
+    line_style = {"colors": "lightgrey", "linestyles": "dashed"}
+
+    plt.figure(figsize=(12, 12))
+    for roc_sigs in rocs.values():
+        for roc in roc_sigs.values():
+            plt.plot(
+                roc["tpr"],
+                roc["fpr"],
+                label=roc["label"],
+                linewidth=2,
+            )
+
+            for sig_eff in sig_effs:
+                y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
+                plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
+                plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
+
+    hep.cms.label(data=False, rlabel="")
+    plt.yscale("log")
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Background efficiency")
+    plt.xlim(*xlim)
+    plt.ylim(*ylim)
+    plt.legend(loc="upper left")
+
+    if len(name):
+        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def _find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
+
+def ROCCurve(
+    roc: dict,
+    xlim=None,
+    ylim=None,
+    thresholds=None,
+    plot_dir: Path = None,
+    name: str = "",
+    show: bool = False,
+):
+    if ylim is None:
+        ylim = [1e-06, 1]
+    if xlim is None:
+        xlim = [0, 1]
+    if thresholds is None:
+        thresholds = []
+
+    th_colours = [
+        # "#36213E",
+        # "#9381FF",
+        # "#1f78b4",
+        # "#a6cee3",
+        # "#32965D",
+        "#7CB518",
+        # "#EDB458",
+        # "#ff7f00",
+        "#a70000",
+    ]
+
+    plt.figure(figsize=(12, 12))
+    plt.plot(
+        roc["tpr"],
+        roc["fpr"],
+        linewidth=2,
+    )
+
+    pths = {th: [[], []] for th in thresholds}
+    for th in thresholds:
+        idx = _find_nearest(roc["thresholds"], th)
+        pths[th][0].append(roc["tpr"][idx])
+        pths[th][1].append(roc["fpr"][idx])
+
+    for k, th in enumerate(thresholds):
+        plt.scatter(
+            *pths[th],
+            marker="o",
+            s=80,
+            label=(rf"$T_{{Xbb}}$ > {th}"),
+            color=th_colours[k],
+            zorder=100,
+        )
+
+        plt.vlines(
+            x=pths[th][0],
+            ymin=0,
+            ymax=pths[th][1],
+            color=th_colours[k],
+            linestyles="dashed",
+            alpha=0.5,
+        )
+
+        plt.hlines(
+            y=pths[th][1],
+            xmin=0,
+            xmax=pths[th][0],
+            color=th_colours[k],
+            linestyles="dashed",
+            alpha=0.5,
+        )
+
+    hep.cms.label(
+        data=False,
+        rlabel="",
+    )
+    plt.yscale("log")
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Background efficiency")
+    plt.xlim(*xlim)
+    plt.ylim(*ylim)
+    plt.legend()
+
+    if len(name):
+        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
+    """Plot FoM scan"""
+
+    eff, bins_x, bins_y = h_sb.to_numpy()
+    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=7, cmax=12, flow="none")
+    # cbar = hep.hist2dplot(h_sb, ax=ax, cmin=3, cmax=9, flow="none")
+    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.ax.get_yaxis().labelpad = 15
+    for i in range(len(bins_x) - 1):
+        for j in range(len(bins_y) - 1):
+            if eff[i, j] > 0:
+                ax.text(
+                    (bins_x[i] + bins_x[i + 1]) / 2,
+                    (bins_y[j] + bins_y[j + 1]) / 2,
+                    eff[i, j].round(2),
+                    color="black",
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                )
+    fig.tight_layout()
+
+    plt.savefig(f"{plot_dir}/{name}.png")
+    plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
