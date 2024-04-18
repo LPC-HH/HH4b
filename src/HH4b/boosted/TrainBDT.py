@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import argparse
 import importlib
 import pickle
@@ -32,6 +33,7 @@ plt.style.use(hep.style.CMS)
 
 training_keys = ["hh4b", "qcd", "ttbar"]
 
+
 def load_data(data_path: str, year: str, legacy: bool):
     """
     Load samples
@@ -39,7 +41,7 @@ def load_data(data_path: str, year: str, legacy: bool):
 
     samples = {
         "2022": {
-        #    "hh4b": "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private",
+            #    "hh4b": "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private",
             "qcd": [
                 "QCD_HT-400to600",
                 "QCD_HT-600to800",
@@ -139,7 +141,7 @@ def load_data(data_path: str, year: str, legacy: bool):
                 ("('bbFatJetMsd', '1')", ">=", 30),
             ],
         ]
-        
+
     load_columns = [
         ("weight", 1),
         ("event", 1),
@@ -156,10 +158,7 @@ def load_data(data_path: str, year: str, legacy: bool):
         ("bbFatJetPNetQCD2HF", 2),
     ]
     if legacy:
-        load_columns += [
-            ("bbFatJetPNetMassLegacy", 2),
-            ("bbFatJetPNetXbbLegacy", 2)
-        ]
+        load_columns += [("bbFatJetPNetMassLegacy", 2), ("bbFatJetPNetXbbLegacy", 2)]
 
     events_dict = {}
     for input_dir, samples in dirs.items():
@@ -176,7 +175,7 @@ def load_data(data_path: str, year: str, legacy: bool):
         }
 
     print(events_dict.keys())
-    
+
     return events_dict
 
 
@@ -293,11 +292,9 @@ def train_model(
 ):
     """Trains BDT. ``classifier_params`` are hyperparameters for the classifier"""
 
-    early_stopping_callback = xgb.callback.EarlyStopping(
-        rounds=5, min_delta=0.0
-    )
+    early_stopping_callback = xgb.callback.EarlyStopping(rounds=5, min_delta=0.0)
     classifier_params = {**classifier_params, "callbacks": [early_stopping_callback]}
-    
+
     print("Training model")
     model = xgb.XGBClassifier(**classifier_params)
     print("Training features: ", list(X_train.columns))
@@ -310,7 +307,7 @@ def train_model(
     num_qcd = X_test.loc["qcd"].shape[0]
     num_tt = X_test.loc["ttbar"].shape[0]
     print("Number of events testing (hh4b,qcd,tt): ", num_hh4b, num_qcd, num_tt)
-    
+
     trained_model = model.fit(
         X_train,
         y_train,
@@ -339,7 +336,7 @@ def evaluate_model(
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
-    y_test: pd.DataFrame, # noqa: ARG001
+    y_test: pd.DataFrame,  # noqa: ARG001
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
     # test_size: float, seed: int,
@@ -354,7 +351,7 @@ def evaluate_model(
 
     pnet_xbb_str = "bbFatJetPNetXbb" if not legacy else "bbFatJetPNetXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
-    
+
     # make and save ROCs for testing data
     def find_nearest(array, value):
         array = np.asarray(array)
@@ -418,7 +415,7 @@ def evaluate_model(
         mass_dict[key] = test_dataset[pnet_mass_str].to_numpy()[:, 1]
         msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
         xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
-            
+
     for key in ["vhtobb", "vjets", "ttlep"]:
         preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
         scores[key] = preds[:, 0] if multiclass else preds[:, 1]
@@ -431,7 +428,7 @@ def evaluate_model(
     # np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
     # np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
 
-    #print("Scores ", scores)
+    # print("Scores ", scores)
 
     bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
     cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
@@ -490,7 +487,7 @@ def evaluate_model(
         fig.tight_layout()
         fig.savefig(model_dir / f"bdt_shape_{h_key}.png")
         plt.close()
-        
+
     # Plot and save ROC figure
     fig, ax = plt.subplots(1, 1, figsize=(18, 12))
     bkg_colors = {
@@ -591,7 +588,7 @@ def evaluate_model(
     fig.tight_layout()
     fig.savefig(model_dir / "roc_weights.png")
     plt.close()
-    
+
     # look into mass sculpting
     cat_axis = hist.axis.StrCategory([], name="Sample", growth=True)
     cut_axis = hist.axis.StrCategory([], name="Cut", growth=True)
@@ -643,7 +640,7 @@ def evaluate_model(
             fig.tight_layout()
             fig.savefig(model_dir / f"{hkey}2_{key}.png")
             plt.close()
-            
+
     # mass sculpting with Xbb
     hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
     hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
@@ -687,11 +684,16 @@ def evaluate_model(
                 fig.tight_layout()
                 fig.savefig(model_dir / f"{hkey}2_{key}_xbbcut{xbb_cut}.png")
                 plt.close()
-                
-def plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, multiclass, model_dir):
+
+
+def plot_train_test(
+    X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, multiclass, model_dir
+):
     y_scores_train = model.predict_proba(X_train)
     y_scores_train = y_scores_train[:, 0] if multiclass else y_scores_train[:, 1]
-    fpr_train, tpr_train, thresholds_train = roc_curve(yt_train, y_scores_train, sample_weight=weights_train)
+    fpr_train, tpr_train, thresholds_train = roc_curve(
+        yt_train, y_scores_train, sample_weight=weights_train
+    )
 
     y_scores_test = model.predict_proba(X_test)
     y_scores_test = y_scores_test[:, 0] if multiclass else y_scores_test[:, 1]
@@ -726,14 +728,14 @@ def plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_t
     cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
     h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
     for key in ["qcd", "ttbar", "hh4b"]:
-        scores = model.predict_proba( X_test.loc[key] )
+        scores = model.predict_proba(X_test.loc[key])
         scores = scores[:, 0] if multiclass else scores[:, 1]
         print(weights_test.loc[key])
         h_bdt_weight.fill(bdt=scores, cat=key, weight=weights_test.loc[key])
     for key in ["qcd", "ttbar", "hh4b"]:
-        scores = model.predict_proba( X_train.loc[key] )
+        scores = model.predict_proba(X_train.loc[key])
         scores = scores[:, 0] if multiclass else scores[:, 1]
-        h_bdt_weight.fill(bdt=scores, cat=key+"train", weight=weights_train.loc[key])
+        h_bdt_weight.fill(bdt=scores, cat=key + "train", weight=weights_train.loc[key])
 
     colors = {
         "ttbar": "b",
@@ -763,10 +765,10 @@ def plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_t
             density=True,
         )
         hep.histplot(
-            h_bdt_weight[{"cat": key+"train"}],
+            h_bdt_weight[{"cat": key + "train"}],
             ax=ax,
             label=f"{legends[key]} Train",
-	    histtype="step",
+            histtype="step",
             linewidth=1,
             linestyle="dashed",
             color=colors[key],
@@ -787,10 +789,11 @@ def plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_t
         ax.xaxis.grid(True, which="major")
         ax.yaxis.grid(True, which="major")
     fig.tight_layout()
-    fig.savefig(model_dir / f"bdt_shape_traintest.png")
-        
+    fig.savefig(model_dir / "bdt_shape_traintest.png")
+
+
 def main(args):
-    #for year in ["2022", "2022EE", "2023", "2023BPix"]:
+    # for year in ["2022", "2022EE", "2023", "2023BPix"]:
     year = "2022EE"
     events_dict = load_data(args.data_path, year, args.legacy)
 
@@ -841,8 +844,18 @@ def main(args):
             model_dir,
             **classifier_params,
         )
-        plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, args.multiclass, model_dir)
-        
+        plot_train_test(
+            X_train,
+            yt_train,
+            weights_train,
+            X_test,
+            yt_test,
+            weights_test,
+            model,
+            args.multiclass,
+            model_dir,
+        )
+
     evaluate_model(
         args.config_name,
         events_dict,
