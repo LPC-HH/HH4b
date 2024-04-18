@@ -422,6 +422,45 @@ def tau32FittedSF_4(events: pd.DataFrame):
     )
 
 
+# def makeHH
+
+
+def ttbar_pTjjSF(year, events: pd.DataFrame):
+    SF_2022 = [
+        (0, 0.886178),
+        (35, 1.02858),
+        (75, 1.04224),
+        (130, 1.05555),
+        (200, 1.0296),
+        (315, 0.845703),
+        (450, 0.699666),
+        (700, 0.439261),
+    ]
+    h1 = vector.array(
+        {
+            "pt": events["bbFatJetPt"].to_numpy()[:, 0],
+            "phi": events["bbFatJetPhi"].to_numpy()[:, 0],
+            "eta": events["bbFatJetEta"].to_numpy()[:, 0],
+            "M": events["bbFatJetPNetMass"].to_numpy()[:, 0],
+        }
+    )
+    h2 = vector.array(
+        {
+            "pt": events["bbFatJetPt"].to_numpy()[:, 1],
+            "phi": events["bbFatJetPhi"].to_numpy()[:, 1],
+            "eta": events["bbFatJetEta"].to_numpy()[:, 1],
+            "M": events["bbFatJetPNetMass"].to_numpy()[:, 1],
+        }
+    )
+    hh = h1 + h2
+    SF = 1.0
+    # for i in range(len(SF_2022)):
+    #    if hh.pt >= SF_2022[i][0]:
+    #        if i == len(SF_2022) - 1 or hh_pt < SF_2022[i + 1][0]:
+    #            return SF_2022[i][1]
+    return SF
+
+
 def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 
