@@ -168,10 +168,17 @@ def load_run3_samples(args, year):
         (f"bbFatJetPNetMass{legacy_label}", 2),
         (f"bbFatJetPNetXbb{legacy_label}", 2),
         ("bbFatJetTau3OverTau2", 2),
-        (f"bbFatJetPNetQCD0HF{legacy_label}", 2),
-        (f"bbFatJetPNetQCD1HF{legacy_label}", 2),
-        (f"bbFatJetPNetQCD2HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD0HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD1HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD2HF{legacy_label}", 2),
     ]
+
+    if not args.legacy:
+        load_columns += [
+            ("bbFatJetPNetQCD0HF", 2),
+            ("bbFatJetPNetQCD1HF", 2),
+            ("bbFatJetPNetQCD2HF", 2),
+        ]
 
     filters = [
         [
@@ -184,9 +191,8 @@ def load_run3_samples(args, year):
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
     # get function
-    config = args.bdt_model if args.bdt_model != "v1_msd30_nomulticlass" else "v1_msd30"
     make_bdt_dataframe = importlib.import_module(
-        f".{config}", package="HH4b.boosted.bdt_trainings_run3"
+        f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
     if year == "2023":
@@ -628,6 +634,12 @@ if __name__ == "__main__":
         "--bdt-model",
         type=str,
         default="v1_msd30_nomulticlass",
+        help="BDT model to load",
+    )
+    parser.add_argument(
+        "--bdt-config",
+        type=str,
+        default="v1_msd30",
         help="BDT model to load",
     )
 
