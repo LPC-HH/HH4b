@@ -3,7 +3,6 @@ Runs coffea processors on the LPC via either condor or dask.
 
 Author(s): Cristina Mantilla Suarez, Raghav Kansal
 """
-
 from __future__ import annotations
 
 import argparse
@@ -53,9 +52,9 @@ def run_dask(p: processor, fileset: dict, args):
 
                 print("Begin running " + sample)
                 print(datetime.now())
-                uproot.open.defaults["xrootd_handler"] = (
-                    uproot.source.xrootd.MultithreadedXRootDSource
-                )
+                uproot.open.defaults[
+                    "xrootd_handler"
+                ] = uproot.source.xrootd.MultithreadedXRootDSource
 
                 executor = processor.DaskExecutor(
                     status=True, client=client, retries=2, treereduction=2
@@ -99,10 +98,12 @@ def run(p: processor, fileset: dict, args):
     save_parquet = {
         "matching": True,
         "skimmer": True,
+	"ttSkimmer": True,
     }[args.processor]
     save_root = {
         "matching": False,
         "skimmer": True,
+	"ttSkimmer": True,
     }[args.processor]
 
     if save_parquet or save_root:
