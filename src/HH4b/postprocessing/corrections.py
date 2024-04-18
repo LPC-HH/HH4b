@@ -9,6 +9,7 @@ from HH4b.utils import makeHH
 TT_SF_2022 = np.array(
     [
         # lower bin edge, nom, up, down
+        (-1000000, 1),
         (0, 0.886178),
         (35, 1.02858),
         (75, 1.04224),
@@ -18,11 +19,13 @@ TT_SF_2022 = np.array(
         (450, 0.699666),
         (700, 0.439261),
         (1000, 1),
+        (1000000, 1),
     ]
 )
 
 TT_SF_2023 = np.array(
     [
+        (-1000000, 1),
         (0, 0.876845),
         (50, 0.984064),
         (100, 0.99184),
@@ -30,6 +33,7 @@ TT_SF_2023 = np.array(
         (250, 1.36115),
         (450, 1.13521),
         (750, 1),
+        (1000000, 1),
     ]
 )
 
@@ -53,7 +57,12 @@ tt_sfs_lookups = {
 
 def ttbar_pTjjSF(year: str, events_dict: dict[str, pd.DataFrame], mass: str = "bbFatJetPNetMass"):
     """Apply ttbar recoil scale factors"""
+    year_ = None
+    if "2022" in year:
+        year_ = "2022"
+    elif "2023" in year:
+        year_ = "2023"
     hh = makeHH(events_dict, "ttbar", mass)
-    lookup = tt_sfs_lookups[year]
+    lookup = tt_sfs_lookups[year_]
     sfs = lookup(hh.pt)
     return sfs

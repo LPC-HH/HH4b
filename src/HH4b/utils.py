@@ -447,12 +447,20 @@ def makeHH(events: pd.DataFrame, key: str, mass: str):
     mask_invalid = mask_h1 | mask_h2
 
     hh = h1 + h2
-    # Fill dummy is h1 or h2 is missing
-    hh = vector.where(
-        mask_invalid,
-        vector.obj(pt=-PAD_VAL, phi=-PAD_VAL, eta=-PAD_VAL, M=-PAD_VAL),
-        hh,
-    )
+    # Convert vectors to numpy arrays for conditional manipulation
+    hh_pt = hh.pt
+    hh_phi = hh.phi
+    hh_eta = hh.eta
+    hh_M = hh.M
+
+    # Apply pad value
+    hh_pt[mask_invalid] = -PAD_VAL
+    hh_phi[mask_invalid] = -PAD_VAL
+    hh_eta[mask_invalid] = -PAD_VAL
+    hh_M[mask_invalid] = -PAD_VAL
+
+    # Re-make the vector with padded entries
+    hh = vector.array({"pt": hh_pt, "phi": hh_phi, "eta": hh_eta, "M": hh_M})
     return hh
 
 
