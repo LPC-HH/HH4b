@@ -363,7 +363,7 @@ def load_run3_samples(args, year):
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        if args.legacy:
+        if not args.legacy:
             bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
             cutflow_dict[key]["H1Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())
             bdt_events = bdt_events[bdt_events["H2Msd"] > 30]
