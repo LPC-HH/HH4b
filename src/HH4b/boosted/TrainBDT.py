@@ -256,7 +256,7 @@ def evaluate_model(
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
-    y_test: pd.DataFrame,  # noqa
+    y_test: pd.DataFrame,
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
     # test_size: float, seed: int,
