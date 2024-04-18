@@ -33,11 +33,14 @@ four beauty quarks (b).
     - [Creating a virtual environment](#creating-a-virtual-environment)
     - [Installing package](#installing-package)
     - [Troubleshooting](#troubleshooting)
-  - [Instructions for running coffea processors](#instructions-for-running-coffea-processors)
+  - [Running coffea processors](#running-coffea-processors)
     - [Setup](#setup)
     - [Running locally](#running-locally)
       - [Jobs](#jobs)
     - [Dask](#dask)
+  - [Postprocessing](#postprocessing)
+    - [Setup](#setup-1)
+    - [Creating templates / FOM Scan](#creating-templates--fom-scan)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
@@ -45,6 +48,7 @@ four beauty quarks (b).
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
     - [Create Datacards](#create-datacards)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
+      - [F-tests locally](#f-tests-locally)
   - [Moving datasets (WIP)](#moving-datasets-wip)
 
 ## Setting up package
@@ -88,7 +92,7 @@ pre-commit install
 python3 -m pip install -e .
 ```
 
-## Instructions for running coffea processors
+## Running coffea processors
 
 ### Setup
 
@@ -180,8 +184,27 @@ voms-proxy-init --rfc --voms cms -valid 192:00
 
 Run the job submssion script:
 
-```
+```bash
 python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/skimmer_23_10_02.yaml --processor skimmer --nano-version v11 --region signal --save-array --executor dask > dask.out 2>&1
+```
+
+## Postprocessing
+
+### Setup
+
+Make sure to install the package (#installing-package) and install all the
+requirements in your conda environment:
+
+```bash
+pip3 install -r requirements.txt
+```
+
+### Creating templates / FOM Scan
+
+From inside the src/HH4b/postprocessing directory:
+
+```bash
+python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal (--fom-scan | --no-fom-scan)
 ```
 
 ## Condor Scripts
