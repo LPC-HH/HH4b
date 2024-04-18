@@ -39,6 +39,34 @@ def load_run3_samples(args, year):
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
+            ],
         },
         "2022EE": {
             "data": [
@@ -56,21 +84,12 @@ def load_run3_samples(args, year):
             "hh4b": [
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
             ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
             "vbfhh4b": [
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
             ],
             "diboson": [
                 "WW",
+                "WZ",
                 "ZZ",
             ],
             "vjets": [
@@ -82,6 +101,19 @@ def load_run3_samples(args, year):
                 "Zto2Q-4Jets_HT-400to600",
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
             ],
             "qcd": [
                 "QCD_HT-200to400",
@@ -105,6 +137,11 @@ def load_run3_samples(args, year):
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
             "vjets": [
                 "Wto2Q-3Jets_HT-200to400",
                 "Wto2Q-3Jets_HT-400to600",
@@ -118,6 +155,9 @@ def load_run3_samples(args, year):
             "novhhtobb": [
                 "GluGluHto2B_PT-200_M-125",
                 "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
             ],
             "vhtobb": [
                 "WminusH_Hto2B_Wto2Q_M-125",
@@ -136,6 +176,33 @@ def load_run3_samples(args, year):
             "ttlep": [
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
+            ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
             ],
         },
     }
@@ -502,12 +569,14 @@ def postprocess_run3(args):
     for year in args.years:
         events_dict_postprocess[year] = load_run3_samples(args, year)
 
+    processes = ["data", "qcd", "hh4b", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]
+
     # create combined datasets
     # temporarily used 2022EEMC and scale to full luminosity
     lumi_weight_2022EEtoall = (7971.4 + 26337.0 + 17650.0 + 9451.0) / 26337.0
     events_combined = {}
-    for key in ["data", "qcd", "hh4b", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]:
-        if key in ["data", "ttbar", "ttlep"]:
+    for key in processes:
+        if key not in ["hh4b", "qcd"]:
             combined = pd.concat(
                 [
                     events_dict_postprocess["2022"][key],
