@@ -8,6 +8,7 @@ from HH4b.utils import makeHH
 
 TT_SF_2022 = np.array(
     [
+        # lower bin edge, nom, up, down
         (0, 0.886178),
         (35, 1.02858),
         (75, 1.04224),
@@ -31,6 +32,18 @@ TT_SF_2023 = np.array(
         (750, 1),
     ]
 )
+
+# TODO: update to include up/down variations like so
+# tt_sfs_lookups = {
+#     "nom": {
+#         "2022": dense_lookup(TT_SF_2022[:, 1][:-1], TT_SF_2022[:, 0]),
+#         "2023": dense_lookup(TT_SF_2023[:, 1][:-1], TT_SF_2023[:, 0]),
+#     },
+#     "up": {
+#         "2022": dense_lookup(TT_SF_2022[:, 2][:-1], TT_SF_2022[:, 0]),
+#         "2023": dense_lookup(TT_SF_2023[:, 2][:-1], TT_SF_2023[:, 0]),
+#     }
+# }
 
 tt_sfs_lookups = {
     "2022": dense_lookup(TT_SF_2022[:, 1][:-1], TT_SF_2022[:, 0]),
