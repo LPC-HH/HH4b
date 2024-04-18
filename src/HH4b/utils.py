@@ -325,7 +325,6 @@ def load_samples(
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
-            print(pickles)
             if "totals" in pickles:
                 totals = pickles["totals"]
                 _normalize_weights(

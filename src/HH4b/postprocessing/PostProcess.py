@@ -187,8 +187,9 @@ def load_run3_samples(args, year):
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
     # get function
+    config = args.bdt_model if args.bdt_model != "v1_msd30_nomulticlass" else "v1_msd30"
     make_bdt_dataframe = importlib.import_module(
-        args.bdt_model, package="HH4b.boosted.bdt_trainings_run3"
+        f".{config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
     if year == "2023":
@@ -302,8 +303,9 @@ def load_run3_samples(args, year):
 
     for cut in cutflow_dict[key]:
         yields = [cutflow_dict[key][cut] for key in events_dict]
-        cutflow[key] = yields
+        cutflow[cut] = yields
 
+    print("\nCutflow")
     print(cutflow)
     return events_dict_postprocess, cutflow
 
@@ -574,17 +576,18 @@ def postprocess_run3(args):
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
     (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
-    if len(args.years) > 1:
-        cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
-        for cut in cutflows[args.years[0]]:
-            cutflow_combined[cut] = np.sum(
-                [cutflows[year][cut].to_numpy() for year in args.years], axis=0
-            )
-        print(cutflow_combined)
-        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow.csv")
+    # TODO: fix combine cutflow
+    # if len(args.years) > 1:
+    #     cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+    #     for cut in cutflows[args.years[0]]:
+    #         cutflow_combined[cut] = np.sum(
+    #             [cutflows[year][cut].to_numpy() for year in args.years], axis=0
+    #         )
+    #     print(cutflow_combined)
+    #     cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow.csv")
 
-    for year in args.years:
-        cutflows[year].to_csv(templ_dir / "cutflows" / year / "preselection_cutflow.csv")
+    for cyear in args.years:
+        cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
@@ -593,7 +596,6 @@ def postprocess_run3(args):
     # individual templates per year
     templates = postprocessing.get_templates(
         events_combined,
-        bb_masks=None,
         year=year,
         sig_keys=["hh4b"],
         selection_regions=selection_regions,
@@ -645,13 +647,6 @@ if __name__ == "__main__":
         type=str,
         default="v1_msd30_nomulticlass",
         help="BDT model to load",
-    )
-    parser.add_argument(
-        "--mass",
-        type=str,
-        default="H2Msd",
-        choices=["H2Msd", "H2PNetMass"],
-        help="mass variable to make template",
     )
 
     parser.add_argument(
