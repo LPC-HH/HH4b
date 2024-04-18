@@ -6,9 +6,9 @@
                 "JetMET_Run2022C",
                 "JetMET_Run2022D",
            ],
-           "files_per_job": 8,
+           "files_per_job": 10,
         },
-        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 15},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "VJets": {
             "subsamples": [
@@ -21,7 +21,7 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800","WtoLNu-4Jets",
             ],
-            "files_per_job": 6,
+            "files_per_job": 20,
         },
         "QCD": {
             "subsamples": [
@@ -35,7 +35,7 @@
                 "QCD_HT-1500to2000",
                 "QCD_HT-2000",
             ],
-            "files_per_job": 10,
+            "files_per_job": 15,
         },
    },
    "2022EE": {
@@ -45,9 +45,9 @@
                 "JetMET_Run2022F",
                 "JetMET_Run2022G",
             ],
-            "files_per_job": 8,
+            "files_per_job": 10,
         },
-        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 15},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "VJets": {
             "subsamples": [
@@ -60,7 +60,7 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800","WtoLNu-4Jets",
             ],
-            "files_per_job": 6,
+            "files_per_job": 20,
         },
         "QCD": {
             "subsamples": [
@@ -74,7 +74,7 @@
                 "QCD_HT-1500to2000",
                 "QCD_HT-2000",
             ],
-            "files_per_job": 10,
+            "files_per_job": 15,
         },
     },
     "2023": {
@@ -85,9 +85,9 @@
                 "JetMET_Run2023Cv3",
                 "JetMET_Run2023Cv4",
             ],
-            "files_per_job": 8,
+            "files_per_job": 10,
         },
-        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 15},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "VJets": {
             "subsamples": [
@@ -100,10 +100,10 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800","WtoLNu-4Jets",
             ],
-            "files_per_job": 6,
+            "files_per_job": 20,
         },
         "QCD": {
-            "files_per_job": 10,
+            "files_per_job": 15,
         },
     },
     "2023BPix": {
@@ -111,9 +111,9 @@
             "subsamples": [
                 "JetMET_Run2023D",
             ],
-            "files_per_job": 8,
+            "files_per_job": 10,
         },
-        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 15},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         "VJets": {
             "subsamples": [
@@ -125,10 +125,10 @@
                 "Zto2Q-4Jets_HT-400to600",
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800","WtoLNu-4Jets"],
-            "files_per_job": 6,
+            "files_per_job": 20,
         },
         "QCD": {
-            "files_per_job": 10,
+            "files_per_job": 15,
         },
     },
 }
