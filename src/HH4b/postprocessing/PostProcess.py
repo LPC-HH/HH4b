@@ -636,7 +636,12 @@ def postprocess_run3(args):
         plot_dir.mkdir(exist_ok=True, parents=True)
         # todo: update to [-5, +5] for next round!
         shift_mass_window = np.array([-15, -5])
-        scan_fom(events_combined, np.array(window_by_mass[args.mass]) + shift_mass_window, plot_dir, mass=args.mass)
+        scan_fom(
+            events_combined,
+            np.array(window_by_mass[args.mass]) + shift_mass_window,
+            plot_dir,
+            mass=args.mass,
+        )
         scan_fom_bin2(
             events_combined,
             np.array(window_by_mass[args.mass]) + shift_mass_window,
