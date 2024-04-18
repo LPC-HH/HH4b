@@ -422,7 +422,8 @@ def tau32FittedSF_4(events: pd.DataFrame):
         1,
     )
 
-def makeHH (events: pd.DataFrame, key: str, mass: str):
+
+def makeHH(events: pd.DataFrame, key: str, mass: str):
 
     h1 = vector.array(
         {
@@ -446,7 +447,11 @@ def makeHH (events: pd.DataFrame, key: str, mass: str):
 
     hh = h1 + h2
     # Fill dummy is h1 or h2 is missing
-    hh = vector.where(mask_invalid, vector.obj(pt=-99999.000000, phi=-99999.000000, eta=-99999.000000, M=-99999.000000), hh)
+    hh = vector.where(
+        mask_invalid,
+        vector.obj(pt=-99999.000000, phi=-99999.000000, eta=-99999.000000, M=-99999.000000),
+        hh,
+    )
     return hh
 
 
@@ -460,7 +465,7 @@ def ttbar_pTjjSF(year, events: pd.DataFrame, mass: str = "bbFatJetPNetMass"):
         (315, 0.845703),
         (450, 0.699666),
         (700, 0.439261),
-        (1000, 1)
+        (1000, 1),
     ]
     SF_2023 = [
         (0, 0.876845),
@@ -469,9 +474,9 @@ def ttbar_pTjjSF(year, events: pd.DataFrame, mass: str = "bbFatJetPNetMass"):
         (150, 1.17205),
         (250, 1.36115),
         (450, 1.13521),
-        (750, 1)
+        (750, 1),
     ]
-    hh = makeHH(events, "ttbar", mass)    
+    hh = makeHH(events, "ttbar", mass)
     SF = 1.0
     SFs = None
     if year == "2022":
@@ -597,7 +602,7 @@ def singleVarHist(
             weight = weight[sel]
 
         if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
-            weight = weight * tau32FittedSF_4(events)*ttbar_pTjjSF(year,events)
+            weight = weight * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
