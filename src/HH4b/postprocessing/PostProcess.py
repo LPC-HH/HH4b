@@ -627,7 +627,7 @@ def postprocess_run3(args):
         events_combined[key] = combined
     # combine ttbar
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
-    events_combined["others"] = pd.concat([events_combined["diboson"], events_combined["vjets"], events_combined["novhhtobb"])
+    events_combined["others"] = pd.concat([events_combined["diboson"], events_combined["vjets"], events_combined["novhhtobb"]])
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
