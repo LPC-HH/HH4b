@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import sys
 from pathlib import Path
 
 import hist
@@ -18,7 +17,46 @@ from HH4b import hh_vars, postprocessing, run_utils, utils
 from HH4b.postprocessing import Region
 from HH4b.utils import ShapeVar, load_samples
 
-sys.path.append("../boosted/bdt_trainings_run3/")
+# sys.path.append("../boosted/bdt_trainings_run3/")
+
+
+# TODO: can switch to this in the future to get cutflows for each cut.
+# def get_selection_regions(txbb_wps: list[float], bdt_wps: list[float]):
+#     return {
+#         "pass_bin1": Region(
+#             cuts={
+#                 "H2Xbb": [txbb_wps[0], CUT_MAX_VAL],
+#                 "bdt_score": [bdt_wps[0], CUT_MAX_VAL],
+#             },
+#             label="Bin1",
+#         ),
+#         "pass_bin2": Region(
+#             cuts={
+#                 "H2Xbb": [txbb_wps[1], CUT_MAX_VAL],
+#                 "bdt_score": [bdt_wps[1], CUT_MAX_VAL],
+#                 # veto events in Bin 1
+#                 "H2Xbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[0]]],
+#                 # veto events in "lower left corner"
+#                 "H2Xbb+bdt_score": [[txbb_wps[0], CUT_MAX_VAL], [bdt_wps[0], CUT_MAX_VAL]],
+#             },
+#             label="Bin2",
+#         ),
+#         "pass_bin3": Region(
+#             cuts={
+#                 "H2Xbb": [txbb_wps[1], CUT_MAX_VAL],
+#                 "bdt_score": [bdt_wps[2], bdt_wps[0]],
+#                 # veto events in Bin 2
+#                 "H2Xbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[1]]],
+#             },
+#             label="Bin3",
+#         ),
+#         "fail": Region(
+#             cuts={
+#                 "H2Xbb": [-CUT_MAX_VAL, txbb_wps[1]],
+#             },
+#             label="Fail",
+#         ),
+#     }
 
 
 def load_run3_samples(args, year):
@@ -141,16 +179,16 @@ def load_run3_samples(args, year):
         [
             ("('bbFatJetPt', '0')", ">=", 300),
             ("('bbFatJetPt', '1')", ">=", 300),
-            ("('bbFatJetMsd', '0')", ">=", 30),
         ],
     ]
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    model_name = "v1_msd30_nomulticlass"
-    bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{model_name}/trained_bdt.model")
+    bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
     # get function
-    make_bdt_dataframe = importlib.import_module("v1_msd30")
+    make_bdt_dataframe = importlib.import_module(
+        args.bdt_model, package="HH4b.boosted.bdt_trainings_run3"
+    )
 
     if year == "2023":
         load_columns_year = load_columns + [
@@ -215,7 +253,7 @@ def load_run3_samples(args, year):
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
         if year == "2022EE" and key in ["qcd", "ttbar", "hh4b"]:
             evt_list = np.load(
-                f"../boosted/bdt_trainings_run3/{model_name}/inferences/2022EE/evt_{key}.npy"
+                f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/2022EE/evt_{key}.npy"
             )
             bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
             bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
@@ -565,6 +603,19 @@ if __name__ == "__main__":
         default=hh_vars.years,
         choices=hh_vars.years,
         help="years to postprocess",
+    )
+    parser.add_argument(
+        "--mass",
+        type=str,
+        default="H2Msd",
+        choices=["H2Msd", "H2PNetMass"],
+        help="mass variable to make template",
+    )
+    parser.add_argument(
+        "--bdt-model",
+        type=str,
+        default="v1_msd30_nomulticlass",
+        help="BDT model to load",
     )
     parser.add_argument(
         "--mass",
