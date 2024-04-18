@@ -263,7 +263,7 @@ def load_run3_samples(args, year):
     return events_dict_postprocess
 
 
-def scan_figom(events_combined, figom="2sqrt(b)/s", mass="H2Msd"):
+def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
     """
     Scan figure of merit
     """
@@ -305,9 +305,9 @@ def scan_figom(events_combined, figom="2sqrt(b)/s", mass="H2Msd"):
             nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
             nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
 
-            if figom == "s/sqrt(s+b)":
+            if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
-            elif figom == "2sqrt(b)/s":
+            elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
                 raise RuntimeError
@@ -347,8 +347,8 @@ def scan_figom(events_combined, figom="2sqrt(b)/s", mass="H2Msd"):
     fig.savefig("figofmerit.pdf")
 
 
-def scan_figom_bin2(
-    events_combined, xbb_cut_bin1=0.92, bdt_cut_bin1=0.94, figom="2sqrt(b)/s", mass="H2Msd"
+def scan_fom_bin2(
+    events_combined, xbb_cut_bin1=0.92, bdt_cut_bin1=0.94, fom="2sqrt(b)/s", mass="H2Msd"
 ):
     """
     Scan figure of merit for bin2
@@ -401,9 +401,9 @@ def scan_figom_bin2(
             nevents_data = get_nevents_data(events_combined["data"], xbb_cut, bdt_cut)
             nevents_signal = get_nevents_signal(events_combined["hh4b"], xbb_cut, bdt_cut)
 
-            if figom == "s/sqrt(s+b)":
+            if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
-            elif figom == "2sqrt(b)/s":
+            elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
             else:
                 raise RuntimeError
@@ -512,8 +512,8 @@ def postprocess_run3(args):
         events_combined[key] = combined
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
 
-    scan_figom(events_combined, mass=args.mass)
-    scan_figom_bin2(
+    scan_fom(events_combined, mass=args.mass)
+    scan_fom_bin2(
         events_combined, xbb_cut_bin1=XBB_CUT_BIN1, bdt_cut_bin1=BDT_CUT_BIN1, mass=args.mass
     )
 
