@@ -698,8 +698,6 @@ def plot_train_test(X_train, yt_train, weights_train, X_test, yt_test, weights_t
     fpr, tpr, thresholds = roc_curve(yt_test, y_scores_test, sample_weight=weights_test)
 
     fig, ax = plt.subplots(1, 1, figsize=(18, 12))
-    plot_thresholds = [0.7, 0.9, 0.97]
-    th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
     ax.plot(tpr_train, fpr_train, linewidth=2, color="orange", label="Train Dataset")
     ax.plot(tpr, fpr, linewidth=2, color="orange", label="Test Dataset")
     ax.set_title("ggF HH4b BDT ROC Curve from Training")
