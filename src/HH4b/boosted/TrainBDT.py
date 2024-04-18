@@ -430,6 +430,10 @@ def evaluate_model(
 
     # print("Scores ", scores)
 
+    legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
+    if not legacy:
+        legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
+
     bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
     cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
     h_bdt = hist.Hist(bdt_axis, cat_axis)
@@ -472,11 +476,7 @@ def evaluate_model(
             )
         ax.set_yscale("log")
         ax.legend(
-            title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
-            + "\n"
-            + "Xbb$^{0}$>0.8"
-            + "\n"
-            + r"m$_{SD}^{(0,1)}$:[30-250] GeV",
+            title=legtitle,
             bbox_to_anchor=(1.03, 1),
             loc="upper left",
         )
@@ -576,12 +576,7 @@ def evaluate_model(
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
     ax.legend(
-        title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
-        + "\n"
-        + "Xbb$^{0}$>0.8"
-        + "\n"
-        + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-        + "\n",
+        title=legtitle,
         bbox_to_anchor=(1.03, 1),
         loc="upper left",
     )
@@ -687,7 +682,16 @@ def evaluate_model(
 
 
 def plot_train_test(
-    X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, multiclass, model_dir
+    X_train,
+    yt_train,
+    weights_train,
+    X_test,
+    yt_test,
+    weights_test,
+    model,
+    multiclass,
+    model_dir,
+    legacy,
 ):
     y_scores_train = model.predict_proba(X_train)
     y_scores_train = y_scores_train[:, 0] if multiclass else y_scores_train[:, 1]
@@ -709,13 +713,11 @@ def plot_train_test(
     ax.set_ylim([0, 0.07])
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
+    legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
+    if not legacy:
+        legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
     ax.legend(
-        title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
-        + "\n"
-        + "Xbb$^{0}$>0.8"
-        + "\n"
-        + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-        + "\n",
+        title=legtitle,
         bbox_to_anchor=(1.03, 1),
         loc="upper left",
     )
@@ -774,11 +776,7 @@ def plot_train_test(
         )
         ax.set_yscale("log")
         ax.legend(
-            title=r"FatJet p$_T^{(0,1)}$ > 300 GeV"
-            + "\n"
-            + "Xbb$^{0}$>0.8"
-            + "\n"
-            + r"m$_{SD}^{(0,1)}$:[30-250] GeV",
+            title=legtitle,
             bbox_to_anchor=(1.03, 1),
             loc="upper left",
         )
@@ -852,6 +850,7 @@ def main(args):
             model,
             args.multiclass,
             model_dir,
+            args.legacy,
         )
 
     evaluate_model(
