@@ -145,8 +145,6 @@ samples = {
         **common_samples,
         "data": [
             # "Run2022E",
-            "Run2022F",
-            "Run2022G",
             "Muon_Run",
             "EGamma_Run",
         ],
@@ -154,9 +152,6 @@ samples = {
     "2023": {
         **common_samples,
         "data": [
-            # "Run2022E",
-            "Run2022F",
-            "Run2022G",
             "Muon_Run",
             "EGamma_Run",
         ],
@@ -164,9 +159,6 @@ samples = {
     "2023BPix": {
         **common_samples,
         "data": [
-            # "Run2022E",
-            "Run2022F",
-            "Run2022G",
             "Muon_Run",
             "EGamma_Run",
         ],

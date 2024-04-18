@@ -450,7 +450,7 @@ def makeHH(events: pd.DataFrame, key: str, mass: str):
     # Fill dummy is h1 or h2 is missing
     hh = vector.where(
         mask_invalid,
-        vector.obj(pt=-99999.000000, phi=-99999.000000, eta=-99999.000000, M=-99999.000000),
+        vector.obj(pt=-PAD_VAL, phi=-PAD_VAL, eta=-PAD_VAL, M=-PAD_VAL),
         hh,
     )
     return hh
