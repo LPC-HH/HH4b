@@ -940,3 +940,36 @@ def ROCCurve(
         plt.show()
     else:
         plt.close()
+
+
+def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
+    """Plot FoM scan"""
+
+    eff, bins_x, bins_y = h_sb.to_numpy()
+    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    cbar = hep.hist2dplot(
+        h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow="none"
+    )
+    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.ax.get_yaxis().labelpad = 15
+    for i in range(len(bins_x) - 1):
+        for j in range(len(bins_y) - 1):
+            if eff[i, j] > 0:
+                ax.text(
+                    (bins_x[i] + bins_x[i + 1]) / 2,
+                    (bins_y[j] + bins_y[j + 1]) / 2,
+                    eff[i, j].round(2),
+                    color="black",
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                )
+    fig.tight_layout()
+
+    plt.savefig(f"{plot_dir}/{name}.png")
+    plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()

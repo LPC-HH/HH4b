@@ -440,7 +440,7 @@ def evaluate_model(
     legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
     if not legacy:
         legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-            
+
     bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
     cat_axis = hist.axis.StrCategory([], name="cat", growth=True)
     h_bdt = hist.Hist(bdt_axis, cat_axis)
@@ -689,7 +689,16 @@ def evaluate_model(
 
 
 def plot_train_test(
-    X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, multiclass, model_dir, legacy
+    X_train,
+    yt_train,
+    weights_train,
+    X_test,
+    yt_test,
+    weights_test,
+    model,
+    multiclass,
+    model_dir,
+    legacy,
 ):
     y_scores_train = model.predict_proba(X_train)
     y_scores_train = y_scores_train[:, 0] if multiclass else y_scores_train[:, 1]
