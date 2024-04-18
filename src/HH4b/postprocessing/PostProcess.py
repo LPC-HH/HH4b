@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import sys
+from collections import OrderedDict
 from pathlib import Path
 
 import hist
@@ -184,6 +185,13 @@ def load_run3_samples(args, year):
         "2023BPix": ["AK8PFJet230_SoftDropMass40_PNetBB0p06"],
     }
 
+    cutflow = pd.DataFrame(index=list(events_dict.keys()))
+    cutflow_dict = {
+        key: OrderedDict(
+            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
+        )
+        for key in events_dict
+    }
     # inference and assign score
     events_dict_postprocess = {}
     for key in events_dict:
@@ -222,8 +230,11 @@ def load_run3_samples(args, year):
 
         # extra selection
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
+        cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
         bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
+        cutflow_dict[key]["H1Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())
         bdt_events = bdt_events[bdt_events["H2Msd"] > 30]
+        cutflow_dict[key]["H2Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())
 
         # define category
         bdt_events["Category"] = 5  # all events
@@ -251,7 +262,12 @@ def load_run3_samples(args, year):
         columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "H2PNetMass", "weight"]
         events_dict_postprocess[key] = bdt_events[columns]
 
-    return events_dict_postprocess
+    for cut in cutflow_dict[key]:
+        yields = [cutflow_dict[key][cut] for key in events_dict]
+        cutflow[key] = yields
+
+    print(cutflow)
+    return events_dict_postprocess, cutflow
 
 
 def scan_fom(events_combined, fom="2sqrt(b)/s", mass="H2Msd"):
@@ -479,8 +495,9 @@ def postprocess_run3(args):
 
     # load samples
     events_dict_postprocess = {}
+    cutflows = {}
     for year in args.years:
-        events_dict_postprocess[year] = load_run3_samples(args, year)
+        events_dict_postprocess[year], cutflows[year] = load_run3_samples(args, year)
 
     # create combined datasets
     # temporarily used 2022EEMC and scale to full luminosity
@@ -518,6 +535,9 @@ def postprocess_run3(args):
     year = "2022-2023"
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
     (templ_dir / year).mkdir(parents=True, exist_ok=True)
+
+    for year in args.years:
+        cutflows[year].to_csv(templ_dir / "cutflows" / year / "preselection_cutflow.csv")
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
