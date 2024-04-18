@@ -634,10 +634,10 @@ def postprocess_run3(args):
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
         plot_dir.mkdir(exist_ok=True, parents=True)
-        scan_fom(events_combined, np.array(window_by_mass[args.mass]) + np.array([-5, 5]), plot_dir, mass=args.mass)
+        scan_fom(events_combined, np.array(window_by_mass[args.mass]) + np.array([-15, -5]), plot_dir, mass=args.mass)
         scan_fom_bin2(
             events_combined,
-            np.array(window_by_mass[args.mass]) + np.array([-5, 5]),
+            np.array(window_by_mass[args.mass]) + np.array([-15, -5]),
             plot_dir,
             xbb_cut_bin1=args.txbb_wps[0],
             bdt_cut_bin1=args.bdt_wps[0],
