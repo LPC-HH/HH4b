@@ -22,21 +22,17 @@ def plot_fits(args):
     hist_label_map_inverse = OrderedDict(
         [
             ("qcd", "CMS_bbbb_hadronic_qcd_datadriven"),
-            ("vjets", "vjets"),
-            ("diboson", "diboson"),
-            # ("others", "others"),
+            ("others", "others"),
             ("ttbar", "ttbar"),
-            ("vhtobb", "vhtobb"),
-            # ("tthtobb", "tthtobb"),
+            ("vhtobb", "VH_hbb"),
+            ("tthtobb", "ttH_hbb"),
             ("hh4b", "hh4b"),
             ("data", "data_obs"),
         ]
     )
 
-    # bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
-    # bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson"]
-    bkg_order = ["diboson", "vjets", "vhtobb", "ttbar", "qcd"]
+    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
+    bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
 
     hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
     samples = list(hist_label_map.values())
@@ -60,16 +56,16 @@ def plot_fits(args):
     }
 
     selection_regions_labels = {
-        "passbin1": "Pass Bin1",
-        "passbin2": "Pass Bin2",
-        "passbin3": "Pass Bin3",
+        "passbin1": "Pass Bin 1",
+        "passbin2": "Pass Bin 2",
+        "passbin3": "Pass Bin 3",
         "fail": "Fail",
     }
     ylims = {
-        "passbin1": 20,
-        "passbin2": 50,
-        "passbin3": 400,
-        "fail": 45000,
+        "passbin1": 12,
+        "passbin2": 30,
+        "passbin3": 200,
+        "fail": 25000,
     }
 
     if args.regions == "all":
