@@ -609,7 +609,7 @@ def postprocess_run3(args):
     for year in args.years:
         events_dict_postprocess[year], cutflows[year] = load_run3_samples(args, year)
 
-    bkg_keys = ["qcd", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]
+    bkg_keys = ["qcd", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb", "tthtobb"]
     processes = ["data", "hh4b"] + bkg_keys
 
     # create combined datasets
