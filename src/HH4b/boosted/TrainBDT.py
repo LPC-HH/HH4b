@@ -80,9 +80,7 @@ def load_data(data_path: str, year: str, legacy: bool):
                 "ZH_Hto2B_Zto2Q_M-125",
                 "ggZH_Hto2B_Zto2Q_M-125",
             ],
-            "vbf": [
-                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"
-            ],
+            "vbf": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
             "vjets": [
                 "Wto2Q-3Jets_HT-200to400",
                 "Wto2Q-3Jets_HT-400to600",
@@ -226,7 +224,9 @@ def preprocess_data(
         print(f"Scale signal by {bkg_total / sig_total}")
 
         events.loc["hh4b", "weight"] = weights_bdt["hh4b"] * (bkg_total / sig_total)
-        events.loc["vbf", "weight"] = weights_bdt["vbf"] * (bkg_total / sig_total)  # is this also scaled like hh4b?
+        events.loc["vbf", "weight"] = weights_bdt["vbf"] * (
+            bkg_total / sig_total
+        )  # is this also scaled like hh4b?
         events.loc["qcd", "weight"] = weights_bdt["qcd"]
         events.loc["ttbar", "weight"] = weights_bdt["ttbar"]
 
@@ -342,10 +342,11 @@ def train_model(
 
     return model
 
+
 def find_nearest(array, value):
-        array = np.asarray(array)
-        idx = (np.abs(array - value)).argmin()
-        return idx
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
 
 
 def plot_mcBDT_ROC(
@@ -360,14 +361,12 @@ def plot_mcBDT_ROC(
     # test_size: float, seed: int,
     # year: str,
     multiclass: bool,
-    legacy: bool,    
-
+    legacy: bool,
 ):
     pnet_xbb_str = "bbFatJetPNetXbb" if not legacy else "bbFatJetPNetXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
 
-
-     # plot BDT scores for test samples
+    # plot BDT scores for test samples
     make_bdt_dataframe = importlib.import_module(f"{config_name}")
 
     # get scores from full dataframe, but only use testing indices
@@ -483,6 +482,7 @@ def plot_mcBDT_ROC(
     fig.savefig(model_dir / "roc_weights.png")
     plt.close()
 
+
 def evaluate_model(
     config_name: str,
     events_dict: dict,
@@ -506,7 +506,7 @@ def evaluate_model(
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
 
     # make and save ROCs for testing data
-    
+
     y_scores = model.predict_proba(X_test)
     y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
 
