@@ -884,11 +884,19 @@ def mesh2d(
 
 
 def multiROCCurveGrey(
-    rocs: dict, sig_effs: list[float], plot_dir: Path, name: str = "", show: bool = False
+    rocs: dict,
+    sig_effs: list[float],
+    xlim=None,
+    ylim=None,
+    plot_dir: Path = None,
+    name: str = "",
+    show: bool = False,
 ):
     """Plot multiple ROC curves (e.g. train and test) + multiple signals"""
-    xlim = [0, 1]
-    ylim = [1e-6, 1]
+    if ylim is None:
+        ylim = [1e-06, 1]
+    if xlim is None:
+        xlim = [0, 1]
     line_style = {"colors": "lightgrey", "linestyles": "dashed"}
 
     plt.figure(figsize=(12, 12))
