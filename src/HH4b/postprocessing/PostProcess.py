@@ -73,6 +73,34 @@ def load_run3_samples(args, year):
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
+            ],
         },
         "2022EE": {
             "data": [
@@ -90,21 +118,12 @@ def load_run3_samples(args, year):
             "hh4b": [
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
             ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
             "vbfhh4b": [
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
             ],
             "diboson": [
                 "WW",
+                "WZ",
                 "ZZ",
             ],
             "vjets": [
@@ -116,6 +135,19 @@ def load_run3_samples(args, year):
                 "Zto2Q-4Jets_HT-400to600",
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
             ],
             "qcd": [
                 "QCD_HT-200to400",
@@ -139,6 +171,34 @@ def load_run3_samples(args, year):
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
             ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
+                "ggZH_Hto2B_Zto2Q_M-125",
+            ],
         },
         "2023BPix": {
             "data": [
@@ -150,6 +210,33 @@ def load_run3_samples(args, year):
             "ttlep": [
                 "TTtoLNu2Q",
                 "TTto2L2Nu",
+            ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "vjets": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800",
+            ],
+            "novhhtobb": [
+                "GluGluHto2B_PT-200_M-125",
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
+            "tthtobb": [
+                "ttHto2B_M-125",
+            ],
+            "vhtobb": [
+                "WminusH_Hto2B_Wto2Q_M-125",
+                "WplusH_Hto2B_Wto2Q_M-125",
+                "ZH_Hto2B_Zto2Q_M-125",
             ],
         },
     }
@@ -270,7 +357,7 @@ def load_run3_samples(args, year):
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        if args.legacy:
+        if not args.legacy:
             bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
             cutflow_dict[key]["H1Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())
             bdt_events = bdt_events[bdt_events["H2Msd"] > 30]
@@ -517,12 +604,15 @@ def postprocess_run3(args):
     for year in args.years:
         events_dict_postprocess[year], cutflows[year] = load_run3_samples(args, year)
 
+    bkg_keys = ["qcd", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb", "tthtobb"]
+    processes = ["data", "hh4b"] + bkg_keys
+
     # create combined datasets
     # temporarily used 2022EEMC and scale to full luminosity
     lumi_weight_2022EEtoall = (7971.4 + 26337.0 + 17650.0 + 9451.0) / 26337.0
     events_combined = {}
-    for key in ["data", "qcd", "hh4b", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb"]:
-        if key in ["data", "ttbar", "ttlep"]:
+    for key in processes:
+        if key not in ["hh4b", "qcd"]:
             combined = pd.concat(
                 [
                     events_dict_postprocess["2022"][key],
@@ -535,15 +625,26 @@ def postprocess_run3(args):
             combined = events_dict_postprocess["2022EE"][key].copy()
             combined["weight"] = combined["weight"] * lumi_weight_2022EEtoall
         events_combined[key] = combined
+    # combine ttbar
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
+    events_combined["others"] = pd.concat(
+        [events_combined["diboson"], events_combined["vjets"], events_combined["novhhtobb"]]
+    )
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
         plot_dir.mkdir(exist_ok=True, parents=True)
-        scan_fom(events_combined, window_by_mass[args.mass], plot_dir, mass=args.mass)
+        # todo: update to [-5, +5] for next round!
+        shift_mass_window = np.array([-15, -5])
+        scan_fom(
+            events_combined,
+            np.array(window_by_mass[args.mass]) + shift_mass_window,
+            plot_dir,
+            mass=args.mass,
+        )
         scan_fom_bin2(
             events_combined,
-            window_by_mass[args.mass],
+            np.array(window_by_mass[args.mass]) + shift_mass_window,
             plot_dir,
             xbb_cut_bin1=args.txbb_wps[0],
             bdt_cut_bin1=args.bdt_wps[0],
@@ -570,8 +671,6 @@ def postprocess_run3(args):
 
     for cyear in args.years:
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
-
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson", "novhhtobb"]
 
     print(events_combined["data"].columns)
 
@@ -652,4 +751,5 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "legacy", default=False, help="using legacy pnet txbb and mass")
     args = parser.parse_args()
 
+    print(args)
     postprocess_run3(args)
