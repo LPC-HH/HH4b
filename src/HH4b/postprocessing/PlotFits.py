@@ -11,35 +11,36 @@ import uproot
 from HH4b import plotting
 from HH4b.utils import ShapeVar
 
+
 def plot_fits(args):
     signal_scale = args.signal_scale
-    
+
     os.system(f"mkdir -p {args.plots_dir}")
     plot_dir = args.plots_dir
-    
+
     # (name in templates -> name in cards)
     hist_label_map_inverse = OrderedDict(
         [
             ("qcd", "CMS_bbbb_hadronic_qcd_datadriven"),
             ("vjets", "vjets"),
             ("diboson", "diboson"),
-            #("others", "others"),
+            # ("others", "others"),
             ("ttbar", "ttbar"),
             ("vhtobb", "vhtobb"),
-            #("tthtobb", "tthtobb"),
+            # ("tthtobb", "tthtobb"),
             ("hh4b", "hh4b"),
             ("data", "data_obs"),
         ]
     )
 
-    #bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
-    #bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
+    # bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
+    # bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
     bkg_keys = ["qcd", "ttbar", "vhtobb", "vjets", "diboson"]
-    bkg_order =  ["diboson", "vjets", "vhtobb", "ttbar", "qcd"]
+    bkg_order = ["diboson", "vjets", "vhtobb", "ttbar", "qcd"]
 
     hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
     samples = list(hist_label_map.values())
-    
+
     fit_shape_var = ShapeVar(
         "H2Msd",
         # "H2PNetMass",
@@ -57,7 +58,7 @@ def plot_fits(args):
         # "postfit": "S+B Post-Fit",
         "postfit": "B-only Post-Fit",
     }
-    
+
     selection_regions_labels = {
         "passbin1": "Pass Bin1",
         "passbin2": "Pass Bin2",
@@ -70,18 +71,18 @@ def plot_fits(args):
         "passbin3": 400,
         "fail": 45000,
     }
-    
+
     if args.regions == "all":
         signal_regions = ["passbin1", "passbin2", "passbin3"]
     else:
         signal_regions = [args.regions]
         bins = [*signal_regions, "fail"]
     selection_regions = {key: selection_regions_labels[key] for key in bins}
-        
+
     data_key = "data"
-    
+
     file = uproot.open(args.fit_file)
-    
+
     print(file.keys())
     # build histograms
     hists = {}
@@ -99,7 +100,7 @@ def plot_fits(args):
 
         bgerrs[shape] = {}
         data_errs[shape] = {}
-        
+
         for region in selection_regions:
             h = hists[shape][region]
             templates = file[f"{region}_{shape}"]
@@ -109,32 +110,32 @@ def plot_fits(args):
                     if file_key not in templates:
                         print(f"No {key} in {region}")
                         continue
-                        
+
                     data_key_index = np.where(np.array(list(h.axes[0])) == key)[0][0]
                     h.view(flow=False)[data_key_index, :] = templates[file_key].values()
-                        
+
             data_key_index = np.where(np.array(list(h.axes[0])) == data_key)[0][0]
             h.view(flow=False)[data_key_index, :] = np.nan_to_num(
                 templates[hist_label_map_inverse[data_key]].values()
             )
             bgerrs[shape][region] = templates["TotalBkg"].errors()
 
-            #data_errs[shape][region] = np.stack(
+            # data_errs[shape][region] = np.stack(
             #    (
             #        file[f"{region}_{shape}"]["data_obs"].errors(which="low")[1] * 10,
             #        file[f"{region}_{shape}"]["data_obs"].errors(which="high")[1] * 10,
             #    )
-            #)
+            # )
 
     year = "2022-2023"
     pass_ratio_ylims = [0, 2]
     fail_ratio_ylims = [0, 2]
-    
+
     for shape, shape_label in shapes.items():
         for region, region_label in selection_regions.items():
             pass_region = region.startswith("pass")
             for shape_var in shape_vars:
-                # print(hists[shape][region])                                                                                                                                                                             
+                # print(hists[shape][region])
                 plot_params = {
                     "hists": hists[shape][region],
                     "sig_keys": ["hh4b"],
@@ -152,12 +153,13 @@ def plot_fits(args):
                     "bg_order": bkg_order,
                     "energy": 13.6,
                 }
-                
+
                 plotting.ratioHistPlot(**plot_params, data_err=True)
                 # FIXME
-                #plotting.ratioHistPlot(**plot_params, data_err=data_errs)
+                # plotting.ratioHistPlot(**plot_params, data_err=data_errs)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     import argparse
 
@@ -178,5 +180,5 @@ if __name__ == '__main__':
         choices=["passbin1", "passbin2", "passbin3", "all"],
     )
     args = parser.parse_args()
-    
+
     plot_fits(args)

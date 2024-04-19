@@ -712,7 +712,7 @@ def ratioHistPlot(
         data_val[tot_val_zero_mask] = 1
         yerr = ratio_uncertainty(data_val, tot_val, "poisson")
         yvalue = data_val / tot_val
-        
+
         hep.histplot(
             yvalue,
             bg_tot.axes[0].edges,
@@ -726,7 +726,7 @@ def ratioHistPlot(
         rax.set_xlabel(hists.axes[1].label)
 
         """
-        error_up_bg = bg_err[0] 
+        error_up_bg = bg_err[0]
         error_up_data = np.sqrt(hists[data_key, :])
         # dz = z * np.sqrt((dx/x)**2 + (dy/y)**2)
         error_up = yvalue * np.sqrt( (error_up_data/data_val)*(error_up_data/data_val) + (error_up_bg/tot_val)*(error_up_bg/tot_val) )
