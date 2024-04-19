@@ -558,13 +558,10 @@ class bbbbSkimmer(SkimmerABC):
 
         skimmed_events = {
             **genVars,
-            **ak4JetVars,
-            **ak8FatJetVars,
             **bbFatJetVars,
             **eventVars,
             **pileupVars,
             **HLTVars,
-            **trigObjFatJetVars,
         }
 
         if self._region == "signal":
@@ -581,6 +578,14 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **vbfJetVars,
                 **bbFatDijetVars,
+            }
+        else:
+            # these variables aren't needed for signal region
+            skimmed_events = {
+                **skimmed_events,
+                **ak8FatJetVars,
+                **ak4JetVars,
+                **trigObjFatJetVars,
             }
 
         if self._region == "semilep-tt":
@@ -639,15 +644,29 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
-            # legacy = "particleNetLegacy_mass" in fatjets.fields
+            legacy = "particleNetLegacy_mass" in fatjets.fields
 
             # >=2 AK8 jets passing selections
             add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
 
             # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
-            cut_txbb = (
-                np.sum(bbFatJetVars["bbFatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1) >= 1
-            )
+            if not legacy:
+                cut_txbb = (
+                    np.sum(bbFatJetVars["bbFatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
+                    >= 1
+                )
+            else:
+                # using an OR of legacy and v12 TXbb
+                cut_txbb = (
+                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1)
+                    >= 1
+                ) | (
+                    np.sum(
+                        bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"], axis=1
+                    )
+                    >= 1
+                )
+
             add_selection("ak8bb_txbb0", cut_txbb, *selection_args)
 
             # 0 veto leptons
