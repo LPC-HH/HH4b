@@ -18,12 +18,14 @@ from pathlib import Path
 import hist
 import numpy as np
 import pandas as pd
+import vector
 from hist import Hist
 
 from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights, years
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
+PAD_VAL = -99999
 
 
 @dataclass
@@ -422,6 +424,46 @@ def tau32FittedSF_4(events: pd.DataFrame):
     )
 
 
+def makeHH(events: pd.DataFrame, key: str, mass: str):
+
+    h1 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 0],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 0],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 0],
+            "M": events[key][mass].to_numpy()[:, 0],
+        }
+    )
+    h2 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 1],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 1],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 1],
+            "M": events[key][mass].to_numpy()[:, 1],
+        }
+    )
+    mask_h1 = h1.pt < 0
+    mask_h2 = h2.pt < 0
+    mask_invalid = mask_h1 | mask_h2
+
+    hh = h1 + h2
+    # Convert vectors to numpy arrays for conditional manipulation
+    hh_pt = hh.pt
+    hh_phi = hh.phi
+    hh_eta = hh.eta
+    hh_M = hh.M
+
+    # Apply pad value
+    hh_pt[mask_invalid] = -PAD_VAL
+    hh_phi[mask_invalid] = -PAD_VAL
+    hh_eta[mask_invalid] = -PAD_VAL
+    hh_M[mask_invalid] = -PAD_VAL
+
+    # Re-make the vector with padded entries
+    hh = vector.array({"pt": hh_pt, "phi": hh_phi, "eta": hh_eta, "M": hh_M})
+    return hh
+
+
 def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 
@@ -486,8 +528,6 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
-    sf: list[str] | None = None,
-    apply_tt_sf: bool = False,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -528,8 +568,8 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and sample == "ttbar" and apply_tt_sf:
-            weight = weight * tau32FittedSF_4(events)
+        # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
+        #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
