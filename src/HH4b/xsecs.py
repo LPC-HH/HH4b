@@ -150,6 +150,7 @@ xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
 xsecs["Wto2Q-3Jets_HT-400to600"] = 299.8
 xsecs["Wto2Q-3Jets_HT-600to800"] = 63.9
 xsecs["Wto2Q-3Jets_HT-800"] = 31.9
+xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["Zto2Q-4Jets_HT-200to400"] = 1082.0
 xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28

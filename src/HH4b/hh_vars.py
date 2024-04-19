@@ -137,14 +137,28 @@ samples = {
             "Run2022C",
             "Run2022C_single",
             "Run2022D",
+            "Muon_Run",
+            "EGamma_Run",
         ],
     },
     "2022EE": {
         **common_samples,
         "data": [
             # "Run2022E",
-            "Run2022F",
-            "Run2022G",
+            "Muon_Run",
+            "EGamma_Run",
+        ],
+    },
+    "2023": {
+        **common_samples,
+        "data": [
+            "Muon_Run",
+            "EGamma_Run",
+        ],
+    },
+    "2023BPix": {
+        **common_samples,
+        "data": [
             "Muon_Run",
             "EGamma_Run",
         ],

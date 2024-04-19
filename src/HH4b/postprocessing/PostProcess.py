@@ -13,8 +13,10 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
-from HH4b.postprocessing import Region
+from HH4b.postprocessing import Region, corrections
 from HH4b.utils import ShapeVar, load_samples
+
+# from .corrections import ttbar_pTjjSF
 
 # TODO: can switch to this in the future to get cutflows for each cut.
 # def get_selection_regions(txbb_wps: list[float], bdt_wps: list[float]):
@@ -341,8 +343,11 @@ def load_run3_samples(args, year):
             axis=0,
         )
 
-        # add more columns (e.g. uncertainties etc)
+        # add more columns (e.g. (uncertainties etc)
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+        ## Add TTBar Weigh)t here
+        if key == "ttbar":
+            bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
