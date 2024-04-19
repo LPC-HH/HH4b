@@ -33,30 +33,26 @@ def veto_electrons_run2(electrons: ElectronArray):
 
 
 def veto_muons(muons: MuonArray):
+    """
+    Definition used in Run 2 boosted VBF Hbb
+    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L551-L553
+    """
     return (
-        (muons.pt >= 10)
-        & (abs(muons.eta) <= 2.4)
-        & (muons.looseId)
-        & (muons.pfRelIso04_all < 0.15)
-        & (
-            ((abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.10) & (abs(muons.eta) < 1.2))
-            | ((abs(muons.dxy) < 0.10) & (abs(muons.dz) < 0.20) & (abs(muons.eta) >= 1.2))
-        )
+        (muons.pt >= 10) & (abs(muons.eta) <= 2.4) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
     )
 
 
 def veto_electrons(electrons: ElectronArray):
-    sel = (
-        (electrons.pt >= 15)
-        & (abs(electrons.eta) <= 2.4)
-        & (electrons.mvaIso_WP90)
-        & (electrons.pfRelIso03_all < 0.15)
+    """
+    Definition used in Run 2 boosted VBF Hbb
+    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L542-L547
+    """
+    return (
+        (electrons.pt >= 20)
+        & (abs(electrons.eta) <= 2.5)
+        & (electrons.miniPFRelIso_all < 0.4)
+        & (electrons.cutBased >= electrons.LOOSE)
     )
-    sel = sel & (
-        ((abs(electrons.dxy) < 0.05) & (abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
-        | ((abs(electrons.dxy) < 0.10) & (abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
-    )
-    return sel
 
 
 def good_muons(muons: MuonArray):
