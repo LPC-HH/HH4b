@@ -80,6 +80,7 @@ color_by_sample = {
     "vbfhtobb": "teal",
     "tthtobb": "cadetblue",
     "vhtobb": "tab:cyan",
+    "others": "aquamarine",
     "hh4b": colours["red"],
     "hh4b-kl0": "fuchsia",
     "hh4b-kl2p45": "brown",
@@ -101,6 +102,7 @@ label_by_sample = {
     "vbfhtobb": "VBFH(bb)",
     "tthtobb": "ttH(bb)",
     "vhtobb": "VH(bb)",
+    "others": "Others",
     "qcd": "Multijet",
     "qcd-ht": "Multijet HT bin",
     "qcdb-ht": "Multijet B HT bin",
@@ -467,6 +469,7 @@ def ratioHistPlot(
     sig_keys: list[str],
     bg_keys: list[str],
     sig_err: ArrayLike | str | None = None,
+    bg_err: ArrayLike = None,
     data_err: ArrayLike | bool | None = None,
     sortyield: bool = False,
     title: str | None = None,
@@ -478,6 +481,7 @@ def ratioHistPlot(
     ylim_low: int | None = None,
     show: bool = True,
     variation: tuple | None = None,
+    bg_err_type: str = "shaded",
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
@@ -609,6 +613,56 @@ def ratioHistPlot(
                 color=sig_colours[: len(sig_keys)],
             )
 
+    # plot background errors
+    if bg_err is None:
+        # get background error from variances
+        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_err = np.sqrt(bg_tot.variances())
+
+    if bg_err is not None:
+        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        if len(np.array(bg_err).shape) == 1:
+            bg_err = [bg_tot - bg_err, bg_tot + bg_err]
+
+        if bg_err_type == "shaded":
+            ax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat(bg_err[0], 2),
+                np.repeat(bg_err[1], 2),
+                color="black",
+                alpha=0.2,
+                hatch="//",
+                linewidth=0,
+                label="Total Background Uncertainty",
+            )
+        else:
+            ax.stairs(
+                bg_tot.values(),
+                hists.axes[1].edges,
+                color="black",
+                linewidth=3,
+                label="BG Total",
+                baseline=bg_tot.values(),
+            )
+
+            ax.stairs(
+                bg_err[0],
+                hists.axes[1].edges,
+                color="red",
+                linewidth=3,
+                label="BG Down",
+                baseline=bg_err[0],
+            )
+
+            ax.stairs(
+                bg_err[1],
+                hists.axes[1].edges,
+                color="#7F2CCB",
+                linewidth=3,
+                label="BG Up",
+                baseline=bg_err[1],
+            )
+
     # plot data
     if plot_data:
         hep.histplot(
@@ -657,9 +711,10 @@ def ratioHistPlot(
         data_val = hists[data_key, :].values()
         data_val[tot_val_zero_mask] = 1
         yerr = ratio_uncertainty(data_val, tot_val, "poisson")
-
+        yvalue = data_val / tot_val
+        
         hep.histplot(
-            data_val / tot_val,
+            yvalue,
             bg_tot.axes[0].edges,
             yerr=yerr,
             ax=rax,
@@ -668,9 +723,30 @@ def ratioHistPlot(
             color="black",
             capsize=0,
         )
-
         rax.set_xlabel(hists.axes[1].label)
-        # print(hists[data_key, :] / (bg_tot.values() + 1e-5))
+
+        """
+        error_up_bg = bg_err[0] 
+        error_up_data = np.sqrt(hists[data_key, :])
+        # dz = z * np.sqrt((dx/x)**2 + (dy/y)**2)
+        error_up = yvalue * np.sqrt( (error_up_data/data_val)*(error_up_data/data_val) + (error_up_bg/tot_val)*(error_up_bg/tot_val) )
+
+        error_dn_bkg = bg_err[1]
+        error_dn_data = np.sqrt(hists[data_key, :])
+        error_dn = yvalue * np.sqrt( (error_dn_data/data_val)*(error_dn_data/data_val) + (error_dn_bg/tot_val)*(error_dn_bg/tot_val) )
+
+        rax.fill_between(
+            np.repeat(hists.axes[1].edges, 2)[1:-1],
+            np.repeat(yvalue + error_up, 2),
+            np.repeat(yvalue - error_up, 2),
+            color="black",
+            alpha=0.2,
+            hatch="//",
+            linewidth=0,
+            # label="Total Background Uncertainty",
+        )
+        """
+
     else:
         rax.set_xlabel(hists.axes[1].label)
 
