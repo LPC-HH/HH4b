@@ -152,7 +152,7 @@ def run(p: processor, fileset: dict, args):
             table = pa.Table.from_pandas(pddf)
             pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
 
-        if save_root:
+        if save_root and args.save_root:
             import awkward as ak
 
             with uproot.recreate(
