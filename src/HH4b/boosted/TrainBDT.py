@@ -124,10 +124,17 @@ def load_data(data_path: str, year: str, legacy: bool):
     dirs = {data_path: samples}
 
     if legacy:
+        # mass_key = "bbFatJetMsd"
+        mass_key = "bbFatJetPNetMassLegacy"
         filters = [
             [
                 ("('bbFatJetPt', '0')", ">=", 300),
                 ("('bbFatJetPt', '1')", ">=", 300),
+                # added
+                (f"('{mass_key}', '0')", "<=", 250),
+                (f"('{mass_key}', '1')", "<=", 250),
+                (f"('{mass_key}', '0')", ">=", 30),
+                (f"('{mass_key}', '1')", ">=", 30),
             ]
         ]
     else:
