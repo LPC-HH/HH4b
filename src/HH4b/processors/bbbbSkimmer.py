@@ -69,12 +69,12 @@ class bbbbSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
-            "Txbb": "PNetXbb",
-            "Txjj": "PNetXjj",
-            "Tqcd": "PNetQCD",
-            "TQCDb": "PNetQCD1HF",
-            "TQCDbb": "PNetQCD2HF",
-            "TQCDothers": "PNetQCD0HF",
+            "Txbb": "PNetTXbb",  # these are the PXbb / (PXbb + PQCD) discriminants
+            "Txjj": "PNetTXjj",
+            "Tqcd": "PNetTQCD",
+            "PQCDb": "PNetQCD1HF",  # these are raw probabilities
+            "PQCDbb": "PNetQCD2HF",
+            "PQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
@@ -426,10 +426,11 @@ class bbbbSkimmer(SkimmerABC):
                 "pt_gen": "MatchedGenJetPt",
             }
         if self._nano_version == "v12_private":
+            extra_vars = ["TXbb", "PXbb", "PQCD", "PQCDb", "PQCDbb", "PQCDothers"]
             fatjet_skimvars = {
                 **fatjet_skimvars,
-                "Txbb_legacy": "PNetXbbLegacy",
                 "particleNet_mass_legacy": "PNetMassLegacy",
+                **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
             }
         if self._nano_version == "v12_private" or self._nano_version == "v12":
             fatjet_skimvars = {
@@ -638,6 +639,8 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
+            # legacy = "particleNetLegacy_mass" in fatjets.fields
+
             # >=2 AK8 jets passing selections
             add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
 
