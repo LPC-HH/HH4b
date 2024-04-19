@@ -31,7 +31,7 @@ plt.rcParams["grid.linewidth"] = 0.5
 plt.rcParams["figure.edgecolor"] = "none"
 plt.style.use(hep.style.CMS)
 
-training_keys = ["hh4b", "qcd", "ttbar"]
+training_keys = ["hh4b", "qcd", "ttbar", "vbf"]
 
 
 def load_data(data_path: str, year: str, legacy: bool):
@@ -80,6 +80,9 @@ def load_data(data_path: str, year: str, legacy: bool):
                 "ZH_Hto2B_Zto2Q_M-125",
                 "ggZH_Hto2B_Zto2Q_M-125",
             ],
+            "vbf": [
+                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"
+            ],
             "vjets": [
                 "Wto2Q-3Jets_HT-200to400",
                 "Wto2Q-3Jets_HT-400to600",
@@ -124,17 +127,10 @@ def load_data(data_path: str, year: str, legacy: bool):
     dirs = {data_path: samples}
 
     if legacy:
-        # mass_key = "bbFatJetMsd"
-        mass_key = "bbFatJetPNetMassLegacy"
         filters = [
             [
                 ("('bbFatJetPt', '0')", ">=", 300),
                 ("('bbFatJetPt', '1')", ">=", 300),
-                # added
-                (f"('{mass_key}', '0')", "<=", 250),
-                (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 30),
-                (f"('{mass_key}', '1')", ">=", 30),
             ]
         ]
     else:
@@ -207,21 +203,30 @@ def preprocess_data(
     label_encoder.classes_ = np.array(training_keys)  # need this to maintain training keys order
 
     events = pd.concat(
-        [events_dict_bdt["hh4b"], events_dict_bdt["qcd"], events_dict_bdt["ttbar"]],
-        keys=["hh4b", "qcd", "ttbar"],
+        [
+            events_dict_bdt["hh4b"],
+            events_dict_bdt["qcd"],
+            events_dict_bdt["ttbar"],
+            events_dict_bdt["vbf"],
+        ],
+        keys=["hh4b", "qcd", "ttbar", "vbf"],
     )
-    events["target"] = 0  # Default to 0 (background)
+    events["target"] = -1  # Default to -1
     events.loc["hh4b", "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
+    events.loc["vbf", "target"] = 2  # second signal category
+    events.loc["qcd", "target"] = 3  # may not be necessary to distinguish between qcd, ttbar here
+    events.loc["ttbar", "target"] = 4
 
     # weights
     equalize_weights = True
     if equalize_weights:
         # scales signal such that total signal = total background
-        sig_total = np.sum(weights_bdt["hh4b"])
+        sig_total = np.sum(np.concatenate((weights_bdt["hh4b"], weights_bdt["vbf"])))
         bkg_total = np.sum(np.concatenate((weights_bdt["qcd"], weights_bdt["ttbar"])))
         print(f"Scale signal by {bkg_total / sig_total}")
 
         events.loc["hh4b", "weight"] = weights_bdt["hh4b"] * (bkg_total / sig_total)
+        events.loc["vbf", "weight"] = weights_bdt["vbf"] * (bkg_total / sig_total)  # is this also scaled like hh4b?
         events.loc["qcd", "weight"] = weights_bdt["qcd"]
         events.loc["ttbar", "weight"] = weights_bdt["ttbar"]
 
@@ -236,6 +241,7 @@ def preprocess_data(
     events.loc["hh4b", "event"] = events_bdt["hh4b"]
     events.loc["qcd", "event"] = events_bdt["qcd"]
     events.loc["ttbar", "event"] = events_bdt["ttbar"]
+    events.loc["vbf", "event"] = events_bdt["vbf"]
     event_num = events["event"]
 
     # Define features
@@ -336,6 +342,146 @@ def train_model(
 
     return model
 
+def find_nearest(array, value):
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return idx
+
+
+def plot_mcBDT_ROC(
+    config_name: str,
+    events_dict: dict,
+    model: xgb.XGBClassifier,
+    model_dir: Path,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,  # noqa: ARG001
+    yt_test: pd.DataFrame,
+    weights_test: np.ndarray,
+    # test_size: float, seed: int,
+    # year: str,
+    multiclass: bool,
+    legacy: bool,    
+
+):
+    pnet_xbb_str = "bbFatJetPNetXbb" if not legacy else "bbFatJetPNetXbbLegacy"
+    pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
+
+
+     # plot BDT scores for test samples
+    make_bdt_dataframe = importlib.import_module(f"{config_name}")
+
+    # get scores from full dataframe, but only use testing indices
+    scores = {}
+    weights = {}
+    mass_dict = {}
+    msd_dict = {}
+    xbb_dict = {}
+    for key in ["hh4b", "qcd", "ttbar", "vbf"]:
+        indices = X_test[X_test.index.get_level_values(0) == key].index.get_level_values(1)
+        test_dataset = events_dict[key].loc[indices]
+        test_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(test_dataset)
+        test_preds = model.predict_proba(test_bdt_dataframe)
+        scores[key] = test_preds[:, 0] if multiclass else test_preds[:, 1]
+        weights[key] = test_dataset["finalWeight"]
+        mass_dict[key] = test_dataset[pnet_mass_str].to_numpy()[:, 1]
+        msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
+        xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
+
+    # Plot and save ROC figure
+    fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+    bkg_colors = {
+        "qcd": "r",
+        "ttbar": "blue",
+        "merged": "orange",
+    }
+    legends = {
+        "qcd": "Multijet",
+        "ttbar": r"$t\bar{t}$ + Jets",
+        "merged": "TT + QCD",
+    }
+    plot_thresholds = [0.7, 0.9, 0.97]
+    th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
+
+    for bkg in ["qcd", "ttbar", "merged"]:
+        if bkg != "merged":
+            scores_roc = np.concatenate([scores["hh4b"], scores[bkg]])
+            sig_jets_score = scores["hh4b"]
+            bkg_jets_score = scores[bkg]
+            scores_true = np.concatenate(
+                [
+                    np.ones(len(sig_jets_score)),
+                    np.zeros(len(bkg_jets_score)),
+                ]
+            )
+            scores_weights = np.concatenate([weights["hh4b"], weights[bkg]])
+            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+        else:
+            # fpr, tpr, thresholds = roc_info["fpr"], roc_info["tpr"], roc_info["thresholds"]
+            scores_roc = np.concatenate([scores["hh4b"], scores["qcd"], scores["ttbar"]])
+            sig_jets_score = scores["hh4b"]
+            bkg_jets_score = np.concatenate([scores["qcd"], scores["ttbar"]])
+            scores_true = np.concatenate(
+                [
+                    np.ones(len(sig_jets_score)),
+                    np.zeros(len(bkg_jets_score)),
+                ]
+            )
+            scores_weights = np.concatenate([weights["hh4b"], weights["qcd"], scores["ttbar"]])
+            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+
+        ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
+
+        pths = {th: [[], []] for th in plot_thresholds}
+        for th in plot_thresholds:
+            idx = find_nearest(thresholds, th)
+            pths[th][0].append(tpr[idx])
+            pths[th][1].append(fpr[idx])
+
+        if bkg == "merged":
+            for k, th in enumerate(plot_thresholds):
+                plt.scatter(
+                    *pths[th],
+                    marker="o",
+                    s=40,
+                    label=rf"BDT > {th}",
+                    color=th_colours[k],
+                    zorder=100,
+                )
+
+                plt.vlines(
+                    x=pths[th][0],
+                    ymin=0,
+                    ymax=pths[th][1],
+                    color=th_colours[k],
+                    linestyles="dashed",
+                    alpha=0.5,
+                )
+
+                plt.hlines(
+                    y=pths[th][1],
+                    xmin=0,
+                    xmax=pths[th][0],
+                    color=th_colours[k],
+                    linestyles="dashed",
+                    alpha=0.5,
+                )
+
+    ax.set_title("ggF HH4b BDT ROC Curve")
+    ax.set_xlabel("Signal efficiency")
+    ax.set_ylabel("Background efficiency")
+    ax.set_xlim([0.0, 0.7])
+    # ax.set_ylim([0, 0.002])
+    ax.set_ylim([0, 0.08])
+    ax.xaxis.grid(True, which="major")
+    ax.yaxis.grid(True, which="major")
+    ax.legend(
+        title=legtitle,
+        bbox_to_anchor=(1.03, 1),
+        loc="upper left",
+    )
+    fig.tight_layout()
+    fig.savefig(model_dir / "roc_weights.png")
+    plt.close()
 
 def evaluate_model(
     config_name: str,
@@ -360,11 +506,7 @@ def evaluate_model(
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
 
     # make and save ROCs for testing data
-    def find_nearest(array, value):
-        array = np.asarray(array)
-        idx = (np.abs(array - value)).argmin()
-        return idx
-
+    
     y_scores = model.predict_proba(X_test)
     y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
 
