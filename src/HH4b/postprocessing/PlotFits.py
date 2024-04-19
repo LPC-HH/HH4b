@@ -76,7 +76,7 @@ def plot_fits(args):
         signal_regions = ["passbin1", "passbin2", "passbin3"]
     else:
         signal_regions = [args.regions]
-        bins = [*signal_regions, "fail"]
+    bins = [*signal_regions, "fail"]
     selection_regions = {key: selection_regions_labels[key] for key in bins}
 
     data_key = "data"
