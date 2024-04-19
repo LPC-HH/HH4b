@@ -18,7 +18,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import HH4b
 
-from . import utils
+from . import objects, utils
 from .corrections import (
     JECs,
     add_pileup_weight,
@@ -79,7 +79,6 @@ class bbbbSkimmer(SkimmerABC):
             "particleNet_massraw": "PNetMassRaw",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
-            "particleNet_mass_legacy": "PNetMassLegacy",
         },
         "GenHiggs": P4,
         "Event": {
@@ -99,10 +98,26 @@ class bbbbSkimmer(SkimmerABC):
     }
 
     preselection = {  # noqa: RUF012
-        "fatjet_pt": 270,
-        "fatjet_msd": 60,
-        "fatjet_mreg": 60,
         "Txbb0": 0.8,
+    }
+
+    fatjet_selection = {  # noqa: RUF012
+        "pt": 300,
+        "msd": 60,
+        "mreg": 60,
+    }
+
+    vbf_jet_selection = {  # noqa: RUF012
+        "pt": 25,
+        "eta_max": 4.7,
+        "id": "tight",
+        "dr_fatjets": 1.2,
+        "dr_leptons": 0.4,
+    }
+
+    vbf_veto_lepton_selection = {  # noqa: RUF012
+        "electron_pt": 5,
+        "muon_pt": 7,
     }
 
     def __init__(
@@ -332,7 +347,7 @@ class bbbbSkimmer(SkimmerABC):
 
         num_fatjets = 3  # number to save
         num_fatjets_cut = 2  # number to consider for selection
-        fatjets = get_ak8jets(events.FatJet)
+        fatjets = get_ak8jets(events.FatJet)  # this adds all our extra variables e.g. TXbb
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
             fatjets,
@@ -345,17 +360,18 @@ class bbbbSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
-        fatjets_sel = good_ak8jets(fatjets)
-        fatjets = fatjets[fatjets_sel]
-        # fatjets ordered by xbb
-        fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
+
+        fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
+        fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]  # fatjets ordered by xbb
 
         # VBF objects
-        vbf_jets = jets[(jets.pt > 25) & (jets.delta_r(ak.firsts(fatjets_xbb)) > 1.2)]
-        vbf_jet_0 = vbf_jets[:, 0:1]
-        vbf_jet_1 = vbf_jets[:, 1:2]
-        vbf_mass = (ak.firsts(vbf_jet_0) + ak.firsts(vbf_jet_1)).mass
-        vbf_deta = abs(ak.firsts(vbf_jet_0).eta - ak.firsts(vbf_jet_1).eta)
+        vbf_jets = objects.vbf_jets(
+            jets,
+            fatjets_xbb[:, :2],
+            events,
+            **self.vbf_jet_selection,
+            **self.vbf_veto_lepton_selection,
+        )
 
         # JMSR
         # jmsr_shifted_vars = get_jmsr(fatjets_xbb, 2, year, isData)
@@ -413,6 +429,7 @@ class bbbbSkimmer(SkimmerABC):
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "Txbb_legacy": "PNetXbbLegacy",
+                "particleNet_mass_legacy": "PNetMassLegacy",
             }
         if self._nano_version == "v12_private" or self._nano_version == "v12":
             fatjet_skimvars = {
@@ -472,15 +489,13 @@ class bbbbSkimmer(SkimmerABC):
         eventVars["MET_pt"] = met_pt.to_numpy()
         eventVars["ht"] = ht.to_numpy()
         eventVars["nJets"] = ak.sum(jets_sel, axis=1).to_numpy()
-        eventVars["nFatJets"] = ak.sum(fatjets_sel, axis=1).to_numpy()
-
-        cut_vbf = (vbf_mass > 500) & (vbf_deta > 4.0)
-        eventVars["vbfVeto"] = (~cut_vbf).to_numpy().astype(int)
+        eventVars["nFatJets"] = ak.num(fatjets).to_numpy()
 
         if isData:
             pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
         else:
             pileupVars = {key: events.Pileup[key].to_numpy() for key in self.skim_vars["Pileup"]}
+
         pileupVars = {**pileupVars, "nPV": events.PV["npvs"].to_numpy()}
 
         # Trigger variables
@@ -557,7 +572,7 @@ class bbbbSkimmer(SkimmerABC):
 
             # VBF Jets
             vbfJetVars = {
-                f"vbfJet{key}": pad_val(vbf_jets[var], 2, axis=1)
+                f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
                 for (var, key) in self.skim_vars["Jet"].items()
             }
 
@@ -606,6 +621,7 @@ class bbbbSkimmer(SkimmerABC):
         if not is_run3 and (~isData) and self._region == "signal":
             # in run2 we do not apply the trigger to MC
             apply_trigger = False
+
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
 
@@ -622,30 +638,8 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
-            # >=2 AK8 jets
+            # >=2 AK8 jets passing selections
             add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
-
-            # >=2 AK8 jets with pT>250
-            # TODO: check if fatjet passes pt cut in any of the JEC variations
-            cut_pt = (
-                np.sum(ak8FatJetVars["ak8FatJetPt"] >= self.preselection["fatjet_pt"], axis=1) >= 2
-            )
-            add_selection("ak8_pt", cut_pt, *selection_args)
-
-            # >=2 AK8 jets with mSD>60 or mReg>60
-            # TODO: check if fatjet passes mass cut in any of the JMS/R variations
-            cut_mass = (
-                np.sum(
-                    (ak8FatJetVars["ak8FatJetMsd"] >= self.preselection["fatjet_msd"])
-                    | (ak8FatJetVars["ak8FatJetPNetMass"] >= self.preselection["fatjet_mreg"])
-                    | (
-                        ak8FatJetVars["ak8FatJetPNetMassLegacy"] >= self.preselection["fatjet_mreg"]
-                    ),
-                    axis=1,
-                )
-                >= 2
-            )
-            add_selection("ak8_mass", cut_mass, *selection_args)
 
             # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
             cut_txbb = (

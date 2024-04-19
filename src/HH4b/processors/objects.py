@@ -7,6 +7,7 @@ from coffea.nanoevents.methods.nanoaod import (
     FatJetArray,
     JetArray,
     MuonArray,
+    NanoEventsArray,
     TauArray,
 )
 
@@ -214,5 +215,46 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray):
-    return (abs(fatjets.eta) < 2.5) & (fatjets.isTight)
+def good_ak8jets(fatjets: FatJetArray, pt: float, eta: float, msd: float, mreg: float):
+    fatjets_fields = fatjets.fields
+    legacy = "particleNetLegacy_mass" in fatjets_fields
+    mreg_val = fatjets["particleNet_mass_legacy"] if legacy else fatjets["particleNet_mass"]
+
+    fatjet_sel = (
+        fatjets.isTight
+        & (fatjets.pt > pt)
+        & (abs(fatjets.eta) < eta)
+        & ((fatjets.msoftdrop > msd) | (mreg_val > mreg))
+    )
+    return fatjets[fatjet_sel]
+
+
+def vbf_jets(
+    jets: JetArray,
+    fatjets: FatJetArray,
+    events: NanoEventsArray,
+    pt: float,
+    id: str,  # noqa: ARG001
+    eta_max: float,
+    dr_fatjets: float,
+    dr_leptons: float,
+    electron_pt: float,
+    muon_pt: float,
+):
+    """Top 2 jets in pT passing the VBF selections"""
+    electrons = events.Electron
+    electrons = electrons[electrons.pt > electron_pt]
+
+    muons = events.Muon
+    muons = muons[muons.pt > muon_pt]
+
+    ak4_sel = (
+        jets.isTight
+        & (jets.pt >= pt)
+        & (np.abs(jets.eta) <= eta_max)
+        & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
+        & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
+        & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
+    )
+
+    return jets[ak4_sel][:, :2]
