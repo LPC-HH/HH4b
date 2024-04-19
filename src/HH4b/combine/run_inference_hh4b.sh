@@ -1,3 +1,4 @@
+#!/bin/bash
 
 card_dir=/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/cards/run3-bdt-apr18
 datacards=$card_dir/passbin3_withmasks.root:$card_dir/passbin2_withmasks.root:$card_dir/passbin1_withmasks.root:$card_dir/combined_all_withmasks.root
