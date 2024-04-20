@@ -216,7 +216,7 @@ def parse_common_args(parser):
         "--no-apply-selection", dest="apply_selection", action="store_false", help=help
     )
     add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
-    add_bool_arg(parser, "save-root", default=True, help="save root ntuples too")
+    add_bool_arg(parser, "save-root", default=False, help="save root ntuples too")
 
 
 def flatten_dict(var_dict: dict):
