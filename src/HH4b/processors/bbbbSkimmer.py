@@ -335,7 +335,6 @@ class bbbbSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print(" ", jec_shifted_jetvars)
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
@@ -374,7 +373,7 @@ class bbbbSkimmer(SkimmerABC):
             # fatjets ordered by xbb
             fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
         else:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb_legacy, ascending=False)]
+            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         # variations for bb fatjets (TODO: not only for signal)
         jec_shifted_bbfatjetvars = {}
