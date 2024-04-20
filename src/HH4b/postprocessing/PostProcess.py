@@ -57,7 +57,7 @@ from HH4b.utils import ShapeVar, load_samples
 
 def load_run3_samples(args, year):
     # modify as needed
-    input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{args.tag}"
+    input_dir = f"{args.data_dir}/{args.tag}"
 
     samples_run3 = {
         "2022": {
@@ -641,7 +641,7 @@ def postprocess_run3(args):
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
         plot_dir.mkdir(exist_ok=True, parents=True)
         # todo: update to [-5, +5] for next round!
-        shift_mass_window = np.array([-15, -5])
+        shift_mass_window = np.array([-5, 5])
         scan_fom(
             events_combined,
             np.array(window_by_mass[args.mass]) + shift_mass_window,
@@ -707,6 +707,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="output pickle directory of hist.Hist templates inside the ./templates dir",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=str,
+        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
+        help="tag for input ntuples",
     )
     parser.add_argument(
         "--tag",

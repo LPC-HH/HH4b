@@ -123,7 +123,7 @@ mc_samples = OrderedDict(
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
         ("others", "others"),
-        ("tthtobb", "ttH_hbb"),
+        # ("tthtobb", "ttH_hbb"),
     ]
 )
 
