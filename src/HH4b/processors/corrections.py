@@ -455,9 +455,12 @@ def get_jmsr(
     year: str,
     isData: bool = False,
     seed: int = 42,
-    jmsr_vars=["msoftdrop", "particleNet_mass"],
+    jmsr_vars: list[str] = None,
 ) -> dict:
     """Calculates post JMS/R masses and shifts"""
+    if jmsr_vars is None:
+        jmsr_vars = ["msoftdrop", "particleNet_mass"]
+
     jmsr_shifted_vars = {}
 
     for mkey in jmsr_vars:
