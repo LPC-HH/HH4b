@@ -22,9 +22,12 @@ from . import objects, utils
 from .corrections import (
     JECs,
     add_pileup_weight,
+    add_ps_weight,
     add_trig_weights,
     get_jetveto_event,
     get_jmsr,
+    get_pdf_weights,
+    get_scale_weights,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -332,6 +335,7 @@ class bbbbSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
+        print(" ", jec_shifted_jetvars)
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
@@ -365,6 +369,17 @@ class bbbbSkimmer(SkimmerABC):
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
         fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]  # fatjets ordered by xbb
+
+        # variations for bb fatjets (TODO: not only for signal)
+        jec_shifted_bbfatjetvars = {}
+        if self._region == "signal" and isSignal:
+            for jec_var in ["pt"]:
+                tdict = {"": fatjets_xbb[jec_var]}
+                for key, shift in self.jecs.items():
+                    for var in ["up", "down"]:
+                        if shift in ak.fields(fatjets_xbb):
+                            tdict[f"{key}_{var}"] = fatjets_xbb[shift][var][jec_var]
+                jec_shifted_bbfatjetvars[jec_var] = tdict
 
         # VBF objects
         vbf_jets = objects.vbf_jets(
@@ -460,8 +475,8 @@ class bbbbSkimmer(SkimmerABC):
         }
         print("Jet vars", f"{time.time() - start:.2f}")
 
-        """
-        if self._region == "signal":
+        # JEC and JMSR  (TODO: for signal only for now, add others)
+        if self._region == "signal" and isSignal:
             # Jet JEC variables
             for var in ["pt"]:
                 key = self.skim_vars["Jet"][var]
@@ -472,14 +487,11 @@ class bbbbSkimmer(SkimmerABC):
             # FatJet JEC variables
             for var in ["pt"]:
                 key = self.skim_vars["FatJet"][var]
-                for shift, vals in jec_shifted_fatjetvars[var].items():
+                for shift, vals in jec_shifted_bbfatjetvars[var].items():
                     if shift != "":
-                        # TODO: add also for bb jets
-                        ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
-        """
+                        bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
 
-        if self._region == "signal":
-            # JMSR variables
+            # FatJet JMSR
             for var in jmsr_vars:
                 key = fatjet_skimvars[var]
                 for shift, vals in jmsr_shifted_vars[var].items():
@@ -580,6 +592,17 @@ class bbbbSkimmer(SkimmerABC):
                 f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
                 for (var, key) in self.skim_vars["Jet"].items()
             }
+
+            # JEC variations for VBF Jets (for signal only for now)
+            if self._region == "signal" and isSignal:
+                for var in ["pt"]:
+                    key = self.skim_vars["Jet"][var]
+                    for label, shift in self.jecs.items():
+                        if shift in ak.fields(vbf_jets):
+                            for vari in ["up", "down"]:
+                                vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
+                                    vbf_jets[shift][vari][var], 2, axis=1
+                                )
 
             skimmed_events = {
                 **skimmed_events,
@@ -795,6 +818,7 @@ class bbbbSkimmer(SkimmerABC):
         weights.add("genweight", gen_weights)
 
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        add_ps_weight(weights, events.PSWeight)
 
         # TODO: update trigger weights with those derived by Armen
         add_trig_weights(weights, fatjets, year, num_fatjets_cut)
@@ -844,8 +868,22 @@ class bbbbSkimmer(SkimmerABC):
                 weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
+            scale_weights = get_scale_weights(events)
+            if scale_weights is not None:
+                weights_dict["scale_weights"] = (
+                    scale_weights * weights_dict["weight"][:, np.newaxis]
+                )
+                totals_dict["np_scale_weights"] = np.sum(
+                    (scale_weights * weight_np[:, np.newaxis])[gen_selected], axis=0
+                )
 
-        # TODO
+        if "HHTobbbb" in dataset or "HHto4B" in dataset:
+            pdf_weights = get_pdf_weights(events)
+            weights_dict["pdf_weights"] = pdf_weights * weights_dict["weight"][:, np.newaxis]
+            totals_dict["np_pdf_weights"] = np.sum(
+                (pdf_weights * weight_np[:, np.newaxis])[gen_selected], axis=0
+            )
 
         ###################### Normalization (Step 1) ######################
 
