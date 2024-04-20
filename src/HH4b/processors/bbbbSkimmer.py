@@ -22,10 +22,10 @@ from . import objects, utils
 from .corrections import (
     JECs,
     add_pileup_weight,
+    add_ps_weight,
     add_trig_weights,
     get_jetveto_event,
     get_jmsr,
-    add_ps_weight,
     get_pdf_weights,
     get_scale_weights,
 )
@@ -335,7 +335,7 @@ class bbbbSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print(" ",jec_shifted_jetvars)
+        print(" ", jec_shifted_jetvars)
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
@@ -871,12 +871,14 @@ class bbbbSkimmer(SkimmerABC):
         if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
-                weights_dict["scale_weights"] = scale_weights * weights_dict["weight"][:, np.newaxis]
+                weights_dict["scale_weights"] = (
+                    scale_weights * weights_dict["weight"][:, np.newaxis]
+                )
                 totals_dict["np_scale_weights"] = np.sum(
                     (scale_weights * weight_np[:, np.newaxis])[gen_selected], axis=0
                 )
 
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset):
+        if "HHTobbbb" in dataset or "HHto4B" in dataset:
             pdf_weights = get_pdf_weights(events)
             weights_dict["pdf_weights"] = pdf_weights * weights_dict["weight"][:, np.newaxis]
             totals_dict["np_pdf_weights"] = np.sum(

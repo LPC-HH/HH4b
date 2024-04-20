@@ -282,7 +282,7 @@ def get_scale_weights(events):
         return np.clip(variations, 0.0, 4.0)
     else:
         return None
-            
+
 
 class JECs:
     def __init__(self, year):
@@ -379,7 +379,7 @@ class JECs:
         # fatjet_factory.build gives an error if there are no jets in event
         if apply_jecs:
             jets = self.jet_factory[jet_factory_str][corr_key].build(jets, jec_cache)
-            
+
         # return only jets if no variations are given
         if jecs is None or isData:
             return jets, None
