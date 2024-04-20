@@ -388,6 +388,10 @@ class bbbbSkimmer(SkimmerABC):
                 vars_dict = gen_selection_dict[d](events, jets, fatjets_xbb, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
+        # remove unnecessary ak4 gen variables for signal region
+        if self._region == "signal":
+            genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
+
         # used for normalization to cross section below
         gen_selected = (
             selection.all(*selection.names)
