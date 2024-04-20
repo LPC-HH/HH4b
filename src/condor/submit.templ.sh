@@ -7,6 +7,14 @@
 # make dir for output
 mkdir outfiles
 
+for t2_prefix in ${t2_prefixes}
+do
+    for folder in pickles parquet root githashes
+    do
+        xrdfs $${t2_prefix} mkdir -p ${outdir}/$${folder}
+    done
+done
+
 # try 3 times in case of network errors
 (
     r=3
@@ -21,18 +29,26 @@ cd HH4b || exit
 
 commithash=$$(git rev-parse HEAD)
 echo "https://github.com/$gituser/HH4b/commit/$${commithash}" > commithash.txt
-xrdcp -f commithash.txt $eosoutgithash
+
+#move output to t2s
+for t2_prefix in ${t2_prefixes}
+do
+    xrdcp -f commithash.txt $${t2_prefix}/${outdir}/githashes/commithash_${jobnum}.txt
+done
 
 pip install -e .
 
 # run code
 # pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} ${region} ${apply_selection}
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} ${region} ${apply_selection} ${save_root}
 
-#move output to eos
-xrdcp -f outfiles/* $eosoutpkl
-xrdcp -f *.parquet $eosoutparquet
-xrdcp -f *.root $eosoutroot
+#move output to t2s
+for t2_prefix in ${t2_prefixes}
+do
+    xrdcp -f outfiles/* $${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl
+    xrdcp -f *.parquet $${t2_prefix}/${outdir}/parquet/out_${jobnum}.parquet
+    xrdcp -f *.root $${t2_prefix}/${outdir}/root/nano_skim_${jobnum}.root
+done
 
 rm *.parquet
 rm *.root

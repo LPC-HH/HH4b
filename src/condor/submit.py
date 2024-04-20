@@ -8,11 +8,17 @@ from __future__ import annotations
 
 import argparse
 import os
+import warnings
 from math import ceil
 from pathlib import Path
 from string import Template
 
 from HH4b import run_utils
+
+t2_redirectors = {
+    "lpc": "root://cmseos.fnal.gov//",
+    "ucsd": "root://redirector.t2.ucsd.edu:1095//",
+}
 
 
 def write_template(templ_file: str, out_file: str, templ_args: dict):
@@ -30,32 +36,30 @@ def main(args):
     run_utils.check_branch(args.git_branch, args.allow_diff_local_repo)
 
     if args.site == "lpc":
-        t2_local_prefix = Path("/eos/uscms/")
-        t2_prefix = "root://cmseos.fnal.gov"
-
         try:
             proxy = os.environ["X509_USER_PROXY"]
         except:
             print("No valid proxy. Exiting.")
             exit(1)
     elif args.site == "ucsd":
-        t2_local_prefix = Path("/ceph/cms/")
-        t2_prefix = "root://redirector.t2.ucsd.edu:1095"
         proxy = "/home/users/rkansal/x509up_u31735"
     else:
-        t2_local_prefix = Path("/eos/uscms/")
-        t2_prefix = "root://cmseos.fnal.gov"
+        raise ValueError(f"Invalid site {args.site}")
+
+    if args.site not in args.sites:
+        warnings.warn(
+            f"Your local site {args.site} is not in save sites {args.sites}!", stacklevel=1
+        )
+
+    t2_prefixes = [t2_redirectors[site] for site in args.save_sites]
 
     username = os.environ["USER"]
 
     tag = f"{args.tag}_{args.nano_version}_{args.region}"
 
     # make eos dir
-    homedir = Path(f"store/user/{username}/bbbb/{args.processor}/")
-    outdir = homedir / tag
-    eos_local_dir = t2_local_prefix / outdir
-    eos_local_dir.mkdir(parents=True, exist_ok=True)
-    print("EOS outputs dir: ", eos_local_dir)
+    pdir = Path(f"store/user/{username}/bbbb/{args.processor}/")
+    outdir = pdir / tag
 
     # make local directory
     local_dir = Path(f"condor/{args.processor}/{tag}")
@@ -83,7 +87,7 @@ def main(args):
     for sample in fileset:
         for subsample, tot_files in fileset[sample].items():
             print("Submitting " + subsample)
-            eosoutput_dir = f"{t2_prefix}//{outdir}/{args.year}/{subsample}/"
+            sample_dir = outdir / args.year / subsample
             njobs = ceil(tot_files / args.files_per_job)
 
             for j in range(njobs):
@@ -108,11 +112,11 @@ def main(args):
                     "processor": args.processor,
                     "maxchunks": args.maxchunks,
                     "chunksize": args.chunksize,
-                    "eosoutpkl": f"{eosoutput_dir}/pickles/out_{j}.pkl",
-                    "eosoutparquet": f"{eosoutput_dir}/parquet/out_{j}.parquet",
-                    "eosoutroot": f"{eosoutput_dir}/root/nano_skim_{j}.root",
-                    "eosoutgithash": f"{eosoutput_dir}/githashes/commithash_{j}.txt",
+                    "t2_prefixes": t2_prefixes,
+                    "outdir": sample_dir,
+                    "jobnum": j,
                     "nano_version": args.nano_version,
+                    "save_root": ("--save-root" if args.save_root else "--no-save-root"),
                     "save_systematics": (
                         "--save-systematics" if args.save_systematics else "--no-save-systematics"
                     ),
@@ -146,6 +150,14 @@ def parse_args(parser):
         default="lpc",
         help="computing cluster we're running this on",
         type=str,
+        choices=["lpc", "ucsd"],
+    )
+    parser.add_argument(
+        "--save-sites",
+        default=["lpc"],
+        help="tier 2s in which we want to save the files",
+        type=str,
+        nargs="+",
         choices=["lpc", "ucsd"],
     )
     run_utils.add_bool_arg(
