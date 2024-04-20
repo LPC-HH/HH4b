@@ -103,6 +103,7 @@ class bbbbSkimmer(SkimmerABC):
 
     fatjet_selection = {  # noqa: RUF012
         "pt": 300,
+        "eta": 2.5,
         "msd": 60,
         "mreg": 60,
     }
@@ -501,7 +502,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # Trigger variables
         HLTs = deepcopy(self.HLTs[year])
-        if is_run3:
+        if is_run3 and self._region != "signal":
             # add extra paths as variables
             HLTs.extend(
                 [

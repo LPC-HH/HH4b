@@ -7,7 +7,6 @@ from coffea.nanoevents.methods.nanoaod import (
     FatJetArray,
     JetArray,
     MuonArray,
-    NanoEventsArray,
     TauArray,
 )
 
@@ -238,7 +237,7 @@ def good_ak8jets(fatjets: FatJetArray, pt: float, eta: float, msd: float, mreg: 
 def vbf_jets(
     jets: JetArray,
     fatjets: FatJetArray,
-    events: NanoEventsArray,
+    events,
     pt: float,
     id: str,  # noqa: ARG001
     eta_max: float,
