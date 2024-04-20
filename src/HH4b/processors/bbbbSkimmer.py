@@ -24,6 +24,7 @@ from .corrections import (
     add_pileup_weight,
     add_trig_weights,
     get_jetveto_event,
+    get_jmsr,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -375,7 +376,12 @@ class bbbbSkimmer(SkimmerABC):
         )
 
         # JMSR
-        # jmsr_shifted_vars = get_jmsr(fatjets_xbb, 2, year, isData)
+        jmsr_vars = (
+            ["msoftdrop", "particleNet_mass_legacy"]
+            if self._nano_version == "v12_private"
+            else ["msoftdrop", "particleNet_mass"]
+        )
+        jmsr_shifted_vars = get_jmsr(fatjets_xbb, 2, year, isData, jmsr_vars=jmsr_vars)
 
         #########################
         # Save / derive variables
@@ -472,18 +478,14 @@ class bbbbSkimmer(SkimmerABC):
                         ak8FatJetVars[f"ak8FatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
         """
 
-        """
-        # JMSR variables
-        # TODO: add pnetmass
-        for var in ["msoftdrop"]:
-            key = self.skim_vars["FatJet"][var]
-            for shift, vals in jmsr_shifted_vars[var].items():
-                # overwrite saved mass vars with corrected ones
-                label = "" if shift == "" else "_" + shift
-                # do not save other variations for now
-                if shift != "": continue
-                bbFatJetVars[f"bbFatJet{key}{label}"] = vals
-        """
+        if self._region == "signal":
+            # JMSR variables
+            for var in jmsr_vars:
+                key = fatjet_skimvars[var]
+                for shift, vals in jmsr_shifted_vars[var].items():
+                    # overwrite saved mass vars with corrected ones
+                    label = "" if shift == "" else "_" + shift
+                    bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
         met_pt = met.pt
 
