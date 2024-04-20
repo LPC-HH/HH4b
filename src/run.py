@@ -17,6 +17,7 @@ import yaml
 from coffea import nanoevents, processor
 
 from HH4b import run_utils
+from HH4b.hh_vars import DATA_SAMPLES
 
 
 def run_dask(p: processor, fileset: dict, args):
@@ -88,7 +89,7 @@ def run_dask(p: processor, fileset: dict, args):
                     pickle.dump(out["pkl"], f)
 
 
-def run(p: processor, fileset: dict, args):
+def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     """Run processor without fancy dask (outputs then need to be accumulated manually)"""
     run_utils.add_mixins(nanoevents)  # update nanoevents schema
 
@@ -128,6 +129,7 @@ def run(p: processor, fileset: dict, args):
         schema=nanoevents.NanoAODSchema,
         chunksize=args.chunksize,
         maxchunks=None if args.maxchunks == 0 else args.maxchunks,
+        skipbadfiles=skipbadfiles,
     )
 
     # try file opening 3 times if it fails
@@ -190,8 +192,11 @@ def main(args):
         args.nano_version,
     )
 
+    skipbadfiles = True
+
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
+        skipbadfiles = False  # not added functionality for args.files yet
     else:
         if args.yaml:
             with Path(args.yaml).open() as file:
@@ -219,11 +224,16 @@ def main(args):
             args.endi,
         )
 
+        # don't skip "bad" files for data - we want it throw an error in that case
+        for key in fileset:
+            if key in DATA_SAMPLES:
+                skipbadfiles = False
+
     print(f"Running on fileset {fileset}")
     if args.executor == "dask":
         run_dask(p, fileset, args)
     else:
-        run(p, fileset, args)
+        run(p, fileset, skipbadfiles, args)
 
 
 if __name__ == "__main__":
