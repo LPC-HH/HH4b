@@ -298,7 +298,7 @@ def get_v12_private():
                 "VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8/",
-                "VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/", # ?
+                "VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/",  # ?
                 "VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8/",
@@ -317,7 +317,6 @@ def get_v12_private():
                 "ZHH_HHto4B_CV_1_0_C2V_10_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/ZHH_HHto4B_CV_1_0_C2V_10_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "ZHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/ZHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "ZHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/ZHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
-
                 "WHH_HHto4B_CV_0_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_0_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_0_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_0_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_2_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_2_0_13p6TeV_TuneCP5_madgraph-pythia8/",
@@ -409,7 +408,6 @@ def get_v12_private():
                 "ZHH_HHto4B_CV_1_0_C2V_10_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/ZHH_HHto4B_CV_1_0_C2V_10_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "ZHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/ZHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 # "ZHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/ZHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
-
                 "WHH_HHto4B_CV_0_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/WHH_HHto4B_CV_0_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_0_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_0_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_2_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_2_0_13p6TeV_TuneCP5_madgraph-pythia8/",
