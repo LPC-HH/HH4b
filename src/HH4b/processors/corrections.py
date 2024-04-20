@@ -114,6 +114,7 @@ jmsValues["particleNet_mass_legacy"] = {
     "2023BPix": [1.0, 0.98, 1.02],
 }
 
+
 def get_UL_year(year: str) -> str:
     return f"{year}_UL"
 
@@ -449,7 +450,12 @@ class JECs:
 
 
 def get_jmsr(
-    fatjets: FatJetArray, num_jets: int, year: str, isData: bool = False, seed: int = 42, jmsr_vars = ["msoftdrop", "particleNet_mass"]
+    fatjets: FatJetArray,
+    num_jets: int,
+    year: str,
+    isData: bool = False,
+    seed: int = 42,
+    jmsr_vars=["msoftdrop", "particleNet_mass"],
 ) -> dict:
     """Calculates post JMS/R masses and shifts"""
     jmsr_shifted_vars = {}

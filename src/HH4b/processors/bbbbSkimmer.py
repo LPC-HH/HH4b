@@ -376,7 +376,11 @@ class bbbbSkimmer(SkimmerABC):
         )
 
         # JMSR
-        jmsr_vars = ["msoftdrop", "particleNet_mass_legacy"] if self._nano_version == "v12_private" else ["msoftdrop", "particleNet_mass"]
+        jmsr_vars = (
+            ["msoftdrop", "particleNet_mass_legacy"]
+            if self._nano_version == "v12_private"
+            else ["msoftdrop", "particleNet_mass"]
+        )
         jmsr_shifted_vars = get_jmsr(fatjets_xbb, 2, year, isData, jmsr_vars=jmsr_vars)
 
         #########################
