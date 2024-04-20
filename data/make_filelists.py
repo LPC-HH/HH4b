@@ -1007,6 +1007,7 @@ def get_v12():
 
 
 def eos_rec_search(startdir, suffix, dirs):
+    print(f"EOS Recursive search in {startdir}.")
     eosbase = "root://cmseos.fnal.gov/"
     try:
         dirlook = (
@@ -1020,6 +1021,7 @@ def eos_rec_search(startdir, suffix, dirs):
 
     donedirs = [[] for d in dirlook]
     for di, d in enumerate(dirlook):
+        print(f"Looking in {dirlook}.")
         if d.endswith(suffix):
             donedirs[di].append(startdir + "/" + d)
         elif d == "log":
@@ -1035,7 +1037,7 @@ def eos_rec_search(startdir, suffix, dirs):
 def get_files(dataset, version):
     if "private" in version:
         files = eos_rec_search(dataset, ".root", [])
-        return [f"root://cmsxrootd-site.fnal.gov/{f}" for f in files]
+        return [f"root://cmseos.fnal.gov/{f}" for f in files]
     else:
         import requests
         from rucio_utils import get_dataset_files, get_proxy_path
@@ -1107,11 +1109,13 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
+        print(year)
         for sample, sdict in ydict.items():
+            print(sample)
             for sname, dataset in sdict.items():
                 if isinstance(dataset, list):
                     files = []
