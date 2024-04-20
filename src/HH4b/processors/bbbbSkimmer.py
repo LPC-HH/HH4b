@@ -659,7 +659,7 @@ class bbbbSkimmer(SkimmerABC):
             # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
             if not legacy:
                 cut_txbb = (
-                    np.sum(bbFatJetVars["bbFatJetPNetXbb"] >= self.preselection["Txbb0"], axis=1)
+                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1)
                     >= 1
                 )
             else:
