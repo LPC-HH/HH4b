@@ -46,7 +46,7 @@ def main(args):
     else:
         raise ValueError(f"Invalid site {args.site}")
 
-    if args.site not in args.sites:
+    if args.site not in args.save_sites:
         warnings.warn(
             f"Your local site {args.site} is not in save sites {args.sites}!", stacklevel=1
         )
@@ -86,7 +86,9 @@ def main(args):
     nsubmit = 0
     for sample in fileset:
         for subsample, tot_files in fileset[sample].items():
-            print("Submitting " + subsample)
+            if args.submit:
+                print("Submitting " + subsample)
+
             sample_dir = outdir / args.year / subsample
             njobs = ceil(tot_files / args.files_per_job)
 
@@ -112,7 +114,7 @@ def main(args):
                     "processor": args.processor,
                     "maxchunks": args.maxchunks,
                     "chunksize": args.chunksize,
-                    "t2_prefixes": t2_prefixes,
+                    "t2_prefixes": " ".join(t2_prefixes),
                     "outdir": sample_dir,
                     "jobnum": j,
                     "nano_version": args.nano_version,
@@ -131,9 +133,10 @@ def main(args):
                 if Path(f"{localcondor}.log").exists():
                     Path(f"{localcondor}.log").unlink()
 
-                print("To submit ", localcondor)
                 if args.submit:
                     os.system("condor_submit %s" % localcondor)
+                else:
+                    print("To submit ", localcondor)
                 nsubmit = nsubmit + 1
 
     print(f"Total {nsubmit} jobs")

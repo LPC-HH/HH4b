@@ -11,7 +11,7 @@ for t2_prefix in ${t2_prefixes}
 do
     for folder in pickles parquet root githashes
     do
-        xrdfs $${t2_prefix} mkdir -p ${outdir}/$${folder}
+        xrdfs $${t2_prefix} mkdir -p "/${outdir}/$${folder}"
     done
 done
 
@@ -45,9 +45,9 @@ python -u -W ignore $script --year $year --starti $starti --endi $endi --samples
 #move output to t2s
 for t2_prefix in ${t2_prefixes}
 do
-    xrdcp -f outfiles/* $${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl
-    xrdcp -f *.parquet $${t2_prefix}/${outdir}/parquet/out_${jobnum}.parquet
-    xrdcp -f *.root $${t2_prefix}/${outdir}/root/nano_skim_${jobnum}.root
+    xrdcp -f outfiles/* "$${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl"
+    xrdcp -f *.parquet "$${t2_prefix}/${outdir}/parquet/out_${jobnum}.parquet"
+    xrdcp -f *.root "$${t2_prefix}/${outdir}/root/nano_skim_${jobnum}.root"
 done
 
 rm *.parquet

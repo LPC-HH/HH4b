@@ -130,7 +130,21 @@ def run(p: processor, fileset: dict, args):
         maxchunks=None if args.maxchunks == 0 else args.maxchunks,
     )
 
-    out, metrics = run(fileset, "Events", processor_instance=p)
+    # try file opening 3 times if it fails
+    for i in range(3):
+        try:
+            out, metrics = run(fileset, "Events", processor_instance=p)
+            break
+        except FileNotFoundError as e:
+            import time
+
+            print("Error!")
+            print(e)
+            if i < 2:
+                print("Retrying in 1 minute")
+                time.sleep(60)
+            else:
+                raise e
 
     print(out)
 
