@@ -335,7 +335,6 @@ class bbbbSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print(" ", jec_shifted_jetvars)
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
@@ -368,7 +367,13 @@ class bbbbSkimmer(SkimmerABC):
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
-        fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]  # fatjets ordered by xbb
+        legacy = "particleNetLegacy_mass" in fatjets.fields
+
+        if not legacy:
+            # fatjets ordered by xbb
+            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
+        else:
+            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         # variations for bb fatjets (TODO: not only for signal)
         jec_shifted_bbfatjetvars = {}
@@ -674,8 +679,6 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
-            legacy = "particleNetLegacy_mass" in fatjets.fields
-
             # >=2 AK8 jets passing selections
             add_selection("ak8_numjets", (ak.num(fatjets) >= 2), *selection_args)
 
