@@ -136,6 +136,7 @@ def load_data(data_path: str, year: str, legacy: bool):
         # mass_key = "bbFatJetMsd"
         mass_key = "bbFatJetPNetMassLegacy"
         # both jets pT > 300, both jets mreg [60, 250], at least one jet's TXbb legacy > 0.8
+        # (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
         filters = [
             [
                 ("('bbFatJetPt', '0')", ">=", 300),
