@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import pickle
+from collections import OrderedDict  # noqa: F401
 from pathlib import Path
 
 import hist
@@ -454,6 +455,7 @@ def evaluate_model(
     y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)
 
     for i, sig_key in enumerate(sig_keys):
+        print(f"Evaluating {sig_key} performance")
         if multiclass:
             # selecting only this signal + BGs for ROC curves
             bgs = y_test >= len(sig_keys)
@@ -1037,22 +1039,8 @@ def plot_train_test(
             scores = _get_bdt_scores(scores, sig_keys, multiclass)[:, i]
             h_bdt_weight.fill(scores, key + "train", weight=weights_train.loc[key])
 
-        colors = {
-            "ttbar": "b",
-            "hh4b": "k",
-            "qcd": "r",
-            "vhtobb": "g",
-            "vjets": "pink",
-            "ttlep": "violet",
-        }
-        legends = {
-            "ttbar": r"$t\bar{t}$ + Jets",
-            "hh4b": "ggHH(4b)",
-            "qcd": "Multijet",
-            "vhtobb": "VH(bb)",
-            "vjets": r"W/Z$(qq)$ + Jets",
-            "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
-        }
+        colors = plotting.color_by_sample
+        legends = plotting.label_by_sample
 
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         for key in training_keys:
@@ -1151,22 +1139,22 @@ def main(args):
 
         plot_losses(evals_result, model_dir, args.multiclass)
 
-        plot_train_test(
-            X_train,
-            y_train,
-            yt_train,
-            weights_train,
-            X_test,
-            y_test,
-            yt_test,
-            weights_test,
-            model,
-            args.multiclass,
-            args.sig_keys,
-            training_keys,
-            model_dir,
-            args.legacy,
-        )
+    plot_train_test(
+        X_train,
+        y_train,
+        yt_train,
+        weights_train,
+        X_test,
+        y_test,
+        yt_test,
+        weights_test,
+        model,
+        args.multiclass,
+        args.sig_keys,
+        training_keys,
+        model_dir,
+        args.legacy,
+    )
 
     evaluate_model(
         args.config_name,
