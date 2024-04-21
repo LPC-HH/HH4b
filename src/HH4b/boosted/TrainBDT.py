@@ -41,7 +41,8 @@ h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{r
 
 bdt_cuts = [0, 0.03, 0.7, 0.9, 0.92]
 xbb_cuts = [0, 0.8, 0.9, 0.92]
-    
+
+
 def load_data(data_path: str, year: str, legacy: bool):
     """
     Load samples
@@ -688,7 +689,6 @@ def evaluate_model(
     fig.savefig(model_dir / "roc_pnetxbb_weights.png")
     plt.close()
 
-            
     # look into mass sculpting
     hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
     hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
@@ -701,7 +701,7 @@ def evaluate_model(
         "vjets": r"W/Z$(qq)$ + Jets",
         "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
     }
-    for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b","ttlep"]:
+    for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b", "ttlep"]:
         events = events_dict[key]
         if key in msd_dict:
             h2_mass = mass_dict[key]
@@ -777,20 +777,23 @@ def evaluate_model(
                 fig.savefig(model_dir / f"{hkey}2_{key}_xbbcut{xbb_cut}.png")
                 plt.close()
 
+
 def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy):
     pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
     make_bdt_dataframe = importlib.import_module(f"{config_name}")
 
-    for xbb_cut in xbb_cuts:        
+    for xbb_cut in xbb_cuts:
         for key in ["qcd", "ttbar"]:
             hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
             hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        
+
             for year in events_dict:
                 (model_dir / year).mkdir(exist_ok=True, parents=True)
 
-                preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[year][key]))
+                preds = model.predict_proba(
+                    make_bdt_dataframe.bdt_dataframe(events_dict[year][key])
+                )
                 scores = preds[:, 0] if multiclass else preds[:, 1]
                 weights = events_dict[year][key]["finalWeight"]
                 h2_mass = events_dict[year][key][pnet_mass_str].to_numpy()[:, 1]
@@ -810,7 +813,10 @@ def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy
                     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                     for cut in bdt_cuts:
                         hep.histplot(
-                            h[{"cat": year, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True
+                            h[{"cat": year, "cut": str(cut)}],
+                            lw=2,
+                            label=f"BDT > {cut}",
+                            density=True,
                         )
                     ax.legend()
                     ax.set_ylabel("Density")
@@ -820,7 +826,6 @@ def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy
                     fig.tight_layout()
                     fig.savefig(model_dir / year / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png")
                     plt.close()
-            
 
 
 def plot_train_test(
@@ -1010,9 +1015,9 @@ def main(args):
     years_test = ["2022EE"] if args.legacy else ["2022", "2022EE", "2023", "2023BPix"]
     for year in years_test:
         events_dict[year] = load_data(args.data_path, year, args.legacy)
-        
+
     plot_allyears(events_dict, model, model_dir, args.config_name, args.multiclass, args.legacy)
-        
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
