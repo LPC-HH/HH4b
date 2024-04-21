@@ -147,7 +147,7 @@ def load_data(data_path: str, year: str, legacy: bool):
     if legacy:
         # mass_key = "bbFatJetMsd"
         mass_key = "bbFatJetPNetMassLegacy"
-        # both jets pT > 300, both jets mreg [60, 250], at least one jet's TXbb legacy > 0.8
+        # both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
         # (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
         filters = [
             [
@@ -196,6 +196,7 @@ def load_data(data_path: str, year: str, legacy: bool):
 
     if legacy:
         load_columns += [
+            ("bbFatJetPNetTXbbLegacy", 2),
             ("bbFatJetPNetPXbbLegacy", 2),
             ("bbFatJetPNetPQCDbLegacy", 2),
             ("bbFatJetPNetPQCDbbLegacy", 2),
@@ -226,8 +227,13 @@ def load_data(data_path: str, year: str, legacy: bool):
             ),
         }
 
-    print(events_dict.keys())
-
+    # apply mask (maybe this is not needed once ordering is fixed in processor)
+    for key in events_dict:
+        if legacy:
+            xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
+            mask = (xbb_0 >= 0.8)
+            events_dict[key] = events_dict[key][mask]
+        
     return events_dict
 
 
@@ -334,6 +340,7 @@ def preprocess_data(
 
 
 def plot_losses(trained_model: xgb.XGBClassifier, model_dir: Path):
+    """Plot Losses"""
     evals_result = trained_model.evals_result()
 
     with (model_dir / "evals_result.txt").open("w") as f:
@@ -407,8 +414,6 @@ def evaluate_model(
     y_test: pd.DataFrame,
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
-    # test_size: float, seed: int,
-    # year: str,
     multiclass: bool,
     sig_keys: list[str],
     bg_keys: list[str],
@@ -433,6 +438,8 @@ def evaluate_model(
     y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)
 
     for i, sig_key in enumerate(sig_keys):
+        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
+
         if multiclass:
             # selecting only this signal + BGs for ROC curves
             bgs = y_test >= len(sig_keys)
@@ -451,7 +458,7 @@ def evaluate_model(
             "tpr": tpr,
             "thresholds": thresholds,
         }
-        with (model_dir / f"{sig_key}_roc_dict.pkl").open("wb") as f:
+        with (model_dir / sig_key / "roc_dict.pkl").open("wb") as f:
             pickle.dump(roc_info, f)
 
         # print FPR, TPR for a couple of tprs
@@ -461,26 +468,12 @@ def evaluate_model(
                 f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
             )
 
-        # ROC w/o weights
-        # print("Test ROC without sample weights")
-        # fpr, tpr, thresholds = roc_curve(yt_test, y_scores)
-
-        # # print FPR, TPR for a couple of tprs
-        # for tpr_val in [0.10, 0.12, 0.15]:
-        #     idx = find_nearest(tpr, tpr_val)
-        #     print(
-        #         f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
-        #     )
-
         # plot BDT scores for test samples
         make_bdt_dataframe = importlib.import_module(
             f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
         )
 
         print("Perform inference on test signal sample")
-        # x_train, x_test = train_test_split(events_dict["hh4b"], test_size=test_size, random_state=seed)
-        # hh4b_indices = x_test.index
-
         # get scores from full dataframe, but only use testing indices
         scores = {}
         weights = {}
@@ -499,19 +492,12 @@ def evaluate_model(
             msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
             xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
 
-        for key in ["vhtobb", "vjets", "ttlep"]:
+        other_keys = ["ttlep"] # + ["vjets", "vhtobb"]
+        for key in other_keys:
             preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
             scores[key] = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
             weights[key] = events_dict[key]["finalWeight"]
             xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
-
-        # save scores and indices for testing dataset
-        # TODO: add shifts (e.g. JECs etc)
-        # (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-        # np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
-        # np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
-
-        # print("Scores ", scores)
 
         legtitle = _get_title(legacy)
 
@@ -551,8 +537,8 @@ def evaluate_model(
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
             fig.tight_layout()
-            fig.savefig(model_dir / f"{sig_key}_bdt_shape_{h_key}.png")
-            fig.savefig(model_dir / f"{sig_key}_bdt_shape_{h_key}.pdf", bbox_inches="tight")
+            fig.savefig(model_dir / sig_key / f"bdt_shape_{h_key}.png")
+            fig.savefig(model_dir / sig_key / f"bdt_shape_{h_key}.pdf", bbox_inches="tight")
             plt.close()
 
         # Plot and save ROC figure
@@ -647,8 +633,8 @@ def evaluate_model(
             loc="upper left",
         )
         fig.tight_layout()
-        fig.savefig(model_dir / f"{sig_key}_roc_weights.png")
-        fig.savefig(model_dir / f"{sig_key}_roc_weights.pdf", bbox_inches="tight")
+        fig.savefig(model_dir / sig_key / "roc_weights.png")
+        fig.savefig(model_dir / sig_key / "roc_weights.pdf", bbox_inches="tight")
         plt.close()
 
         # look into mass sculpting
@@ -656,7 +642,7 @@ def evaluate_model(
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
-        for key in training_keys + ["vhtobb", "vjets", "ttlep"]:
+        for key in training_keys + other_keys:
             events = events_dict[key]
             if key in msd_dict:
                 h2_mass = mass_dict[key]
@@ -670,7 +656,7 @@ def evaluate_model(
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
-        for key in training_keys + ["vhtobb", "vjets", "ttlep"]:
+        for key in training_keys + other_keys:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -687,8 +673,8 @@ def evaluate_model(
                 ax.xaxis.grid(True, which="major")
                 ax.yaxis.grid(True, which="major")
                 fig.tight_layout()
-                fig.savefig(model_dir / f"{sig_key}_{hkey}2_{key}.png")
-                fig.savefig(model_dir / f"{sig_key}_{hkey}2_{key}.pdf", bbox_inches="tight")
+                fig.savefig(model_dir / sig_key / f"{hkey}2_{key}.png")
+                fig.savefig(model_dir / sig_key / f"{hkey}2_{key}.pdf", bbox_inches="tight")
                 plt.close()
 
     # PNetXbb ROC
@@ -778,7 +764,7 @@ def evaluate_model(
     for xbb_cut in xbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b", "ttlep"]:
+        for key in training_keys + other_keys:
             events = events_dict[key]
             if key in msd_dict:
                 h2_mass = mass_dict[key]
@@ -793,7 +779,7 @@ def evaluate_model(
                 mask = (scores[key] >= cut) & (h2_xbb >= xbb_cut)
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
-        for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b", "ttlep"]:
+        for key in training_keys + other_keys:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -835,13 +821,15 @@ def plot_allyears(
     )
 
     for i, sig_key in enumerate(sig_keys):
+        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
+
         for xbb_cut in xbb_cuts:
             for key in bg_keys:
                 hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
                 hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
                 for year in events_dict:
-                    (model_dir / year).mkdir(exist_ok=True, parents=True)
+                    (model_dir / sig_key / year).mkdir(exist_ok=True, parents=True)
 
                     preds = model.predict_proba(
                         make_bdt_dataframe.bdt_dataframe(events_dict[year][key])
@@ -854,8 +842,8 @@ def plot_allyears(
                     h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
                     for cut in bdt_cuts:
                         mask = (scores >= cut) & (h2_xbb >= xbb_cut)
-                        hist_h2.fill(h2_mass[mask], str(cut), year, weights=weights[mask])
-                        hist_h2_msd.fill(h2_msd[mask], str(cut), year, weights=weights[mask])
+                        hist_h2.fill(h2_mass[mask], str(cut), year, weight=weights[mask])
+                        hist_h2_msd.fill(h2_msd[mask], str(cut), year, weight=weights[mask])
 
                 hists = {
                     "msd": hist_h2_msd,
@@ -878,12 +866,11 @@ def plot_allyears(
                         ax.yaxis.grid(True, which="major")
                         fig.tight_layout()
                         fig.savefig(
-                            model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
+                            model_dir / sig_key / year / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
                         )
                         fig.savefig(
-                            model_dir
-                            / year
-                            / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
+                            model_dir / sig_key / year
+                            / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
                             bbox_inches="tight",
                         )
                         plt.close()
@@ -920,8 +907,9 @@ def plot_train_test(
 ):
     for i, sig_key in enumerate(sig_keys):
 
+        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
+                
         ########## Inference and ROC Curves ############
-
         rocs = {}
 
         for key, X, y, yt, weights in [
@@ -981,8 +969,8 @@ def plot_train_test(
             loc="upper left",
         )
         fig.tight_layout()
-        fig.savefig(model_dir / f"{sig_key}_roc_train_test.png")
-        fig.savefig(model_dir / f"{sig_key}_roc_train_test.pdf", bbox_inches="tight")
+        fig.savefig(model_dir / sig_key / "roc_train_test.png")
+        fig.savefig(model_dir / sig_key / "roc_train_test.pdf", bbox_inches="tight")
 
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
         for key in training_keys:
