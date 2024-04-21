@@ -16,6 +16,7 @@ from sklearn.metrics import roc_curve
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
+from HH4b import plotting
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import format_columns, load_samples
 
@@ -37,6 +38,17 @@ h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{r
 
 bdt_cuts = [0, 0.03, 0.7, 0.9, 0.92]
 xbb_cuts = [0, 0.8, 0.9, 0.92]
+
+
+def _get_title(legacy: bool):
+    title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
+
+    if not legacy:
+        title += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
+    else:
+        title += "\n" + r"m$_{Reg}^{(0,1)}$:[60-250] GeV"
+
+    return title
 
 
 def load_data(data_path: str, year: str, legacy: bool):
@@ -252,32 +264,39 @@ def preprocess_data(
         keys=training_keys,
     )
 
-    events["target"] = 0  # Default to 0 (background)
-    events.loc["hh4b", "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
-
     # weights
     equalize_weights = True
     if equalize_weights:
         # scales signal such that total signal = total background
-        sig_total = np.sum(weights_bdt["hh4b"])
-        bkg_total = np.sum(np.concatenate((weights_bdt["qcd"], weights_bdt["ttbar"])))
-        print(f"Scale signal by {bkg_total / sig_total}")
+        bkg_total = np.sum([np.sum(weights_bdt[key]) for key in args.bg_keys])
 
-        events.loc["hh4b", "weight"] = weights_bdt["hh4b"] * (bkg_total / sig_total)
-        events.loc["qcd", "weight"] = weights_bdt["qcd"]
-        events.loc["ttbar", "weight"] = weights_bdt["ttbar"]
+        num_sigs = len(args.sig_keys)
+        for sig_key in args.sig_keys:
+            sig_total = np.sum(weights_bdt[sig_key])
+            print(f"Scale {sig_key} by {bkg_total / sig_total} / {num_sigs} signal(s).")
+            events.loc[sig_key, "weight"] = (
+                weights_bdt[sig_key] * (bkg_total / sig_total) / num_sigs
+            )
+
+        for key in args.bg_keys:
+            events.loc[key, "weight"] = weights_bdt[key]
 
     # Define target
+    events["target"] = 0  # Default to 0 (background)
+    for key in args.sig_keys:
+        events.loc[key, "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
+
     target = events["target"]
     simple_target = events["target"]
+
     if multiclass:
         target = label_encoder.transform(list(events.index.get_level_values(0)))
 
     # Define event number
     events["event"] = 1
-    events.loc["hh4b", "event"] = events_bdt["hh4b"]
-    events.loc["qcd", "event"] = events_bdt["qcd"]
-    events.loc["ttbar", "event"] = events_bdt["ttbar"]
+    for key in training_keys:
+        events.loc[key, "event"] = events_bdt[key]
+
     event_num = events["event"]
 
     # Define features
@@ -291,8 +310,9 @@ def preprocess_data(
         event_num,
         test_size=test_size,
         random_state=seed,
-        # shuffle=False
+        shuffle=True,
     )
+
     # drop weights from features
     weights_train = X_train["weight"].copy()
     X_train = X_train.drop(columns=["weight"])
@@ -336,6 +356,7 @@ def train_model(
     y_test: np.ndarray,
     weights_train: np.ndarray,
     weights_test: np.ndarray,
+    training_keys: list[str],
     model_dir: Path,
     **classifier_params,
 ):
@@ -348,14 +369,11 @@ def train_model(
     model = xgb.XGBClassifier(**classifier_params)
     print("Training features: ", list(X_train.columns))
 
-    num_hh4b = X_train.loc["hh4b"].shape[0]
-    num_qcd = X_train.loc["qcd"].shape[0]
-    num_tt = X_train.loc["ttbar"].shape[0]
-    print("Number of events training (hh4b,qcd,tt): ", num_hh4b, num_qcd, num_tt)
-    num_hh4b = X_test.loc["hh4b"].shape[0]
-    num_qcd = X_test.loc["qcd"].shape[0]
-    num_tt = X_test.loc["ttbar"].shape[0]
-    print("Number of events testing (hh4b,qcd,tt): ", num_hh4b, num_qcd, num_tt)
+    for key in training_keys:
+        print(f"Number of training {key} events: {X_train.loc[key].shape[0]}")
+
+    for key in training_keys:
+        print(f"Number of testing {key} events: {X_test.loc[key].shape[0]}")
 
     trained_model = model.fit(
         X_train,
@@ -365,6 +383,7 @@ def train_model(
         sample_weight_eval_set=[weights_train, weights_test],
         verbose=True,
     )
+
     trained_model.save_model(model_dir / "trained_bdt.model")
     plot_losses(trained_model, model_dir)
 
@@ -385,12 +404,15 @@ def evaluate_model(
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
-    y_test: pd.DataFrame,  # noqa: ARG001
+    y_test: pd.DataFrame,
     yt_test: pd.DataFrame,
     weights_test: np.ndarray,
     # test_size: float, seed: int,
     # year: str,
     multiclass: bool,
+    sig_keys: list[str],
+    bg_keys: list[str],
+    training_keys: list[str],
     legacy: bool,
 ):
     """
@@ -408,229 +430,266 @@ def evaluate_model(
         return idx
 
     y_scores = model.predict_proba(X_test)
-    y_scores = y_scores[:, 0] if multiclass else y_scores[:, 1]
+    y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)
 
-    # WARNING, if using multiclass should use y_Test?
+    for i, sig_key in enumerate(sig_keys):
+        if multiclass:
+            # selecting only this signal + BGs for ROC curves
+            bgs = y_test >= len(sig_keys)
+            sigs = y_test == i
+            sel = np.logical_or(sigs, bgs).to_numpy().squeeze()
+        else:
+            sel = np.ones(len(y_test), dtype=bool)
 
-    print("Test ROC with sample weights")
-    fpr, tpr, thresholds = roc_curve(yt_test, y_scores, sample_weight=weights_test)
-
-    roc_info = {
-        "fpr": fpr,
-        "tpr": tpr,
-        "thresholds": thresholds,
-    }
-    with (model_dir / "roc_dict.pkl").open("wb") as f:
-        pickle.dump(roc_info, f)
-
-    # print FPR, TPR for a couple of tprs
-    for tpr_val in [0.10, 0.12, 0.15]:
-        idx = find_nearest(tpr, tpr_val)
-        print(
-            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
+        print("Test ROC with sample weights")
+        fpr, tpr, thresholds = roc_curve(
+            yt_test[sel], y_scores[sel][:, i], sample_weight=weights_test[sel]
         )
 
-    # ROC w/o weights
-    print("Test ROC without sample weights")
-    fpr, tpr, thresholds = roc_curve(yt_test, y_scores)
-
-    # print FPR, TPR for a couple of tprs
-    for tpr_val in [0.10, 0.12, 0.15]:
-        idx = find_nearest(tpr, tpr_val)
-        print(
-            f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
-        )
-
-    # plot BDT scores for test samples
-    make_bdt_dataframe = importlib.import_module(
-        f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
-    )
-
-    print("Perform inference on test signal sample")
-    # x_train, x_test = train_test_split(events_dict["hh4b"], test_size=test_size, random_state=seed)
-    # hh4b_indices = x_test.index
-
-    # get scores from full dataframe, but only use testing indices
-    scores = {}
-    weights = {}
-    mass_dict = {}
-    msd_dict = {}
-    xbb_dict = {}
-    for key in ["hh4b", "qcd", "ttbar"]:
-        indices = X_test[X_test.index.get_level_values(0) == key].index.get_level_values(1)
-        test_dataset = events_dict[key].loc[indices]
-        test_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(test_dataset)
-        test_preds = model.predict_proba(test_bdt_dataframe)
-        scores[key] = test_preds[:, 0] if multiclass else test_preds[:, 1]
-        weights[key] = test_dataset["finalWeight"]
-        mass_dict[key] = test_dataset[pnet_mass_str].to_numpy()[:, 1]
-        msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
-        xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
-
-    for key in ["vhtobb", "vjets", "ttlep"]:
-        preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
-        scores[key] = preds[:, 0] if multiclass else preds[:, 1]
-        weights[key] = events_dict[key]["finalWeight"]
-        xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
-
-    # save scores and indices for testing dataset
-    # TODO: add shifts (e.g. JECs etc)
-    # (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-    # np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
-    # np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
-
-    # print("Scores ", scores)
-
-    legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
-    if not legacy:
-        legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-
-    h_bdt = hist.Hist(bdt_axis, cat_axis)
-    h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
-    for key in events_dict:
-        h_bdt.fill(bdt=scores[key], cat=key)
-        h_bdt_weight.fill(scores[key], key, weight=weights[key])
-
-    hists = {
-        "weight": h_bdt_weight,
-        "no_weight": h_bdt,
-    }
-    for h_key, h in hists.items():
-        colors = {
-            "ttbar": "b",
-            "hh4b": "k",
-            "qcd": "r",
-            "vhtobb": "g",
-            "vjets": "pink",
-            "ttlep": "violet",
+        roc_info = {
+            "fpr": fpr,
+            "tpr": tpr,
+            "thresholds": thresholds,
         }
-        legends = {
-            "ttbar": r"$t\bar{t}$ + Jets",
-            "hh4b": "ggHH(4b)",
-            "qcd": "Multijet",
-            "vhtobb": "VH(bb)",
-            "vjets": r"W/Z$(qq)$ + Jets",
-            "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
-        }
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        for key in events_dict:
-            hep.histplot(
-                h[{"cat": key}],
-                ax=ax,
-                label=f"{legends[key]}",
-                histtype="step",
-                linewidth=1,
-                color=colors[key],
-                density=True,
+        with (model_dir / f"{sig_key}_roc_dict.pkl").open("wb") as f:
+            pickle.dump(roc_info, f)
+
+        # print FPR, TPR for a couple of tprs
+        for tpr_val in [0.10, 0.12, 0.15]:
+            idx = find_nearest(tpr, tpr_val)
+            print(
+                f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
             )
+
+        # ROC w/o weights
+        # print("Test ROC without sample weights")
+        # fpr, tpr, thresholds = roc_curve(yt_test, y_scores)
+
+        # # print FPR, TPR for a couple of tprs
+        # for tpr_val in [0.10, 0.12, 0.15]:
+        #     idx = find_nearest(tpr, tpr_val)
+        #     print(
+        #         f"Signal efficiency: {tpr[idx]:.4f}, Background efficiency: {fpr[idx]:.5f}, BDT Threshold: {thresholds[idx]}"
+        #     )
+
+        # plot BDT scores for test samples
+        make_bdt_dataframe = importlib.import_module(
+            f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
+        )
+
+        print("Perform inference on test signal sample")
+        # x_train, x_test = train_test_split(events_dict["hh4b"], test_size=test_size, random_state=seed)
+        # hh4b_indices = x_test.index
+
+        # get scores from full dataframe, but only use testing indices
+        scores = {}
+        weights = {}
+        mass_dict = {}
+        msd_dict = {}
+        xbb_dict = {}
+
+        for key in training_keys:
+            indices = X_test[X_test.index.get_level_values(0) == key].index.get_level_values(1)
+            test_dataset = events_dict[key].loc[indices]
+            test_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(test_dataset)
+            test_preds = model.predict_proba(test_bdt_dataframe)
+            scores[key] = _get_bdt_scores(test_preds, sig_keys, multiclass)[:, i]
+            weights[key] = test_dataset["finalWeight"]
+            mass_dict[key] = test_dataset[pnet_mass_str].to_numpy()[:, 1]
+            msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
+            xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
+
+        for key in ["vhtobb", "vjets", "ttlep"]:
+            preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
+            scores[key] = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
+            weights[key] = events_dict[key]["finalWeight"]
+            xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
+
+        # save scores and indices for testing dataset
+        # TODO: add shifts (e.g. JECs etc)
+        # (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
+        # np.save(f"{model_dir}/inferences/{year}/preds.npy", scores["hh4b"])
+        # np.save(f"{model_dir}/inferences/{year}/indices.npy", hh4b_indices)
+
+        # print("Scores ", scores)
+
+        legtitle = _get_title(legacy)
+
+        h_bdt = hist.Hist(bdt_axis, cat_axis)
+        h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
+        for key in events_dict:
+            h_bdt.fill(bdt=scores[key], cat=key)
+            h_bdt_weight.fill(scores[key], key, weight=weights[key])
+
+        hists = {
+            "weight": h_bdt_weight,
+            "no_weight": h_bdt,
+        }
+        for h_key, h in hists.items():
+            colors = plotting.color_by_sample
+            legends = plotting.label_by_sample
+
+            fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+            for key in events_dict:
+                hep.histplot(
+                    h[{"cat": key}],
+                    ax=ax,
+                    label=f"{legends[key]}",
+                    histtype="step",
+                    linewidth=1,
+                    color=colors[key],
+                    density=True,
+                )
+            ax.set_yscale("log")
+            ax.legend(
+                title=legtitle,
+                bbox_to_anchor=(1.03, 1),
+                loc="upper left",
+            )
+            ax.set_ylabel("Density")
+            ax.set_title("Pre-Selection")
+            ax.xaxis.grid(True, which="major")
+            ax.yaxis.grid(True, which="major")
+            fig.tight_layout()
+            fig.savefig(model_dir / f"{sig_key}_bdt_shape_{h_key}.png")
+            fig.savefig(model_dir / f"{sig_key}_bdt_shape_{h_key}.pdf", bbox_inches="tight")
+            plt.close()
+
+        # Plot and save ROC figure
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
+        legends = {**plotting.label_by_sample, "merged": "Total Background"}
+        plot_thresholds = [0.68, 0.9, 0.92]
+        th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
+
+        for bkg in [*bg_keys, "merged"]:
+            if bkg != "merged":
+                scores_roc = np.concatenate([scores[sig_key], scores[bkg]])
+                sig_jets_score = scores[sig_key]
+                bkg_jets_score = scores[bkg]
+                scores_true = np.concatenate(
+                    [
+                        np.ones(len(sig_jets_score)),
+                        np.zeros(len(bkg_jets_score)),
+                    ]
+                )
+                scores_weights = np.concatenate([weights[sig_key], weights[bkg]])
+                fpr, tpr, thresholds = roc_curve(
+                    scores_true, scores_roc, sample_weight=scores_weights
+                )
+            else:
+                scores_roc = np.concatenate(
+                    [scores[sig_key]] + [scores[bg_key] for bg_key in bg_keys]
+                )
+                sig_jets_score = scores[sig_key]
+                bkg_jets_score = np.concatenate([scores[bg_key] for bg_key in bg_keys])
+                scores_true = np.concatenate(
+                    [
+                        np.ones(len(sig_jets_score)),
+                        np.zeros(len(bkg_jets_score)),
+                    ]
+                )
+                scores_weights = np.concatenate(
+                    [weights[sig_key]] + [weights[bg_key] for bg_key in bg_keys]
+                )
+                fpr, tpr, thresholds = roc_curve(
+                    scores_true, scores_roc, sample_weight=scores_weights
+                )
+
+            ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
+
+            pths = {th: [[], []] for th in plot_thresholds}
+            for th in plot_thresholds:
+                idx = find_nearest(thresholds, th)
+                pths[th][0].append(tpr[idx])
+                pths[th][1].append(fpr[idx])
+
+            if bkg == "merged":
+                for k, th in enumerate(plot_thresholds):
+                    plt.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        label=rf"BDT > {th}",
+                        color=th_colours[k],
+                        zorder=100,
+                    )
+
+                    plt.vlines(
+                        x=pths[th][0],
+                        ymin=0,
+                        ymax=pths[th][1],
+                        color=th_colours[k],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+
+                    plt.hlines(
+                        y=pths[th][1],
+                        xmin=0,
+                        xmax=pths[th][0],
+                        color=th_colours[k],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+
+        ax.set_title(f"{plotting.label_by_sample[sig_key]} BDT ROC Curve")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.set_xlim([0.0, 0.7])
+        ax.set_ylim([1e-6, 1e-1])
         ax.set_yscale("log")
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
         ax.legend(
             title=legtitle,
             bbox_to_anchor=(1.03, 1),
             loc="upper left",
         )
-        ax.set_ylabel("Density")
-        ax.set_title("Pre-Selection")
-        ax.xaxis.grid(True, which="major")
-        ax.yaxis.grid(True, which="major")
         fig.tight_layout()
-        fig.savefig(model_dir / f"bdt_shape_{h_key}.png")
+        fig.savefig(model_dir / f"{sig_key}_roc_weights.png")
+        fig.savefig(model_dir / f"{sig_key}_roc_weights.pdf", bbox_inches="tight")
         plt.close()
 
-    # Plot and save ROC figure
-    fig, ax = plt.subplots(1, 1, figsize=(18, 12))
-    bkg_colors = {
-        "qcd": "r",
-        "ttbar": "blue",
-        "merged": "orange",
-    }
-    legends = {
-        "qcd": "Multijet",
-        "ttbar": r"$t\bar{t}$ + Jets",
-        "merged": "TT + QCD",
-    }
-    plot_thresholds = [0.68, 0.9, 0.92]
-    th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
+        # look into mass sculpting
 
-    for bkg in ["qcd", "ttbar", "merged"]:
-        if bkg != "merged":
-            scores_roc = np.concatenate([scores["hh4b"], scores[bkg]])
-            sig_jets_score = scores["hh4b"]
-            bkg_jets_score = scores[bkg]
-            scores_true = np.concatenate(
-                [
-                    np.ones(len(sig_jets_score)),
-                    np.zeros(len(bkg_jets_score)),
-                ]
-            )
-            scores_weights = np.concatenate([weights["hh4b"], weights[bkg]])
-            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
-        else:
-            scores_roc = np.concatenate([scores["hh4b"], scores["qcd"], scores["ttbar"]])
-            sig_jets_score = scores["hh4b"]
-            bkg_jets_score = np.concatenate([scores["qcd"], scores["ttbar"]])
-            scores_true = np.concatenate(
-                [
-                    np.ones(len(sig_jets_score)),
-                    np.zeros(len(bkg_jets_score)),
-                ]
-            )
-            scores_weights = np.concatenate([weights["hh4b"], weights["qcd"], weights["ttbar"]])
-            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+        hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
+        hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
-        ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
+        for key in training_keys + ["vhtobb", "vjets", "ttlep"]:
+            events = events_dict[key]
+            if key in msd_dict:
+                h2_mass = mass_dict[key]
+                h2_msd = msd_dict[key]
+            else:
+                h2_mass = events[pnet_mass_str].to_numpy()[:, 1]
+                h2_msd = events["bbFatJetMsd"].to_numpy()[:, 1]
 
-        pths = {th: [[], []] for th in plot_thresholds}
-        for th in plot_thresholds:
-            idx = find_nearest(thresholds, th)
-            pths[th][0].append(tpr[idx])
-            pths[th][1].append(fpr[idx])
+            for cut in bdt_cuts:
+                mask = scores[key] >= cut
+                hist_h2.fill(h2_mass[mask], str(cut), key)
+                hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
-        if bkg == "merged":
-            for k, th in enumerate(plot_thresholds):
-                plt.scatter(
-                    *pths[th],
-                    marker="o",
-                    s=40,
-                    label=rf"BDT > {th}",
-                    color=th_colours[k],
-                    zorder=100,
-                )
-
-                plt.vlines(
-                    x=pths[th][0],
-                    ymin=0,
-                    ymax=pths[th][1],
-                    color=th_colours[k],
-                    linestyles="dashed",
-                    alpha=0.5,
-                )
-
-                plt.hlines(
-                    y=pths[th][1],
-                    xmin=0,
-                    xmax=pths[th][0],
-                    color=th_colours[k],
-                    linestyles="dashed",
-                    alpha=0.5,
-                )
-
-    ax.set_title("ggF HH4b BDT ROC Curve")
-    ax.set_xlabel("Signal efficiency")
-    ax.set_ylabel("Background efficiency")
-    ax.set_xlim([0.0, 0.7])
-    # ax.set_ylim([0, 0.002])
-    ax.set_ylim([0, 0.08])
-    ax.xaxis.grid(True, which="major")
-    ax.yaxis.grid(True, which="major")
-    ax.legend(
-        title=legtitle,
-        bbox_to_anchor=(1.03, 1),
-        loc="upper left",
-    )
-    fig.tight_layout()
-    fig.savefig(model_dir / "roc_weights.png")
-    plt.close()
+        for key in training_keys + ["vhtobb", "vjets", "ttlep"]:
+            hists = {
+                "msd": hist_h2_msd,
+                "mreg": hist_h2,
+            }
+            for hkey, h in hists.items():
+                fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+                for cut in bdt_cuts:
+                    hep.histplot(
+                        h[{"cat": key, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True
+                    )
+                ax.legend()
+                ax.set_ylabel("Density")
+                ax.set_title(f"{legends[key]}")
+                ax.xaxis.grid(True, which="major")
+                ax.yaxis.grid(True, which="major")
+                fig.tight_layout()
+                fig.savefig(model_dir / f"{sig_key}_{hkey}2_{key}.png")
+                fig.savefig(model_dir / f"{sig_key}_{hkey}2_{key}.pdf", bbox_inches="tight")
+                plt.close()
 
     # PNetXbb ROC
     fig, ax = plt.subplots(1, 1, figsize=(18, 12))
@@ -715,52 +774,6 @@ def evaluate_model(
     fig.savefig(model_dir / "roc_pnetxbb_weights.png")
     plt.close()
 
-    # look into mass sculpting
-    hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
-    hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-
-    legends = {
-        "ttbar": r"$t\bar{t}$ + Jets",
-        "hh4b": "ggHH(4b)",
-        "qcd": "Multijet",
-        "vhtobb": "VH(bb)",
-        "vjets": r"W/Z$(qq)$ + Jets",
-        "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
-    }
-    for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b", "ttlep"]:
-        events = events_dict[key]
-        if key in msd_dict:
-            h2_mass = mass_dict[key]
-            h2_msd = msd_dict[key]
-        else:
-            h2_mass = events[pnet_mass_str].to_numpy()[:, 1]
-            h2_msd = events["bbFatJetMsd"].to_numpy()[:, 1]
-
-        for cut in bdt_cuts:
-            mask = scores[key] >= cut
-            hist_h2.fill(h2_mass[mask], str(cut), key)
-            hist_h2_msd.fill(h2_msd[mask], str(cut), key)
-
-    for key in ["qcd", "ttbar", "vhtobb", "vjets", "hh4b", "ttlep"]:
-        hists = {
-            "msd": hist_h2_msd,
-            "mreg": hist_h2,
-        }
-        for hkey, h in hists.items():
-            fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-            for cut in bdt_cuts:
-                hep.histplot(
-                    h[{"cat": key, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True
-                )
-            ax.legend()
-            ax.set_ylabel("Density")
-            ax.set_title(f"{legends[key]}")
-            ax.xaxis.grid(True, which="major")
-            ax.yaxis.grid(True, which="major")
-            fig.tight_layout()
-            fig.savefig(model_dir / f"{hkey}2_{key}.png")
-            plt.close()
-
     # mass sculpting with Xbb
     for xbb_cut in xbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -804,160 +817,236 @@ def evaluate_model(
                 plt.close()
 
 
-def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy):
+def plot_allyears(
+    events_dict,
+    model,
+    model_dir,
+    config_name,
+    multiclass,
+    sig_keys: list[str],
+    bg_keys: list[str],
+    legacy,
+):
+
     pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
     make_bdt_dataframe = importlib.import_module(
         f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    for xbb_cut in xbb_cuts:
-        for key in ["qcd", "ttbar"]:
-            hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
-            hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
+    for i, sig_key in enumerate(sig_keys):
+        for xbb_cut in xbb_cuts:
+            for key in bg_keys:
+                hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
+                hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
-            for year in events_dict:
-                (model_dir / year).mkdir(exist_ok=True, parents=True)
+                for year in events_dict:
+                    (model_dir / year).mkdir(exist_ok=True, parents=True)
 
-                preds = model.predict_proba(
-                    make_bdt_dataframe.bdt_dataframe(events_dict[year][key])
-                )
-                scores = preds[:, 0] if multiclass else preds[:, 1]
-                weights = events_dict[year][key]["finalWeight"]
-                h2_mass = events_dict[year][key][pnet_mass_str].to_numpy()[:, 1]
-                h2_msd = events_dict[year][key]["bbFatJetMsd"].to_numpy()[:, 1]
-                h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
-                for cut in bdt_cuts:
-                    mask = (scores >= cut) & (h2_xbb >= xbb_cut)
-                    hist_h2.fill(h2_mass[mask], str(cut), year, weights=weights[mask])
-                    hist_h2_msd.fill(h2_msd[mask], str(cut), year, weights=weights[mask])
+                    preds = model.predict_proba(
+                        make_bdt_dataframe.bdt_dataframe(events_dict[year][key])
+                    )
+                    scores = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
 
-            hists = {
-                "msd": hist_h2_msd,
-                "mreg": hist_h2,
-            }
-            for year in events_dict:
-                for hkey, h in hists.items():
-                    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+                    weights = events_dict[year][key]["finalWeight"]
+                    h2_mass = events_dict[year][key][pnet_mass_str].to_numpy()[:, 1]
+                    h2_msd = events_dict[year][key]["bbFatJetMsd"].to_numpy()[:, 1]
+                    h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
                     for cut in bdt_cuts:
-                        hep.histplot(
-                            h[{"cat": year, "cut": str(cut)}],
-                            lw=2,
-                            label=f"BDT > {cut}",
-                            density=True,
+                        mask = (scores >= cut) & (h2_xbb >= xbb_cut)
+                        hist_h2.fill(h2_mass[mask], str(cut), year, weights=weights[mask])
+                        hist_h2_msd.fill(h2_msd[mask], str(cut), year, weights=weights[mask])
+
+                hists = {
+                    "msd": hist_h2_msd,
+                    "mreg": hist_h2,
+                }
+                for year in events_dict:
+                    for hkey, h in hists.items():
+                        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+                        for cut in bdt_cuts:
+                            hep.histplot(
+                                h[{"cat": year, "cut": str(cut)}],
+                                lw=2,
+                                label=f"BDT > {cut}",
+                                density=True,
+                            )
+                        ax.legend()
+                        ax.set_ylabel("Density")
+                        ax.set_title(f"{year}, Xbb > {xbb_cut}")
+                        ax.xaxis.grid(True, which="major")
+                        ax.yaxis.grid(True, which="major")
+                        fig.tight_layout()
+                        fig.savefig(
+                            model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
                         )
-                    ax.legend()
-                    ax.set_ylabel("Density")
-                    ax.set_title(f"{year}, Xbb > {xbb_cut}")
-                    ax.xaxis.grid(True, which="major")
-                    ax.yaxis.grid(True, which="major")
-                    fig.tight_layout()
-                    fig.savefig(model_dir / year / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png")
-                    plt.close()
+                        fig.savefig(
+                            model_dir
+                            / year
+                            / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
+                            bbox_inches="tight",
+                        )
+                        plt.close()
+
+
+def _get_bdt_scores(preds, sig_keys, multiclass):
+    """Helper function to calculate which BDT outputs to use"""
+    if not multiclass:
+        return preds[:, 1:]
+    else:
+        if len(sig_keys) == 1:
+            return preds[:, :1]
+        else:
+            # Relevant score is signal score / (signal score + all background scores)
+            bg_tot = np.sum(preds[:, len(sig_keys) :], axis=1, keepdims=True)
+            return preds[:, : len(sig_keys)] / (preds[:, : len(sig_keys)] + bg_tot)
 
 
 def plot_train_test(
     X_train,
+    y_train,
     yt_train,
     weights_train,
     X_test,
+    y_test,
     yt_test,
     weights_test,
     model,
     multiclass,
+    sig_keys,
+    training_keys,
     model_dir,
     legacy,
 ):
-    y_scores_train = model.predict_proba(X_train)
-    y_scores_train = y_scores_train[:, 0] if multiclass else y_scores_train[:, 1]
-    fpr_train, tpr_train, thresholds_train = roc_curve(
-        yt_train, y_scores_train, sample_weight=weights_train
-    )
+    for i, sig_key in enumerate(sig_keys):
 
-    y_scores_test = model.predict_proba(X_test)
-    y_scores_test = y_scores_test[:, 0] if multiclass else y_scores_test[:, 1]
-    fpr, tpr, thresholds = roc_curve(yt_test, y_scores_test, sample_weight=weights_test)
+        ########## Inference and ROC Curves ############
 
-    fig, ax = plt.subplots(1, 1, figsize=(18, 12))
-    ax.plot(tpr_train, fpr_train, linewidth=2, color="orange", label="Train Dataset")
-    ax.plot(tpr, fpr, linewidth=2, color="orange", label="Test Dataset")
-    ax.set_title("ggF HH4b BDT ROC Curve from Training")
-    ax.set_xlabel("Signal efficiency")
-    ax.set_ylabel("Background efficiency")
-    ax.set_xlim([0.0, 0.7])
-    ax.set_ylim([0, 0.07])
-    ax.xaxis.grid(True, which="major")
-    ax.yaxis.grid(True, which="major")
-    legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
-    if not legacy:
-        legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-    ax.legend(
-        title=legtitle,
-        bbox_to_anchor=(1.03, 1),
-        loc="upper left",
-    )
-    fig.tight_layout()
-    fig.savefig(model_dir / "roc_train_test.png")
+        rocs = {}
 
-    h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
-    for key in ["qcd", "ttbar", "hh4b"]:
-        scores = model.predict_proba(X_test.loc[key])
-        scores = scores[:, 0] if multiclass else scores[:, 1]
-        h_bdt_weight.fill(scores, key, weight=weights_test.loc[key])
-    for key in ["qcd", "ttbar", "hh4b"]:
-        scores = model.predict_proba(X_train.loc[key])
-        scores = scores[:, 0] if multiclass else scores[:, 1]
-        h_bdt_weight.fill(scores, key + "train", weight=weights_train.loc[key])
+        for key, X, y, yt, weights in [
+            ("train", X_train, y_train, yt_train, weights_train),
+            ("test", X_test, y_test, yt_test, weights_test),
+        ]:
+            if multiclass:
+                # selecting only this signal + BGs for ROC curves
+                bgs = y >= len(sig_keys)
+                sigs = y == i
+                sel = np.logical_or(sigs, bgs).to_numpy().squeeze()
+            else:
+                sel = np.ones(len(y), dtype=bool)
 
-    colors = {
-        "ttbar": "b",
-        "hh4b": "k",
-        "qcd": "r",
-        "vhtobb": "g",
-        "vjets": "pink",
-        "ttlep": "violet",
-    }
-    legends = {
-        "ttbar": r"$t\bar{t}$ + Jets",
-        "hh4b": "ggHH(4b)",
-        "qcd": "Multijet",
-        "vhtobb": "VH(bb)",
-        "vjets": r"W/Z$(qq)$ + Jets",
-        "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
-    }
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    for key in ["qcd", "ttbar", "hh4b"]:
-        hep.histplot(
-            h_bdt_weight[{"cat": key}],
-            ax=ax,
-            label=f"{legends[key]}",
-            histtype="step",
-            linewidth=1,
-            color=colors[key],
-            density=True,
+            y_scores = model.predict_proba(X)
+            y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)[:, i]
+
+            fpr, tpr, thresholds = roc_curve(yt[sel], y_scores[sel], sample_weight=weights[sel])
+
+            rocs[key] = {
+                "fpr": fpr,
+                "tpr": tpr,
+                "thresholds": thresholds,
+                "label": key,
+            }
+
+        ########### Plot ROC Curve ############
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        ax.plot(
+            rocs["train"]["tpr"],
+            rocs["train"]["fpr"],
+            linewidth=2,
+            color="orange",
+            label="Train Dataset",
         )
-        hep.histplot(
-            h_bdt_weight[{"cat": key + "train"}],
-            ax=ax,
-            label=f"{legends[key]} Train",
-            histtype="step",
-            linewidth=1,
-            linestyle="dashed",
-            color=colors[key],
-            density=True,
+        ax.plot(
+            rocs["test"]["tpr"],
+            rocs["test"]["fpr"],
+            linewidth=2,
+            color="orange",
+            label="Test Dataset",
         )
+        ax.set_title(f"{plotting.label_by_sample[sig_key]} BDT ROC Curve from Training")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.set_xlim([0.0, 0.7])
+        ax.set_ylim([1e-6, 1e-1])
         ax.set_yscale("log")
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
+
+        legtitle = _get_title(legacy)
+
         ax.legend(
             title=legtitle,
             bbox_to_anchor=(1.03, 1),
             loc="upper left",
         )
-        ax.set_ylabel("Density")
-        ax.set_title("Pre-Selection")
-        ax.xaxis.grid(True, which="major")
-        ax.yaxis.grid(True, which="major")
-    fig.tight_layout()
-    fig.savefig(model_dir / "bdt_shape_traintest.png")
+        fig.tight_layout()
+        fig.savefig(model_dir / f"{sig_key}_roc_train_test.png")
+        fig.savefig(model_dir / f"{sig_key}_roc_train_test.pdf", bbox_inches="tight")
+
+        h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
+        for key in training_keys:
+            scores = model.predict_proba(X_test.loc[key])
+            scores = _get_bdt_scores(scores, sig_keys, multiclass)[:, i]
+            h_bdt_weight.fill(scores, key, weight=weights_test.loc[key])
+
+        for key in training_keys:
+            scores = model.predict_proba(X_train.loc[key])
+            scores = _get_bdt_scores(scores, sig_keys, multiclass)[:, i]
+            h_bdt_weight.fill(scores, key + "train", weight=weights_train.loc[key])
+
+        colors = {
+            "ttbar": "b",
+            "hh4b": "k",
+            "qcd": "r",
+            "vhtobb": "g",
+            "vjets": "pink",
+            "ttlep": "violet",
+        }
+        legends = {
+            "ttbar": r"$t\bar{t}$ + Jets",
+            "hh4b": "ggHH(4b)",
+            "qcd": "Multijet",
+            "vhtobb": "VH(bb)",
+            "vjets": r"W/Z$(qq)$ + Jets",
+            "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
+        }
+
+        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+        for key in training_keys:
+            hep.histplot(
+                h_bdt_weight[{"cat": key}],
+                ax=ax,
+                label=f"{legends[key]}",
+                histtype="step",
+                linewidth=1,
+                color=colors[key],
+                density=True,
+            )
+            hep.histplot(
+                h_bdt_weight[{"cat": key + "train"}],
+                ax=ax,
+                label=f"{legends[key]} Train",
+                histtype="step",
+                linewidth=1,
+                linestyle="dashed",
+                color=colors[key],
+                density=True,
+            )
+            ax.set_yscale("log")
+            ax.legend(
+                title=legtitle,
+                bbox_to_anchor=(1.03, 1),
+                loc="upper left",
+            )
+            ax.set_ylabel("Density")
+            ax.set_title("Pre-Selection")
+            ax.xaxis.grid(True, which="major")
+            ax.yaxis.grid(True, which="major")
+
+        fig.tight_layout()
+        fig.savefig(model_dir / "bdt_shape_traintest.png")
+        fig.savefig(model_dir / "bdt_shape_traintest.pdf", bbox_inches="tight")
 
 
 def main(args):
@@ -986,12 +1075,9 @@ def main(args):
     model_dir.mkdir(exist_ok=True, parents=True)
 
     (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-    ev_hh4b = ev_test.loc["hh4b"]
-    ev_qcd = ev_test.loc["qcd"]
-    ev_tt = ev_test.loc["ttbar"]
-    np.save(f"{model_dir}/inferences/{year}/evt_hh4b.npy", ev_hh4b)
-    np.save(f"{model_dir}/inferences/{year}/evt_qcd.npy", ev_qcd)
-    np.save(f"{model_dir}/inferences/{year}/evt_ttbar.npy", ev_tt)
+
+    for key in training_keys:
+        np.save(f"{model_dir}/inferences/{year}/evt_{key}.npy", ev_test.loc[key])
 
     classifier_params = {
         "max_depth": 3,
@@ -1013,18 +1099,24 @@ def main(args):
             y_test,
             weights_train,
             weights_test,
+            training_keys,
             model_dir,
             **classifier_params,
         )
+
         plot_train_test(
             X_train,
+            y_train,
             yt_train,
             weights_train,
             X_test,
+            y_test,
             yt_test,
             weights_test,
             model,
             args.multiclass,
+            args.sig_keys,
+            training_keys,
             model_dir,
             args.legacy,
         )
@@ -1039,6 +1131,9 @@ def main(args):
         yt_test,
         weights_test,
         args.multiclass,
+        args.sig_keys,
+        args.bg_keys,
+        training_keys,
         args.legacy,
     )
 
@@ -1048,7 +1143,16 @@ def main(args):
     for year in years_test:
         events_dict[year] = load_data(args.data_path, year, args.legacy)
 
-    plot_allyears(events_dict, model, model_dir, args.config_name, args.multiclass, args.legacy)
+    plot_allyears(
+        events_dict,
+        model,
+        model_dir,
+        args.config_name,
+        args.multiclass,
+        args.sig_keys,
+        args.bg_keys,
+        args.legacy,
+    )
 
 
 if __name__ == "__main__":
