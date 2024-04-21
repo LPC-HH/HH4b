@@ -143,6 +143,8 @@ def load_data(data_path: str, year: str, legacy: bool):
                 (f"('{mass_key}', '1')", "<=", 250),
                 (f"('{mass_key}', '0')", ">=", 30),
                 (f"('{mass_key}', '1')", ">=", 30),
+                # add TXbb cut (since it is OR)
+                ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
             ]
         ]
     else:
@@ -173,7 +175,13 @@ def load_data(data_path: str, year: str, legacy: bool):
         ("bbFatJetPNetQCD2HF", 2),
     ]
     if legacy:
-        load_columns += [("bbFatJetPNetMassLegacy", 2), ("bbFatJetPNetTXbbLegacy", 2)]
+        load_columns += [
+            ("bbFatJetPNetMassLegacy", 2),
+            ("bbFatJetPNetTXbbLegacy", 2),
+            ("bbFatJetPNetPQCDbLegacy", 2),
+            ("bbFatJetPNetPQCDbbLegacy", 2),
+            ("bbFatJetPNetPQCDothersLegacy", 2),
+        ]
 
     events_dict = {}
     for input_dir, samples in dirs.items():
@@ -790,8 +798,8 @@ def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy
                 h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
                 for cut in bdt_cuts:
                     mask = (scores >= cut) & (h2_xbb >= xbb_cut)
-                    hist_h2.fill(h2_mass[mask], str(cut), year)
-                    hist_h2_msd.fill(h2_msd[mask], str(cut), year)
+                    hist_h2.fill(h2_mass[mask], str(cut), year, weight=weights)
+                    hist_h2_msd.fill(h2_msd[mask], str(cut), year, weight=weights)
 
             hists = {
                 "msd": hist_h2_msd,
