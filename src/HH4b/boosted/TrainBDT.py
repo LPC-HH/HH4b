@@ -801,8 +801,8 @@ def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy
                 h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
                 for cut in bdt_cuts:
                     mask = (scores >= cut) & (h2_xbb >= xbb_cut)
-                    hist_h2.fill(h2_mass[mask], str(cut), year, weight=weights)
-                    hist_h2_msd.fill(h2_msd[mask], str(cut), year, weight=weights)
+                    hist_h2.fill(h2_mass[mask], str(cut), year, weight=weights[mask])
+                    hist_h2_msd.fill(h2_msd[mask], str(cut), year, weight=weights[mask])
 
             hists = {
                 "msd": hist_h2_msd,
