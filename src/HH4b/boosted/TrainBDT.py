@@ -23,13 +23,15 @@ from HH4b.utils import format_columns, load_samples
 
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
-plt.rcParams.update({
-    "font.size": 12,
-    "lines.linewidth": 2,
-    "grid.color": "#CCCCCC",
-    "grid.linewidth": 0.5,
-    "figure.edgecolor": "none"
-})
+plt.rcParams.update(
+    {
+        "font.size": 12,
+        "lines.linewidth": 2,
+        "grid.color": "#CCCCCC",
+        "grid.linewidth": 0.5,
+        "figure.edgecolor": "none",
+    }
+)
 plt.style.use(hep.style.CMS)
 
 bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
@@ -235,9 +237,9 @@ def load_data(data_path: str, year: str, legacy: bool):
         if legacy:
             # guarantee that Xbb>0.8 is applied to first bb jet
             xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
-            mask = (xbb_0 >= 0.8)
+            mask = xbb_0 >= 0.8
             events_dict[key] = events_dict[key][mask]
-        
+
     return events_dict
 
 
@@ -460,7 +462,7 @@ def evaluate_model(
     y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)
 
     for i, sig_key in enumerate(sig_keys):
-        (plot_dir / sig_key ).mkdir(exist_ok=True, parents=True)
+        (plot_dir / sig_key).mkdir(exist_ok=True, parents=True)
 
         print(f"Evaluating {sig_key} performance")
 
@@ -901,7 +903,8 @@ def plot_allyears(
                             model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
                         )
                         fig.savefig(
-                            model_dir / year
+                            model_dir
+                            / year
                             / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
                             bbox_inches="tight",
                         )
@@ -942,8 +945,8 @@ def plot_train_test(
 
     for i, sig_key in enumerate(sig_keys):
 
-        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
-                
+        (model_dir / sig_key).mkdir(exist_ok=True, parents=True)
+
         ########## Inference and ROC Curves ############
         rocs = {}
 
