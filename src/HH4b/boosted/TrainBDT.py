@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import pickle
+from collections import OrderedDict  # noqa: F401
 from pathlib import Path
 
 import hist
@@ -22,13 +23,14 @@ from HH4b.utils import format_columns, load_samples
 
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
-plt.rcParams.update({"font.size": 12})
-plt.rcParams["lines.linewidth"] = 2
-plt.rcParams["grid.color"] = "#CCCCCC"
-plt.rcParams["grid.linewidth"] = 0.5
-plt.rcParams["figure.edgecolor"] = "none"
+plt.rcParams.update({
+    "font.size": 12,
+    "lines.linewidth": 2,
+    "grid.color": "#CCCCCC",
+    "grid.linewidth": 0.5,
+    "figure.edgecolor": "none"
+})
 plt.style.use(hep.style.CMS)
-
 
 bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
 cat_axis = hist.axis.StrCategory([], name="cat", label="cat", growth=True)
@@ -37,7 +39,7 @@ h2_msd_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{SD
 h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{reg}$ [GeV]")
 
 bdt_cuts = [0, 0.03, 0.7, 0.9, 0.92]
-xbb_cuts = [0, 0.8, 0.9, 0.92]
+xbb_cuts = [0, 0.8, 0.9, 0.98]
 
 
 def _get_title(legacy: bool):
@@ -460,6 +462,8 @@ def evaluate_model(
     for i, sig_key in enumerate(sig_keys):
         (plot_dir / sig_key ).mkdir(exist_ok=True, parents=True)
 
+        print(f"Evaluating {sig_key} performance")
+
         if multiclass:
             # selecting only this signal + BGs for ROC curves
             bgs = y_test >= len(sig_keys)
@@ -793,7 +797,7 @@ def evaluate_model(
     for xbb_cut in xbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        for key in training_keys + other_keys:
+        for key in events_dict:
             events = events_dict[key]
             if key in msd_dict:
                 h2_mass = mass_dict[key]
@@ -808,7 +812,7 @@ def evaluate_model(
                 mask = (scores[key] >= cut) & (h2_xbb >= xbb_cut)
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
-        for key in training_keys + other_keys:
+        for key in events_dict:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -850,7 +854,6 @@ def plot_allyears(
     )
 
     for i, sig_key in enumerate(sig_keys):
-        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
 
         for xbb_cut in xbb_cuts:
             for key in bg_keys:
@@ -858,7 +861,7 @@ def plot_allyears(
                 hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
                 for year in events_dict:
-                    (model_dir / sig_key / year).mkdir(exist_ok=True, parents=True)
+                    (model_dir / year).mkdir(exist_ok=True, parents=True)
 
                     preds = model.predict_proba(
                         make_bdt_dataframe.bdt_dataframe(events_dict[year][key])
@@ -895,11 +898,11 @@ def plot_allyears(
                         ax.yaxis.grid(True, which="major")
                         fig.tight_layout()
                         fig.savefig(
-                            model_dir / sig_key / year / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
+                            model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
                         )
                         fig.savefig(
-                            model_dir / sig_key / year
-                            / f"{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
+                            model_dir / year
+                            / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
                             bbox_inches="tight",
                         )
                         plt.close()
@@ -1020,22 +1023,8 @@ def plot_train_test(
             scores = _get_bdt_scores(scores, sig_keys, multiclass)[:, i]
             h_bdt_weight.fill(scores, key + "train", weight=weights_train.loc[key])
 
-        colors = {
-            "ttbar": "b",
-            "hh4b": "k",
-            "qcd": "r",
-            "vhtobb": "g",
-            "vjets": "pink",
-            "ttlep": "violet",
-        }
-        legends = {
-            "ttbar": r"$t\bar{t}$ + Jets",
-            "hh4b": "ggHH(4b)",
-            "qcd": "Multijet",
-            "vhtobb": "VH(bb)",
-            "vjets": r"W/Z$(qq)$ + Jets",
-            "ttlep": r"$t\bar{t}$ (Lep.) + Jets",
-        }
+        colors = plotting.color_by_sample
+        legends = plotting.label_by_sample
 
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         for key in training_keys:
@@ -1134,22 +1123,22 @@ def main(args):
 
         plot_losses(evals_result, model_dir, args.multiclass)
 
-        plot_train_test(
-            X_train,
-            y_train,
-            yt_train,
-            weights_train,
-            X_test,
-            y_test,
-            yt_test,
-            weights_test,
-            model,
-            args.multiclass,
-            args.sig_keys,
-            training_keys,
-            model_dir,
-            args.legacy,
-        )
+    plot_train_test(
+        X_train,
+        y_train,
+        yt_train,
+        weights_train,
+        X_test,
+        y_test,
+        yt_test,
+        weights_test,
+        model,
+        args.multiclass,
+        args.sig_keys,
+        training_keys,
+        model_dir,
+        args.legacy,
+    )
 
     evaluate_model(
         args.config_name,
