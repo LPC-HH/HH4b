@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import importlib
 import pickle
-import sys
 from pathlib import Path
 
 import hist
@@ -20,8 +19,6 @@ from sklearn.preprocessing import LabelEncoder
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import format_columns, load_samples
 
-sys.path.append("./bdt_trainings_run3/")
-
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 plt.rcParams.update({"font.size": 12})
@@ -30,8 +27,6 @@ plt.rcParams["grid.color"] = "#CCCCCC"
 plt.rcParams["grid.linewidth"] = 0.5
 plt.rcParams["figure.edgecolor"] = "none"
 plt.style.use(hep.style.CMS)
-
-training_keys = ["hh4b", "qcd", "ttbar"]
 
 
 def load_data(data_path: str, year: str, legacy: bool):
@@ -54,6 +49,7 @@ def load_data(data_path: str, year: str, legacy: bool):
             "ttbar": [
                 "TTto4Q",
             ],
+            "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
         },
         "2022EE": {
             "qcd": [
@@ -74,22 +70,23 @@ def load_data(data_path: str, year: str, legacy: bool):
             "hh4b": [
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
             ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
+            "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+            # "vhtobb": [
+            #     "WminusH_Hto2B_Wto2Q_M-125",
+            #     "WplusH_Hto2B_Wto2Q_M-125",
+            #     "ZH_Hto2B_Zto2Q_M-125",
+            #     "ggZH_Hto2B_Zto2Q_M-125",
+            # ],
+            # "vjets": [
+            #     "Wto2Q-3Jets_HT-200to400",
+            #     "Wto2Q-3Jets_HT-400to600",
+            #     "Wto2Q-3Jets_HT-600to800",
+            #     "Wto2Q-3Jets_HT-800",
+            #     "Zto2Q-4Jets_HT-200to400",
+            #     "Zto2Q-4Jets_HT-400to600",
+            #     "Zto2Q-4Jets_HT-600to800",
+            #     "Zto2Q-4Jets_HT-800",
+            # ],
         },
         "2023": {
             "qcd": [
@@ -104,6 +101,7 @@ def load_data(data_path: str, year: str, legacy: bool):
             "ttbar": [
                 "TTto4Q",
             ],
+            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
         },
         "2023BPix": {
             "qcd": [
@@ -118,6 +116,7 @@ def load_data(data_path: str, year: str, legacy: bool):
             "ttbar": [
                 "TTto4Q",
             ],
+            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
         },
     }
 
@@ -126,6 +125,7 @@ def load_data(data_path: str, year: str, legacy: bool):
     if legacy:
         # mass_key = "bbFatJetMsd"
         mass_key = "bbFatJetPNetMassLegacy"
+        # both jets pT > 300, both jets mreg [60, 250], at least one jet's TXbb legacy > 0.8
         filters = [
             [
                 ("('bbFatJetPt', '0')", ">=", 300),
@@ -133,9 +133,20 @@ def load_data(data_path: str, year: str, legacy: bool):
                 # added
                 (f"('{mass_key}', '0')", "<=", 250),
                 (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 30),
-                (f"('{mass_key}', '1')", ">=", 30),
-            ]
+                (f"('{mass_key}', '0')", ">=", 60),
+                (f"('{mass_key}', '1')", ">=", 60),
+                ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
+            ],
+            [
+                ("('bbFatJetPt', '0')", ">=", 300),
+                ("('bbFatJetPt', '1')", ">=", 300),
+                # added
+                (f"('{mass_key}', '0')", "<=", 250),
+                (f"('{mass_key}', '1')", "<=", 250),
+                (f"('{mass_key}', '0')", ">=", 60),
+                (f"('{mass_key}', '1')", ">=", 60),
+                ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
+            ],
         ]
     else:
         filters = [
@@ -157,15 +168,22 @@ def load_data(data_path: str, year: str, legacy: bool):
         ("bbFatJetEta", 2),
         ("bbFatJetPhi", 2),
         ("bbFatJetMsd", 2),
-        ("bbFatJetPNetMass", 2),
-        ("bbFatJetPNetXbb", 2),
         ("bbFatJetTau3OverTau2", 2),
-        ("bbFatJetPNetQCD0HF", 2),
-        ("bbFatJetPNetQCD1HF", 2),
-        ("bbFatJetPNetQCD2HF", 2),
     ]
+
     if legacy:
-        load_columns += [("bbFatJetPNetMassLegacy", 2), ("bbFatJetPNetXbbLegacy", 2)]
+        load_columns += [
+            ("bbFatJetPNetPXbbLegacy", 2)("bbFatJetPNetPQCDbLegacy", 2)(
+                "bbFatJetPNetPQCDbbLegacy", 2
+            )("bbFatJetPNetPQCDothersLegacy", 2)("bbFatJetPNetMassLegacy", 2),
+        ]
+    else:
+        load_columns += [
+            ("bbFatJetPNetTXbb", 2)("bbFatJetPNetMass", 2),
+            ("bbFatJetPNetQCD0HF", 2),
+            ("bbFatJetPNetQCD1HF", 2),
+            ("bbFatJetPNetQCD2HF", 2),
+        ]
 
     events_dict = {}
     for input_dir, samples in dirs.items():
@@ -178,6 +196,7 @@ def load_data(data_path: str, year: str, legacy: bool):
                 filters=filters,
                 variations=False,
                 columns=format_columns(load_columns),
+                reorder_legacy_txbb=legacy,
             ),
         }
 
@@ -187,11 +206,19 @@ def load_data(data_path: str, year: str, legacy: bool):
 
 
 def preprocess_data(
-    events_dict: dict, config_name: str, test_size: float, seed: int, multiclass: bool
+    events_dict: dict,
+    training_keys: list[str],
+    config_name: str,
+    test_size: float,
+    seed: int,
+    multiclass: bool,
 ):
 
     # dataframe function
-    make_bdt_dataframe = importlib.import_module(f"{config_name}")
+    make_bdt_dataframe = importlib.import_module(
+        f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
+    )
+
     events_dict_bdt = {}
     weights_bdt = {}
     events_bdt = {}
@@ -207,9 +234,10 @@ def preprocess_data(
     label_encoder.classes_ = np.array(training_keys)  # need this to maintain training keys order
 
     events = pd.concat(
-        [events_dict_bdt["hh4b"], events_dict_bdt["qcd"], events_dict_bdt["ttbar"]],
-        keys=["hh4b", "qcd", "ttbar"],
+        [events_dict_bdt[key] for key in training_keys],
+        keys=training_keys,
     )
+
     events["target"] = 0  # Default to 0 (background)
     events.loc["hh4b", "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
 
@@ -800,6 +828,8 @@ def main(args):
     year = "2022EE"
     events_dict = load_data(args.data_path, year, args.legacy)
 
+    training_keys = args.sig_keys + args.bg_keys  # default: ["hh4b", "ttbar", "qcd"]
+
     (
         X_train,
         X_test,
@@ -811,7 +841,9 @@ def main(args):
         yt_test,
         ev_train,
         ev_test,
-    ) = preprocess_data(events_dict, args.config_name, args.test_size, args.seed, args.multiclass)
+    ) = preprocess_data(
+        events_dict, training_keys, args.config_name, args.test_size, args.seed, args.multiclass
+    )
 
     model_dir = Path(f"./bdt_trainings_run3/{args.model_name}/")
     model_dir.mkdir(exist_ok=True, parents=True)
@@ -896,6 +928,18 @@ if __name__ == "__main__":
     )
     parser.add_argument("--test-size", default=0.4, help="testing/training split", type=float)
     parser.add_argument("--seed", default=42, help="seed for testing/training split", type=int)
+
+    parser.add_argument(
+        "--sig-keys", default=["hh4b"], help="which signals to train on", type=str, nargs="+"
+    )
+    parser.add_argument(
+        "--bg-keys",
+        default=["qcd", "ttbar"],
+        help="which backgrounds to train on",
+        type=str,
+        nargs="+",
+    )
+
     add_bool_arg(parser, "evaluate-only", "Only evaluation, no training", default=False)
     add_bool_arg(parser, "multiclass", "Classify each background separately", default=True)
     add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
