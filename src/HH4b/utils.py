@@ -18,12 +18,14 @@ from pathlib import Path
 import hist
 import numpy as np
 import pandas as pd
+import vector
 from hist import Hist
 
 from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights, years
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
+PAD_VAL = -99999
 
 
 @dataclass
@@ -255,6 +257,19 @@ def _normalize_weights(
             events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
 
 
+def _reorder_legacy_txbb(events: pd.DataFrame):
+    """Reorder all the bbFatJet columns by legacy TXbb (instead of by v12 TXbb)"""
+    if "bbFatJetPNetTXbbLegacy" not in events:
+        raise ValueError(
+            "bbFatJetPNetTXbbLegacy not found in events! Need to include that in load columns, or set reorder_legacy_txbb to False."
+        )
+
+    bbord = np.argsort(events["bbFatJetPNetTXbbLegacy"].to_numpy(), axis=1)[:, ::-1]
+    for key in np.unique(events.columns.get_level_values(0)):
+        if key.startswith("bbFatJet"):
+            events[key] = np.take_along_axis(events[key].to_numpy(), bbord, axis=1)
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
@@ -263,6 +278,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
+    reorder_legacy_txbb: bool = True,  # temporary fix for sorting by legacy txbb
     # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -323,9 +339,11 @@ def load_samples(
                     events = events[events.index.isin(events_tmp.index)]
             """
 
+            if reorder_legacy_txbb:
+                _reorder_legacy_txbb(events)
+
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
-            print(pickles)
             if "totals" in pickles:
                 totals = pickles["totals"]
                 _normalize_weights(
@@ -402,13 +420,9 @@ def _is_int(s: str) -> bool:
         return False
 
 
-def get_feat(events: pd.DataFrame, feat: str, bb_mask: pd.DataFrame = None):
+def get_feat(events: pd.DataFrame, feat: str):
     if feat in events:
         return np.nan_to_num(events[feat].to_numpy().squeeze(), -1)
-
-    if feat.startswith("bb") and bb_mask:
-        assert bb_mask is not None, "No bb mask given!"
-        return events["ak8" + feat[3:]].to_numpy()[bb_mask ^ (int(feat[2]) == 1)].squeeze()
 
     if _is_int(feat[-1]):
         return np.nan_to_num(events[feat[:-1]].to_numpy()[:, int(feat[-1])].squeeze(), -1)
@@ -425,6 +439,46 @@ def tau32FittedSF_4(events: pd.DataFrame):
         18.4912 - 235.086 * tau32 + 1098.94 * tau32**2 - 2163 * tau32**3 + 1530.59 * tau32**4,
         1,
     )
+
+
+def makeHH(events: pd.DataFrame, key: str, mass: str):
+
+    h1 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 0],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 0],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 0],
+            "M": events[key][mass].to_numpy()[:, 0],
+        }
+    )
+    h2 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 1],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 1],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 1],
+            "M": events[key][mass].to_numpy()[:, 1],
+        }
+    )
+    mask_h1 = h1.pt < 0
+    mask_h2 = h2.pt < 0
+    mask_invalid = mask_h1 | mask_h2
+
+    hh = h1 + h2
+    # Convert vectors to numpy arrays for conditional manipulation
+    hh_pt = hh.pt
+    hh_phi = hh.phi
+    hh_eta = hh.eta
+    hh_M = hh.M
+
+    # Apply pad value
+    hh_pt[mask_invalid] = -PAD_VAL
+    hh_phi[mask_invalid] = -PAD_VAL
+    hh_eta[mask_invalid] = -PAD_VAL
+    hh_M[mask_invalid] = -PAD_VAL
+
+    # Re-make the vector with padded entries
+    hh = vector.array({"pt": hh_pt, "phi": hh_phi, "eta": hh_eta, "M": hh_M})
+    return hh
 
 
 def get_feat_first(events: pd.DataFrame, feat: str):
@@ -491,8 +545,6 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
-    sf: list[str] | None = None,
-    apply_tt_sf: bool = False,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -533,8 +585,8 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and sample == "ttbar" and apply_tt_sf:
-            weight = weight * tau32FittedSF_4(events)
+        # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
+        #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
@@ -667,10 +719,11 @@ def check_get_jec_var(var, jshift):
 
 def _var_selection(
     events: pd.DataFrame,
-    bb_mask: pd.DataFrame,
     var: str,
     brange: list[float],
-    max_val: float = CUT_MAX_VAL,
+    sample: str,
+    jshift: str,
+    MAX_VAL: float = CUT_MAX_VAL,
 ):
     """get selection for a single cut, including logic for OR-ing cut on two vars"""
     rmin, rmax = brange
@@ -680,13 +733,18 @@ def _var_selection(
     selstrs = []
 
     # OR the different vars
-    for var in cut_vars:
-        vals = get_feat(events, var, bb_mask)
+    for cutvar in cut_vars:
+        if jshift != "" and sample != data_key:
+            var = check_get_jec_var(cutvar, jshift)
+        else:
+            var = cutvar
 
-        if rmin == -max_val:
+        vals = get_feat(events, var)
+
+        if rmin == -MAX_VAL:
             sels.append(vals < rmax)
             selstrs.append(f"{var} < {rmax}")
-        elif rmax == max_val:
+        elif rmax == MAX_VAL:
             sels.append(vals >= rmin)
             selstrs.append(f"{var} >= {rmin}")
         else:
@@ -702,12 +760,11 @@ def _var_selection(
 def make_selection(
     var_cuts: dict[str, list[float]],
     events_dict: dict[str, pd.DataFrame],
-    bb_masks: dict[str, pd.DataFrame] | None = None,
-    weight_key: str = "weight",
-    prev_cutflow: dict | None = None,
-    selection: dict[str, np.ndarray] | None = None,
+    weight_key: str = "finalWeight",
+    prev_cutflow: dict = None,
+    selection: dict[str, np.ndarray] = None,
     jshift: str = "",
-    max_val: float = CUT_MAX_VAL,
+    MAX_VAL: float = CUT_MAX_VAL,
 ):
     """
     Makes cuts defined in `var_cuts` for each sample in `events`.
@@ -731,7 +788,7 @@ def make_selection(
         weight_key (str): key to use for weights. Defaults to 'finalWeight'.
         prev_cutflow (dict): cutflow from previous cuts, if any. Defaults to None.
         selection (dict): previous selection, if any. Defaults to None.
-        max_val (float): if abs of one of the cuts equals or exceeds this value it will be ignored. Defaults to 9999.
+        MAX_VAL (float): if abs of one of the cuts equals or exceeds this value it will be ignored. Defaults to 9999.
 
     Returns:
         selection (dict): dict of each sample's cut boolean arrays.
@@ -754,43 +811,36 @@ def make_selection(
         else:
             selection[sample] = PackedSelection()
 
-        bb_mask = bb_masks[sample] if bb_masks is not None else bb_masks
-
         for cutvar, branges in var_cuts.items():
-            if jshift != "" and sample != data_key:
-                var = check_get_jec_var(cutvar, jshift)
-            else:
-                var = cutvar
             if isinstance(branges[0], list):
+                cut_vars = cutvar.split("+")
+                if len(cut_vars) > 1:
+                    assert len(cut_vars) == len(
+                        branges
+                    ), "If OR-ing different variables' cuts, num(cuts) must equal num(vars)"
+
                 # OR the cuts
                 sels = []
                 selstrs = []
-                for brange in branges:
-                    sel, selstr = _var_selection(events, bb_mask, var, brange, max_val)
+                for i, brange in enumerate(branges):
+                    cvar = cut_vars[i] if len(cut_vars) > 1 else cut_vars[0]
+                    sel, selstr = _var_selection(events, cvar, brange, sample, jshift, MAX_VAL)
                     sels.append(sel)
                     selstrs.append(selstr)
 
                 sel = np.sum(sels, axis=0).astype(bool)
                 selstr = " or ".join(selstrs)
-
-                add_selection(
-                    selstr,
-                    sel,
-                    selection[sample],
-                    cutflow[sample],
-                    events,
-                    weight_key,
-                )
             else:
-                sel, selstr = _var_selection(events, bb_mask, var, branges, max_val)
-                add_selection(
-                    selstr,
-                    sel,
-                    selection[sample],
-                    cutflow[sample],
-                    events,
-                    weight_key,
-                )
+                sel, selstr = _var_selection(events, cutvar, branges, sample, jshift, MAX_VAL)
+
+            add_selection(
+                selstr,
+                sel,
+                selection[sample],
+                cutflow[sample],
+                events,
+                weight_key,
+            )
 
         selection[sample] = selection[sample].all(*selection[sample].names)
 

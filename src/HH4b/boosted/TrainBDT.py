@@ -166,14 +166,14 @@ def load_data(data_path: str, year: str, legacy: bool):
         ("bbFatJetPhi", 2),
         ("bbFatJetMsd", 2),
         ("bbFatJetPNetMass", 2),
-        ("bbFatJetPNetXbb", 2),
+        ("bbFatJetPNetTXbb", 2),
         ("bbFatJetTau3OverTau2", 2),
         ("bbFatJetPNetQCD0HF", 2),
         ("bbFatJetPNetQCD1HF", 2),
         ("bbFatJetPNetQCD2HF", 2),
     ]
     if legacy:
-        load_columns += [("bbFatJetPNetMassLegacy", 2), ("bbFatJetPNetXbbLegacy", 2)]
+        load_columns += [("bbFatJetPNetMassLegacy", 2), ("bbFatJetPNetTXbbLegacy", 2)]
 
     events_dict = {}
     for input_dir, samples in dirs.items():
@@ -185,6 +185,7 @@ def load_data(data_path: str, year: str, legacy: bool):
                 year,
                 filters=filters,
                 variations=False,
+                reorder_legacy_txbb=legacy,
                 columns=format_columns(load_columns),
             ),
         }
@@ -364,7 +365,7 @@ def evaluate_model(
     2) Prints Sig efficiency at Bkg efficiency
     """
 
-    pnet_xbb_str = "bbFatJetPNetXbb" if not legacy else "bbFatJetPNetXbbLegacy"
+    pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
 
     # make and save ROCs for testing data
@@ -448,7 +449,7 @@ def evaluate_model(
     legtitle = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "Xbb$^{0}$>0.8"
     if not legacy:
         legtitle += "\n" + r"m$_{SD}^{(0,1)}$:[30-250] GeV"
-            
+
     h_bdt = hist.Hist(bdt_axis, cat_axis)
     h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
     for key in events_dict:
@@ -769,7 +770,7 @@ def evaluate_model(
                 plt.close()
 
 def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy):
-    pnet_xbb_str = "bbFatJetPNetXbb" if not legacy else "bbFatJetPNetXbbLegacy"
+    pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
     pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
     make_bdt_dataframe = importlib.import_module(f"{config_name}")
 
@@ -815,7 +816,16 @@ def plot_allyears(events_dict, model, model_dir, config_name, multiclass, legacy
 
 
 def plot_train_test(
-    X_train, yt_train, weights_train, X_test, yt_test, weights_test, model, multiclass, model_dir, legacy
+    X_train,
+    yt_train,
+    weights_train,
+    X_test,
+    yt_test,
+    weights_test,
+    model,
+    multiclass,
+    model_dir,
+    legacy,
 ):
     y_scores_train = model.predict_proba(X_train)
     y_scores_train = y_scores_train[:, 0] if multiclass else y_scores_train[:, 1]

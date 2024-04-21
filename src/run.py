@@ -17,6 +17,7 @@ import yaml
 from coffea import nanoevents, processor
 
 from HH4b import run_utils
+from HH4b.hh_vars import DATA_SAMPLES
 
 
 def run_dask(p: processor, fileset: dict, args):
@@ -88,7 +89,7 @@ def run_dask(p: processor, fileset: dict, args):
                     pickle.dump(out["pkl"], f)
 
 
-def run(p: processor, fileset: dict, args):
+def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     """Run processor without fancy dask (outputs then need to be accumulated manually)"""
     run_utils.add_mixins(nanoevents)  # update nanoevents schema
 
@@ -128,9 +129,24 @@ def run(p: processor, fileset: dict, args):
         schema=nanoevents.NanoAODSchema,
         chunksize=args.chunksize,
         maxchunks=None if args.maxchunks == 0 else args.maxchunks,
+        skipbadfiles=skipbadfiles,
     )
 
-    out, metrics = run(fileset, "Events", processor_instance=p)
+    # try file opening 3 times if it fails
+    for i in range(3):
+        try:
+            out, metrics = run(fileset, "Events", processor_instance=p)
+            break
+        except FileNotFoundError as e:
+            import time
+
+            print("Error!")
+            print(e)
+            if i < 2:
+                print("Retrying in 1 minute")
+                time.sleep(60)
+            else:
+                raise e
 
     print(out)
 
@@ -152,7 +168,7 @@ def run(p: processor, fileset: dict, args):
             table = pa.Table.from_pandas(pddf)
             pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
 
-        if save_root:
+        if save_root and args.save_root:
             import awkward as ak
 
             with uproot.recreate(
@@ -176,8 +192,11 @@ def main(args):
         args.nano_version,
     )
 
+    skipbadfiles = True
+
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
+        skipbadfiles = False  # not added functionality for args.files yet
     else:
         if args.yaml:
             with Path(args.yaml).open() as file:
@@ -205,11 +224,16 @@ def main(args):
             args.endi,
         )
 
+        # don't skip "bad" files for data - we want it throw an error in that case
+        for key in fileset:
+            if key in DATA_SAMPLES:
+                skipbadfiles = False
+
     print(f"Running on fileset {fileset}")
     if args.executor == "dask":
         run_dask(p, fileset, args)
     else:
-        run(p, fileset, args)
+        run(p, fileset, skipbadfiles, args)
 
 
 if __name__ == "__main__":

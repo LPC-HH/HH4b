@@ -121,9 +121,9 @@ else:
 mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
-        ("vhtobb", "vhtobb"),
-        ("diboson", "diboson"),
-        ("vjets", "vjets"),
+        ("vhtobb", "VH_hbb"),
+        ("others", "others"),
+        ("tthtobb", "ttH_hbb"),
     ]
 )
 
