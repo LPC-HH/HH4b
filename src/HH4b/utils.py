@@ -257,6 +257,19 @@ def _normalize_weights(
             events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
 
 
+def _reorder_legacy_txbb(events: pd.DataFrame):
+    """Reorder all the bbFatJet columns by legacy TXbb (instead of by v12 TXbb)"""
+    if "bbFatJetPNetTXbbLegacy" not in events:
+        raise ValueError(
+            "bbFatJetPNetTXbbLegacy not found in events! Need to include that in load columns, or set reorder_legacy_txbb to False."
+        )
+
+    bbord = np.argsort(events["bbFatJetPNetTXbbLegacy"].to_numpy(), axis=1)[:, ::-1]
+    for key in np.unique(events.columns.get_level_values(0)):
+        if key.startswith("bbFatJet"):
+            events[key] = np.take_along_axis(events[key].to_numpy(), bbord, axis=1)
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
@@ -265,6 +278,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
+    reorder_legacy_txbb: bool = True,  # temporary fix for sorting by legacy txbb
     # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -324,6 +338,9 @@ def load_samples(
                     events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
                     events = events[events.index.isin(events_tmp.index)]
             """
+
+            if reorder_legacy_txbb:
+                _reorder_legacy_txbb(events)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
