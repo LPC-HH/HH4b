@@ -196,6 +196,10 @@ def load_data(data_path: str, year: str, legacy: bool):
         ("bbFatJetPhi", 2),
         ("bbFatJetMsd", 2),
         ("bbFatJetTau3OverTau2", 2),
+        ("VBFJetPt", 2),
+        ("VBFJetEta", 2),
+        ("VBFJetPhi", 2),
+        ("VBFJetMass", 2),
     ]
 
     if legacy:
@@ -856,7 +860,6 @@ def plot_allyears(
     )
 
     for i, sig_key in enumerate(sig_keys):
-
         for xbb_cut in xbb_cuts:
             for key in bg_keys:
                 hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
