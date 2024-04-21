@@ -33,20 +33,20 @@ def bdt_dataframe(events):
         {
             # dihiggs system
             "HHlogPt": np.log(hh.pt),
-            #"HHeta": hh.eta,
+            # "HHeta": hh.eta,
             "HHmass": hh.mass,
             # met in the event
             "MET": events.MET_pt[0],
             # fatjet tau32
-            #"H1T32": events["bbFatJetTau3OverTau2"].to_numpy()[:, 0],
-            #"H2T32": events["bbFatJetTau3OverTau2"].to_numpy()[:, 1],
+            # "H1T32": events["bbFatJetTau3OverTau2"].to_numpy()[:, 0],
+            # "H2T32": events["bbFatJetTau3OverTau2"].to_numpy()[:, 1],
             # fatjet mass
             "H1Mass": events["bbFatJetPNetMassLegacy"].to_numpy()[:, 0],
             # fatjet kinematics
             "H1logPt": np.log(h1.pt),
             "H2logPt": np.log(h2.pt),
-            #"H1eta": h1.eta,
-            #"H2eta": h2.eta,
+            # "H1eta": h1.eta,
+            # "H2eta": h2.eta,
             # xbb
             "H1Xbb": events["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0],
             # ratios
