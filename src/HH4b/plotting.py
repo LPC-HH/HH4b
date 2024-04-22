@@ -618,10 +618,10 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    if bg_err is None:
-        # get background error from variances
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err = np.sqrt(bg_tot.variances())
+    # if bg_err is None:
+    #     # get background error from variances
+    #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
+    #     bg_err = np.sqrt(bg_tot.variances())
 
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
