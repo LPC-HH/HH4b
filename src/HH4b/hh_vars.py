@@ -27,12 +27,12 @@ LUMI = {
 DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
-common_samples = {
-    "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+common_samples_bg = {
     "qcd": ["QCD_HT"],
     # "qcd": ["QCD_PT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
-    "ttbar": ["TTto2L2Nu", "TTtoLNu2Q", "TTto4Q"],
+    "ttbar": ["TTto4Q"],
+    "ttlep": ["TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
     "vhtobb": [
@@ -48,26 +48,28 @@ common_samples = {
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
     "diboson": ["ZZ", "WW", "WZ"],
-    "vjetslnu": ["WtoLNu-4Jets"],
+    # "vjetslnu": ["WtoLNu-4Jets"],  # TODO: didn't run on these?
     "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
 }
 
+common_samples_sig = {}  # TODO: none yet
+
 samples_run3 = {
     "2022": {
-        **common_samples,
+        **common_samples_bg,
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2022EE": {
-        **common_samples,
+        **common_samples_bg,
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2023": {
-        **common_samples,
+        **common_samples_bg,
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
     },
     "2023BPix": {
-        **common_samples,
+        **common_samples_bg,
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
     },
 }
@@ -137,10 +139,13 @@ samples = {
 
 data_key = "data"
 qcd_key = "qcd"
+
+bg_keys = list(common_samples_bg.keys())
+bg_keys.remove("data")
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
-bg_keys = [qcd_key, "ttbar", "ttlep", "diboson", "vjets", "vjetslnu"] + hbb_bg_keys
+
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
-sig_keys_vbf = []  # TODO
+sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]

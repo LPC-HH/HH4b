@@ -170,13 +170,13 @@ def load_data(data_path: str, year: str, legacy: bool):
             ),
         }
 
-    # apply mask (maybe this is not needed once ordering is fixed in processor)
-    for key in events_dict:
-        if legacy:
-            # guarantee that Xbb>0.8 is applied to first bb jet
-            xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
-            mask = xbb_0 >= 0.8
-            events_dict[key] = events_dict[key][mask]
+    # apply mask (maybe this is not needed once ordering is fixed in processor) - not needed since this is applied in the filters
+    # for key in events_dict:
+    #     if legacy:
+    #         # guarantee that Xbb>0.8 is applied to first bb jet
+    #         xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
+    #         mask = xbb_0 >= 0.8
+    #         events_dict[key] = events_dict[key][mask]
 
     return events_dict
 
@@ -437,7 +437,7 @@ def evaluate_model(
             f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
         )
 
-        print("Perform inference on test signal sample")
+        print("Performing inference on all samples")
         # get scores from full dataframe, but only use testing indices
         scores = {}
         weights = {}
@@ -463,6 +463,8 @@ def evaluate_model(
             scores[key] = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
             weights[key] = events_dict[key]["finalWeight"]
             xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
+
+        print("Making BDT shape plots")
 
         legtitle = _get_title(legacy)
 
@@ -505,6 +507,8 @@ def evaluate_model(
             fig.savefig(plot_dir / sig_key / f"bdt_shape_{h_key}.png")
             fig.savefig(plot_dir / sig_key / f"bdt_shape_{h_key}.pdf", bbox_inches="tight")
             plt.close()
+
+        print("Making ROC Curves")
 
         # Plot and save ROC figure
         for log, logstr in [(False, ""), (True, "_log")]:
@@ -607,6 +611,8 @@ def evaluate_model(
             fig.savefig(plot_dir / sig_key / f"roc_weights{logstr}.png")
             fig.savefig(plot_dir / sig_key / f"roc_weights{logstr}.pdf", bbox_inches="tight")
             plt.close()
+
+        print("Making mass sculpting plots")
 
         # look into mass sculpting
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)

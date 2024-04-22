@@ -1050,8 +1050,11 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     va="center",
                     fontsize=10,
                 )
-    fig.tight_layout()
 
+    ax.set_xlabel("BDT Cut")
+    ax.set_ylabel(r"$T_{Xbb}$ Cut")
+
+    fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 

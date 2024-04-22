@@ -4,6 +4,7 @@ import argparse
 import importlib
 from collections import OrderedDict
 from pathlib import Path
+from typing import Callable
 
 import hist
 
@@ -13,7 +14,7 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
-from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years
+from HH4b.hh_vars import LUMI, samples_run3, years
 from HH4b.postprocessing import (
     Region,
     corrections,
@@ -31,34 +32,34 @@ from HH4b.utils import ShapeVar, load_samples
 #     return {
 #         "pass_bin1": Region(
 #             cuts={
-#                 "H2Xbb": [txbb_wps[0], CUT_MAX_VAL],
+#                 "H2TXbb": [txbb_wps[0], CUT_MAX_VAL],
 #                 "bdt_score": [bdt_wps[0], CUT_MAX_VAL],
 #             },
 #             label="Bin1",
 #         ),
 #         "pass_bin2": Region(
 #             cuts={
-#                 "H2Xbb": [txbb_wps[1], CUT_MAX_VAL],
+#                 "H2TXbb": [txbb_wps[1], CUT_MAX_VAL],
 #                 "bdt_score": [bdt_wps[1], CUT_MAX_VAL],
 #                 # veto events in Bin 1
-#                 "H2Xbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[0]]],
+#                 "H2TXbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[0]]],
 #                 # veto events in "lower left corner"
-#                 "H2Xbb+bdt_score": [[txbb_wps[0], CUT_MAX_VAL], [bdt_wps[0], CUT_MAX_VAL]],
+#                 "H2TXbb+bdt_score": [[txbb_wps[0], CUT_MAX_VAL], [bdt_wps[0], CUT_MAX_VAL]],
 #             },
 #             label="Bin2",
 #         ),
 #         "pass_bin3": Region(
 #             cuts={
-#                 "H2Xbb": [txbb_wps[1], CUT_MAX_VAL],
+#                 "H2TXbb": [txbb_wps[1], CUT_MAX_VAL],
 #                 "bdt_score": [bdt_wps[2], bdt_wps[0]],
 #                 # veto events in Bin 2
-#                 "H2Xbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[1]]],
+#                 "H2TXbb+bdt_score": [[-CUT_MAX_VAL, txbb_wps[0]], [-CUT_MAX_VAL, bdt_wps[1]]],
 #             },
 #             label="Bin3",
 #         ),
 #         "fail": Region(
 #             cuts={
-#                 "H2Xbb": [-CUT_MAX_VAL, txbb_wps[1]],
+#                 "H2TXbb": [-CUT_MAX_VAL, txbb_wps[1]],
 #             },
 #             label="Fail",
 #         ),
@@ -93,15 +94,22 @@ selection_regions = {
 }
 
 
+label_by_mass = {
+    "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
+    "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
+}
+
+
 def _get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
 
     training_keys = []
     for child in inferences_dir.iterdir():
-        if child.endswith(".npy"):
+        if child.suffix == ".npy":
             training_keys.append(child.stem.split("evt_")[-1])
 
     print("Found BDT Training keys", training_keys)
+    return training_keys
 
 
 def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
@@ -118,8 +126,6 @@ def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
 def load_run3_samples(args, year, bdt_training_keys):
     # modify as needed
     input_dir = f"{args.data_dir}/{args.tag}"
-    samples = samples_run3[year].copy()
-    samples.pop("qcd")  # QCD is all data-driven so don't need it
 
     legacy_label = "Legacy" if args.legacy else ""
     filters = filters_legacy if args.legacy else filters_v12
@@ -181,7 +187,7 @@ def load_run3_samples(args, year, bdt_training_keys):
 
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
-        bdt_events["H2Xbb"] = events_dict[key][f"bbFatJetPNetXbb{legacy_label}"].to_numpy()[:, 1]
+        bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
         bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
             :, 1
         ]
@@ -207,7 +213,9 @@ def load_run3_samples(args, year, bdt_training_keys):
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
         if year == "2022EE":
-            inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+            inferences_dir = Path(
+                f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/2022EE"
+            )
 
             if key in bdt_training_keys:
                 evt_list = np.load(inferences_dir / f"evt_{key}.npy")
@@ -226,15 +234,15 @@ def load_run3_samples(args, year, bdt_training_keys):
 
         # define category
         bdt_events["Category"] = 5  # all events
-        mask_bin1 = (bdt_events["H2Xbb"] > args.txbb_wps[0]) & (
+        mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
             bdt_events["bdt_score"] > args.bdt_wps[0]
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
-        mask_corner = (bdt_events["H2Xbb"] < args.txbb_wps[0]) & (
+        mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
             bdt_events["bdt_score"] < args.bdt_wps[0]
         )
         mask_bin2 = (
-            (bdt_events["H2Xbb"] > args.txbb_wps[1])
+            (bdt_events["H2TXbb"] > args.txbb_wps[1])
             & (bdt_events["bdt_score"] > args.bdt_wps[1])
             & ~(mask_bin1)
             & ~(mask_corner)
@@ -243,11 +251,14 @@ def load_run3_samples(args, year, bdt_training_keys):
         mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2])
         bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
-            (bdt_events["H2Xbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2]),
+            (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2]),
             "Category",
         ] = 4
 
-        columns = ["Category", "H2Msd", "bdt_score", "H2Xbb", "H2PNetMass", "weight"]
+        columns = ["Category", "H2Msd", "bdt_score", "H2TXbb", "H2PNetMass", "weight"]
+        if "bdt_score_vbf" in bdt_events:
+            columns += ["bdt_score_vbf"]
+
         events_dict_postprocess[key] = bdt_events[columns]
 
     for cut in cutflow_dict[key]:
@@ -280,22 +291,17 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
 def scan_fom(
     events_combined: pd.DataFrame,
+    get_cut: Callable,
+    xbb_cuts: np.ArrayLike,
+    bdt_cuts: np.ArrayLike,
     mass_window: list[float],
     plot_dir: str,
-    fom="2sqrt(b)/s",
-    mass="H2Msd",
+    plot_name: str,
+    sig_key: str = "hh4b",
+    fom: str = "2sqrt(b)/s",
+    mass: str = "H2Msd",
 ):
-    """
-    Scan figure of merit
-    """
-
-    def get_cut(events, xbb_cut, bdt_cut):
-        cut_xbb = events["H2Xbb"] > xbb_cut
-        cut_bdt = events["bdt_score"] > bdt_cut
-        return cut_xbb & cut_bdt
-
-    xbb_cuts = np.arange(0.8, 1, 0.02)
-    bdt_cuts = np.arange(0.8, 1, 0.01)
+    """Generic FoM scan for given region, defined in the ``get_cut`` function."""
     h_sb = hist.Hist(
         hist.axis.Variable(bdt_cuts, name="bdt_cut"),
         hist.axis.Variable(xbb_cuts, name="xbb_cut"),
@@ -304,6 +310,9 @@ def scan_fom(
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
+        min_fom = 1000
+        min_nevents = []
+
         for bdt_cut in bdt_cuts:
             nevents_data = get_nevents_data(
                 events_combined["data"],
@@ -312,8 +321,8 @@ def scan_fom(
                 mass_window,
             )
             nevents_signal = get_nevents_signal(
-                events_combined["hh4b"],
-                get_cut(events_combined["hh4b"], xbb_cut, bdt_cut),
+                events_combined[sig_key],
+                get_cut(events_combined[sig_key], xbb_cut, bdt_cut),
                 mass,
                 mass_window,
             )
@@ -325,40 +334,76 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_signal > 0.5:
+            if nevents_signal > 0.5 and nevents_data >= 10:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+                if figure_of_merit < min_fom:
+                    min_fom = figure_of_merit
+                    min_nevents = [nevents_data, nevents_signal]
 
         if len(cuts) > 0:
             cuts = np.array(cuts)
             figure_of_merits = np.array(figure_of_merits)
             smallest = np.argmin(figure_of_merits)
 
-            print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
+            print(
+                f"{xbb_cut:.3f} {cuts[smallest]:.2f} {figure_of_merits[smallest]:.2f} "
+                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f}"
+            )
 
-    print(f"Plotting FOM scan for Bin 1 in {plot_dir}")
-    plotting.plot_fom(h_sb, plot_dir)
+    print(f"Plotting FOM scan: {plot_dir}/{plot_name}")
+    plotting.plot_fom(h_sb, plot_dir, name=plot_name)
 
 
-def scan_fom_bin2(
-    events_combined: pd.DataFrame,
-    mass_window: list[float],
-    plot_dir: str,
-    xbb_cut_bin1=0.92,
-    bdt_cut_bin1=0.94,
-    fom="2sqrt(b)/s",
-    mass="H2Msd",
-):
-    """
-    Scan figure of merit for bin2
-    """
+def get_cuts(args, region: str):
+    # VBF region
+    def get_cut_vbf(events, xbb_cut, bdt_cut):
+        cut_xbb = events["H2TXbb"] > xbb_cut
+        cut_bdt = events["bdt_score_vbf"] > bdt_cut
+        return cut_xbb & cut_bdt
 
-    def get_cut(events, xbb_cut, bdt_cut):
-        cut_bin1 = (events["H2Xbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
-        cut_corner = (events["H2Xbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
+    # bin 1 with VBF region veto
+    def get_cut_bin1(events, xbb_cut, bdt_cut):
+        vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
+            events["H2TXbb"] >= args.vbf_txbb_wp
+        )
+        cut_xbb = events["H2TXbb"] > xbb_cut
+        cut_bdt = events["bdt_score"] > bdt_cut
+        return cut_xbb & cut_bdt & (~vbf_cut)
+
+    # bin 1 without VBF region veto
+    def get_cut_bin1_novbf(events, xbb_cut, bdt_cut):
+        cut_xbb = events["H2TXbb"] > xbb_cut
+        cut_bdt = events["bdt_score"] > bdt_cut
+        return cut_xbb & cut_bdt
+
+    xbb_cut_bin1 = args.txbb_wps[0]
+    bdt_cut_bin1 = args.bdt_wps[0]
+
+    # bin 2 with VBF region veto
+    def get_cut_bin2(events, xbb_cut, bdt_cut):
+        vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
+            events["H2TXbb"] >= args.vbf_txbb_wp
+        )
+        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_corner = (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
         cut_bin2 = (
-            (events["H2Xbb"] > xbb_cut)
+            (events["H2TXbb"] > xbb_cut)
+            & (events["bdt_score"] > bdt_cut)
+            & ~(cut_bin1)
+            & ~(cut_corner)
+            & ~(vbf_cut)
+        )
+
+        return cut_bin2
+
+    # bin 2 without VBF region veto
+    def get_cut_bin2_novbf(events, xbb_cut, bdt_cut):
+        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_corner = (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
+        cut_bin2 = (
+            (events["H2TXbb"] > xbb_cut)
             & (events["bdt_score"] > bdt_cut)
             & ~(cut_bin1)
             & ~(cut_corner)
@@ -366,57 +411,36 @@ def scan_fom_bin2(
 
         return cut_bin2
 
-    xbb_cuts = np.arange(0.7, xbb_cut_bin1, 0.02)
-    bdt_cuts = np.arange(0.65, bdt_cut_bin1, 0.01)
-    h_sb = hist.Hist(
-        hist.axis.Variable(bdt_cuts, name="bdt_cut"),
-        hist.axis.Variable(xbb_cuts, name="xbb_cut"),
-    )
-    for xbb_cut in xbb_cuts:
-        figure_of_merits = []
-        cuts = []
-        for bdt_cut in bdt_cuts:
-            nevents_data = get_nevents_data(
-                events_combined["data"],
-                get_cut(events_combined["data"], xbb_cut, bdt_cut),
-                mass,
-                mass_window,
-            )
-            nevents_signal = get_nevents_signal(
-                events_combined["hh4b"],
-                get_cut(events_combined["hh4b"], xbb_cut, bdt_cut),
-                mass,
-                mass_window,
-            )
-
-            if fom == "s/sqrt(s+b)":
-                figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
-            elif fom == "2sqrt(b)/s":
-                figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
-            else:
-                raise ValueError("Invalid FOM")
-
-            if nevents_signal > 0.5:
-                cuts.append(bdt_cut)
-                figure_of_merits.append(figure_of_merit)
-                h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
-
-        if len(cuts) > 0:
-            cuts = np.array(cuts)
-            figure_of_merits = np.array(figure_of_merits)
-            smallest = np.argmin(figure_of_merits)
-
-            print(xbb_cut, cuts[smallest], figure_of_merits[smallest])
-
-    print(f"Plotting FOM scan for Bin 2 in {plot_dir}")
-    plotting.plot_fom(h_sb, plot_dir, name="figofmerit_bin2")
+    if region == "vbf":
+        return get_cut_vbf
+    elif region == "bin1":
+        return get_cut_bin1 if args.vbf else get_cut_bin1_novbf
+    elif region == "bin2":
+        return get_cut_bin2 if args.vbf else get_cut_bin2_novbf
+    else:
+        raise ValueError("Invalid region")
 
 
 def postprocess_run3(args):
-    label_by_mass = {
-        "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
-        "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
-    }
+    global bg_keys  # noqa: PLW0603
+
+    # Removing all MC backgrounds for FOM scan only, removing QCD for templates as well
+    if not args.templates:
+        print("Not loading any backgrounds.")
+    else:
+        print("Not loading QCD.")
+
+    bg_keys.remove("qcd")
+    for _year, samples_year in samples_run3.items():
+        samples_year.pop("qcd")
+        if not args.templates:
+            for key in bg_keys:
+                if key in samples_year:
+                    samples_year.pop(key)
+
+    if not args.templates:
+        bg_keys = []
+
     window_by_mass = {"H2Msd": [110, 140]}
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
@@ -437,11 +461,11 @@ def postprocess_run3(args):
     events_dict_postprocess = {}
     cutflows = {}
     for year in args.years:
+        print(f"\n{year}")
         events_dict_postprocess[year], cutflows[year] = load_run3_samples(
             args, year, bdt_training_keys
         )
 
-    bg_keys.remove("qcd")
     processes = ["data"] + args.sig_keys + bg_keys
 
     # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
@@ -468,30 +492,64 @@ def postprocess_run3(args):
         events_combined[key] = combined
 
     # combine ttbar
-    events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
-    events_combined["others"] = pd.concat(
-        [events_combined["diboson"], events_combined["vjets"], events_combined["novhhtobb"]]
-    )
+    if "ttbar" in bg_keys and "ttlep" in bg_keys:
+        events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
+        events_combined.pop("ttlep")
+        bg_keys.remove("ttlep")
+
+    # combine others (?)
+    others = ["diboson", "vjets", "novhhtobb"]
+    if np.all([key in bg_keys for key in others]):
+        events_combined["others"] = pd.concat([events_combined[key] for key in others])
+        for key in others:
+            events_combined.pop(key)
+            bg_keys.remove(key)
+        bg_keys.append("others")
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
         plot_dir.mkdir(exist_ok=True, parents=True)
-        # todo: update to [-5, +5] for next round!
-        shift_mass_window = np.array([-5, 5])
-        scan_fom(
-            events_combined,
-            np.array(window_by_mass[args.mass]) + shift_mass_window,
-            plot_dir,
-            mass=args.mass,
-        )
-        scan_fom_bin2(
-            events_combined,
-            np.array(window_by_mass[args.mass]) + shift_mass_window,
-            plot_dir,
-            xbb_cut_bin1=args.txbb_wps[0],
-            bdt_cut_bin1=args.bdt_wps[0],
-            mass=args.mass,
-        )
+
+        mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
+
+        if args.fom_scan_vbf:
+            scan_fom(
+                events_combined,
+                get_cuts(args, "vbf"),
+                np.arange(0.8, 1, 0.01),
+                np.arange(0.8, 1, 0.01),
+                mass_window,
+                plot_dir,
+                "fom_vbf",
+                sig_key="vbfhh4b-k2v0",
+                mass=args.mass,
+            )
+
+        if args.fom_scan_bin1:
+            scan_fom(
+                events_combined,
+                get_cuts(args, "bin1"),
+                np.arange(0.95, 1, 0.005),
+                np.arange(0.8, 1, 0.01),
+                mass_window,
+                plot_dir,
+                "fom_bin1",
+                mass=args.mass,
+            )
+
+        if args.fom_scan_bin2:
+            scan_fom(
+                events_combined,
+                get_cuts(args, "bin2"),
+                np.arange(0.7, args.txbb_wps[0], 0.02),
+                np.arange(0.7, args.bdt_wps[0], 0.01),
+                mass_window,
+                plot_dir,
+                "fom_bin2",
+                mass=args.mass,
+            )
+
+        # TODO: VBF bin scan
 
     if not args.templates:
         return
@@ -604,7 +662,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=["hh4b"],
+        default=["hh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
     )
 
@@ -613,7 +671,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=True, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
-    run_utils.add_bool_arg(parser, "legacy", default=False, help="using legacy pnet txbb and mass")
+    run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
+    run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
+
     args = parser.parse_args()
 
     print(args)
