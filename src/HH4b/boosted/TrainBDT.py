@@ -471,7 +471,7 @@ def evaluate_model(
             sel = np.logical_or(sigs, bgs).squeeze()
         else:
             sel = np.ones(len(y_test), dtype=bool)
-
+            
         print("Test ROC with sample weights")
         fpr, tpr, thresholds = roc_curve(
             yt_test[sel], y_scores[sel][:, i], sample_weight=weights_test[sel]
@@ -550,6 +550,7 @@ def evaluate_model(
                     linewidth=1,
                     color=colors[key],
                     density=True,
+                    flow="none",
                 )
             ax.set_yscale("log")
             ax.legend(
@@ -695,7 +696,7 @@ def evaluate_model(
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 for cut in bdt_cuts:
                     hep.histplot(
-                        h[{"cat": key, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True
+                        h[{"cat": key, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True, flow="none",
                     )
                 ax.legend()
                 ax.set_ylabel("Density")
@@ -825,6 +826,7 @@ def evaluate_model(
                         lw=2,
                         label=f"BDT > {cut}",
                         density=True,
+                        flow="none",
                     )
                 ax.legend()
                 ax.set_ylabel("Density")
@@ -890,6 +892,7 @@ def plot_allyears(
                                 lw=2,
                                 label=f"BDT > {cut}",
                                 density=True,
+                                flow="none",
                             )
                         ax.legend()
                         ax.set_ylabel("Density")
@@ -942,7 +945,6 @@ def plot_train_test(
 
     for i, sig_key in enumerate(sig_keys):
 
-        (model_dir / sig_key ).mkdir(exist_ok=True, parents=True)
                 
         ########## Inference and ROC Curves ############
         rocs = {}
@@ -1036,6 +1038,7 @@ def plot_train_test(
                 linewidth=1,
                 color=colors[key],
                 density=True,
+                flow="none",
             )
             hep.histplot(
                 h_bdt_weight[{"cat": key + "train"}],
@@ -1046,6 +1049,7 @@ def plot_train_test(
                 linestyle="dashed",
                 color=colors[key],
                 density=True,
+                flow="none",
             )
             ax.set_yscale("log")
             ax.legend(
@@ -1123,22 +1127,23 @@ def main(args):
 
         plot_losses(evals_result, model_dir, args.multiclass)
 
-    plot_train_test(
-        X_train,
-        y_train,
-        yt_train,
-        weights_train,
-        X_test,
-        y_test,
-        yt_test,
-        weights_test,
-        model,
-        args.multiclass,
-        args.sig_keys,
-        training_keys,
-        model_dir,
-        args.legacy,
-    )
+    if not args.evaluate_only:
+        plot_train_test(
+            X_train,
+            y_train,
+            yt_train,
+            weights_train,
+            X_test,
+            y_test,
+            yt_test,
+            weights_test,
+            model,
+            args.multiclass,
+            args.sig_keys,
+            training_keys,
+            model_dir,
+            args.legacy,
+        )
 
     evaluate_model(
         args.config_name,
@@ -1159,7 +1164,7 @@ def main(args):
 
     # test in other years
     events_dict = {}
-    years_test = ["2022EE"] if args.legacy else ["2022", "2022EE", "2023", "2023BPix"]
+    years_test = ["2022", "2022EE", "2023", "2023BPix"]
     for year in years_test:
         events_dict[year] = load_data(args.data_path, year, args.legacy)
 
