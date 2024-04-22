@@ -18,18 +18,26 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from HH4b import plotting
+from HH4b.postprocessing import (
+    filters_legacy,
+    filters_v12,
+    load_columns_legacy,
+    load_columns_v12,
+)
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import format_columns, load_samples
 
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
-plt.rcParams.update({
-    "font.size": 12,
-    "lines.linewidth": 2,
-    "grid.color": "#CCCCCC",
-    "grid.linewidth": 0.5,
-    "figure.edgecolor": "none"
-})
+plt.rcParams.update(
+    {
+        "font.size": 12,
+        "lines.linewidth": 2,
+        "grid.color": "#CCCCCC",
+        "grid.linewidth": 0.5,
+        "figure.edgecolor": "none",
+    }
+)
 plt.style.use(hep.style.CMS)
 
 bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
@@ -91,9 +99,7 @@ def load_data(data_path: str, year: str, legacy: bool):
             "ttlep": [
                 "TTtoLNu2Q",
             ],
-            "hh4b": [
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
-            ],
+            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
             "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
             # "vhtobb": [
             #     "WminusH_Hto2B_Wto2Q_M-125",
@@ -145,74 +151,8 @@ def load_data(data_path: str, year: str, legacy: bool):
     }
 
     dirs = {data_path: samples}
-
-    if legacy:
-        # mass_key = "bbFatJetMsd"
-        mass_key = "bbFatJetPNetMassLegacy"
-        # both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
-        # (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
-        filters = [
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                # added
-                (f"('{mass_key}', '0')", "<=", 250),
-                (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 60),
-                (f"('{mass_key}', '1')", ">=", 60),
-                ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
-            ],
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                # added
-                (f"('{mass_key}', '0')", "<=", 250),
-                (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 60),
-                (f"('{mass_key}', '1')", ">=", 60),
-                ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
-            ],
-        ]
-    else:
-        filters = [
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                ("('bbFatJetMsd', '0')", "<=", 250),
-                ("('bbFatJetMsd', '1')", "<=", 250),
-                ("('bbFatJetMsd', '0')", ">=", 30),
-                ("('bbFatJetMsd', '1')", ">=", 30),
-            ],
-        ]
-
-    load_columns = [
-        ("weight", 1),
-        ("event", 1),
-        ("MET_pt", 1),
-        ("bbFatJetPt", 2),
-        ("bbFatJetEta", 2),
-        ("bbFatJetPhi", 2),
-        ("bbFatJetMsd", 2),
-        ("bbFatJetTau3OverTau2", 2),
-    ]
-
-    if legacy:
-        load_columns += [
-            ("bbFatJetPNetTXbbLegacy", 2),
-            ("bbFatJetPNetPXbbLegacy", 2),
-            ("bbFatJetPNetPQCDbLegacy", 2),
-            ("bbFatJetPNetPQCDbbLegacy", 2),
-            ("bbFatJetPNetPQCDothersLegacy", 2),
-            ("bbFatJetPNetMassLegacy", 2),
-        ]
-    else:
-        load_columns += [
-            ("bbFatJetPNetTXbb", 2),
-            ("bbFatJetPNetMass", 2),
-            ("bbFatJetPNetQCD0HF", 2),
-            ("bbFatJetPNetQCD1HF", 2),
-            ("bbFatJetPNetQCD2HF", 2),
-        ]
+    filters = filters_legacy if legacy else filters_v12
+    load_columns = load_columns_legacy if legacy else load_columns_v12
 
     events_dict = {}
     print(f"Loading samples from {year}")
@@ -230,14 +170,14 @@ def load_data(data_path: str, year: str, legacy: bool):
             ),
         }
 
-    # apply mask (maybe this is not needed once ordering is fixed in processor)
-    for key in events_dict:
-        if legacy:
-            # guarantee that Xbb>0.8 is applied to first bb jet
-            xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
-            mask = (xbb_0 >= 0.8)
-            events_dict[key] = events_dict[key][mask]
-        
+    # apply mask (maybe this is not needed once ordering is fixed in processor) - not needed since this is applied in the filters
+    # for key in events_dict:
+    #     if legacy:
+    #         # guarantee that Xbb>0.8 is applied to first bb jet
+    #         xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
+    #         mask = xbb_0 >= 0.8
+    #         events_dict[key] = events_dict[key][mask]
+
     return events_dict
 
 
@@ -460,7 +400,7 @@ def evaluate_model(
     y_scores = _get_bdt_scores(y_scores, sig_keys, multiclass)
 
     for i, sig_key in enumerate(sig_keys):
-        (plot_dir / sig_key ).mkdir(exist_ok=True, parents=True)
+        (plot_dir / sig_key).mkdir(exist_ok=True, parents=True)
 
         print(f"Evaluating {sig_key} performance")
 
@@ -497,7 +437,7 @@ def evaluate_model(
             f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
         )
 
-        print("Perform inference on test signal sample")
+        print("Performing inference on all samples")
         # get scores from full dataframe, but only use testing indices
         scores = {}
         weights = {}
@@ -523,6 +463,8 @@ def evaluate_model(
             scores[key] = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
             weights[key] = events_dict[key]["finalWeight"]
             xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
+
+        print("Making BDT shape plots")
 
         legtitle = _get_title(legacy)
 
@@ -566,6 +508,8 @@ def evaluate_model(
             fig.savefig(plot_dir / sig_key / f"bdt_shape_{h_key}.png")
             fig.savefig(plot_dir / sig_key / f"bdt_shape_{h_key}.pdf", bbox_inches="tight")
             plt.close()
+
+        print("Making ROC Curves")
 
         # Plot and save ROC figure
         for log, logstr in [(False, ""), (True, "_log")]:
@@ -668,6 +612,8 @@ def evaluate_model(
             fig.savefig(plot_dir / sig_key / f"roc_weights{logstr}.png")
             fig.savefig(plot_dir / sig_key / f"roc_weights{logstr}.pdf", bbox_inches="tight")
             plt.close()
+
+        print("Making mass sculpting plots")
 
         # look into mass sculpting
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -856,7 +802,6 @@ def plot_allyears(
     )
 
     for i, sig_key in enumerate(sig_keys):
-
         for xbb_cut in xbb_cuts:
             for key in bg_keys:
                 hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -904,7 +849,8 @@ def plot_allyears(
                             model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
                         )
                         fig.savefig(
-                            model_dir / year
+                            model_dir
+                            / year
                             / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
                             bbox_inches="tight",
                         )
@@ -945,7 +891,6 @@ def plot_train_test(
 
     for i, sig_key in enumerate(sig_keys):
 
-                
         ########## Inference and ROC Curves ############
         rocs = {}
 

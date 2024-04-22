@@ -618,10 +618,10 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    if bg_err is None:
-        # get background error from variances
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err = np.sqrt(bg_tot.variances())
+    # if bg_err is None:
+    #     # get background error from variances
+    #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
+    #     bg_err = np.sqrt(bg_tot.variances())
 
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
@@ -1050,8 +1050,11 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     va="center",
                     fontsize=10,
                 )
-    fig.tight_layout()
 
+    ax.set_xlabel("BDT Cut")
+    ax.set_ylabel(r"$T_{Xbb}$ Cut")
+
+    fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 

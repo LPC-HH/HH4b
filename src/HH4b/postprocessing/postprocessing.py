@@ -29,6 +29,76 @@ class Region:
     label: str = None
 
 
+mass_key = "bbFatJetPNetMassLegacy"
+# both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
+# (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
+filters_legacy = [
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        # added
+        (f"('{mass_key}', '0')", "<=", 250),
+        (f"('{mass_key}', '1')", "<=", 250),
+        (f"('{mass_key}', '0')", ">=", 60),
+        (f"('{mass_key}', '1')", ">=", 60),
+        ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
+    ],
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        # added
+        (f"('{mass_key}', '0')", "<=", 250),
+        (f"('{mass_key}', '1')", "<=", 250),
+        (f"('{mass_key}', '0')", ">=", 60),
+        (f"('{mass_key}', '1')", ">=", 60),
+        ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
+    ],
+]
+
+filters_v12 = [
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        ("('bbFatJetMsd', '0')", "<=", 250),
+        ("('bbFatJetMsd', '1')", "<=", 250),
+        ("('bbFatJetMsd', '0')", ">=", 30),
+        ("('bbFatJetMsd', '1')", ">=", 30),
+    ],
+]
+
+
+load_columns = [
+    ("weight", 1),
+    ("event", 1),
+    ("MET_pt", 1),
+    ("bbFatJetPt", 2),
+    ("bbFatJetEta", 2),
+    ("bbFatJetPhi", 2),
+    ("bbFatJetMsd", 2),
+    ("bbFatJetTau3OverTau2", 2),
+    ("VBFJetPt", 2),
+    ("VBFJetEta", 2),
+    ("VBFJetPhi", 2),
+    ("VBFJetMass", 2),
+]
+
+load_columns_legacy = load_columns + [
+    ("bbFatJetPNetTXbbLegacy", 2),
+    ("bbFatJetPNetPXbbLegacy", 2),
+    ("bbFatJetPNetPQCDbLegacy", 2),
+    ("bbFatJetPNetPQCDbbLegacy", 2),
+    ("bbFatJetPNetPQCDothersLegacy", 2),
+    ("bbFatJetPNetMassLegacy", 2),
+]
+
+load_columns_v12 = load_columns + [
+    ("bbFatJetPNetTXbb", 2),
+    ("bbFatJetPNetMass", 2),
+    ("bbFatJetPNetQCD0HF", 2),
+    ("bbFatJetPNetQCD1HF", 2),
+    ("bbFatJetPNetQCD2HF", 2),
+]
+
 weight_shifts = {
     "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
