@@ -14,7 +14,7 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
-from HH4b.hh_vars import LUMI, samples_run3, years
+from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     corrections,
@@ -67,6 +67,12 @@ from HH4b.utils import ShapeVar, load_samples
 
 
 selection_regions = {
+    "pass_vbf": Region(
+        cuts={
+            "Category": [0, 1],
+        },
+        label="VBF",
+    ),
     "pass_bin1": Region(
         cuts={
             "Category": [1, 2],
@@ -234,8 +240,19 @@ def load_run3_samples(args, year, bdt_training_keys):
 
         # define category
         bdt_events["Category"] = 5  # all events
-        mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
-            bdt_events["bdt_score"] > args.bdt_wps[0]
+        if args.vbf:
+            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
+                bdt_events["H2TXbb"] > args.vbf_txbb_wp
+            )
+            bdt_events.loc[mask_vbf, "Category"] = 0
+        else:
+            # if no VBF region, set all events to "fail VBF"
+            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
+        mask_bin1 = (
+            (bdt_events["H2TXbb"] > args.txbb_wps[0])
+            & (bdt_events["bdt_score"] > args.bdt_wps[0])
+            & ~(mask_vbf)
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
         mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
@@ -246,9 +263,12 @@ def load_run3_samples(args, year, bdt_training_keys):
             & (bdt_events["bdt_score"] > args.bdt_wps[1])
             & ~(mask_bin1)
             & ~(mask_corner)
+            & ~(mask_vbf)
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
-        mask_bin3 = ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2])
+        mask_bin3 = (
+            ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2]) & ~(mask_vbf)
+        )
         bdt_events.loc[mask_bin3, "Category"] = 3
         bdt_events.loc[
             (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2]),
@@ -370,6 +390,8 @@ def get_cuts(args, region: str):
         )
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
+        # print("Passing Bin 1", np.mean(cut_xbb & cut_bdt & (~vbf_cut)))
+        # print("Passing Bin 1 without VBF veto", np.mean(cut_xbb & cut_bdt))
         return cut_xbb & cut_bdt & (~vbf_cut)
 
     # bin 1 without VBF region veto
@@ -513,6 +535,7 @@ def postprocess_run3(args):
         mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
 
         if args.fom_scan_vbf:
+            print("Scanning VBF WPs")
             scan_fom(
                 events_combined,
                 get_cuts(args, "vbf"),
@@ -526,6 +549,7 @@ def postprocess_run3(args):
             )
 
         if args.fom_scan_bin1:
+            print(f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}")
             scan_fom(
                 events_combined,
                 get_cuts(args, "bin1"),
@@ -538,11 +562,14 @@ def postprocess_run3(args):
             )
 
         if args.fom_scan_bin2:
+            print(
+                f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+            )
             scan_fom(
                 events_combined,
                 get_cuts(args, "bin2"),
-                np.arange(0.7, args.txbb_wps[0], 0.02),
-                np.arange(0.7, args.bdt_wps[0], 0.01),
+                np.arange(0.8, args.txbb_wps[0], 0.02),
+                np.arange(0.5, args.bdt_wps[0], 0.02),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
@@ -574,6 +601,9 @@ def postprocess_run3(args):
 
     print(events_combined["data"].columns)
 
+    if not args.vbf:
+        selection_regions.pop("pass_vbf")
+
     # individual templates per year
     templates = postprocessing.get_templates(
         events_combined,
@@ -584,7 +614,7 @@ def postprocess_run3(args):
         systematics={},
         template_dir=templ_dir,
         bg_keys=bg_keys,
-        plot_dir=f"{templ_dir}/{year}",
+        # plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
         show=False,
         energy=13.6,
@@ -646,7 +676,7 @@ if __name__ == "__main__":
         "--txbb-wps",
         type=float,
         nargs=2,
-        default=[0.92, 0.8],
+        default=[0.985, 0.94],
         help="TXbb Bin 1, Bin 2 WPs",
     )
 
@@ -654,9 +684,12 @@ if __name__ == "__main__":
         "--bdt-wps",
         type=float,
         nargs=3,
-        default=[0.94, 0.68, 0.03],
+        default=[0.95, 0.75, 0.03],
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
+
+    parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
+    parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
 
     parser.add_argument(
         "--sig-keys",

@@ -37,9 +37,9 @@ common_samples_bg = {
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
-        "WplusH_Hto2B_WtoLNu_M-125",
+        # "WplusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
         "WminusH_Hto2B_Wto2Q_M-125",
-        "WminusH_Hto2B_WtoLNu_M-125",
+        # "WminusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
         "ZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2L_M-125",
