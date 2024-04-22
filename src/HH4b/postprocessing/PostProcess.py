@@ -354,7 +354,7 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_signal > 0.5 and nevents_data >= 10:
+            if nevents_signal > 0.5 and nevents_data >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
@@ -519,13 +519,13 @@ def postprocess_run3(args):
         bg_keys.remove("ttlep")
 
     # combine others (?)
-    others = ["diboson", "vjets", "novhhtobb"]
-    if np.all([key in bg_keys for key in others]):
-        events_combined["others"] = pd.concat([events_combined[key] for key in others])
-        for key in others:
-            events_combined.pop(key)
-            bg_keys.remove(key)
-        bg_keys.append("others")
+    # others = ["diboson", "vjets", "novhhtobb"]
+    # if np.all([key in bg_keys for key in others]):
+    #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
+    #     for key in others:
+    #         events_combined.pop(key)
+    #         bg_keys.remove(key)
+    #     bg_keys.append("others")
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
