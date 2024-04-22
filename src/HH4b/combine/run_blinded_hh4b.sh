@@ -138,6 +138,11 @@ if [ $passbin = 0 ]; then
     ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin1=${cards_dir}/passbin1.txt passbin1MCBlinded=${cards_dir}/passbin1MCBlinded.txt passbin2=${cards_dir}/passbin2.txt passbin2MCBlinded=${cards_dir}/passbin2MCBlinded.txt passbin3=${cards_dir}/passbin3.txt passbin3MCBlinded=${cards_dir}/passbin3MCBlinded.txt"
     maskunblindedargs="mask_passbin1=1,mask_passbin2=1,mask_passbin3=1,mask_fail=1,mask_passbin1MCBlinded=0,mask_passbin2MCBlinded=0,mask_passbin3MCBlinded=0,mask_failMCBlinded=0"
     maskblindedargs="mask_passbin1=0,mask_passbin2=0,mask_passbin3=0,mask_fail=0,mask_passbin1MCBlinded=1,mask_passbin2MCBlinded=1,mask_passbin3MCBlinded=1,mask_failMCBlinded=1"
+    if [ -f "passvbf.txt" ]; then
+        ccargs+=" passvbf=${cards_dir}/passvbf.txt passvbfMCBlinded=${cards_dir}/passvbfMCBlinded.txt"
+        maskunblindedargs+=",mask_passvbf=1,mask_passvbfMCBlinded=0"
+        maskblindedargs+=",mask_passvbf=0,mask_passvbfMCBlinded=1"
+    fi
 else
     ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin${passbin}=${cards_dir}/passbin${passbin}.txt passbin1MCBlinded=${cards_dir}/passbin${passbin}MCBlinded.txt"
     maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
