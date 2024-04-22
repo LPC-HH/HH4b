@@ -519,13 +519,13 @@ def postprocess_run3(args):
         bg_keys.remove("ttlep")
 
     # combine others (?)
-    # others = ["diboson", "vjets", "novhhtobb"]
-    # if np.all([key in bg_keys for key in others]):
-    #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
-    #     for key in others:
-    #         events_combined.pop(key)
-    #         bg_keys.remove(key)
-    #     bg_keys.append("others")
+    others = ["diboson", "vjets", "novhhtobb"]
+    if np.all([key in bg_keys for key in others]):
+        events_combined["others"] = pd.concat([events_combined[key] for key in others])
+        for key in others:
+            events_combined.pop(key)
+            bg_keys.remove(key)
+        bg_keys.append("others")
 
     if args.fom_scan:
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
