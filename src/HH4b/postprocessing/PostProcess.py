@@ -514,8 +514,12 @@ def postprocess_run3(args):
             args, year, bdt_training_keys
         )
 
+    print("Loaded all years")
+
     processes = ["data"] + args.sig_keys + bg_keys
     events_combined = combine_run3_samples(events_dict_postprocess, processes, bg_keys)
+
+    print("Combined all years")
 
     plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
     plot_dir.mkdir(exist_ok=True, parents=True)
@@ -566,6 +570,7 @@ def postprocess_run3(args):
             )
 
     if args.bdt_roc:
+        print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
 
     if not args.templates:

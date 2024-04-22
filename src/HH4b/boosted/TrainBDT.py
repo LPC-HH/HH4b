@@ -895,7 +895,7 @@ def main(args):
     for year in args.years:
         for key in list(samples_run3[year].keys()):
             if key not in training_keys:
-                samples_run3.pop(key)
+                samples_run3[year].pop(key)
 
         events_dict_years[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
 
