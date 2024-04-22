@@ -32,30 +32,26 @@ def veto_electrons_run2(electrons: ElectronArray):
 
 
 def veto_muons(muons: MuonArray):
+    """
+    Definition used in Run 2 boosted VBF Hbb
+    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L551-L553
+    """
     return (
-        (muons.pt >= 10)
-        & (abs(muons.eta) <= 2.4)
-        & (muons.looseId)
-        & (muons.pfRelIso04_all < 0.15)
-        & (
-            ((abs(muons.dxy) < 0.05) & (abs(muons.dz) < 0.10) & (abs(muons.eta) < 1.2))
-            | ((abs(muons.dxy) < 0.10) & (abs(muons.dz) < 0.20) & (abs(muons.eta) >= 1.2))
-        )
+        (muons.pt >= 10) & (abs(muons.eta) <= 2.4) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
     )
 
 
 def veto_electrons(electrons: ElectronArray):
-    sel = (
-        (electrons.pt >= 15)
-        & (abs(electrons.eta) <= 2.4)
-        & (electrons.mvaIso_WP90)
-        & (electrons.pfRelIso03_all < 0.15)
+    """
+    Definition used in Run 2 boosted VBF Hbb
+    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L542-L547
+    """
+    return (
+        (electrons.pt >= 20)
+        & (abs(electrons.eta) <= 2.5)
+        & (electrons.miniPFRelIso_all < 0.4)
+        & (electrons.cutBased >= electrons.LOOSE)
     )
-    sel = sel & (
-        ((abs(electrons.dxy) < 0.05) & (abs(electrons.dz) < 0.10) & (abs(electrons.eta) < 1.2))
-        | ((abs(electrons.dxy) < 0.10) & (abs(electrons.dz) < 0.20) & (abs(electrons.eta) >= 1.2))
-    )
-    return sel
 
 
 def good_muons(muons: MuonArray):
@@ -155,12 +151,15 @@ def get_ak8jets(fatjets: FatJetArray):
             + fatjets.ParticleNetMD_probQCDcc
             + fatjets.ParticleNetMD_probQCDothers
         )
-        fatjets["Txbb"] = fatjets.ParticleNetMD_probXbb
-        fatjets["Txjj"] = (
+        fatjets["Txbb"] = fatjets.ParticleNetMD_probXbb / (
+            fatjets.ParticleNetMD_probXbb + fatjets["Tqcd"]
+        )
+        fatjets["Pxjj"] = (
             fatjets.ParticleNetMD_probXbb
             + fatjets.ParticleNetMD_probXcc
             + fatjets.ParticleNetMD_probXqq
         )
+        fatjets["Txjj"] = fatjets["Pxjj"] / (fatjets["Pxjj"] + fatjets["Tqcd"])
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
@@ -182,23 +181,30 @@ def get_ak8jets(fatjets: FatJetArray):
             fatjets["particleNet_massraw"] = fatjets.particleNet_mass
 
     if "ParticleNetMD_probQCDb" in fatjets_fields:
-        fatjets["TQCDb"] = fatjets.ParticleNetMD_probQCDb
-        fatjets["TQCDbb"] = fatjets.ParticleNetMD_probQCDbb
-        fatjets["TQCDothers"] = fatjets.ParticleNetMD_probQCDothers
+        fatjets["PQCDb"] = fatjets.ParticleNetMD_probQCDb
+        fatjets["PQCDbb"] = fatjets.ParticleNetMD_probQCDbb
+        fatjets["PQCDothers"] = fatjets.ParticleNetMD_probQCDothers
     elif "particleNet_QCD1HF" in fatjets_fields:
-        fatjets["TQCDb"] = fatjets.particleNet_QCD1HF
-        fatjets["TQCDbb"] = fatjets.particleNet_QCD2HF
-        fatjets["TQCDothers"] = fatjets.particleNet_QCD0HF
+        fatjets["PQCDb"] = fatjets.particleNet_QCD1HF
+        fatjets["PQCDbb"] = fatjets.particleNet_QCD2HF
+        fatjets["PQCDothers"] = fatjets.particleNet_QCD0HF
     else:
         # dummy
-        fatjets["TQCDb"] = fatjets.particleNetMD_QCD
-        fatjets["TQCDbb"] = fatjets.particleNetMD_QCD
-        fatjets["TQCDothers"] = fatjets.particleNetMD_QCD
+        fatjets["PQCDb"] = fatjets.particleNetMD_QCD
+        fatjets["PQCDbb"] = fatjets.particleNetMD_QCD
+        fatjets["PQCDothers"] = fatjets.particleNetMD_QCD
 
     if "particleNetLegacy_Xbb" in fatjets_fields:
-        fatjets["Txbb_legacy"] = fatjets.particleNetLegacy_Xbb
+        fatjets["TXbb_legacy"] = fatjets.particleNetLegacy_Xbb / (
+            fatjets.particleNetLegacy_Xbb + fatjets.particleNetLegacy_QCD
+        )
+        fatjets["PXbb_legacy"] = fatjets.particleNetLegacy_Xbb
+        fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
+        fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
+        fatjets["PQCDbb_legacy"] = fatjets.particleNetLegacy_QCDbb
+        fatjets["PQCDothers_legacy"] = fatjets.particleNetLegacy_QCDothers
     else:
-        fatjets["Txbb_legacy"] = fatjets["Txbb"]
+        fatjets["TXbb_legacy"] = fatjets["Txbb"]
 
     if "particleNetLegacy_mass" in fatjets_fields:
         fatjets["particleNet_mass_legacy"] = fatjets.particleNetLegacy_mass
@@ -214,5 +220,46 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray):
-    return (abs(fatjets.eta) < 2.5) & (fatjets.isTight)
+def good_ak8jets(fatjets: FatJetArray, pt: float, eta: float, msd: float, mreg: float):
+    fatjets_fields = fatjets.fields
+    legacy = "particleNetLegacy_mass" in fatjets_fields
+    mreg_val = fatjets["particleNet_mass_legacy"] if legacy else fatjets["particleNet_mass"]
+
+    fatjet_sel = (
+        fatjets.isTight
+        & (fatjets.pt > pt)
+        & (abs(fatjets.eta) < eta)
+        & ((fatjets.msoftdrop > msd) | (mreg_val > mreg))
+    )
+    return fatjets[fatjet_sel]
+
+
+def vbf_jets(
+    jets: JetArray,
+    fatjets: FatJetArray,
+    events,
+    pt: float,
+    id: str,  # noqa: ARG001
+    eta_max: float,
+    dr_fatjets: float,
+    dr_leptons: float,
+    electron_pt: float,
+    muon_pt: float,
+):
+    """Top 2 jets in pT passing the VBF selections"""
+    electrons = events.Electron
+    electrons = electrons[electrons.pt > electron_pt]
+
+    muons = events.Muon
+    muons = muons[muons.pt > muon_pt]
+
+    ak4_sel = (
+        jets.isTight
+        & (jets.pt >= pt)
+        & (np.abs(jets.eta) <= eta_max)
+        & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
+        & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
+        & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
+    )
+
+    return jets[ak4_sel][:, :2]

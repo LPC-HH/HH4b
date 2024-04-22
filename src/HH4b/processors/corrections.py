@@ -54,9 +54,8 @@ pog_jsons = {
 }
 
 # Jet mass scale and Jet mass resolution
-# FIXME: Using placeholder Run 2 values !!
+# FIXME: Using placeholder values
 # nominal, down, up
-jmsr_vars = ["msoftdrop", "particleNet_mass"]
 
 jmsValues = {}
 jmrValues = {}
@@ -65,32 +64,54 @@ jmrValues["msoftdrop"] = {
     "2016": [1.00, 1.0, 1.09],
     "2017": [1.03, 1.00, 1.07],
     "2018": [1.065, 1.031, 1.099],
-    "2022": [1.0, 1.0, 1.0],
-    "2022EE": [1.0, 1.0, 1.0],
+    "2022": [1.0, 0.97, 1.03],
+    "2022EE": [1.0, 0.97, 1.03],
+    "2023": [1.0, 0.97, 1.03],
+    "2023BPix": [1.0, 0.97, 1.03],
 }
 
 jmsValues["msoftdrop"] = {
     "2016": [1.00, 0.9906, 1.0094],
     "2017": [1.0016, 0.978, 0.986],
     "2018": [0.997, 0.993, 1.001],
-    "2022": [1.0, 1.0, 1.0],
-    "2022EE": [1.0, 1.0, 1.0],
+    "2022": [1.0, 0.98, 1.02],
+    "2022EE": [1.0, 0.98, 1.02],
+    "2023": [1.0, 0.98, 1.02],
+    "2023BPix": [1.0, 0.98, 1.02],
 }
 
 jmrValues["particleNet_mass"] = {
     "2016": [1.028, 1.007, 1.063],
     "2017": [1.026, 1.009, 1.059],
     "2018": [1.031, 1.006, 1.075],
-    "2022": [1.0, 1.0, 1.0],
-    "2022EE": [1.0, 1.0, 1.0],
+    "2022": [1.0, 0.97, 1.03],
+    "2022EE": [1.0, 0.97, 1.03],
+    "2023": [1.0, 0.97, 1.03],
+    "2023BPix": [1.0, 0.97, 1.03],
 }
 
 jmsValues["particleNet_mass"] = {
     "2016": [1.00, 0.998, 1.002],
     "2017": [1.002, 0.996, 1.008],
     "2018": [0.994, 0.993, 1.001],
-    "2022": [1.0, 1.0, 1.0],
-    "2022EE": [1.0, 1.0, 1.0],
+    "2022": [1.0, 0.98, 1.02],
+    "2022EE": [1.0, 0.98, 1.02],
+    "2023": [1.0, 0.98, 1.02],
+    "2023BPix": [1.0, 0.98, 1.02],
+}
+
+jmrValues["particleNet_mass_legacy"] = {
+    "2022": [1.0, 0.97, 1.03],
+    "2022EE": [1.0, 0.97, 1.03],
+    "2023": [1.0, 0.97, 1.03],
+    "2023BPix": [1.0, 0.97, 1.03],
+}
+
+jmsValues["particleNet_mass_legacy"] = {
+    "2022": [1.0, 0.98, 1.02],
+    "2022EE": [1.0, 0.98, 1.02],
+    "2023": [1.0, 0.98, 1.02],
+    "2023BPix": [1.0, 0.98, 1.02],
 }
 
 
@@ -210,47 +231,36 @@ def add_ps_weight(weights, ps_weights):
     weights.add("ISRPartonShower", nom, up_isr, down_isr)
     weights.add("FSRPartonShower", nom, up_fsr, down_fsr)
 
-    # TODO: do we need to update sumgenweights?
-    # e.g. as in https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L74
 
-
-def add_pdf_weight(weights, pdf_weights):
+def get_pdf_weights(events):
     """
-    LHEPDF Weights
+    For the PDF acceptance uncertainty:
+        - store 103 variations. 0-100 PDF values
+        - The last two values: alpha_s variations.
+        - you just sum the yield difference from the nominal in quadrature to get the total uncertainty.
+        e.g. https://github.com/LPC-HH/HHLooper/blob/master/python/prepare_card_SR_final.py#L258
+        and https://github.com/LPC-HH/HHLooper/blob/master/app/HHLooper.cc#L1488
+
+    Some references:
+    Scale/PDF weights in MC https://twiki.cern.ch/twiki/bin/view/CMS/HowToPDF
+    https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#PDF
     """
-    nweights = len(weights.weight())
-    nom = np.ones(nweights)
-    # up = np.ones(nweights)
-    # down = np.ones(nweights)
-
-    # NNPDF31_nnlo_hessian_pdfas
-    # https://lhapdfsets.web.cern.ch/current/NNPDF31_nnlo_hessian_pdfas/NNPDF31_nnlo_hessian_pdfas.info
-
-    # Hessian PDF weights
-    # Eq. 21 of https://arxiv.org/pdf/1510.03865v1.pdf
-    arg = pdf_weights[:, 1:-2] - np.ones((nweights, 100))
-    summed = ak.sum(np.square(arg), axis=1)
-    pdf_unc = np.sqrt((1.0 / 99.0) * summed)
-    # weights.add("PDF", nom, pdf_unc + nom)
-
-    # alpha_S weights
-    # Eq. 27 of same ref
-    as_unc = 0.5 * (pdf_weights[:, 102] - pdf_weights[:, 101])
-    # weights.add('alphaS', nom, as_unc + nom)
-
-    # PDF + alpha_S weights
-    # Eq. 28 of same ref
-    pdfas_unc = np.sqrt(np.square(pdf_unc) + np.square(as_unc))
-    weights.add("PDFalphaS", nom, pdfas_unc + nom)
+    return events.LHEPdfWeight.to_numpy()
 
 
-def add_scalevar_7pt(weights, var_weights):
+def get_scale_weights(events):
     """
-    QCD Scale variations:
-    7 point is where the renorm. and factorization scale are varied separately
-    docstring:
-    LHE scale variation weights (w_var / w_nominal);
-    [0] is renscfact=0.5d0 facscfact=0.5d0 ;
+    QCD Scale variations, best explanation I found is here:
+    https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#Factorization_and_renormalizatio
+
+    TLDR: we want to vary the renormalization and factorization scales by a factor of 0.5 and 2,
+    and then take the envelope of the variations on our final observation as the up/down uncertainties.
+
+    Importantly, we need to keep track of the normalization for each variation,
+    so that this uncertainty takes into account the acceptance effects of our selections.
+
+    LHE scale variation weights (w_var / w_nominal) (from https://cms-nanoaod-integration.web.cern.ch/autoDoc/NanoAODv9/2018UL/doc_TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1.html#LHEScaleWeight)
+    [0] is renscfact=0.5d0 facscfact=0.5d0 ; <=
     [1] is renscfact=0.5d0 facscfact=1d0 ; <=
     [2] is renscfact=0.5d0 facscfact=2d0 ;
     [3] is renscfact=1d0 facscfact=0.5d0 ; <=
@@ -259,57 +269,19 @@ def add_scalevar_7pt(weights, var_weights):
     [6] is renscfact=2d0 facscfact=0.5d0 ;
     [7] is renscfact=2d0 facscfact=1d0 ; <=
     [8] is renscfact=2d0 facscfact=2d0 ; <=
+
+    See also https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L93 for an example.
     """
-    nweights = len(weights.weight())
-
-    nom = np.ones(nweights)
-    up = np.ones(nweights)
-    down = np.ones(nweights)
-
-    if len(var_weights) > 0:
-        if len(var_weights[0]) == 9:
-            up = np.maximum.reduce(
-                [
-                    var_weights[:, 0],
-                    var_weights[:, 1],
-                    var_weights[:, 3],
-                    var_weights[:, 5],
-                    var_weights[:, 7],
-                    var_weights[:, 8],
-                ]
-            )
-            down = np.minimum.reduce(
-                [
-                    var_weights[:, 0],
-                    var_weights[:, 1],
-                    var_weights[:, 3],
-                    var_weights[:, 5],
-                    var_weights[:, 7],
-                    var_weights[:, 8],
-                ]
-            )
-        elif len(var_weights[0]) > 1:
-            print("Scale variation vector has length ", len(var_weights[0]))
-    # NOTE: I think we should take the envelope of these weights w.r.t to [4]
-    weights.add("QCDscale7pt", nom, up, down)
-    weights.add("QCDscale4", var_weights[:, 4])
-
-
-def add_scalevar_3pt(weights, var_weights):
-    nweights = len(weights.weight())
-
-    nom = np.ones(nweights)
-    up = np.ones(nweights)
-    down = np.ones(nweights)
-
-    if len(var_weights) > 0:
-        if len(var_weights[0]) == 9:
-            up = np.maximum(var_weights[:, 0], var_weights[:, 8])
-            down = np.minimum(var_weights[:, 0], var_weights[:, 8])
-        elif len(var_weights[0]) > 1:
-            print("Scale variation vector has length ", len(var_weights[0]))
-
-    weights.add("QCDscale3pt", nom, up, down)
+    if len(events[0].LHEScaleWeight) > 0:
+        if len(events[0].LHEScaleWeight) == 9:
+            variations = events.LHEScaleWeight[:, [0, 1, 3, 5, 7, 8]].to_numpy()
+            nominal = events.LHEScaleWeight[:, 4].to_numpy()[:, np.newaxis]
+            variations /= nominal
+        else:
+            variations = events.LHEScaleWeight[:, [0, 1, 3, 4, 6, 7]].to_numpy()
+        return np.clip(variations, 0.0, 4.0)
+    else:
+        return None
 
 
 class JECs:
@@ -404,8 +376,6 @@ class JECs:
         else:
             corr_key = f"{year}mcnoJER" if "2023" in year else f"{year}mc"
 
-        apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-
         # fatjet_factory.build gives an error if there are no jets in event
         if apply_jecs:
             jets = self.jet_factory[jet_factory_str][corr_key].build(jets, jec_cache)
@@ -415,23 +385,30 @@ class JECs:
             return jets, None
 
         jec_shifted_vars = {}
-
         for jec_var in jec_vars:
             tdict = {"": jets[jec_var]}
             if apply_jecs:
                 for key, shift in jecs.items():
                     for var in ["up", "down"]:
-                        tdict[f"{key}_{var}"] = jets[shift][var][jec_var]
-
+                        if shift in ak.fields(jets):
+                            tdict[f"{key}_{var}"] = jets[shift][var][jec_var]
             jec_shifted_vars[jec_var] = tdict
 
         return jets, jec_shifted_vars
 
 
 def get_jmsr(
-    fatjets: FatJetArray, num_jets: int, year: str, isData: bool = False, seed: int = 42
+    fatjets: FatJetArray,
+    num_jets: int,
+    year: str,
+    isData: bool = False,
+    seed: int = 42,
+    jmsr_vars: list[str] = None,
 ) -> dict:
     """Calculates post JMS/R masses and shifts"""
+    if jmsr_vars is None:
+        jmsr_vars = ["msoftdrop", "particleNet_mass"]
+
     jmsr_shifted_vars = {}
 
     for mkey in jmsr_vars:

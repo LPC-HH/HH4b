@@ -13,8 +13,10 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
-from HH4b.postprocessing import Region
+from HH4b.postprocessing import Region, corrections
 from HH4b.utils import ShapeVar, load_samples
+
+# from .corrections import ttbar_pTjjSF
 
 # TODO: can switch to this in the future to get cutflows for each cut.
 # def get_selection_regions(txbb_wps: list[float], bdt_wps: list[float]):
@@ -57,7 +59,7 @@ from HH4b.utils import ShapeVar, load_samples
 
 def load_run3_samples(args, year):
     # modify as needed
-    input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{args.tag}"
+    input_dir = f"{args.data_dir}/{args.tag}"
 
     samples_run3 = {
         "2022": {
@@ -255,10 +257,17 @@ def load_run3_samples(args, year):
         (f"bbFatJetPNetMass{legacy_label}", 2),
         (f"bbFatJetPNetXbb{legacy_label}", 2),
         ("bbFatJetTau3OverTau2", 2),
-        (f"bbFatJetPNetQCD0HF{legacy_label}", 2),
-        (f"bbFatJetPNetQCD1HF{legacy_label}", 2),
-        (f"bbFatJetPNetQCD2HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD0HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD1HF{legacy_label}", 2),
+        # (f"bbFatJetPNetQCD2HF{legacy_label}", 2),
     ]
+
+    if not args.legacy:
+        load_columns += [
+            ("bbFatJetPNetQCD0HF", 2),
+            ("bbFatJetPNetQCD1HF", 2),
+            ("bbFatJetPNetQCD2HF", 2),
+        ]
 
     filters = [
         [
@@ -271,9 +280,8 @@ def load_run3_samples(args, year):
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
     # get function
-    config = args.bdt_model if args.bdt_model != "v1_msd30_nomulticlass" else "v1_msd30"
     make_bdt_dataframe = importlib.import_module(
-        f".{config}", package="HH4b.boosted.bdt_trainings_run3"
+        f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
     if year == "2023":
@@ -341,8 +349,11 @@ def load_run3_samples(args, year):
             axis=0,
         )
 
-        # add more columns (e.g. uncertainties etc)
+        # add more columns (e.g. (uncertainties etc)
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+        ## Add TTBar Weigh)t here
+        if key == "ttbar":
+            bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
@@ -635,7 +646,7 @@ def postprocess_run3(args):
         plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
         plot_dir.mkdir(exist_ok=True, parents=True)
         # todo: update to [-5, +5] for next round!
-        shift_mass_window = np.array([-15, -5])
+        shift_mass_window = np.array([-5, 5])
         scan_fom(
             events_combined,
             np.array(window_by_mass[args.mass]) + shift_mass_window,
@@ -703,6 +714,12 @@ if __name__ == "__main__":
         help="output pickle directory of hist.Hist templates inside the ./templates dir",
     )
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
+        help="tag for input ntuples",
+    )
+    parser.add_argument(
         "--tag",
         type=str,
         required=True,
@@ -727,6 +744,12 @@ if __name__ == "__main__":
         "--bdt-model",
         type=str,
         default="v1_msd30_nomulticlass",
+        help="BDT model to load",
+    )
+    parser.add_argument(
+        "--bdt-config",
+        type=str,
+        default="v1_msd30",
         help="BDT model to load",
     )
 

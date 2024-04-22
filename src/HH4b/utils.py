@@ -18,12 +18,14 @@ from pathlib import Path
 import hist
 import numpy as np
 import pandas as pd
+import vector
 from hist import Hist
 
 from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights, years
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
+PAD_VAL = -99999
 
 
 @dataclass
@@ -255,6 +257,19 @@ def _normalize_weights(
             events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
 
 
+def _reorder_legacy_txbb(events: pd.DataFrame):
+    """Reorder all the bbFatJet columns by legacy TXbb (instead of by v12 TXbb)"""
+    if "bbFatJetPNetTXbbLegacy" not in events:
+        raise ValueError(
+            "bbFatJetPNetTXbbLegacy not found in events! Need to include that in load columns, or set reorder_legacy_txbb to False."
+        )
+
+    bbord = np.argsort(events["bbFatJetPNetTXbbLegacy"].to_numpy(), axis=1)[:, ::-1]
+    for key in np.unique(events.columns.get_level_values(0)):
+        if key.startswith("bbFatJet"):
+            events[key] = np.take_along_axis(events[key].to_numpy(), bbord, axis=1)
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
@@ -263,6 +278,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
+    reorder_legacy_txbb: bool = True,  # temporary fix for sorting by legacy txbb
     # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -322,6 +338,9 @@ def load_samples(
                     events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
                     events = events[events.index.isin(events_tmp.index)]
             """
+
+            if reorder_legacy_txbb:
+                _reorder_legacy_txbb(events)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
@@ -422,6 +441,46 @@ def tau32FittedSF_4(events: pd.DataFrame):
     )
 
 
+def makeHH(events: pd.DataFrame, key: str, mass: str):
+
+    h1 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 0],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 0],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 0],
+            "M": events[key][mass].to_numpy()[:, 0],
+        }
+    )
+    h2 = vector.array(
+        {
+            "pt": events[key]["bbFatJetPt"].to_numpy()[:, 1],
+            "phi": events[key]["bbFatJetPhi"].to_numpy()[:, 1],
+            "eta": events[key]["bbFatJetEta"].to_numpy()[:, 1],
+            "M": events[key][mass].to_numpy()[:, 1],
+        }
+    )
+    mask_h1 = h1.pt < 0
+    mask_h2 = h2.pt < 0
+    mask_invalid = mask_h1 | mask_h2
+
+    hh = h1 + h2
+    # Convert vectors to numpy arrays for conditional manipulation
+    hh_pt = hh.pt
+    hh_phi = hh.phi
+    hh_eta = hh.eta
+    hh_M = hh.M
+
+    # Apply pad value
+    hh_pt[mask_invalid] = -PAD_VAL
+    hh_phi[mask_invalid] = -PAD_VAL
+    hh_eta[mask_invalid] = -PAD_VAL
+    hh_M[mask_invalid] = -PAD_VAL
+
+    # Re-make the vector with padded entries
+    hh = vector.array({"pt": hh_pt, "phi": hh_phi, "eta": hh_eta, "M": hh_M})
+    return hh
+
+
 def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 
@@ -486,8 +545,6 @@ def singleVarHist(
     shape_var: ShapeVar,
     weight_key: str = "finalWeight",
     selection: dict | None = None,
-    sf: list[str] | None = None,
-    apply_tt_sf: bool = False,
 ) -> Hist:
     """
     Makes and fills a histogram for variable `var` using data in the `events` dict.
@@ -528,8 +585,8 @@ def singleVarHist(
             fill_data[var] = fill_data[var][sel]
             weight = weight[sel]
 
-        if sf is not None and sample == "ttbar" and apply_tt_sf:
-            weight = weight * tau32FittedSF_4(events)
+        # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
+        #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
         if len(fill_data[var]):
             h.fill(Sample=sample, **fill_data, weight=weight)
