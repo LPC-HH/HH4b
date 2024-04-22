@@ -446,19 +446,18 @@ def get_cuts(args, region: str):
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0603
 
-    # Removing all MC backgrounds for FOM scan only, removing QCD for templates as well
+    # Removing all MC backgrounds for FOM scan only to save time
     if not args.templates:
         print("Not loading any backgrounds.")
-    else:
-        print("Not loading QCD.")
 
-    bg_keys.remove("qcd")
-    for _year, samples_year in samples_run3.items():
-        samples_year.pop("qcd")
+    for year, samples_year in samples_run3.items():
+
         if not args.templates:
             for key in bg_keys:
                 if key in samples_year:
                     samples_year.pop(key)
+        elif year != "2022EE":
+            samples_year.pop("qcd")  # only load qcd for 2022EE to save time
 
     if not args.templates:
         bg_keys = []
@@ -494,6 +493,7 @@ def postprocess_run3(args):
     scale_processes = {
         "hh4b": ["2022EE", "2023", "2023BPix"],
         "vbfhh4b-k2v0": ["2022", "2022EE"],
+        "qcd": ["2022EE"],
     }
 
     # create combined datasets
