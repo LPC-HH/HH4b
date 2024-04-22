@@ -17,15 +17,13 @@ from sklearn.metrics import roc_curve
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-from HH4b import plotting
+from HH4b import hh_vars, plotting
+from HH4b.hh_vars import samples_run3
 from HH4b.postprocessing import (
-    filters_legacy,
-    filters_v12,
-    load_columns_legacy,
-    load_columns_v12,
+    combine_run3_samples,
+    load_run3_samples,
 )
 from HH4b.run_utils import add_bool_arg
-from HH4b.utils import format_columns, load_samples
 
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
@@ -50,7 +48,7 @@ bdt_cuts = [0, 0.03, 0.7, 0.9, 0.92]
 xbb_cuts = [0, 0.8, 0.9, 0.98]
 
 
-def _get_title(legacy: bool):
+def get_legtitle(legacy: bool):
     title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "$T_{Xbb}^{0}$>0.8"
 
     if not legacy:
@@ -59,126 +57,6 @@ def _get_title(legacy: bool):
         title += "\n" + r"m$_{Reg}^{(0,1)}$:[60-250] GeV"
 
     return title
-
-
-def load_data(data_path: str, year: str, legacy: bool):
-    """
-    Load samples
-    """
-
-    samples = {
-        "2022": {
-            #    "hh4b": "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_Private",
-            "qcd": [
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        },
-        "2022EE": {
-            "qcd": [
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "ttlep": [
-                "TTtoLNu2Q",
-            ],
-            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
-            "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-            # "vhtobb": [
-            #     "WminusH_Hto2B_Wto2Q_M-125",
-            #     "WplusH_Hto2B_Wto2Q_M-125",
-            #     "ZH_Hto2B_Zto2Q_M-125",
-            #     "ggZH_Hto2B_Zto2Q_M-125",
-            # ],
-            # "vjets": [
-            #     "Wto2Q-3Jets_HT-200to400",
-            #     "Wto2Q-3Jets_HT-400to600",
-            #     "Wto2Q-3Jets_HT-600to800",
-            #     "Wto2Q-3Jets_HT-800",
-            #     "Zto2Q-4Jets_HT-200to400",
-            #     "Zto2Q-4Jets_HT-400to600",
-            #     "Zto2Q-4Jets_HT-600to800",
-            #     "Zto2Q-4Jets_HT-800",
-            # ],
-        },
-        "2023": {
-            "qcd": [
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
-        },
-        "2023BPix": {
-            "qcd": [
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
-        },
-    }
-
-    dirs = {data_path: samples}
-    filters = filters_legacy if legacy else filters_v12
-    load_columns = load_columns_legacy if legacy else load_columns_v12
-
-    events_dict = {}
-    print(f"Loading samples from {year}")
-    for input_dir, samples in dirs.items():
-        events_dict = {
-            **events_dict,
-            **load_samples(
-                input_dir,
-                samples[year],
-                year,
-                filters=filters,
-                variations=False,
-                reorder_legacy_txbb=legacy,
-                columns=format_columns(load_columns),
-            ),
-        }
-
-    # apply mask (maybe this is not needed once ordering is fixed in processor) - not needed since this is applied in the filters
-    # for key in events_dict:
-    #     if legacy:
-    #         # guarantee that Xbb>0.8 is applied to first bb jet
-    #         xbb_0 = events_dict[key]["bbFatJetPNetTXbbLegacy"].to_numpy()[:, 0]
-    #         mask = xbb_0 >= 0.8
-    #         events_dict[key] = events_dict[key][mask]
-
-    return events_dict
 
 
 def preprocess_data(
@@ -466,7 +344,7 @@ def evaluate_model(
 
         print("Making BDT shape plots")
 
-        legtitle = _get_title(legacy)
+        legtitle = get_legtitle(legacy)
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
@@ -600,6 +478,7 @@ def evaluate_model(
             else:
                 ax.set_xlim([0.0, 0.7])
                 ax.set_ylim([0, 0.08])
+
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
             ax.legend(
@@ -947,7 +826,7 @@ def plot_train_test(
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
 
-            legtitle = _get_title(legacy)
+            legtitle = get_legtitle(legacy)
 
             ax.legend(
                 title=legtitle,
@@ -1010,11 +889,22 @@ def plot_train_test(
 
 
 def main(args):
-    # for year in ["2022", "2022EE", "2023", "2023BPix"]:
-    year = "2022EE"
-    events_dict = load_data(args.data_path, year, args.legacy)
-
     training_keys = args.sig_keys + args.bg_keys  # default: ["hh4b", "ttbar", "qcd"]
+
+    events_dict_years = {}
+    for year in args.years:
+        for key in list(samples_run3[year].keys()):
+            if key not in training_keys:
+                samples_run3.pop(key)
+
+        events_dict_years[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
+
+    if len(args.years) == 1:
+        year = args.years[0]
+        events_dict = events_dict_years[year]
+    else:
+        year = "2022-2023"
+        events_dict = combine_run3_samples(events_dict_years)
 
     (
         X_train,
@@ -1107,7 +997,7 @@ def main(args):
     events_dict = {}
     years_test = ["2022EE"] if args.legacy else ["2022", "2022EE", "2023", "2023BPix"]
     for year in years_test:
-        events_dict[year] = load_data(args.data_path, year, args.legacy)
+        events_dict[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
 
     plot_allyears(
         events_dict,
@@ -1123,6 +1013,14 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--years",
+        type=str,
+        nargs="+",
+        default=["2022EE"],
+        choices=hh_vars.years,
+        help="years to train on",
+    )
     parser.add_argument(
         "--data-path",
         required=True,
@@ -1165,5 +1063,8 @@ if __name__ == "__main__":
 
     if args.config_name is None:
         args.config_name = args.model_name
+
+    if not (len(args.years) == 1 or len(args.years) == 4):
+        raise NotImplementedError("Load samples only implemented for 1 year or all 4 years")
 
     main(args)

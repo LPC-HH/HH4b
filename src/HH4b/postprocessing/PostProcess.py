@@ -7,23 +7,38 @@ from pathlib import Path
 from typing import Callable
 
 import hist
-
-# temp
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import mplhep as hep
 import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
+from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b.boosted.TrainBDT import get_legtitle
 from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
+    combine_run3_samples,
     corrections,
-    filters_legacy,
-    filters_v12,
-    load_columns_legacy,
-    load_columns_v12,
+    load_run3_samples,
 )
-from HH4b.utils import ShapeVar, load_samples
+from HH4b.utils import ShapeVar
+
+plt.style.use(hep.style.CMS)
+hep.style.use("CMS")
+
+formatter = mticker.ScalarFormatter(useMathText=True)
+formatter.set_powerlimits((-3, 3))
+
+mpl.rcParams["font.size"] = 30
+mpl.rcParams["lines.linewidth"] = 2
+mpl.rcParams["grid.color"] = "#CCCCCC"
+mpl.rcParams["grid.linewidth"] = 0.5
+mpl.rcParams["figure.dpi"] = 400
+mpl.rcParams["figure.edgecolor"] = "none"
+
 
 # from .corrections import ttbar_pTjjSF
 
@@ -129,13 +144,65 @@ def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
         events["bdt_score_vbf"] = preds[:, 1] / (preds[:, 1] + bg_tot)
 
 
-def load_run3_samples(args, year, bdt_training_keys):
-    # modify as needed
-    input_dir = f"{args.data_dir}/{args.tag}"
+def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
+    sig_keys = ["hh4b", "vbfhh4b-k2v0"]
+    scores_keys = {
+        "hh4b": "bdt_score",
+        "vbfhh4b-k2v0": "bdt_score_vbf",
+    }
+    bg_keys = ["qcd", "ttbar"]
+    legtitle = get_legtitle(legacy)
 
+    if "bdt_score_vbf" not in events_combined["ttbar"]:
+        sig_keys.remove("vbfhh4b-k2v0")
+
+    for sig_key in sig_keys:
+        rocs = postprocessing.make_rocs(
+            events_combined, scores_keys[sig_key], "weight", sig_key, bg_keys
+        )
+        bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        for bg_key in [*bg_keys, "merged"]:
+            ax.plot(
+                rocs[bg_key]["tpr"],
+                rocs[bg_key]["fpr"],
+                linewidth=2,
+                color=bkg_colors[bg_key],
+                label=rocs[bg_key]["label"],
+            )
+
+        ax.set_xlim([0.0, 0.6])
+        ax.set_ylim([1e-5, 1e-1])
+        ax.set_yscale("log")
+
+        ax.set_title(f"{plotting.label_by_sample[sig_key]} BDT ROC Curve")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
+        ax.legend(
+            title=legtitle,
+            bbox_to_anchor=(1.03, 1),
+            loc="upper left",
+        )
+        fig.tight_layout()
+        fig.savefig(plot_dir / f"{sig_key}_roc.png")
+        fig.savefig(plot_dir / f"{sig_key}_roc.pdf", bbox_inches="tight")
+        plt.close()
+
+
+def load_process_run3_samples(args, year, bdt_training_keys):
+    events_dict = load_run3_samples(f"{args.data_dir}/{args.tag}", year, args.legacy, samples_run3)
     legacy_label = "Legacy" if args.legacy else ""
-    filters = filters_legacy if args.legacy else filters_v12
-    load_columns = load_columns_legacy if args.legacy else load_columns_v12
+
+    cutflow = pd.DataFrame(index=list(events_dict.keys()))
+    cutflow_dict = {
+        key: OrderedDict(
+            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
+        )
+        for key in events_dict
+    }
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
@@ -145,45 +212,6 @@ def load_run3_samples(args, year, bdt_training_keys):
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    if year == "2023":
-        load_columns_year = load_columns + [
-            ("AK8PFJet230_SoftDropMass40_PNetBB0p06", 1),
-            ("AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35", 1),
-        ]
-    elif year == "2023BPix":
-        load_columns_year = load_columns + [("AK8PFJet230_SoftDropMass40_PNetBB0p06", 1)]
-    else:
-        load_columns_year = load_columns + [
-            ("AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35", 1)
-        ]
-
-    # pre-selection
-    events_dict = load_samples(
-        input_dir,
-        samples_run3[year],
-        year,
-        filters=filters,
-        columns=utils.format_columns(load_columns_year),
-        variations=False,
-    )
-
-    HLTs = {
-        "2022": ["AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35"],
-        "2022EE": ["AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35"],
-        "2023": [
-            "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-            "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        ],
-        "2023BPix": ["AK8PFJet230_SoftDropMass40_PNetBB0p06"],
-    }
-
-    cutflow = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_dict = {
-        key: OrderedDict(
-            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
-        )
-        for key in events_dict
-    }
     # inference and assign score
     events_dict_postprocess = {}
     for key in events_dict:
@@ -198,12 +226,12 @@ def load_run3_samples(args, year, bdt_training_keys):
             :, 1
         ]
 
-        # add HLTs
+        # add HLTs - added now in filters
         bdt_events["hlt"] = np.any(
             np.array(
                 [
                     events_dict[key][trigger].to_numpy()[:, 0]
-                    for trigger in HLTs[year]
+                    for trigger in postprocessing.HLTs[year]
                     if trigger in events_dict[key]
                 ]
             ),
@@ -447,18 +475,18 @@ def postprocess_run3(args):
     global bg_keys  # noqa: PLW0603
 
     # Removing all MC backgrounds for FOM scan only to save time
-    if not args.templates:
+    if not args.templates and not args.bdt_roc:
         print("Not loading any backgrounds.")
 
     for year, samples_year in samples_run3.items():
-        if not args.templates:
+        if not args.templates and not args.bdt_roc:
             for key in bg_keys:
                 if key in samples_year:
                     samples_year.pop(key)
         elif year != "2022EE":
             samples_year.pop("qcd")  # only load qcd for 2022EE to save time
 
-    if not args.templates:
+    if not args.templates and not args.bdt_roc:
         bg_keys = []
 
     window_by_mass = {"H2Msd": [110, 140]}
@@ -482,55 +510,17 @@ def postprocess_run3(args):
     cutflows = {}
     for year in args.years:
         print(f"\n{year}")
-        events_dict_postprocess[year], cutflows[year] = load_run3_samples(
+        events_dict_postprocess[year], cutflows[year] = load_process_run3_samples(
             args, year, bdt_training_keys
         )
 
     processes = ["data"] + args.sig_keys + bg_keys
+    events_combined = combine_run3_samples(events_dict_postprocess, processes, bg_keys)
 
-    # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
-    scale_processes = {
-        "hh4b": ["2022EE", "2023", "2023BPix"],
-        "vbfhh4b-k2v0": ["2022", "2022EE"],
-        "qcd": ["2022EE"],
-    }
-
-    # create combined datasets
-    # temporarily used 2022EEMC and scale to full luminosity
-    lumi_total = np.sum([LUMI[year] for year in years])
-
-    events_combined = {}
-    for key in processes:
-        if key not in scale_processes:
-            combined = pd.concat([events_dict_postprocess[year][key] for year in years])
-        else:
-            combined = pd.concat(
-                [events_dict_postprocess[year][key].copy() for year in scale_processes[key]]
-            )
-            lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
-            combined["weight"] = combined["weight"] * lumi_scale
-
-        events_combined[key] = combined
-
-    # combine ttbar
-    if "ttbar" in bg_keys and "ttlep" in bg_keys:
-        events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
-        events_combined.pop("ttlep")
-        bg_keys.remove("ttlep")
-
-    # combine others (?)
-    others = ["diboson", "vjets", "novhhtobb"]
-    if np.all([key in bg_keys for key in others]):
-        events_combined["others"] = pd.concat([events_combined[key] for key in others])
-        for key in others:
-            events_combined.pop(key)
-            bg_keys.remove(key)
-        bg_keys.append("others")
+    plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
+    plot_dir.mkdir(exist_ok=True, parents=True)
 
     if args.fom_scan:
-        plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
-        plot_dir.mkdir(exist_ok=True, parents=True)
-
         mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
 
         if args.fom_scan_vbf:
@@ -575,7 +565,8 @@ def postprocess_run3(args):
                 mass=args.mass,
             )
 
-        # TODO: VBF bin scan
+    if args.bdt_roc:
+        bdt_roc(events_combined, plot_dir, args.legacy)
 
     if not args.templates:
         return
@@ -698,6 +689,7 @@ if __name__ == "__main__":
         help="sig keys for which to make templates",
     )
 
+    run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scans")
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
