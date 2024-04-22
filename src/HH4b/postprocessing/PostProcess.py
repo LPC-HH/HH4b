@@ -451,7 +451,6 @@ def postprocess_run3(args):
         print("Not loading any backgrounds.")
 
     for year, samples_year in samples_run3.items():
-
         if not args.templates:
             for key in bg_keys:
                 if key in samples_year:
@@ -614,7 +613,7 @@ def postprocess_run3(args):
         systematics={},
         template_dir=templ_dir,
         bg_keys=bg_keys,
-        # plot_dir=f"{templ_dir}/{year}",
+        # plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
         weight_key="weight",
         show=False,
         energy=13.6,
