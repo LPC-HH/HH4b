@@ -18,6 +18,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from HH4b import plotting
+from HH4b.postprocessing import (
+    filters_legacy,
+    filters_v12,
+    load_columns_legacy,
+    load_columns_v12,
+)
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import format_columns, load_samples
 
@@ -93,9 +99,7 @@ def load_data(data_path: str, year: str, legacy: bool):
             "ttlep": [
                 "TTtoLNu2Q",
             ],
-            "hh4b": [
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
-            ],
+            "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
             "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
             # "vhtobb": [
             #     "WminusH_Hto2B_Wto2Q_M-125",
@@ -147,78 +151,8 @@ def load_data(data_path: str, year: str, legacy: bool):
     }
 
     dirs = {data_path: samples}
-
-    if legacy:
-        # mass_key = "bbFatJetMsd"
-        mass_key = "bbFatJetPNetMassLegacy"
-        # both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
-        # (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
-        filters = [
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                # added
-                (f"('{mass_key}', '0')", "<=", 250),
-                (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 60),
-                (f"('{mass_key}', '1')", ">=", 60),
-                ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
-            ],
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                # added
-                (f"('{mass_key}', '0')", "<=", 250),
-                (f"('{mass_key}', '1')", "<=", 250),
-                (f"('{mass_key}', '0')", ">=", 60),
-                (f"('{mass_key}', '1')", ">=", 60),
-                ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
-            ],
-        ]
-    else:
-        filters = [
-            [
-                ("('bbFatJetPt', '0')", ">=", 300),
-                ("('bbFatJetPt', '1')", ">=", 300),
-                ("('bbFatJetMsd', '0')", "<=", 250),
-                ("('bbFatJetMsd', '1')", "<=", 250),
-                ("('bbFatJetMsd', '0')", ">=", 30),
-                ("('bbFatJetMsd', '1')", ">=", 30),
-            ],
-        ]
-
-    load_columns = [
-        ("weight", 1),
-        ("event", 1),
-        ("MET_pt", 1),
-        ("bbFatJetPt", 2),
-        ("bbFatJetEta", 2),
-        ("bbFatJetPhi", 2),
-        ("bbFatJetMsd", 2),
-        ("bbFatJetTau3OverTau2", 2),
-        ("VBFJetPt", 2),
-        ("VBFJetEta", 2),
-        ("VBFJetPhi", 2),
-        ("VBFJetMass", 2),
-    ]
-
-    if legacy:
-        load_columns += [
-            ("bbFatJetPNetTXbbLegacy", 2),
-            ("bbFatJetPNetPXbbLegacy", 2),
-            ("bbFatJetPNetPQCDbLegacy", 2),
-            ("bbFatJetPNetPQCDbbLegacy", 2),
-            ("bbFatJetPNetPQCDothersLegacy", 2),
-            ("bbFatJetPNetMassLegacy", 2),
-        ]
-    else:
-        load_columns += [
-            ("bbFatJetPNetTXbb", 2),
-            ("bbFatJetPNetMass", 2),
-            ("bbFatJetPNetQCD0HF", 2),
-            ("bbFatJetPNetQCD1HF", 2),
-            ("bbFatJetPNetQCD2HF", 2),
-        ]
+    filters = filters_legacy if legacy else filters_v12
+    load_columns = load_columns_legacy if legacy else load_columns_v12
 
     events_dict = {}
     print(f"Loading samples from {year}")

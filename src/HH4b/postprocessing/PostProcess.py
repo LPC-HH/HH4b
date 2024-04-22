@@ -13,7 +13,15 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils, utils
-from HH4b.postprocessing import Region, corrections
+from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years
+from HH4b.postprocessing import (
+    Region,
+    corrections,
+    filters_legacy,
+    filters_v12,
+    load_columns_legacy,
+    load_columns_v12,
+)
 from HH4b.utils import ShapeVar, load_samples
 
 # from .corrections import ttbar_pTjjSF
@@ -57,224 +65,65 @@ from HH4b.utils import ShapeVar, load_samples
 #     }
 
 
-def load_run3_samples(args, year):
+selection_regions = {
+    "pass_bin1": Region(
+        cuts={
+            "Category": [1, 2],
+        },
+        label="Bin1",
+    ),
+    "pass_bin2": Region(
+        cuts={
+            "Category": [2, 3],
+        },
+        label="Bin2",
+    ),
+    "pass_bin3": Region(
+        cuts={
+            "Category": [3, 4],
+        },
+        label="Bin3",
+    ),
+    "fail": Region(
+        cuts={
+            "Category": [4, 5],
+        },
+        label="Fail",
+    ),
+}
+
+
+def _get_bdt_training_keys(bdt_model: str):
+    inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+
+    training_keys = []
+    for child in inferences_dir.iterdir():
+        if child.endswith(".npy"):
+            training_keys.append(child.stem.split("evt_")[-1])
+
+    print("Found BDT Training keys", training_keys)
+
+
+def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
+    if preds.shape[1] == 2:  # binary BDT only
+        events["bdt_score"] = preds[:, 1]
+    elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
+        events["bdt_score"] = preds[:, 0]  # ggF HH
+    elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
+        bg_tot = np.sum(preds[:, 2:], axis=1)
+        events["bdt_score"] = preds[:, 0] / (preds[:, 0] + bg_tot)
+        events["bdt_score_vbf"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+
+
+def load_run3_samples(args, year, bdt_training_keys):
     # modify as needed
     input_dir = f"{args.data_dir}/{args.tag}"
-
-    samples_run3 = {
-        "2022": {
-            "data": [
-                "JetMET_Run2022C",
-                "JetMET_Run2022C_single",
-                "JetMET_Run2022D",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "ttlep": [
-                "TTtoLNu2Q",
-                "TTto2L2Nu",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "tthtobb": [
-                "ttHto2B_M-125",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
-        },
-        "2022EE": {
-            "data": [
-                "JetMET_Run2022E",
-                "JetMET_Run2022F",
-                "JetMET_Run2022G",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "ttlep": [
-                "TTtoLNu2Q",
-                "TTto2L2Nu",
-            ],
-            "hh4b": [
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
-            ],
-            "vbfhh4b": [
-                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "tthtobb": [
-                "ttHto2B_M-125",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
-            "qcd": [
-                "QCD_HT-200to400",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-            ],
-        },
-        "2023": {
-            "data": [
-                "JetMET_Run2023C",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "ttlep": [
-                "TTtoLNu2Q",
-                "TTto2L2Nu",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "tthtobb": [
-                "ttHto2B_M-125",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-                "ggZH_Hto2B_Zto2Q_M-125",
-            ],
-        },
-        "2023BPix": {
-            "data": [
-                "JetMET_Run2023D",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "ttlep": [
-                "TTtoLNu2Q",
-                "TTto2L2Nu",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "vjets": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800",
-            ],
-            "novhhtobb": [
-                "GluGluHto2B_PT-200_M-125",
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-            "tthtobb": [
-                "ttHto2B_M-125",
-            ],
-            "vhtobb": [
-                "WminusH_Hto2B_Wto2Q_M-125",
-                "WplusH_Hto2B_Wto2Q_M-125",
-                "ZH_Hto2B_Zto2Q_M-125",
-            ],
-        },
-    }
+    samples = samples_run3[year].copy()
+    samples.pop("qcd")  # QCD is all data-driven so don't need it
 
     legacy_label = "Legacy" if args.legacy else ""
-
-    load_columns = [
-        ("weight", 1),
-        ("MET_pt", 1),
-        ("event", 1),
-        ("nFatJets", 1),
-        ("bbFatJetPt", 2),
-        ("bbFatJetEta", 2),
-        ("bbFatJetPhi", 2),
-        ("bbFatJetMsd", 2),
-        (f"bbFatJetPNetMass{legacy_label}", 2),
-        (f"bbFatJetPNetXbb{legacy_label}", 2),
-        ("bbFatJetTau3OverTau2", 2),
-        # (f"bbFatJetPNetQCD0HF{legacy_label}", 2),
-        # (f"bbFatJetPNetQCD1HF{legacy_label}", 2),
-        # (f"bbFatJetPNetQCD2HF{legacy_label}", 2),
-    ]
-
-    if not args.legacy:
-        load_columns += [
-            ("bbFatJetPNetQCD0HF", 2),
-            ("bbFatJetPNetQCD1HF", 2),
-            ("bbFatJetPNetQCD2HF", 2),
-        ]
-
-    filters = [
-        [
-            ("('bbFatJetPt', '0')", ">=", 300),
-            ("('bbFatJetPt', '1')", ">=", 300),
-        ],
-    ]
+    filters = filters_legacy if args.legacy else filters_v12
+    load_columns = load_columns_legacy if args.legacy else load_columns_v12
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
@@ -327,9 +176,9 @@ def load_run3_samples(args, year):
     events_dict_postprocess = {}
     for key in events_dict:
         bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
-        bdt_score = bdt_model.predict_proba(bdt_events)[:, 1]
+        preds = bdt_model.predict_proba(bdt_events)
+        _add_bdt_scores(bdt_events, preds)
 
-        bdt_events["bdt_score"] = bdt_score
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H2Xbb"] = events_dict[key][f"bbFatJetPNetXbb{legacy_label}"].to_numpy()[:, 1]
@@ -351,18 +200,19 @@ def load_run3_samples(args, year):
 
         # add more columns (e.g. (uncertainties etc)
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
-        ## Add TTBar Weigh)t here
-        if key == "ttbar":
+        ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
+        if key == "ttbar" and not args.legacy:
             bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
-        if year == "2022EE" and key in ["qcd", "ttbar", "hh4b"]:
-            evt_list = np.load(
-                f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/2022EE/evt_{key}.npy"
-            )
-            bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
-            bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
+        if year == "2022EE":
+            inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+
+            if key in bdt_training_keys:
+                evt_list = np.load(inferences_dir / f"evt_{key}.npy")
+                bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
+                bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
 
         # extra selection
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
@@ -444,7 +294,7 @@ def scan_fom(
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    xbb_cuts = np.arange(0.8, 0.98, 0.02)
+    xbb_cuts = np.arange(0.8, 1, 0.02)
     bdt_cuts = np.arange(0.8, 1, 0.01)
     h_sb = hist.Hist(
         hist.axis.Variable(bdt_cuts, name="bdt_cut"),
@@ -563,39 +413,12 @@ def scan_fom_bin2(
 
 
 def postprocess_run3(args):
-    selection_regions = {
-        "pass_bin1": Region(
-            cuts={
-                "Category": [1, 2],
-            },
-            label="Bin1",
-        ),
-        "pass_bin2": Region(
-            cuts={
-                "Category": [2, 3],
-            },
-            label="Bin2",
-        ),
-        "pass_bin3": Region(
-            cuts={
-                "Category": [3, 4],
-            },
-            label="Bin3",
-        ),
-        "fail": Region(
-            cuts={
-                "Category": [4, 5],
-            },
-            label="Fail",
-        ),
-    }
-
     label_by_mass = {
         "H2Msd": r"$m^{2}_\mathrm{SD}$ (GeV)",
         "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
     }
     window_by_mass = {"H2Msd": [110, 140]}
-    if args.legacy:
+    if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
     else:
         window_by_mass["H2PNetMass"] = [110, 140]
@@ -610,32 +433,40 @@ def postprocess_run3(args):
     )
 
     # load samples
+    bdt_training_keys = _get_bdt_training_keys(args.bdt_model)
     events_dict_postprocess = {}
     cutflows = {}
     for year in args.years:
-        events_dict_postprocess[year], cutflows[year] = load_run3_samples(args, year)
+        events_dict_postprocess[year], cutflows[year] = load_run3_samples(
+            args, year, bdt_training_keys
+        )
 
-    bkg_keys = ["qcd", "ttbar", "ttlep", "vhtobb", "vjets", "diboson", "novhhtobb", "tthtobb"]
-    processes = ["data", "hh4b"] + bkg_keys
+    bg_keys.remove("qcd")
+    processes = ["data"] + args.sig_keys + bg_keys
+
+    # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
+    scale_processes = {
+        "hh4b": ["2022EE", "2023", "2023BPix"],
+        "vbfhh4b-k2v0": ["2022", "2022EE"],
+    }
 
     # create combined datasets
     # temporarily used 2022EEMC and scale to full luminosity
-    lumi_weight_2022EEtoall = (7971.4 + 26337.0 + 17650.0 + 9451.0) / 26337.0
+    lumi_total = np.sum([LUMI[year] for year in years])
+
     events_combined = {}
     for key in processes:
-        if key not in ["hh4b", "qcd"]:
-            combined = pd.concat(
-                [
-                    events_dict_postprocess["2022"][key],
-                    events_dict_postprocess["2022EE"][key],
-                    events_dict_postprocess["2023"][key],
-                    events_dict_postprocess["2023BPix"][key],
-                ]
-            )
+        if key not in scale_processes:
+            combined = pd.concat([events_dict_postprocess[year][key] for year in years])
         else:
-            combined = events_dict_postprocess["2022EE"][key].copy()
-            combined["weight"] = combined["weight"] * lumi_weight_2022EEtoall
+            combined = pd.concat(
+                [events_dict_postprocess[year][key].copy() for year in scale_processes[key]]
+            )
+            lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
+            combined["weight"] = combined["weight"] * lumi_scale
+
         events_combined[key] = combined
+
     # combine ttbar
     events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
     events_combined["others"] = pd.concat(
@@ -689,12 +520,12 @@ def postprocess_run3(args):
     templates = postprocessing.get_templates(
         events_combined,
         year=year,
-        sig_keys=["hh4b"],
+        sig_keys=args.sig_keys,
         selection_regions=selection_regions,
         shape_vars=[fit_shape_var],
         systematics={},
         template_dir=templ_dir,
-        bg_keys=bkg_keys,
+        bg_keys=bg_keys,
         plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
         show=False,
@@ -769,7 +600,18 @@ if __name__ == "__main__":
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
 
-    run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scan")
+    parser.add_argument(
+        "--sig-keys",
+        type=str,
+        nargs="+",
+        default=["hh4b"],
+        help="sig keys for which to make templates",
+    )
+
+    run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scans")
+    run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
+    run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
+    run_utils.add_bool_arg(parser, "fom-scan-vbf", default=True, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=False, help="using legacy pnet txbb and mass")
     args = parser.parse_args()
