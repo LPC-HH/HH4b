@@ -124,6 +124,7 @@ def bregcorr(jets: JetArray):
 # add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
+    fatjets["t21"] = ak.nan_to_num(fatjets.tau2 / fatjets.tau1, nan=-1.0)
 
     fatjets_fields = fatjets.fields
 
