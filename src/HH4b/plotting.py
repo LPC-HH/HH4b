@@ -526,6 +526,7 @@ def ratioHistPlot(
         axrax (Tuple): optionally input ax and rax instead of creating new ones
     """
 
+
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
     # hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
@@ -613,6 +614,7 @@ def ratioHistPlot(
                 color=sig_colours[: len(sig_keys)],
             )
 
+
     # plot background errors
     if bg_err is None:
         # get background error from variances
@@ -624,44 +626,44 @@ def ratioHistPlot(
         if len(np.array(bg_err).shape) == 1:
             bg_err = [bg_tot - bg_err, bg_tot + bg_err]
 
-        if bg_err_type == "shaded":
-            ax.fill_between(
-                np.repeat(hists.axes[1].edges, 2)[1:-1],
-                np.repeat(bg_err[0], 2),
-                np.repeat(bg_err[1], 2),
-                color="black",
-                alpha=0.2,
-                hatch="//",
-                linewidth=0,
-                label="Total Background Uncertainty",
-            )
-        else:
-            ax.stairs(
-                bg_tot.values(),
-                hists.axes[1].edges,
-                color="black",
-                linewidth=3,
-                label="BG Total",
-                baseline=bg_tot.values(),
-            )
+    if bg_err_type == "shaded":
+        ax.fill_between(
+            np.repeat(hists.axes[1].edges, 2)[1:-1],
+            np.repeat(bg_err[0].values(), 2),
+            np.repeat(bg_err[1].values(), 2),
+            color="black",
+            alpha=0.2,
+            hatch="//",
+            linewidth=0,
+            label="Total Background Uncertainty",
+        )
+    else:
+        ax.stairs(
+            bg_tot.values(),
+            hists.axes[1].edges,
+            color="black",
+            linewidth=3,
+            label="BG Total",
+            baseline=bg_tot.values(),
+        )
 
-            ax.stairs(
-                bg_err[0],
-                hists.axes[1].edges,
-                color="red",
-                linewidth=3,
-                label="BG Down",
-                baseline=bg_err[0],
-            )
+        ax.stairs(
+            bg_err[0],
+            hists.axes[1].edges,
+            color="red",
+            linewidth=3,
+            label="BG Down",
+            baseline=bg_err[0],
+        )
 
-            ax.stairs(
-                bg_err[1],
-                hists.axes[1].edges,
-                color="#7F2CCB",
-                linewidth=3,
-                label="BG Up",
-                baseline=bg_err[1],
-            )
+        ax.stairs(
+            bg_err[1],
+            hists.axes[1].edges,
+            color="#7F2CCB",
+            linewidth=3,
+            label="BG Up",
+            baseline=bg_err[1],
+        )
 
     # plot data
     if plot_data:
