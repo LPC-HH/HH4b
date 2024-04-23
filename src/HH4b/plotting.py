@@ -627,8 +627,8 @@ def ratioHistPlot(
         if bg_err_type == "shaded":
             ax.fill_between(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
-                np.repeat(bg_err[0], 2),
-                np.repeat(bg_err[1], 2),
+                np.repeat(bg_err[0].values(), 2),
+                np.repeat(bg_err[1].values(), 2),
                 color="black",
                 alpha=0.2,
                 hatch="//",
