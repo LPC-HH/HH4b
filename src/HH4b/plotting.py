@@ -85,6 +85,8 @@ color_by_sample = {
     "hh4b-kl0": "fuchsia",
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
+    "vbfhh4b": "fuchsia",
+    "vbfhh4b-k2v0": "purple",
     "ttbar": colours["darkblue"],
     "ttlep": "cadetblue",
     "qcd": colours["canary"],
@@ -106,10 +108,12 @@ label_by_sample = {
     "qcd": "Multijet",
     "qcd-ht": "Multijet HT bin",
     "qcdb-ht": "Multijet B HT bin",
-    "hh4b": r"HH 4b ($\kappa_{\lambda}=1$)",
-    "hh4b-kl2p45": r"HH 4b ($\kappa_{\lambda}=2.45$)",
-    "hh4b-kl5": r"HH 4b ($\kappa_{\lambda}=5$)",
-    "hh4b-kl0": r"HH 4b ($\kappa_{\lambda}=0$)",
+    "hh4b": r"ggF HH4b",
+    "hh4b-kl2p45": r"HH4b ($\kappa_{\lambda}=2.45$)",
+    "hh4b-kl5": r"HH4b ($\kappa_{\lambda}=5$)",
+    "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
+    "vbfhh4b": r"VBF HH4b",
+    "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -614,10 +618,10 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    if bg_err is None:
-        # get background error from variances
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err = np.sqrt(bg_tot.variances())
+    # if bg_err is None:
+    #     # get background error from variances
+    #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
+    #     bg_err = np.sqrt(bg_tot.variances())
 
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
@@ -1046,8 +1050,11 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     va="center",
                     fontsize=10,
                 )
-    fig.tight_layout()
 
+    ax.set_xlabel("BDT Cut")
+    ax.set_ylabel(r"$T_{Xbb}$ Cut")
+
+    fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 

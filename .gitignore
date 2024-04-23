@@ -175,6 +175,9 @@ docker_stderror
 /condor
 src/HH4b/postprocessing/**/*.png
 src/HH4b/postprocessing/**/*.pdf
+src/HH4b/boosted/**/*.png
+src/HH4b/boosted/**/*.pdf
+src/HH4b/boosted/**/*roc_dict.pkl
 
 
 running_jobs.txt

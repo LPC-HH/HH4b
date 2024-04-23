@@ -8,15 +8,19 @@ from pathlib import Path
 
 import click
 import hist
+import numpy as np
 import pandas as pd
 from hist import Hist
+from sklearn.metrics import roc_curve
 
 from HH4b import plotting, utils
 from HH4b.hh_vars import (
+    LUMI,
     bg_keys,
     data_key,
     samples,
     sig_keys,
+    years,
 )
 
 # define ShapeVar (label and bins for a given variable)
@@ -28,6 +32,97 @@ class Region:
     cuts: dict = None
     label: str = None
 
+
+mass_key = "bbFatJetPNetMassLegacy"
+# both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
+# (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
+filters_legacy = [
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        # added
+        (f"('{mass_key}', '0')", "<=", 250),
+        (f"('{mass_key}', '1')", "<=", 250),
+        (f"('{mass_key}', '0')", ">=", 60),
+        (f"('{mass_key}', '1')", ">=", 60),
+        ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
+    ],
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        # added
+        (f"('{mass_key}', '0')", "<=", 250),
+        (f"('{mass_key}', '1')", "<=", 250),
+        (f"('{mass_key}', '0')", ">=", 60),
+        (f"('{mass_key}', '1')", ">=", 60),
+        ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
+    ],
+]
+
+filters_v12 = [
+    [
+        ("('bbFatJetPt', '0')", ">=", 300),
+        ("('bbFatJetPt', '1')", ">=", 300),
+        ("('bbFatJetMsd', '0')", "<=", 250),
+        ("('bbFatJetMsd', '1')", "<=", 250),
+        ("('bbFatJetMsd', '0')", ">=", 30),
+        ("('bbFatJetMsd', '1')", ">=", 30),
+    ],
+]
+
+
+HLTs = {
+    "2022": [
+        "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+        #  'AK8PFJet425_SoftDropMass40',
+    ],
+    "2022EE": [
+        "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+        # 'AK8PFJet425_SoftDropMass40',
+    ],
+    "2023": [
+        "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        # 'AK8PFJet425_SoftDropMass40',
+    ],
+    "2023BPix": [
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        #  'AK8PFJet425_SoftDropMass40',
+    ],
+}
+
+
+load_columns = [
+    ("weight", 1),
+    ("event", 1),
+    ("MET_pt", 1),
+    ("bbFatJetPt", 2),
+    ("bbFatJetEta", 2),
+    ("bbFatJetPhi", 2),
+    ("bbFatJetMsd", 2),
+    ("bbFatJetTau3OverTau2", 2),
+    ("VBFJetPt", 2),
+    ("VBFJetEta", 2),
+    ("VBFJetPhi", 2),
+    ("VBFJetMass", 2),
+]
+
+load_columns_legacy = load_columns + [
+    ("bbFatJetPNetTXbbLegacy", 2),
+    ("bbFatJetPNetPXbbLegacy", 2),
+    ("bbFatJetPNetPQCDbLegacy", 2),
+    ("bbFatJetPNetPQCDbbLegacy", 2),
+    ("bbFatJetPNetPQCDothersLegacy", 2),
+    ("bbFatJetPNetMassLegacy", 2),
+]
+
+load_columns_v12 = load_columns + [
+    ("bbFatJetPNetTXbb", 2),
+    ("bbFatJetPNetMass", 2),
+    ("bbFatJetPNetQCD0HF", 2),
+    ("bbFatJetPNetQCD1HF", 2),
+    ("bbFatJetPNetQCD2HF", 2),
+]
 
 weight_shifts = {
     "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
@@ -87,6 +182,137 @@ var_to_shapevar = {
         bins=[50, 0.0, 1],
     ),
 }
+
+
+def load_run3_samples(input_dir: str, year: str, legacy: bool, samples_run3: dict[str, list[str]]):
+    filters = filters_legacy if legacy else filters_v12
+    load_columns = load_columns_legacy if legacy else load_columns_v12
+
+    # add HLTs to load columns
+    load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
+
+    # add ORs of HLTs to filters
+    # filters_hlt = []
+    # for hlt in HLTs[year]:
+    #     filter_hlt = [(f"('{hlt}', '0')", "==", 1)]
+    #     filters_temp = filters.copy()
+    #     for i, filter_ in enumerate(filters_temp):
+    #         filters_temp[i] = filter_hlt + filter_
+    #     filters_hlt.append(filters_temp)
+
+    # if len(HLTs[year]) == 1:
+    #     filters_hlt = filters_hlt[0]
+
+    # print("Filters:")
+    # pprint(filters_hlt)
+
+    # pre-selection
+    events_dict = utils.load_samples(
+        input_dir,
+        samples_run3[year],
+        year,
+        filters=filters,
+        columns=utils.format_columns(load_columns_year),
+        variations=False,
+    )
+
+    return events_dict
+
+
+def combine_run3_samples(
+    events_dict_years: dict[str, dict[str, pd.DataFrame]],
+    processes: list[str],
+    bg_keys: list[str] = bg_keys,
+):
+    # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
+    scale_processes = {
+        "hh4b": ["2022EE", "2023", "2023BPix"],
+        "vbfhh4b-k2v0": ["2022", "2022EE"],
+        "qcd": ["2022EE"],
+    }
+
+    # create combined datasets
+    lumi_total = np.sum([LUMI[year] for year in years])
+
+    events_combined = {}
+    for key in processes:
+        if key not in scale_processes:
+            combined = pd.concat([events_dict_years[year][key] for year in years])
+        else:
+            combined = pd.concat(
+                [events_dict_years[year][key].copy() for year in scale_processes[key]]
+            )
+            lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
+            combined["weight"] = combined["weight"] * lumi_scale
+
+        events_combined[key] = combined
+
+    # combine ttbar
+    if "ttbar" in bg_keys and "ttlep" in bg_keys:
+        events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
+        events_combined.pop("ttlep")
+        bg_keys.remove("ttlep")
+
+    # combine others (?)
+    others = ["diboson", "vjets"]
+    if np.all([key in bg_keys for key in others]):
+        events_combined["others"] = pd.concat([events_combined[key] for key in others])
+        for key in others:
+            events_combined.pop(key)
+            bg_keys.remove(key)
+        bg_keys.append("others")
+
+    return events_combined
+
+
+def make_rocs(
+    events_dict: dict[str, pd.DataFrame],
+    scores_key: str,
+    weight_key: str,
+    sig_key: str,
+    bg_keys: list[str],
+):
+    rocs = {}
+    for bkg in [*bg_keys, "merged"]:
+        if bkg != "merged":
+            scores_roc = np.concatenate(
+                [events_dict[sig_key][scores_key], events_dict[bkg][scores_key]]
+            )
+            scores_true = np.concatenate(
+                [
+                    np.ones(len(events_dict[sig_key])),
+                    np.zeros(len(events_dict[bkg])),
+                ]
+            )
+            scores_weights = np.concatenate(
+                [events_dict[sig_key][weight_key], events_dict[bkg][weight_key]]
+            )
+            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+        else:
+            scores_roc = np.concatenate(
+                [events_dict[sig_key][scores_key]]
+                + [events_dict[bg_key][scores_key] for bg_key in bg_keys]
+            )
+            scores_true = np.concatenate(
+                [
+                    np.ones(len(events_dict[sig_key])),
+                    np.zeros(np.sum([len(events_dict[bg_key]) for bg_key in bg_keys])),
+                ]
+            )
+            scores_weights = np.concatenate(
+                [events_dict[sig_key][weight_key]]
+                + [events_dict[bg_key][weight_key] for bg_key in bg_keys]
+            )
+            fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
+
+        rocs[bkg] = {
+            "fpr": fpr,
+            "tpr": tpr,
+            "thresholds": thresholds,
+            "label": plotting.label_by_sample[bkg] if bkg != "merged" else "Combined",
+        }
+
+    return rocs
 
 
 @click.command()
