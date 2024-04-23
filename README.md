@@ -40,7 +40,7 @@ four beauty quarks (b).
     - [Dask](#dask)
   - [Postprocessing](#postprocessing)
     - [Setup](#setup-1)
-    - [Creating templates / FOM Scan](#creating-templates--fom-scan)
+    - [Creating templates / FOM Scan / BDT ROC curve](#creating-templates--fom-scan--bdt-roc-curve)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
@@ -48,6 +48,7 @@ four beauty quarks (b).
     - [CMSSW + Combine Quickstart](#cmssw--combine-quickstart)
     - [Create Datacards](#create-datacards)
     - [Run fits and diagnostics locally](#run-fits-and-diagnostics-locally)
+    - [Postfit plots](#postfit-plots)
       - [F-tests locally](#f-tests-locally)
   - [Moving datasets (WIP)](#moving-datasets-wip)
 
@@ -120,7 +121,7 @@ To test locally first (recommended), can do e.g.:
 ```bash
 mkdir outfiles
 python -W ignore src/run.py --starti 0 --endi 1 --year 2022 --processor skimmer --samples QCD --subsamples "QCD_PT-470to600"
-python -W ignore src/run.py --processor skimmer --year 2022 --nano-version v11_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG --starti 0 --endi 1
+python -W ignore src/run.py --processor skimmer --year 2022EE --nano-version v12_private --samples HH --subsamples GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV --starti 0 --endi 1
 python -W ignore src/run.py  --year 2022 --processor trigger_boosted --samples Muon --subsamples Run2022C --nano_version v11_private --starti 0 --endi 1
 ```
 
@@ -199,12 +200,12 @@ requirements in your conda environment:
 pip3 install -r requirements.txt
 ```
 
-### Creating templates / FOM Scan
+### Creating templates / FOM Scan / BDT ROC curve
 
 From inside the src/HH4b/postprocessing directory:
 
 ```bash
-python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal (--fom-scan | --no-fom-scan)
+python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal --legacy --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 (--no-fom-scan) (--no-fom-scan-bin1) (--no-fom-scan-bin2) (--no-fom-scan-vbf) (--no-templates) (--bdt-roc)
 ```
 
 ## Condor Scripts
@@ -214,12 +215,12 @@ python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal (
 Check that all jobs completed by going through output files:
 
 ```bash
-for year in 2016APV 2016 2017 2018; do python src/condor/check_jobs.py --tag $TAG --processor trigger (--submit) --year $year; done
+for year in 2022 2022EE 2023 2023BPix; do python src/condor/check_jobs.py --tag $TAG --processor trigger (--submit) --year $year; done
 ```
 
 e.g.
 
-```
+```bash
 python src/condor/check_jobs.py --year 2018 --tag Oct9 --processor matching --check-running --user cmantill --submit-missing
 ```
 
@@ -266,7 +267,7 @@ cd ..
 # this repo
 git clone https://github.com/LPC-HH/HH4b.git
 cd HH4b
-pip3 install . --user  # editable installation not working
+pip3 install -e . --user  # TODO: check editable installation
 ```
 
 Then, the command is:
@@ -278,7 +279,7 @@ python3 postprocessing/CreateDatacard.py --templates-dir templates/$TAG --model-
 e.g.
 
 ```
-python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2018-cutbased --year 2018
+python3 postprocessing/CreateDatacard.py --templates-dir postprocessing/templates/Apr18 --year 2022-2023  --model-name run3-bdt-apr18
 ```
 
 ### Run fits and diagnostics locally
@@ -286,8 +287,20 @@ python3 CreateDatacard.py --templates-dir templates/23Nov13_2018/ --model-name 2
 All via the below script, with a bunch of options (see script):
 
 ```bash
-run_blinded_hh4b.sh --workspace --bfit --limits
+run_blinded_hh4b.sh --workspace --bfit --limits --passbin 0
 ```
+
+It will automatically include the VBF category if the directory has a passvbf.txt card.
+
+
+### Postfit plots
+
+e.g.
+
+```bash
+python3 postprocessing/PlotFits.py --fit-file cards/run3-bdt-apr18/FitShapes.root --plots-dir ../../plots/PostFit/run3-bdt-apr18 --signal-scale 10
+```
+
 
 #### F-tests locally
 
