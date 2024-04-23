@@ -18,6 +18,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 import HH4b
 
 from . import utils
+from .GenSelection import gen_selection_Top
 from .corrections import (
     JECs,
     add_pileup_weight,
@@ -38,6 +39,12 @@ gen_selection_dict = {"HHto4B": gen_selection_HHbbbb, "HToBB": gen_selection_Hbb
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# mapping samples to the appropriate function for doing gen-level selections
+gen_selection_dict = {
+    "TTto4Q": gen_selection_Top,
+    "TTto2L2Nu": gen_selection_Top,
+    "TTtoLNu2Q": gen_selection_Top,
+}
 
 class ttSkimmer(SkimmerABC):
     """
@@ -61,20 +68,21 @@ class ttSkimmer(SkimmerABC):
             "Txbb": "PNetXbb",
             "Txjj": "PNetXjj",
             "Tqcd": "PNetQCD",
-            "TQCDb": "PNetQCD1HF",
-            "TQCDbb": "PNetQCD2HF",
-            "TQCDothers": "PNetQCD0HF",
+            # "TQCDb": "PNetQCD1HF",
+            # "TQCDbb": "PNetQCD2HF",
+            # "TQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
+            "t21": "Tau2OverTau1",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
         },
         # "GenHiggs": P4,
-        # "Event": {
-        #     "run": "run",
-        #     "event": "event",
-        #     "luminosityBlock": "luminosityBlock",
-        # },
+        "Event": {
+            "run": "run",
+            "event": "event",
+            "luminosityBlock": "luminosityBlock",
+        },
         # "Pileup": {
         #     "nPU",
         # },
@@ -261,13 +269,38 @@ class ttSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
         # fatjets ordered by xbb
-        fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
+        legacy = "particleNetLegacy_mass" in fatjets.fields
+
+        if not legacy:
+            # fatjets ordered by xbb
+            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
+        else:
+            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         print("Object definition", f"{time.time() - start:.2f}")
 
         #########################
         # Derive variables
         #########################
+
+        # Gen variables - saving HH and bbbb 4-vector info
+        genVars = {}
+        for d in gen_selection_dict:
+            if d in dataset:
+                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets_xbb, selection_args, P4)
+                genVars = {**genVars, **vars_dict}
+
+        # remove unnecessary ak4 gen variables for signal region
+        if self._region == "signal":
+            genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
+
+        # used for normalization to cross section below
+        gen_selected = (
+            selection.all(*selection.names)
+            if len(selection.names)
+            else np.ones(len(events)).astype(bool)
+        )
+                
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
         if not isData:
@@ -300,7 +333,19 @@ class ttSkimmer(SkimmerABC):
 
         print("Lepton vars", f"{time.time() - start:.2f}")
 
+        # event variable
+        met_pt = met.pt
+        
+        eventVars = {
+            key: events[val].to_numpy()
+            for key, val in self.skim_vars["Event"].items()
+            if key in events.fields
+        }
+        eventVars["MET_pt"] = met_pt.to_numpy()
+
         skimmed_events = {
+            **genVars,
+            **eventVars,
             **ak8FatJetVars,
             **leptonVars,
         }
