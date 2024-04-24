@@ -40,6 +40,7 @@ four beauty quarks (b).
     - [Dask](#dask)
   - [Postprocessing](#postprocessing)
     - [Setup](#setup-1)
+    - [BDT Training](#bdt-training)
     - [Creating templates / FOM Scan / BDT ROC curve](#creating-templates--fom-scan--bdt-roc-curve)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
@@ -198,6 +199,14 @@ requirements in your conda environment:
 
 ```bash
 pip3 install -r requirements.txt
+```
+
+### BDT Training
+
+Multi-class BDT training:
+
+```bash
+python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr19LegacyFixes_v12_private_signal/ --model-name 24Apr21_legacy_vbf_vars --legacy --sig-keys hh4b vbfhh4b-k2v0 --no-pnet-plots
 ```
 
 ### Creating templates / FOM Scan / BDT ROC curve
