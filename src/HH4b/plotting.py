@@ -631,7 +631,7 @@ def ratioHistPlot(
         bkg_err = bg_err
         if len(np.array(bg_err).shape) == 1:
             bg_err = [bg_tot - bg_err, bg_tot + bg_err]
-            
+
         if bg_err_type == "shaded":
             ax.fill_between(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
@@ -641,7 +641,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label=bg_err_label
+                label=bg_err_label,
             )
         else:
             ax.stairs(
@@ -678,7 +678,7 @@ def ratioHistPlot(
         else:
             return np.sqrt(bg_hist.variances())
 
-    #print(hists.axes[1].widths)
+    # print(hists.axes[1].widths)
 
     if bg_err_mcstat:
         if exclude_qcd_mcstat:
@@ -694,7 +694,7 @@ def ratioHistPlot(
         mcstat_dn = {}
         stack = None
         for sample in bg_keys:
-            if exclude_qcd_mcstat and sample=="qcd":
+            if exclude_qcd_mcstat and sample == "qcd":
                 continue
 
             bg_yield = hists[sample, :]
@@ -706,7 +706,7 @@ def ratioHistPlot(
             else:
                 stack += bg_yield
                 sample_bg_err = [stack - sample_bg_err, stack + sample_bg_err]
-                
+
             mcstat_up[sample] = sample_bg_err[0].values()
             mcstat_dn[sample] = sample_bg_err[1].values()
             if not plot_shaded:
@@ -721,9 +721,9 @@ def ratioHistPlot(
 
         if plot_shaded:
             for sample in bg_keys:
-                if exclude_qcd_mcstat and sample=="qcd":
+                if exclude_qcd_mcstat and sample == "qcd":
                     continue
-                    
+
                 ax.fill_between(
                     np.repeat(hists.axes[1].edges, 2)[1:-1],
                     np.repeat(mcstat_up[sample], 2),
@@ -801,8 +801,8 @@ def ratioHistPlot(
             # (bkg + err) / bkg
             rax.fill_between(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
-                np.repeat((bg_err[0].values() )/tot_val, 2),
-                np.repeat((bg_err[1].values() )/tot_val, 2),
+                np.repeat((bg_err[0].values()) / tot_val, 2),
+                np.repeat((bg_err[1].values()) / tot_val, 2),
                 color="black",
                 alpha=0.1,
                 hatch="//",
@@ -862,7 +862,7 @@ def ratioHistPlot(
         yhist = (hists[data_key, :] - bg_tot) / data_err
         yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, data_err, "poisson")
 
-        hep.histplot(            
+        hep.histplot(
             yhist,
             ax=sax,
             yerr=yerr,
@@ -873,7 +873,7 @@ def ratioHistPlot(
         sax.set_ylim([-4, 4])
         sax.set_xlabel(hists.axes[1].label)
         sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
-        
+
         minor_locator = mticker.AutoMinorLocator(2)
         sax.yaxis.set_minor_locator(minor_locator)
         sax.grid(axis="y", linestyle="-", linewidth=2, which="both")

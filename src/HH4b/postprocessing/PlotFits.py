@@ -138,7 +138,7 @@ def plot_fits(args):
                     "sig_scale_dict": {"hh4b": signal_scale},
                     "bg_keys": bkg_keys,
                     "bg_err": bgerrs[shape][region],
-                    "bg_err_mcstat": True if shape=="prefit" else False,
+                    "bg_err_mcstat": True if shape == "prefit" else False,
                     "show": True,
                     "year": year,
                     "ylim": ylims[region],
@@ -149,7 +149,7 @@ def plot_fits(args):
                     "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}.pdf",
                     "bg_order": bkg_order,
                     "energy": 13.6,
-                    "add_pull": True if shape=="postfit" else False,
+                    "add_pull": True if shape == "postfit" else False,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
