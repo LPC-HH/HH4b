@@ -70,10 +70,9 @@ parser.add_argument(
     "--min-qcd-val", default=1e-3, type=float, help="clip the pass QCD to above a minimum value"
 )
 
-add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
-parser.add_argument(
-    "--sig-sample", default=None, type=str, help="can specify a specific signal key"
-)
+add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
+parser.add_argument("--sig-sample", default="hh4b", type=str, help="specify signal")
+
 parser.add_argument(
     "--nTF",
     default=None,
@@ -86,7 +85,7 @@ parser.add_argument(
     default="all",
     type=str,
     help="regions for which to make cards",
-    choices=["pass_bin1", "pass_bin2", "pass_bin3", "all"],
+    choices=["pass_vbf", "pass_bin1", "pass_bin2", "pass_bin3", "all"],
 )
 parser.add_argument("--model-name", default=None, type=str, help="output model name")
 parser.add_argument(
@@ -99,6 +98,7 @@ parser.add_argument(
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
+add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 args = parser.parse_args()
 
 
@@ -109,11 +109,15 @@ qcd_data_key = "qcd_datadriven"
 if args.nTF is None:
     if args.regions == "all":
         args.nTF = [0, 0, 1]
+        if args.vbf_region:
+            args.nTF = [0] + args.nTF
     else:
         args.nTF = [0]
 
 if args.regions == "all":
     signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
+    if args.vbf_region:
+        signal_regions = ["pass_vbf"] + signal_regions
 else:
     signal_regions = [args.regions]
 
@@ -143,6 +147,8 @@ for key in all_sig_keys:
         mc_samples[key] = key
         sig_keys.append(key)
 
+
+print(sig_keys)
 all_mc = list(mc_samples.keys())
 
 
