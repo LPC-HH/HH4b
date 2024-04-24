@@ -121,7 +121,7 @@ label_by_mass = {
 }
 
 
-def _get_bdt_training_keys(bdt_model: str):
+def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
 
     training_keys = []
@@ -133,7 +133,7 @@ def _get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
+def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
     if preds.shape[1] == 2:  # binary BDT only
         events["bdt_score"] = preds[:, 1]
     elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
@@ -217,7 +217,7 @@ def load_process_run3_samples(args, year, bdt_training_keys):
     for key in events_dict:
         bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
         preds = bdt_model.predict_proba(bdt_events)
-        _add_bdt_scores(bdt_events, preds)
+        add_bdt_scores(bdt_events, preds)
 
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
@@ -493,7 +493,7 @@ def postprocess_run3(args):
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
     else:
-        window_by_mass["H2PNetMass"] = [110, 140]
+        window_by_mass["H2PNetMass"] = [115, 135]
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -505,7 +505,7 @@ def postprocess_run3(args):
     )
 
     # load samples
-    bdt_training_keys = _get_bdt_training_keys(args.bdt_model)
+    bdt_training_keys = get_bdt_training_keys(args.bdt_model)
     events_dict_postprocess = {}
     cutflows = {}
     for year in args.years:
@@ -609,7 +609,7 @@ def postprocess_run3(args):
         systematics={},
         template_dir=templ_dir,
         bg_keys=bg_keys,
-        # plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
+        plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
         weight_key="weight",
         show=False,
         energy=13.6,
