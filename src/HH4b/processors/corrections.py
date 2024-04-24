@@ -481,13 +481,14 @@ def get_jetveto_event(jets: JetArray, year: str):
     return event_sel
 
 
-def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets: int = 2):
+def get_trig_weights(fatjets: FatJetArray, year: str, num_jets: int = 2):
     """
-    Add the trigger scale factor weights and uncertainties
+    Get the trigger scale factor weights and uncertainties
 
     Give number of jets in pre-selection to obtain event weight
     """
     if year == "2018":
+        raise NotImplementedError("Trig weights function needs to be updated for 2018")
         with Path(f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl").open(
             "rb"
         ) as filehandler:
@@ -508,8 +509,8 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
 
         combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
 
-        weights.add("trig_effs", combined_trigEffs)
-        return
+        weights.add("trig_effs", combined_trigEffs)  # noqa: F821
+        return None
 
     # TODO: replace year
     year = "2022EE"
@@ -527,26 +528,24 @@ def add_trig_weights(weights: Weights, fatjets: FatJetArray, year: str, num_jets
         "nominal", fatjets_pt, fatjets_xbb
     )
 
-    nom_data_up = jet_triggerSF[f"fatjet_triggereff_{year}_data"].evaluate(
-        "stat_up", fatjets_pt, fatjets_xbb
-    )
-    nom_mc_up = jet_triggerSF[f"fatjet_triggereff_{year}_MC"].evaluate(
-        "stat_up", fatjets_pt, fatjets_xbb
-    )
+    # nom_data_up = jet_triggerSF[f"fatjet_triggereff_{year}_data"].evaluate(
+    #     "stat_up", fatjets_pt, fatjets_xbb
+    # )
+    # nom_mc_up = jet_triggerSF[f"fatjet_triggereff_{year}_MC"].evaluate(
+    #     "stat_up", fatjets_pt, fatjets_xbb
+    # )
 
-    nom_data_dn = jet_triggerSF[f"fatjet_triggereff_{year}_data"].evaluate(
-        "stat_dn", fatjets_pt, fatjets_xbb
-    )
-    nom_mc_dn = jet_triggerSF[f"fatjet_triggereff_{year}_MC"].evaluate(
-        "stat_dn", fatjets_pt, fatjets_xbb
-    )
+    # nom_data_dn = jet_triggerSF[f"fatjet_triggereff_{year}_data"].evaluate(
+    #     "stat_dn", fatjets_pt, fatjets_xbb
+    # )
+    # nom_mc_dn = jet_triggerSF[f"fatjet_triggereff_{year}_MC"].evaluate(
+    #     "stat_dn", fatjets_pt, fatjets_xbb
+    # )
 
     # calculate trigger weight per event and take ratio from data/MC
     combined_eff_data = 1 - np.prod(1 - nom_data, axis=1)
     combined_eff_mc = 1 - np.prod(1 - nom_mc, axis=1)
     sf = combined_eff_data / combined_eff_mc
 
-    sf_up = (1 - np.prod(1 - nom_data_up, axis=1)) / (1 - np.prod(1 - nom_mc_up, axis=1))
-    sf_dn = (1 - np.prod(1 - nom_data_dn, axis=1)) / (1 - np.prod(1 - nom_mc_dn, axis=1))
-
-    weights.add(f"trigsf_{num_jets}jet", sf, sf_up, sf_dn)
+    return sf
+    # weights.add(f"trigsf_{num_jets}jet", sf, sf_up, sf_dn)
