@@ -255,7 +255,7 @@ def combine_run3_samples(
         bg_keys.remove("ttlep")
 
     # combine others (?)
-    others = ["diboson", "vjets", "novhhtobb"]
+    others = ["diboson", "vjets"]
     if np.all([key in bg_keys for key in others]):
         events_combined["others"] = pd.concat([events_combined[key] for key in others])
         for key in others:
