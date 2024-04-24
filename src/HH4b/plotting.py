@@ -482,6 +482,8 @@ def ratioHistPlot(
     show: bool = True,
     variation: tuple | None = None,
     bg_err_type: str = "shaded",
+    bg_err_mcstat: bool = False,
+    exclude_qcd_mcstat: bool = True,
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
@@ -491,6 +493,7 @@ def ratioHistPlot(
     significance_dir: str = "right",
     axrax: tuple | None = None,
     energy: str = "13.6",
+    add_pull: bool = False,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -537,6 +540,9 @@ def ratioHistPlot(
         sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
 
+    if add_pull and bg_err is None:
+        add_pull = False
+
     # set up plots
     if axrax is not None:
         if plot_significance:
@@ -544,7 +550,7 @@ def ratioHistPlot(
 
         ax, rax = axrax
         ax.sharex(rax)
-    elif plot_significance:
+    elif add_pull or plot_significance:
         fig, (ax, rax, sax) = plt.subplots(
             3,
             1,
@@ -574,6 +580,7 @@ def ratioHistPlot(
         hep.histplot(
             [hists[sample, :] for sample in bg_keys],
             ax=ax,
+            # yerr=[np.sqrt(hists[sample, :].variances()) for sample in bg_keys],
             histtype="fill",
             sort="yield" if sortyield else None,
             stack=True,
@@ -614,26 +621,23 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    if bg_err is None:
-        # get background error from variances
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err = np.sqrt(bg_tot.variances())
-
+    bg_err_label = "Total Background Uncertainty"
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bkg_err = bg_err
         if len(np.array(bg_err).shape) == 1:
             bg_err = [bg_tot - bg_err, bg_tot + bg_err]
-
+            
         if bg_err_type == "shaded":
             ax.fill_between(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
-                np.repeat(bg_err[0], 2),
-                np.repeat(bg_err[1], 2),
+                np.repeat(bg_err[0].values(), 2),
+                np.repeat(bg_err[1].values(), 2),
                 color="black",
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Total Background Uncertainty",
+                label=bg_err_label
             )
         else:
             ax.stairs(
@@ -662,6 +666,69 @@ def ratioHistPlot(
                 label="BG Up",
                 baseline=bg_err[1],
             )
+
+    # plot bkg statistical uncertainty (excludes QCD)
+    def get_variances(bg_hist):
+        if bg_hist.variances() is None:
+            return np.sqrt(bg_hist)
+        else:
+            return np.sqrt(bg_hist.variances())
+
+    #print(hists.axes[1].widths)
+
+    if bg_err_mcstat:
+        if exclude_qcd_mcstat:
+            bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
+        else:
+            bg_err_label = "Stat. MC Uncertainty"
+        bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
+        tot_bg_err = get_variances(bg_tot)
+
+        # this is a stack
+        plot_shaded = False
+        mcstat_up = {}
+        mcstat_dn = {}
+        stack = None
+        for sample in bg_keys:
+            if exclude_qcd_mcstat and sample=="qcd":
+                continue
+
+            bg_yield = hists[sample, :]
+            sample_bg_err = get_variances(bg_yield)
+            yerr = sample_bg_err
+            if stack is None:
+                sample_bg_err = [bg_yield - sample_bg_err, bg_yield + sample_bg_err]
+                stack = bg_yield
+            else:
+                stack += bg_yield
+                sample_bg_err = [stack - sample_bg_err, stack + sample_bg_err]
+                
+            mcstat_up[sample] = sample_bg_err[0].values()
+            mcstat_dn[sample] = sample_bg_err[1].values()
+            if not plot_shaded:
+                hep.histplot(
+                    stack,
+                    ax=ax,
+                    yerr=yerr,
+                    histtype="errorbar",
+                    markersize=0,
+                    color="gray",
+                )
+
+        if plot_shaded:
+            for sample in bg_keys:
+                if exclude_qcd_mcstat and sample=="qcd":
+                    continue
+                    
+                ax.fill_between(
+                    np.repeat(hists.axes[1].edges, 2)[1:-1],
+                    np.repeat(mcstat_up[sample], 2),
+                    np.repeat(mcstat_dn[sample], 2),
+                    hatch="x",
+                    linewidth=0,
+                    edgecolor="k",
+                    facecolor="none",
+                )
 
     # plot data
     if plot_data:
@@ -725,28 +792,18 @@ def ratioHistPlot(
         )
         rax.set_xlabel(hists.axes[1].label)
 
-        """
-        error_up_bg = bg_err[0]
-        error_up_data = np.sqrt(hists[data_key, :])
-        # dz = z * np.sqrt((dx/x)**2 + (dy/y)**2)
-        error_up = yvalue * np.sqrt( (error_up_data/data_val)*(error_up_data/data_val) + (error_up_bg/tot_val)*(error_up_bg/tot_val) )
-
-        error_dn_bkg = bg_err[1]
-        error_dn_data = np.sqrt(hists[data_key, :])
-        error_dn = yvalue * np.sqrt( (error_dn_data/data_val)*(error_dn_data/data_val) + (error_dn_bg/tot_val)*(error_dn_bg/tot_val) )
-
-        rax.fill_between(
-            np.repeat(hists.axes[1].edges, 2)[1:-1],
-            np.repeat(yvalue + error_up, 2),
-            np.repeat(yvalue - error_up, 2),
-            color="black",
-            alpha=0.2,
-            hatch="//",
-            linewidth=0,
-            # label="Total Background Uncertainty",
-        )
-        """
-
+        # fill error band of background
+        if bg_err is not None:
+            # (bkg + err) / bkg
+            rax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat((bg_err[0].values() )/tot_val, 2),
+                np.repeat((bg_err[1].values() )/tot_val, 2),
+                color="black",
+                alpha=0.1,
+                hatch="//",
+                linewidth=0,
+            )
     else:
         rax.set_xlabel(hists.axes[1].label)
 
@@ -788,6 +845,34 @@ def ratioHistPlot(
         sax.set_yscale("log")
         sax.set_ylim([1e-3, 0.1])
         sax.set_xlabel(hists.axes[1].label)
+
+    if add_pull:
+        # (data -bkg )/unc_bkg
+        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        tot_val = bg_tot.values()
+        tot_val_zero_mask = tot_val == 0
+        tot_val[tot_val_zero_mask] = 1
+        data_val = hists[data_key, :].values()
+        data_val[tot_val_zero_mask] = 1
+
+        yhist = (hists[data_key, :] - bg_tot) / data_err
+        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, data_err, "poisson")
+
+        hep.histplot(            
+            yhist,
+            ax=sax,
+            yerr=yerr,
+            histtype="errorbar",
+            markersize=20,
+            color="black",
+        )
+        sax.set_ylim([-4, 4])
+        sax.set_xlabel(hists.axes[1].label)
+        sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
+        
+        minor_locator = mticker.AutoMinorLocator(2)
+        sax.yaxis.set_minor_locator(minor_locator)
+        sax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if title is not None:
         ax.set_title(title, y=1.08)
