@@ -487,7 +487,7 @@ def control_plots(events_dict, plot_dir, year):
     for shape_var in control_plot_vars:
         if shape_var.var not in hists:
             hists[shape_var.var] = singleVarHist(
-                events_plot[year],
+                events_dict[year],
                 shape_var,
                 weight_key="finalWeight",
             )
