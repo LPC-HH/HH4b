@@ -127,10 +127,7 @@ def plot_fits(args):
     pass_ratio_ylims = [0, 2]
     fail_ratio_ylims = [0, 2]
 
-    bg_err_mcstat = {
-        "prefit": True,
-        "postfit": False
-    }
+    bg_err_mcstat = {"prefit": True, "postfit": False}
     add_pull = {
         "prefit": False,
         "postfit": True,
