@@ -15,7 +15,7 @@ python3 CreateDatacard.py  --templates-dir templates/testrun3  --year 2022-2023 
 - To plot:
 
 ```
-python3 PlotFits.py --fit-file cards/run3-bdt/FitShapes.root  --plots-dir plots/run3-bdt/ --bin-name passbin1
+python3 PlotFits.py --fit-file cards/run3-bdt/FitShapes.root  --plots-dir plots/run3-bdt/ --regions passbin1
 ```
 
 # Run-2
