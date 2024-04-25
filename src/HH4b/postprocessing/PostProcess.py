@@ -473,7 +473,7 @@ def get_cuts(args, region: str):
 
 def control_plots(events_dict, plot_dir, year):
     control_plot_vars = [
-        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 30, 300]),    
+        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 30, 300]),
         ShapeVar(var="H2Xbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2XbbLegacy", label=r"Xbb$^{2}$ Legacy", bins=[30, 0, 1]),
@@ -555,9 +555,8 @@ def postprocess_run3(args):
         )
         control_plots(events_dict_postprocess[year], plot_dir, year)
 
-
     print("Loaded all years")
-    
+
     processes = ["data"] + args.sig_keys + bg_keys
     events_combined = combine_run3_samples(events_dict_postprocess, processes, bg_keys)
 
