@@ -682,11 +682,11 @@ def ratioHistPlot(
     if bg_err_mcstat:
         if exclude_qcd_mcstat:
             bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
-            #bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
+            # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
         else:
             bg_err_label = "Stat. MC Uncertainty"
-            #bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        #tot_bg_err = get_variances(bg_tot)
+            # bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        # tot_bg_err = get_variances(bg_tot)
 
         # this is a stack
         plot_shaded = False
