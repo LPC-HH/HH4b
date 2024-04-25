@@ -24,7 +24,7 @@ from HH4b.postprocessing import (
     corrections,
     load_run3_samples,
 )
-from HH4b.utils import ShapeVar
+from HH4b.utils import ShapeVar, singleVarHist
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -471,6 +471,43 @@ def get_cuts(args, region: str):
         raise ValueError("Invalid region")
 
 
+def control_plots(events_dict, plot_dir, year):
+    control_plot_vars = [
+        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 30, 300]),    
+        ShapeVar(var="H2Xbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV)", bins=[30, 0, 300]),
+        ShapeVar(var="H2XbbLegacy", label=r"Xbb$^{2}$ Legacy", bins=[30, 0, 1]),
+        ShapeVar(var="H2PNetMassLegacy", label=r"$m_{reg}^{2}$ Legacy (GeV)", bins=[30, 0, 300]),
+        ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
+    ]
+
+    (plot_dir / f"control/{year}").mkdir(exist_ok=True, parents=True)
+
+    hists = {}
+    for shape_var in control_plot_vars:
+        if shape_var.var not in hists:
+            hists[shape_var.var] = singleVarHist(
+                events_plot[year],
+                shape_var,
+                weight_key="finalWeight",
+            )
+
+        bkgs = ["ttbar", "vhtobb", "vjets", "diboson", "novhhtobb", "qcd"]
+        plotting.ratioHistPlot(
+            hists[shape_var.var],
+            year,
+            sigs,
+            bkgs,
+            name=f"{plot_dir}/control/{year}/{shape_var.var}",
+            show=True,
+            log=True,
+            plot_significance=False,
+            significance_dir=shape_var.significance_dir,
+            ratio_ylims=[0.2, 1.8],
+            # ylim=ylims[year],
+        )
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0603
 
@@ -504,6 +541,9 @@ def postprocess_run3(args):
         blind_window=window_by_mass[args.mass],
     )
 
+    plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
+    plot_dir.mkdir(exist_ok=True, parents=True)
+
     # load samples
     bdt_training_keys = _get_bdt_training_keys(args.bdt_model)
     events_dict_postprocess = {}
@@ -513,16 +553,15 @@ def postprocess_run3(args):
         events_dict_postprocess[year], cutflows[year] = load_process_run3_samples(
             args, year, bdt_training_keys
         )
+        control_plots(events_dict_postprocess[year], plot_dir, year)
+
 
     print("Loaded all years")
-
+    
     processes = ["data"] + args.sig_keys + bg_keys
     events_combined = combine_run3_samples(events_dict_postprocess, processes, bg_keys)
 
     print("Combined all years")
-
-    plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
-    plot_dir.mkdir(exist_ok=True, parents=True)
 
     if args.fom_scan:
         mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
