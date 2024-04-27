@@ -39,6 +39,18 @@ mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
 
+# modify samples run3
+for year in samples_run3.keys():
+    samples_run3[year]["qcd"] = [
+        "QCD_HT-1000to1200",
+        "QCD_HT-1200to1500",
+        "QCD_HT-1500to2000",
+        "QCD_HT-2000",
+        #"QCD_HT-200to400",
+        "QCD_HT-400to600",
+        "QCD_HT-600to800",
+        "QCD_HT-800to1000"
+    ]
 
 # from .corrections import ttbar_pTjjSF
 
@@ -150,7 +162,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         "hh4b": "bdt_score",
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
-    bg_keys = ["qcd", "ttbar"]
+    bkg_keys = ["qcd", "ttbar"]
     legtitle = get_legtitle(legacy)
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
@@ -158,11 +170,11 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 
     for sig_key in sig_keys:
         rocs = postprocessing.make_rocs(
-            events_combined, scores_keys[sig_key], "weight", sig_key, bg_keys
+            events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
         )
         bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
         fig, ax = plt.subplots(1, 1, figsize=(18, 12))
-        for bg_key in [*bg_keys, "merged"]:
+        for bg_key in [*bkg_keys, "merged"]:
             ax.plot(
                 rocs[bg_key]["tpr"],
                 rocs[bg_key]["fpr"],
@@ -192,7 +204,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys):
+def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
     events_dict = load_run3_samples(f"{args.data_dir}/{args.tag}", year, args.legacy, samples_run3)
     legacy_label = "Legacy" if args.legacy else ""
 
@@ -221,10 +233,10 @@ def load_process_run3_samples(args, year, bdt_training_keys):
 
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
+        bdt_events["H1TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 0]
         bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
-        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
-            :, 1
-        ]
+        bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 0]
+        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 1]
 
         # add HLTs - added now in filters
         bdt_events["hlt"] = np.any(
@@ -307,7 +319,18 @@ def load_process_run3_samples(args, year, bdt_training_keys):
         if "bdt_score_vbf" in bdt_events:
             columns += ["bdt_score_vbf"]
 
-        events_dict_postprocess[key] = bdt_events[columns]
+        if control_plots:
+            bdt_events["H1T32top"] = bdt_events["H1T32"]
+            bdt_events["H2T32top"] = bdt_events["H2T32"]
+            bdt_events["H1Pt_H2Pt"] = bdt_events["H1Pt/H2Pt"]
+            events_dict_postprocess[key] = bdt_events
+        else:
+            events_dict_postprocess[key] = bdt_events[columns]
+
+    if control_plots:
+        make_control_plots(events_dict_postprocess, plot_dir, year)
+        for key in events_dict_postprocess:
+            events_dict_postprocess[key] = events_dict_postprocess[key][columns]
 
     for cut in cutflow_dict[key]:
         yields = [cutflow_dict[key][cut] for key in events_dict]
@@ -427,7 +450,6 @@ def get_cuts(args, region: str):
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt
-
     xbb_cut_bin1 = args.txbb_wps[0]
     bdt_cut_bin1 = args.bdt_wps[0]
 
@@ -471,13 +493,29 @@ def get_cuts(args, region: str):
         raise ValueError("Invalid region")
 
 
-def control_plots(events_dict, plot_dir, year):
+def make_control_plots(events_dict, plot_dir, year):
     control_plot_vars = [
-        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 30, 300]),    
-        ShapeVar(var="H2Xbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
+        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),    
+        ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV)", bins=[30, 0, 300]),
-        ShapeVar(var="H2XbbLegacy", label=r"Xbb$^{2}$ Legacy", bins=[30, 0, 1]),
-        ShapeVar(var="H2PNetMassLegacy", label=r"$m_{reg}^{2}$ Legacy (GeV)", bins=[30, 0, 300]),
+        ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
+        ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
+        ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
+        ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
+        ShapeVar(var="H1T32top", label=r"$\tau_{32}^{0}$", bins=[30, 0, 1]),
+        ShapeVar(var="H2T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Pt", label=r"H $p_{T}^{0}$ (GeV)",bins=[30, 200, 1000]),
+        ShapeVar(var="H2Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
+        ShapeVar(var="H1eta", label=r"H $\eta^{0}$",bins=[30, -4, 4]),
+        ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Pt_HHmass", label=r"H$^0$ $p_{T}/mass$", bins=[30, 0, 1]),
+        ShapeVar(var="H2Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 0.7]),
+        ShapeVar(var="H1Pt_H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
     ]
 
@@ -489,21 +527,22 @@ def control_plots(events_dict, plot_dir, year):
             hists[shape_var.var] = singleVarHist(
                 events_dict,
                 shape_var,
-                weight_key="finalWeight",
+                weight_key="weight",
             )
 
-        bkgs = ["ttbar", "vhtobb", "vjets", "diboson", "novhhtobb", "qcd"]
         plotting.ratioHistPlot(
             hists[shape_var.var],
             year,
-            sigs,
-            bkgs,
+            ["hh4b"] if year=="2022EE" else [],
+            bg_keys,
             name=f"{plot_dir}/control/{year}/{shape_var.var}",
             show=True,
             log=True,
             plot_significance=False,
             significance_dir=shape_var.significance_dir,
             ratio_ylims=[0.2, 1.8],
+            bg_err_mcstat=True,
+            reweight_qcd=True,
             # ylim=ylims[year],
         )
 
@@ -520,10 +559,10 @@ def postprocess_run3(args):
             for key in bg_keys:
                 if key in samples_year:
                     samples_year.pop(key)
-        elif year != "2022EE":
+        elif year != "2022EE" and not args.control_plots:
             samples_year.pop("qcd")  # only load qcd for 2022EE to save time
 
-    if not args.templates and not args.bdt_roc:
+    if not args.templates and not args.bdt_roc: # and not args.control_plots:
         bg_keys = []
 
     window_by_mass = {"H2Msd": [110, 140]}
@@ -551,10 +590,8 @@ def postprocess_run3(args):
     for year in args.years:
         print(f"\n{year}")
         events_dict_postprocess[year], cutflows[year] = load_process_run3_samples(
-            args, year, bdt_training_keys
+            args, year, bdt_training_keys, args.control_plots, plot_dir
         )
-        control_plots(events_dict_postprocess[year], plot_dir, year)
-
 
     print("Loaded all years")
     
@@ -734,6 +771,7 @@ if __name__ == "__main__":
     )
 
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
+    run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=True, help="run figure of merit scans")
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")

@@ -498,6 +498,7 @@ def ratioHistPlot(
     axrax: tuple | None = None,
     energy: str = "13.6",
     add_pull: bool = False,
+    reweight_qcd: bool = False,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -579,10 +580,18 @@ def ratioHistPlot(
     # plot histograms
     ax.set_ylabel("Events")
 
+    # re-weight qcd
+    kfactor = {sample: 1 for sample in bg_keys}
+    if reweight_qcd:
+        bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
+        data_yield = np.sum(hists[data_key, :].values())
+        if bg_yield>0:
+            kfactor["qcd"] = data_yield/bg_yield
+
     # background samples
     if len(bg_keys) > 0:
         hep.histplot(
-            [hists[sample, :] for sample in bg_keys],
+            [hists[sample, :] * kfactor[sample] for sample in bg_keys],
             ax=ax,
             # yerr=[np.sqrt(hists[sample, :].variances()) for sample in bg_keys],
             histtype="fill",
@@ -627,7 +636,7 @@ def ratioHistPlot(
     # plot background errors
     bg_err_label = "Total Background Uncertainty"
     if bg_err is not None:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         if len(np.array(bg_err).shape) == 1:
             bg_err = [bg_tot - bg_err, bg_tot + bg_err]
 
@@ -697,7 +706,7 @@ def ratioHistPlot(
             if exclude_qcd_mcstat and sample == "qcd":
                 continue
 
-            bg_yield = hists[sample, :]
+            bg_yield = hists[sample, :] * kfactor[sample]
             sample_bg_err = get_variances(bg_yield)
             yerr = sample_bg_err
             if stack is None:
@@ -756,6 +765,8 @@ def ratioHistPlot(
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    if kfactor["qcd"] != 1:
+        ax.get_legend().set_title(r"Multijet $\times$ "+f"{kfactor['qcd']:.2f}")
 
     if xlim_low is not None:
         if xlim is not None:
@@ -774,7 +785,7 @@ def ratioHistPlot(
 
     # plot ratio below
     if plot_data and len(bg_keys) > 0:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
 
         tot_val = bg_tot.values()
         tot_val_zero_mask = tot_val == 0
@@ -818,7 +829,7 @@ def ratioHistPlot(
     rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if plot_significance:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys]).values()
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys]).values()
         sigs = [hists[sig_key, :].values() for sig_key in sig_scale_dict]
 
         if significance_dir == "left":
@@ -852,7 +863,7 @@ def ratioHistPlot(
 
     if add_pull:
         # (data -bkg )/unc_bkg
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         tot_val = bg_tot.values()
         tot_val_zero_mask = tot_val == 0
         tot_val[tot_val_zero_mask] = 1
