@@ -585,8 +585,8 @@ def ratioHistPlot(
     if reweight_qcd:
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
-        if bg_yield>0:
-            kfactor["qcd"] = data_yield/bg_yield
+        if bg_yield > 0:
+            kfactor["qcd"] = data_yield / bg_yield
 
     # background samples
     if len(bg_keys) > 0:
@@ -705,7 +705,6 @@ def ratioHistPlot(
         for sample in bg_keys:
             if exclude_qcd_mcstat and sample == "qcd":
                 continue
-
             bg_yield = hists[sample, :] * kfactor[sample]
             sample_bg_err = get_variances(bg_yield)
             yerr = sample_bg_err
@@ -766,7 +765,7 @@ def ratioHistPlot(
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
     if kfactor["qcd"] != 1:
-        ax.get_legend().set_title(r"Multijet $\times$ "+f"{kfactor['qcd']:.2f}")
+        ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
     if xlim_low is not None:
         if xlim is not None:

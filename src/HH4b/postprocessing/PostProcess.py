@@ -46,10 +46,10 @@ for year in samples_run3:
         "QCD_HT-1200to1500",
         "QCD_HT-1500to2000",
         "QCD_HT-2000",
-        #"QCD_HT-200to400",
+        # "QCD_HT-200to400",
         "QCD_HT-400to600",
         "QCD_HT-600to800",
-        "QCD_HT-800to1000"
+        "QCD_HT-800to1000",
     ]
 
 # TODO: can switch to this in the future to get cutflows for each cut.
@@ -131,7 +131,7 @@ label_by_mass = {
 }
 
 
-def _get_bdt_training_keys(bdt_model: str):
+def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
 
     training_keys = []
@@ -143,7 +143,7 @@ def _get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def _add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
+def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
     if preds.shape[1] == 2:  # binary BDT only
         events["bdt_score"] = preds[:, 1]
     elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
@@ -227,7 +227,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     for key in events_dict:
         bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
         preds = bdt_model.predict_proba(bdt_events)
-        _add_bdt_scores(bdt_events, preds)
+        add_bdt_scores(bdt_events, preds)
 
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
@@ -456,6 +456,7 @@ def get_cuts(args, region: str):
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt
+
     xbb_cut_bin1 = args.txbb_wps[0]
     bdt_cut_bin1 = args.bdt_wps[0]
 
@@ -502,7 +503,7 @@ def get_cuts(args, region: str):
 def make_control_plots(events_dict, plot_dir, year):
     control_plot_vars = [
         ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
-        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),    
+        ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1TXbbNoLeg", label=r"Xbb$^{1}$ v12", bins=[30, 0, 1]),
@@ -513,6 +514,7 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
         ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
+<<<<<<< HEAD
         ShapeVar(var="H1T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H2T32top", label=r"$\tau_{32}^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
@@ -524,6 +526,19 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="H1Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 1]),
         ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
         ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
+=======
+        ShapeVar(var="H1T32top", label=r"$\tau_{32}^{0}$", bins=[30, 0, 1]),
+        ShapeVar(var="H2T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Pt", label=r"H $p_{T}^{0}$ (GeV)", bins=[30, 200, 1000]),
+        ShapeVar(var="H2Pt", label=r"H $p_{T}^{1}$ (GeV)", bins=[30, 200, 1000]),
+        ShapeVar(var="H1eta", label=r"H $\eta^{0}$", bins=[30, -4, 4]),
+        ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Pt_HHmass", label=r"H$^0$ $p_{T}/mass$", bins=[30, 0, 1]),
+        ShapeVar(var="H2Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 0.7]),
+        ShapeVar(var="H1Pt_H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
+>>>>>>> d758807db083a4fa383101fa5b9a6dc1d6fde476
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
     ]
 
@@ -541,7 +556,7 @@ def make_control_plots(events_dict, plot_dir, year):
         plotting.ratioHistPlot(
             hists[shape_var.var],
             year,
-            ["hh4b"] if year=="2022EE" else [],
+            ["hh4b"] if year == "2022EE" else [],
             bg_keys,
             name=f"{plot_dir}/control/{year}/{shape_var.var}",
             show=True,
@@ -570,14 +585,14 @@ def postprocess_run3(args):
         elif year != "2022EE" and not args.control_plots:
             samples_year.pop("qcd")  # only load qcd for 2022EE to save time
 
-    if not args.templates and not args.bdt_roc: # and not args.control_plots:
+    if not args.templates and not args.bdt_roc:  # and not args.control_plots:
         bg_keys = []
 
     window_by_mass = {"H2Msd": [110, 140]}
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
     else:
-        window_by_mass["H2PNetMass"] = [110, 140]
+        window_by_mass["H2PNetMass"] = [115, 135]
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -592,7 +607,7 @@ def postprocess_run3(args):
     plot_dir.mkdir(exist_ok=True, parents=True)
 
     # load samples
-    bdt_training_keys = _get_bdt_training_keys(args.bdt_model)
+    bdt_training_keys = get_bdt_training_keys(args.bdt_model)
     events_dict_postprocess = {}
     cutflows = {}
     for year in args.years:
@@ -693,7 +708,7 @@ def postprocess_run3(args):
         systematics={},
         template_dir=templ_dir,
         bg_keys=bg_keys,
-        # plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
+        plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
         weight_key="weight",
         show=False,
         energy=13.6,

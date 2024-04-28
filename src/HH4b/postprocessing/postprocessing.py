@@ -145,6 +145,7 @@ def combine_run3_samples(
     events_dict_years: dict[str, dict[str, pd.DataFrame]],
     processes: list[str],
     bg_keys: list[str] = bg_keys,
+    weight_key: str = "weight",
 ):
     # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
     scale_processes = {
@@ -165,7 +166,7 @@ def combine_run3_samples(
                 [events_dict_years[year][key].copy() for year in scale_processes[key]]
             )
             lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
-            combined["weight"] = combined["weight"] * lumi_scale
+            combined[weight_key] = combined[weight_key] * lumi_scale
 
         events_combined[key] = combined
 
