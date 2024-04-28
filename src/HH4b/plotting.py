@@ -705,7 +705,6 @@ def ratioHistPlot(
         for sample in bg_keys:
             if exclude_qcd_mcstat and sample == "qcd":
                 continue
-
             bg_yield = hists[sample, :] * kfactor[sample]
             sample_bg_err = get_variances(bg_yield)
             yerr = sample_bg_err
