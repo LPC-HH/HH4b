@@ -21,7 +21,6 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
-    corrections,
     load_run3_samples,
 )
 from HH4b.utils import ShapeVar, singleVarHist
@@ -233,10 +232,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H1TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 0]
         bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
-        bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 0]
-        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 1]
-        bdt_events["H1TXbbNoLeg"] = events_dict[key][f"bbFatJetPNetTXbb"].to_numpy()[:, 0]
-        bdt_events["H2TXbbNoLeg"] = events_dict[key][f"bbFatJetPNetTXbb"].to_numpy()[:, 1]
+        bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
+            :, 0
+        ]
+        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
+            :, 1
+        ]
+        bdt_events["H1TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 0]
+        bdt_events["H2TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 1]
 
         # add HLTs - added now in filters
         bdt_events["hlt"] = np.any(
@@ -253,7 +256,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # add more columns (e.g. (uncertainties etc)
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
         ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
-        #if key == "ttbar" and not args.legacy:
+        # if key == "ttbar" and not args.legacy:
         #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
@@ -516,15 +519,15 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
         ShapeVar(var="H1T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H2T32top", label=r"$\tau_{32}^{2}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
-        ShapeVar(var="H2Pt", label=r"H $p_{T}^{2}$ (GeV)",bins=[30, 200, 1000]),
-        ShapeVar(var="H1eta", label=r"H $\eta^{1}$",bins=[30, -4, 4]),
+        ShapeVar(var="H1Pt", label=r"H $p_{T}^{1}$ (GeV)", bins=[30, 200, 1000]),
+        ShapeVar(var="H2Pt", label=r"H $p_{T}^{2}$ (GeV)", bins=[30, 200, 1000]),
+        ShapeVar(var="H1eta", label=r"H $\eta^{1}$", bins=[30, -4, 4]),
         ShapeVar(var="H1QCDb", label=r"QCDb$^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1QCDbb", label=r"QCDbb$^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H1Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 1]),
         ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
-        ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
+        ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
     ]
 
