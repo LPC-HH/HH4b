@@ -916,10 +916,10 @@ def ratioHistPlot(
         if len(name):
             plt.savefig(name, bbox_inches="tight")
 
-        if show:
-            plt.show()
-        else:
-            plt.close()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def mesh2d(

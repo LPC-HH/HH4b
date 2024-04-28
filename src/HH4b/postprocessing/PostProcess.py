@@ -40,7 +40,7 @@ mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
 
 # modify samples run3
-for year in samples_run3.keys():
+for year in samples_run3:
     samples_run3[year]["qcd"] = [
         "QCD_HT-1000to1200",
         "QCD_HT-1200to1500",
@@ -51,8 +51,6 @@ for year in samples_run3.keys():
         "QCD_HT-600to800",
         "QCD_HT-800to1000"
     ]
-
-# from .corrections import ttbar_pTjjSF
 
 # TODO: can switch to this in the future to get cutflows for each cut.
 # def get_selection_regions(txbb_wps: list[float], bdt_wps: list[float]):
@@ -237,6 +235,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
         bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 0]
         bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[:, 1]
+        bdt_events["H1TXbbNoLeg"] = events_dict[key][f"bbFatJetPNetTXbb"].to_numpy()[:, 0]
+        bdt_events["H2TXbbNoLeg"] = events_dict[key][f"bbFatJetPNetTXbb"].to_numpy()[:, 1]
 
         # add HLTs - added now in filters
         bdt_events["hlt"] = np.any(
@@ -253,8 +253,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # add more columns (e.g. (uncertainties etc)
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
         ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
-        if key == "ttbar" and not args.legacy:
-            bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
+        #if key == "ttbar" and not args.legacy:
+        #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
@@ -272,6 +272,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[bdt_events["hlt"] == 1]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
+        # 30 gev mass cut
+        # bdt_events = bdt_events[(bdt_events["H1Msd"] > 30) & (bdt_events["H2Msd"] > 30)]
+
+        # pnetxbb cut (test)
+        # bdt_events = bdt_events[(bdt_events["H1TXbbNoLeg"] > 0.8)]
+        
         if not args.legacy:
             bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
             cutflow_dict[key]["H1Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())
@@ -499,23 +505,25 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),    
         ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1TXbbNoLeg", label=r"Xbb$^{1}$ v12", bins=[30, 0, 1]),
+        ShapeVar(var="H2TXbbNoLeg", label=r"Xbb$^{2}$ v12", bins=[30, 0, 1]),
         ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
         ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
         ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
-        ShapeVar(var="H1T32top", label=r"$\tau_{32}^{0}$", bins=[30, 0, 1]),
-        ShapeVar(var="H2T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1Pt", label=r"H $p_{T}^{0}$ (GeV)",bins=[30, 200, 1000]),
-        ShapeVar(var="H2Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
-        ShapeVar(var="H1eta", label=r"H $\eta^{0}$",bins=[30, -4, 4]),
-        ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
+        ShapeVar(var="H2T32top", label=r"$\tau_{32}^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
+        ShapeVar(var="H2Pt", label=r"H $p_{T}^{2}$ (GeV)",bins=[30, 200, 1000]),
+        ShapeVar(var="H1eta", label=r"H $\eta^{1}$",bins=[30, -4, 4]),
+        ShapeVar(var="H1QCDb", label=r"QCDb$^{2}$", bins=[30, 0, 1]),
+        ShapeVar(var="H1QCDbb", label=r"QCDbb$^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1Pt_HHmass", label=r"H$^0$ $p_{T}/mass$", bins=[30, 0, 1]),
-        ShapeVar(var="H2Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 0.7]),
-        ShapeVar(var="H1Pt_H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
+        ShapeVar(var="H1Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 1]),
+        ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
+        ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
     ]
 
