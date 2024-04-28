@@ -337,6 +337,8 @@ def get_v12_private():
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
             },
+            "HH": {
+            },
         },
         "2022EE": {
             "HH": {
@@ -494,6 +496,7 @@ def get_v12_private():
                 "Zto2Q-4Jets_HT-800": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/VJets/Zto2Q-4Jets_HT-800_TuneCP5_13p6TeV_madgraphMLM-pythia8/",
             },
             "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/HH4b/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/signal/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/",
@@ -1312,7 +1315,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12"]: #,"v12_private"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
