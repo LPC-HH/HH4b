@@ -514,7 +514,6 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
         ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
-<<<<<<< HEAD
         ShapeVar(var="H1T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
         ShapeVar(var="H2T32top", label=r"$\tau_{32}^{2}$", bins=[30, 0, 1]),
         ShapeVar(var="H1Pt", label=r"H $p_{T}^{1}$ (GeV)",bins=[30, 200, 1000]),
@@ -526,19 +525,6 @@ def make_control_plots(events_dict, plot_dir, year):
         ShapeVar(var="H1Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 1]),
         ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
         ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)",  bins=[30, 0.5, 1]),
-=======
-        ShapeVar(var="H1T32top", label=r"$\tau_{32}^{0}$", bins=[30, 0, 1]),
-        ShapeVar(var="H2T32top", label=r"$\tau_{32}^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1Pt", label=r"H $p_{T}^{0}$ (GeV)", bins=[30, 200, 1000]),
-        ShapeVar(var="H2Pt", label=r"H $p_{T}^{1}$ (GeV)", bins=[30, 200, 1000]),
-        ShapeVar(var="H1eta", label=r"H $\eta^{0}$", bins=[30, -4, 4]),
-        ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
-        ShapeVar(var="H1Pt_HHmass", label=r"H$^0$ $p_{T}/mass$", bins=[30, 0, 1]),
-        ShapeVar(var="H2Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 0.7]),
-        ShapeVar(var="H1Pt_H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
->>>>>>> d758807db083a4fa383101fa5b9a6dc1d6fde476
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
     ]
 

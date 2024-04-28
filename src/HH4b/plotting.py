@@ -911,9 +911,8 @@ def ratioHistPlot(
             com=energy,
         )
 
-    if axrax is None:
-        if len(name):
-            plt.savefig(name, bbox_inches="tight")
+    if axrax is None and len(name):
+        plt.savefig(name, bbox_inches="tight")
 
     if show:
         plt.show()

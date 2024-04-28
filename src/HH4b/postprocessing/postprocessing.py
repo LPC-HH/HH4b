@@ -507,4 +507,4 @@ def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: S
 
 
 if __name__ == "__main__":
-    sys.exit(postprocess())
+    sys.exit()
