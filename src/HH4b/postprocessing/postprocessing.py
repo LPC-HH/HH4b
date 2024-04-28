@@ -6,7 +6,6 @@ from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
-import click
 import hist
 import numpy as np
 import pandas as pd
@@ -18,13 +17,12 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    samples,
     sig_keys,
     years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import CUT_MAX_VAL, ShapeVar, Syst
+from HH4b.utils import ShapeVar, Syst
 
 
 @dataclass
@@ -85,10 +83,10 @@ load_columns = [
     ("bbFatJetPhi", 2),
     ("bbFatJetMsd", 2),
     ("bbFatJetTau3OverTau2", 2),
-    #("VBFJetPt", 2),
-    #("VBFJetEta", 2),
-    #("VBFJetPhi", 2),
-    #("VBFJetMass", 2),
+    # ("VBFJetPt", 2),
+    # ("VBFJetEta", 2),
+    # ("VBFJetPhi", 2),
+    # ("VBFJetMass", 2),
 ]
 
 load_columns_legacy = load_columns + [
@@ -119,6 +117,7 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
     # "top_pt": ["ttbar"],
 }
+
 
 def load_run3_samples(input_dir: str, year: str, legacy: bool, samples_run3: dict[str, list[str]]):
     filters = filters_legacy if legacy else filters_v12
@@ -236,6 +235,7 @@ def make_rocs(
         }
 
     return rocs
+
 
 def _get_fill_data(
     events: pd.DataFrame,

@@ -277,7 +277,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # pnetxbb cut (test)
         # bdt_events = bdt_events[(bdt_events["H1TXbbNoLeg"] > 0.8)]
-        
+
         if not args.legacy:
             bdt_events = bdt_events[bdt_events["H1Msd"] > 30]
             cutflow_dict[key]["H1Msd > 30"] = np.sum(bdt_events["weight"].to_numpy())

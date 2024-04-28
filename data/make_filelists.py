@@ -337,8 +337,7 @@ def get_v12_private():
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
             },
-            "HH": {
-            },
+            "HH": {},
         },
         "2022EE": {
             "HH": {
