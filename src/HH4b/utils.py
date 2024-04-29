@@ -590,7 +590,6 @@ def singleVarHist(
         else:
             fill_var = var
 
-        # TODO: add b1, b2 assignment if needed
         fill_data = {var: get_feat(events, fill_var)}
         weight = events[weight_key].to_numpy().squeeze()
 
@@ -602,7 +601,7 @@ def singleVarHist(
         # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
         #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
-        if len(fill_data[var]):
+        if fill_data[var] is not None:
             h.fill(Sample=sample, **fill_data, weight=weight)
 
     if shape_var.blind_window is not None:

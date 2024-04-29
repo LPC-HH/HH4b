@@ -59,13 +59,21 @@ xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
 xsecs["QCD_HT-2000"] = 25.78
 
+xsecs["QCD_PT-120to170_MuEnrichedPt5"] = 22980.0
+xsecs["QCD_PT-170to300_MuEnrichedPt5"] = 7763.0
+xsecs["QCD_PT-300to470_MuEnrichedPt5"] = 699.1
+xsecs["QCD_PT-470to600_MuEnrichedPt5"] = 68.24
+xsecs["QCD_PT-600to800_MuEnrichedPt5"] = 21.37
+xsecs["QCD_PT-800to1000_MuEnrichedPt5"] = 3.913
+xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
+
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
 # cross check these?
 # https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
-xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1)
-xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9)
-xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0)
+xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
+xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
+xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
 
 # Diboson
 xsecs["WW"] = 116.8  #  173.4 (116.8 at NNLO)
@@ -83,6 +91,16 @@ xsecs["WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 76.16
 xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
 # xsecs["WWto4Q_1Jets-4FS"]
 # xsecs["WZto4Q-1Jets-4FS"]
+
+# SingleTop
+xsecs["TbarBQ_t-channel_4FS"] = 87.2
+xsecs["TBbarQ_t-channel_4FS"] = 145.0
+xsecs["TbarWplusto4Q"] = 10.8
+xsecs["TWminusto4Q"] = 10.8
+xsecs["TbarWplustoLNu2Q"] = 10.7
+xsecs["TWminustoLNu2Q"] = 10.7
+xsecs["TbarWplusto2L2Nu"] = 2.62
+xsecs["TWminusto2L2Nu"] = 2.62
 
 # Higgs
 # SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
@@ -150,7 +168,6 @@ xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
 xsecs["Wto2Q-3Jets_HT-400to600"] = 299.8
 xsecs["Wto2Q-3Jets_HT-600to800"] = 63.9
 xsecs["Wto2Q-3Jets_HT-800"] = 31.9
-xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["Zto2Q-4Jets_HT-200to400"] = 1082.0
 xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
@@ -178,6 +195,9 @@ xsecs["WtoLNu-2Jets"] = 64481.58
 xsecs["WtoLNu-2Jets_0J"] = 55760.0
 xsecs["WtoLNu-2Jets_1J"] = 9529.0
 xsecs["WtoLNu-2Jets_2J"] = 3532.0
+xsecs["WtoLNu-4Jets_1J"] = 9625.0
+xsecs["WtoLNu-4Jets_2J"] = 3161.0
+xsecs["WtoLNu-4Jets_3J"] = 1468.0
 
 """
 Cross Sections for 13 TeV.
