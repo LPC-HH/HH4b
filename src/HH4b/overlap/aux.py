@@ -1,31 +1,35 @@
-#=================================
+# =================================
 # Plotting binning, labels, etc
-#=================================
+# =================================
+from __future__ import annotations
+
 bins = {}
-bins["trgSF_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65_central"]  = [i/100 for i in range(0, 205, 5)]
-bins["btagSF_central"] = [i/100 for i in range(0, 205, 5)]
+bins["trgSF_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65_central"] = [
+    i / 100 for i in range(0, 205, 5)
+]
+bins["btagSF_central"] = [i / 100 for i in range(0, 205, 5)]
 bins["passjetvetomap"] = [0, 1, 2]
 
-#bins["Jet1Pt"] = [i for i in range(0, 605, 5)]
-#bins["Jet2Pt"] = [i for i in range(0, 605, 5)]
-#bins["Jet3Pt"] = [i for i in range(0, 405, 5)]
-#bins["Jet4Pt"] = [i for i in range(0, 405, 5)]
-#bins["Jet4InBDisc"] = [i/100 for i in range(0, 102, 2)]
-bins["avgbdisc_twoldgbdiscjets"] = [i/100 for i in range(0, 102, 2)]
+# bins["Jet1Pt"] = [i for i in range(0, 605, 5)]
+# bins["Jet2Pt"] = [i for i in range(0, 605, 5)]
+# bins["Jet3Pt"] = [i for i in range(0, 405, 5)]
+# bins["Jet4Pt"] = [i for i in range(0, 405, 5)]
+# bins["Jet4InBDisc"] = [i/100 for i in range(0, 102, 2)]
+bins["avgbdisc_twoldgbdiscjets"] = [i / 100 for i in range(0, 102, 2)]
 
 bins["dHiggsDeltaRegMass"] = [i for i in range(0, 405, 5)]
 
-bins["alljets_ht"]   = [i for i in range(200, 2550, 50)]
+bins["alljets_ht"] = [i for i in range(200, 2550, 50)]
 
-bins["dHH_H1_pt"]    = [i for i in range(40, 820, 20)]
+bins["dHH_H1_pt"] = [i for i in range(40, 820, 20)]
 bins["dHH_H1_regpt"] = [i for i in range(40, 820, 20)]
-bins["dHH_H2_pt"]    = [i for i in range(40, 820, 20)]
+bins["dHH_H2_pt"] = [i for i in range(40, 820, 20)]
 bins["dHH_H2_regpt"] = [i for i in range(40, 820, 20)]
 
 bins["dHH_H1_regmass"] = [i for i in range(0, 405, 5)]
 bins["dHH_H2_regmass"] = [i for i in range(0, 405, 5)]
-bins["dHH_HH_mass"]    = [i for i in range(200, 2050, 50)]
-bins["dHH_HH_regmass"]  = [i for i in range(200, 2050, 50)]
+bins["dHH_HH_mass"] = [i for i in range(200, 2050, 50)]
+bins["dHH_HH_regmass"] = [i for i in range(200, 2050, 50)]
 
 labels = {}
 
@@ -47,7 +51,9 @@ labels["avgbdisc_twoldgbdiscjets"] = ";Mean PNet;Events"
 
 labels["passjetvetomap"] = ";Passes jet-veto-map;Events"
 labels["btagSF_central"] = ";b-tagging SF;Events"
-labels["trgSF_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65_central"] = ";trigger SF;Events"
+labels["trgSF_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65_central"] = (
+    ";trigger SF;Events"
+)
 
 labels["genp_H1_pt"] = ";True H_{1} p_{T} [GeV];Events"
 labels["genp_H2_pt"] = ";True H_{2} p_{T} [GeV];Events"
@@ -64,5 +70,5 @@ labels["dHH_H1_mass"] = ";Leading Higgs mass [GeV];Events"
 labels["dHH_H1_regmass"] = ";Leading Higgs mass^{reg.} [GeV];Events"
 labels["dHH_H2_mass"] = ";Subleading Higgs mass [GeV];Events"
 labels["dHH_H2_regmass"] = ";Subleading Higgs mass^{reg.} [GeV];Events"
-labels["dHH_HH_mass"] = ';m_{HH} [GeV];Events'
-labels['dHH_HH_regmass'] = ';m_{HH}^{reg.} [GeV];Events'
+labels["dHH_HH_mass"] = ";m_{HH} [GeV];Events"
+labels["dHH_HH_regmass"] = ";m_{HH}^{reg.} [GeV];Events"
