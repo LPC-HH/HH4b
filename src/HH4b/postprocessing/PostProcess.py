@@ -570,10 +570,7 @@ def postprocess_run3(args):
             )
 
     if args.bdt_roc:
-<<<<<<< HEAD
-=======
         print("Making BDT ROC curve")
->>>>>>> origin
         bdt_roc(events_combined, plot_dir, args.legacy)
 
     if not args.templates:
