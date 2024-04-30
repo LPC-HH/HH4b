@@ -85,6 +85,8 @@ color_by_sample = {
     "hh4b-kl0": "fuchsia",
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
+    "vbfhh4b": "fuchsia",
+    "vbfhh4b-k2v0": "purple",
     "ttbar": colours["darkblue"],
     "ttlep": "cadetblue",
     "qcd": colours["canary"],
@@ -109,10 +111,12 @@ label_by_sample = {
     "qcd": "Multijet",
     "qcd-ht": "Multijet HT bin",
     "qcdb-ht": "Multijet B HT bin",
-    "hh4b": r"HH 4b ($\kappa_{\lambda}=1$)",
-    "hh4b-kl2p45": r"HH 4b ($\kappa_{\lambda}=2.45$)",
-    "hh4b-kl5": r"HH 4b ($\kappa_{\lambda}=5$)",
-    "hh4b-kl0": r"HH 4b ($\kappa_{\lambda}=0$)",
+    "hh4b": r"ggF HH4b",
+    "hh4b-kl2p45": r"HH4b ($\kappa_{\lambda}=2.45$)",
+    "hh4b-kl5": r"HH4b ($\kappa_{\lambda}=5$)",
+    "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
+    "vbfhh4b": r"VBF HH4b",
+    "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -488,6 +492,8 @@ def ratioHistPlot(
     show: bool = True,
     variation: tuple | None = None,
     bg_err_type: str = "shaded",
+    bg_err_mcstat: bool = False,
+    exclude_qcd_mcstat: bool = True,
     plot_data: bool = True,
     bg_order=None,
     log: bool = False,
@@ -497,6 +503,8 @@ def ratioHistPlot(
     significance_dir: str = "right",
     axrax: tuple | None = None,
     energy: str = "13.6",
+    add_pull: bool = False,
+    reweight_qcd: bool = False,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -542,7 +550,10 @@ def ratioHistPlot(
     bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
         sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
-    print("bg_keys", bg_keys)
+
+    if add_pull and bg_err is None:
+        add_pull = False
+
     # set up plots
     if axrax is not None:
         if plot_significance:
@@ -550,7 +561,7 @@ def ratioHistPlot(
 
         ax, rax = axrax
         ax.sharex(rax)
-    elif plot_significance:
+    elif add_pull or plot_significance:
         fig, (ax, rax, sax) = plt.subplots(
             3,
             1,
@@ -575,11 +586,20 @@ def ratioHistPlot(
     # plot histograms
     ax.set_ylabel("Events")
 
+    # re-weight qcd
+    kfactor = {sample: 1 for sample in bg_keys}
+    if reweight_qcd:
+        bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
+        data_yield = np.sum(hists[data_key, :].values())
+        if bg_yield > 0:
+            kfactor["qcd"] = data_yield / bg_yield
+
     # background samples
     if len(bg_keys) > 0:
         hep.histplot(
-            [hists[sample, :] for sample in bg_keys],
+            [hists[sample, :] * kfactor[sample] for sample in bg_keys],
             ax=ax,
+            # yerr=[np.sqrt(hists[sample, :].variances()) for sample in bg_keys],
             histtype="fill",
             sort="yield" if sortyield else None,
             stack=True,
@@ -629,7 +649,7 @@ def ratioHistPlot(
         bg_err = np.sqrt(bg_tot.variances())
 
     if bg_err is not None:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         if len(np.array(bg_err).shape) == 1:
             bg_err = [bg_tot - bg_err, bg_tot + bg_err]
 
@@ -642,7 +662,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Total Background Uncertainty",
+                label=bg_err_label,
             )
         else:
             ax.stairs(
@@ -672,6 +692,69 @@ def ratioHistPlot(
                 baseline=bg_err[1],
             )
 
+    # plot bkg statistical uncertainty (excludes QCD)
+    def get_variances(bg_hist):
+        if bg_hist.variances() is None:
+            return np.sqrt(bg_hist)
+        else:
+            return np.sqrt(bg_hist.variances())
+
+    # print(hists.axes[1].widths)
+
+    if bg_err_mcstat:
+        if exclude_qcd_mcstat:
+            bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
+            # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
+        else:
+            bg_err_label = "Stat. MC Uncertainty"
+            # bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        # tot_bg_err = get_variances(bg_tot)
+
+        # this is a stack
+        plot_shaded = False
+        mcstat_up = {}
+        mcstat_dn = {}
+        stack = None
+        for sample in bg_keys:
+            if exclude_qcd_mcstat and sample == "qcd":
+                continue
+            bg_yield = hists[sample, :] * kfactor[sample]
+            sample_bg_err = get_variances(bg_yield)
+            yerr = sample_bg_err
+            if stack is None:
+                sample_bg_err = [bg_yield - sample_bg_err, bg_yield + sample_bg_err]
+                stack = bg_yield
+            else:
+                stack += bg_yield
+                sample_bg_err = [stack - sample_bg_err, stack + sample_bg_err]
+
+            mcstat_up[sample] = sample_bg_err[0].values()
+            mcstat_dn[sample] = sample_bg_err[1].values()
+            if not plot_shaded:
+                hep.histplot(
+                    stack,
+                    ax=ax,
+                    yerr=yerr,
+                    histtype="errorbar",
+                    markersize=0,
+                    color="gray",
+                )
+
+        if plot_shaded:
+            for sample in bg_keys:
+                if exclude_qcd_mcstat and sample == "qcd":
+                    continue
+
+                ax.fill_between(
+                    np.repeat(hists.axes[1].edges, 2)[1:-1],
+                    np.repeat(mcstat_up[sample], 2),
+                    np.repeat(mcstat_dn[sample], 2),
+                    hatch="x",
+                    linewidth=0,
+                    edgecolor="k",
+                    facecolor="none",
+                )
+
     # plot data
     if plot_data:
         hep.histplot(
@@ -694,6 +777,8 @@ def ratioHistPlot(
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    if kfactor["qcd"] != 1:
+        ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
     if xlim_low is not None:
         if xlim is not None:
@@ -712,7 +797,7 @@ def ratioHistPlot(
 
     # plot ratio below
     if plot_data and len(bg_keys) > 0:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
 
         tot_val = bg_tot.values()
         tot_val_zero_mask = tot_val == 0
@@ -734,28 +819,18 @@ def ratioHistPlot(
         )
         rax.set_xlabel(hists.axes[1].label)
 
-        """
-        error_up_bg = bg_err[0]
-        error_up_data = np.sqrt(hists[data_key, :])
-        # dz = z * np.sqrt((dx/x)**2 + (dy/y)**2)
-        error_up = yvalue * np.sqrt( (error_up_data/data_val)*(error_up_data/data_val) + (error_up_bg/tot_val)*(error_up_bg/tot_val) )
-
-        error_dn_bkg = bg_err[1]
-        error_dn_data = np.sqrt(hists[data_key, :])
-        error_dn = yvalue * np.sqrt( (error_dn_data/data_val)*(error_dn_data/data_val) + (error_dn_bg/tot_val)*(error_dn_bg/tot_val) )
-
-        rax.fill_between(
-            np.repeat(hists.axes[1].edges, 2)[1:-1],
-            np.repeat(yvalue + error_up, 2),
-            np.repeat(yvalue - error_up, 2),
-            color="black",
-            alpha=0.2,
-            hatch="//",
-            linewidth=0,
-            # label="Total Background Uncertainty",
-        )
-        """
-
+        # fill error band of background
+        if bg_err is not None:
+            # (bkg + err) / bkg
+            rax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat((bg_err[0].values()) / tot_val, 2),
+                np.repeat((bg_err[1].values()) / tot_val, 2),
+                color="black",
+                alpha=0.1,
+                hatch="//",
+                linewidth=0,
+            )
     else:
         rax.set_xlabel(hists.axes[1].label)
 
@@ -766,7 +841,7 @@ def ratioHistPlot(
     rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if plot_significance:
-        bg_tot = sum([hists[sample, :] for sample in bg_keys]).values()
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys]).values()
         sigs = [hists[sig_key, :].values() for sig_key in sig_scale_dict]
 
         if significance_dir == "left":
@@ -798,6 +873,34 @@ def ratioHistPlot(
         sax.set_ylim([1e-3, 0.1])
         sax.set_xlabel(hists.axes[1].label)
 
+    if add_pull:
+        # (data -bkg )/unc_bkg
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
+        tot_val = bg_tot.values()
+        tot_val_zero_mask = tot_val == 0
+        tot_val[tot_val_zero_mask] = 1
+        data_val = hists[data_key, :].values()
+        data_val[tot_val_zero_mask] = 1
+
+        yhist = (hists[data_key, :] - bg_tot) / data_err
+        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, data_err, "poisson")
+
+        hep.histplot(
+            yhist,
+            ax=sax,
+            yerr=yerr,
+            histtype="errorbar",
+            markersize=20,
+            color="black",
+        )
+        sax.set_ylim([-4, 4])
+        sax.set_xlabel(hists.axes[1].label)
+        sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
+
+        minor_locator = mticker.AutoMinorLocator(2)
+        sax.yaxis.set_minor_locator(minor_locator)
+        sax.grid(axis="y", linestyle="-", linewidth=2, which="both")
+
     if title is not None:
         ax.set_title(title, y=1.08)
 
@@ -821,14 +924,13 @@ def ratioHistPlot(
             com=energy,
         )
 
-    if axrax is None:
-        if len(name):
-            plt.savefig(name, bbox_inches="tight")
+    if axrax is None and len(name):
+        plt.savefig(name, bbox_inches="tight")
 
-        if show:
-            plt.show()
-        else:
-            plt.close()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def mesh2d(
@@ -1055,8 +1157,11 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     va="center",
                     fontsize=10,
                 )
-    fig.tight_layout()
 
+    ax.set_xlabel("BDT Cut")
+    ax.set_ylabel(r"$T_{Xbb}$ Cut")
+
+    fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 

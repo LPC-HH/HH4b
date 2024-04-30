@@ -21,7 +21,16 @@ import pandas as pd
 import vector
 from hist import Hist
 
-from .hh_vars import data_key, jec_shifts, jmsr_shifts, norm_preserving_weights, years
+from HH4b.xsecs import xsecs
+
+from .hh_vars import (
+    LUMI,
+    data_key,
+    jec_shifts,
+    jmsr_shifts,
+    norm_preserving_weights,
+    years,
+)
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
@@ -94,20 +103,6 @@ def remove_empty_parquets(samples_dir, year):
             if not len(pd.read_parquet(file_path)):
                 print("Removing: ", f"{sample}/{f}")
                 Path(file_path).unlink()
-
-
-def get_xsecs():
-    """Load cross sections json file and evaluate if necessary"""
-    import json
-
-    with Path(f"{MAIN_DIR}/data/xsecs.json").open() as f:
-        xsecs = json.load(f)
-
-    for key, value in xsecs.items():
-        if isinstance(type(value), str):
-            xsecs[key] = eval(value)
-
-    return xsecs
 
 
 def get_cutflow(pickles_path, year, sample_name):
@@ -210,6 +205,7 @@ def format_columns(columns: list):
 
 def _normalize_weights(
     events: pd.DataFrame,
+    year: str,
     totals: dict,
     sample: str,
     isData: bool,
@@ -224,7 +220,19 @@ def _normalize_weights(
 
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
-        warnings.warn(f"{sample} has not been scaled by its xsec and lumi!", stacklevel=1)
+        # print(sample)
+        if sample == "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8":
+            warnings.warn(
+                f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
+                stacklevel=0,
+            )
+            events["weight"] = (
+                events["weight"]
+                * xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"]
+                * LUMI[year]
+            )
+        else:
+            raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
     events["finalWeight"] = events["weight"] / totals["np_nominal"]
 
@@ -305,6 +313,11 @@ def load_samples(
     # label - key of sample in events_dict
     # selector - string used to select directories to load in for this sample
     for label, selector in samples.items():
+        # important to check that samples have been normalized properly
+        load_columns = (
+            columns if label == "data" else columns + format_columns([("weight_noxsec", 1)])
+        )
+
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
             # check if this directory passes our selector string
@@ -320,7 +333,7 @@ def load_samples(
                 continue
 
             # print(f"Loading {sample}")
-            events = pd.read_parquet(parquet_path, filters=filters, columns=columns)
+            events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
 
             # no events?
             if not len(events):
@@ -348,6 +361,7 @@ def load_samples(
                 totals = pickles["totals"]
                 _normalize_weights(
                     events,
+                    year,
                     totals,
                     sample,
                     isData=label == data_key,
@@ -576,7 +590,6 @@ def singleVarHist(
         else:
             fill_var = var
 
-        # TODO: add b1, b2 assignment if needed
         fill_data = {var: get_feat(events, fill_var)}
         weight = events[weight_key].to_numpy().squeeze()
 
@@ -588,7 +601,7 @@ def singleVarHist(
         # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
         #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
-        if len(fill_data[var]):
+        if fill_data[var] is not None:
             h.fill(Sample=sample, **fill_data, weight=weight)
 
     if shape_var.blind_window is not None:

@@ -27,47 +27,51 @@ LUMI = {
 DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
-common_samples = {
-    "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+common_samples_bg = {
     "qcd": ["QCD_HT"],
     # "qcd": ["QCD_PT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
-    "ttbar": [
-        "TTto2L2Nu",
-        "TTtoLNu2Q",
-        "TTto4Q",
-    ],
-    "gghtobb": [
-        "GluGluHto2B_PT-200_M-125",
-    ],
-    "vbfhtobb": [
-        "VBFHto2B_M-125_dipoleRecoilOn",
-    ],
+    "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
+    # "ttlep": ["TTto2L2Nu", "TTtoLNu2Q"],
+    "gghtobb": ["GluGluHto2B_PT-200_M-125"],
+    "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
-        "WplusH_Hto2B_WtoLNu_M-125",
+        # "WplusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
         "WminusH_Hto2B_Wto2Q_M-125",
-        "WminusH_Hto2B_WtoLNu_M-125",
+        # "WminusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
         "ZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2L_M-125",
         "ggZH_Hto2B_Zto2Nu_M-125",
     ],
-    "tthtobb": [
-        "ttHto2B_M-125",
-    ],
-    "diboson": [
-        "ZZ",
-        "WW",
-        "WZ",
-    ],
-    "vjetslnu": [
-        "WtoLNu-4Jets",
-    ],
-    "vjets": [
-        "Wto2Q-3Jets_HT",
-        "Zto2Q-4Jets_HT",
-    ],
+    "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
+    "tthtobb": ["ttHto2B_M-125"],
+    "diboson": ["ZZ", "WW", "WZ"],
+    # "vjetslnu": ["WtoLNu-4Jets"],  # TODO: didn't run on these?
+    "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
+}
+
+common_samples_sig = {}  # TODO: none yet
+
+samples_run3 = {
+    "2022": {
+        **common_samples_bg,
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+    },
+    "2022EE": {
+        **common_samples_bg,
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+    },
+    "2023": {
+        **common_samples_bg,
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+    },
+    "2023BPix": {
+        **common_samples_bg,
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+    },
 }
 
 samples_2018 = {
@@ -130,18 +134,18 @@ samples_2018 = {
 
 samples = {
     "2018": samples_2018,
-    "2022": {**common_samples},
-    "2022EE": {**common_samples},
-    "2023": {**common_samples},
-    "2023BPix": {**common_samples},
+    **samples_run3,
 }
 
 data_key = "data"
 qcd_key = "qcd"
-hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb"]
-bg_keys = [qcd_key, "ttbar", "diboson", "vjets", "vjetslnu"] + hbb_bg_keys
+
+bg_keys = list(common_samples_bg.keys())
+bg_keys.remove("data")
+hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
+
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
-sig_keys_vbf = []  # TODO
+sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
