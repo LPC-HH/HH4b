@@ -94,6 +94,9 @@ color_by_sample = {
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
     "vjetslnu": colours["orange"],
+    "top_matched": colours["darkblue"],
+    "W_matched": colours["orange"],
+    "unmatched": colours["canary"],
 }
 
 label_by_sample = {
@@ -117,6 +120,9 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
+    "top_matched": "top matched",
+    "W_matched": "W matched",
+    "unmatched": "unmatched",
 }
 
 bg_order_default = [
@@ -526,7 +532,6 @@ def ratioHistPlot(
         axrax (Tuple): optionally input ax and rax instead of creating new ones
     """
 
-
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
     # hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
@@ -537,7 +542,7 @@ def ratioHistPlot(
     bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
         sig_keys, bg_keys, sig_scale_dict, variation, bg_order
     )
-
+    print("bg_keys", bg_keys)
     # set up plots
     if axrax is not None:
         if plot_significance:
@@ -616,6 +621,8 @@ def ratioHistPlot(
 
 
     # plot background errors
+    print(bg_keys)
+    print("I am here")
     if bg_err is None:
         # get background error from variances
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
