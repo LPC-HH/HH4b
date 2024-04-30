@@ -71,9 +71,8 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
-parser.add_argument(
-    "--sig-sample", default=None, type=str, help="can specify a specific signal key"
-)
+parser.add_argument("--sig-sample", default="hh4b", type=str, help="specify signal")
+
 parser.add_argument(
     "--nTF",
     default=None,
@@ -148,6 +147,8 @@ for key in all_sig_keys:
         mc_samples[key] = key
         sig_keys.append(key)
 
+
+print(sig_keys)
 all_mc = list(mc_samples.keys())
 
 

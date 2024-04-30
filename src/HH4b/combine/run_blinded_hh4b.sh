@@ -152,7 +152,7 @@ fi
 # freeze qcd params in blinded bins
 setparamsblinded=""
 freezeparamsblinded=""
-for bin in {4..8}
+for bin in {5..7}
 do
     setparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin}=0,"
     freezeparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin},"

@@ -31,8 +31,8 @@ common_samples_bg = {
     "qcd": ["QCD_HT"],
     # "qcd": ["QCD_PT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
-    "ttbar": ["TTto4Q"],
-    "ttlep": ["TTto2L2Nu", "TTtoLNu2Q"],
+    "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
+    # "ttlep": ["TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
     "vhtobb": [
