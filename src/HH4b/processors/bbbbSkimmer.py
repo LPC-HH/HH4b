@@ -23,11 +23,11 @@ from .corrections import (
     JECs,
     add_pileup_weight,
     add_ps_weight,
-    add_trig_weights,
     get_jetveto_event,
     get_jmsr,
     get_pdf_weights,
     get_scale_weights,
+    get_trig_weights,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -106,10 +106,10 @@ class bbbbSkimmer(SkimmerABC):
     }
 
     fatjet_selection = {  # noqa: RUF012
-        "pt": 300,
+        "pt": 250,
         "eta": 2.5,
-        "msd": 60,
-        "mreg": 60,
+        "msd": 50,
+        "mreg": 50,
     }
 
     vbf_jet_selection = {  # noqa: RUF012
@@ -823,9 +823,6 @@ class bbbbSkimmer(SkimmerABC):
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
         add_ps_weight(weights, events.PSWeight)
 
-        # TODO: update trigger weights with those derived by Armen
-        add_trig_weights(weights, fatjets, year, num_fatjets_cut)
-
         logger.debug("weights", extra=weights._weights.keys())
 
         ###################### Save all the weights and variations ######################
@@ -897,6 +894,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.weight()
+        weights_dict["trigger_sf"] = get_trig_weights(fatjets, year, num_fatjets_cut)
 
         return weights_dict, totals_dict
 
