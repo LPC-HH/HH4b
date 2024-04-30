@@ -289,11 +289,7 @@ def evaluate_model(
             sel = np.logical_or(sigs, bgs).squeeze()
         else:
             sel = np.ones(len(y_test), dtype=bool)
-<<<<<<< HEAD
-            
-=======
 
->>>>>>> origin
         print("Test ROC with sample weights")
         fpr, tpr, thresholds = roc_curve(
             yt_test[sel], y_scores[sel][:, i], sample_weight=weights_test[sel]
@@ -525,15 +521,11 @@ def evaluate_model(
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 for cut in bdt_cuts:
                     hep.histplot(
-<<<<<<< HEAD
-                        h[{"cat": key, "cut": str(cut)}], lw=2, label=f"BDT > {cut}", density=True, flow="none",
-=======
                         h[{"cat": key, "cut": str(cut)}],
                         lw=2,
                         label=f"BDT > {cut}",
                         density=True,
                         flow="none",
->>>>>>> origin
                     )
                 ax.legend()
                 ax.set_ylabel("Density")
@@ -910,12 +902,7 @@ def main(args):
     for year in args.years:
         for key in list(samples_run3[year].keys()):
             if key not in training_keys:
-<<<<<<< HEAD
-                samples_run3.pop(key)
-=======
                 samples_run3[year].pop(key)
->>>>>>> origin
-
         events_dict_years[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
 
     if len(args.years) == 1:
