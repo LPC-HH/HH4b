@@ -340,18 +340,6 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
-            """
-            # select events if in testing
-            if select_testing:
-                if year == "2022EE" and label in ["qcd", "ttbar", "hh4b"]:
-                    # hard code
-                    print(events["weight"])
-                    evt_list = np.load(f"bdt_trainings_run3/v1_msd30/inferences/2022EE/evt_{label}.npy")
-                    events_tmp = events[["event"]].droplevel(1, axis=1)
-                    events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
-                    events = events[events.index.isin(events_tmp.index)]
-            """
-
             if reorder_legacy_txbb:
                 _reorder_legacy_txbb(events)
 
