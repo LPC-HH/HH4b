@@ -270,7 +270,7 @@ def gen_selection_Top(
 def gen_selection_V(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
-    fatjets: FatJetArray, 
+    fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
 ):
