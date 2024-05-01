@@ -29,7 +29,12 @@ from .corrections import (
     get_scale_weights,
     get_trig_weights,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top, gen_selection_V
+from .GenSelection import (
+    gen_selection_Hbb,
+    gen_selection_HHbbbb,
+    gen_selection_Top,
+    gen_selection_V,
+)
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -129,7 +134,7 @@ class bbbbSkimmer(SkimmerABC):
         "muon_pt": 7,
     }
 
-    ak4_bjet_selection = {  # noqa: RUF012 
+    ak4_bjet_selection = {  # noqa: RUF012
         "pt": 25,
         "eta_max": 2.5,
         "id": "tight",
@@ -137,7 +142,7 @@ class bbbbSkimmer(SkimmerABC):
         "dr_leptons": 0.4,
     }
 
-    ak4_bjet_lepton_selection = { # noqa: RUF012
+    ak4_bjet_lepton_selection = {  # noqa: RUF012
         "electron_pt": 5,
         "muon_pt": 7,
     }

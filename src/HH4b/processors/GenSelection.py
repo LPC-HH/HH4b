@@ -276,7 +276,8 @@ def gen_selection_V(
 ):
     """Get W/Z and children information"""
     vs = events.GenPart[
-        ((abs(events.GenPart.pdgId) == W_PDGID) | (abs(events.GenPart.pdgId) == Z_PDGID)) * events.GenPart.hasFlags(GEN_FLAGS)
+        ((abs(events.GenPart.pdgId) == W_PDGID) | (abs(events.GenPart.pdgId) == Z_PDGID))
+        * events.GenPart.hasFlags(GEN_FLAGS)
     ]
     GenVVars = {f"GenV{key}": vs[var].to_numpy() for (var, key) in skim_vars.items()}
 
