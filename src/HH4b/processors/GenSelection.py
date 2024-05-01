@@ -286,6 +286,7 @@ def gen_selection_V(
 
     fatjets["VMatch"] = is_fatjet_matched
 
+    num_fatjets = 2
     bbFatJetVars = {
         f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
