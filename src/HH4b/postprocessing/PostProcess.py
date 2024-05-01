@@ -517,7 +517,7 @@ def postprocess_run3(args):
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
-    events_combined = combine_run3_samples(events_dict_postprocess, processes, bg_keys)
+    events_combined = combine_run3_samples(events_dict_postprocess, processes)
 
     print("Combined all years")
 

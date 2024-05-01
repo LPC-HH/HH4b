@@ -34,28 +34,23 @@ class Region:
 
 
 mass_key = "bbFatJetPNetMassLegacy"
-# both jets pT > 300, both jets mass [60, 250], at least one jet's TXbb legacy > 0.8
-# (need to do an OR since ordering is based on v12 TXbb, not legacy for now)
+# both jets pT > 300, both jets mass [60, 250]
 filters_legacy = [
     [
         ("('bbFatJetPt', '0')", ">=", 300),
         ("('bbFatJetPt', '1')", ">=", 300),
-        # added
         (f"('{mass_key}', '0')", "<=", 250),
         (f"('{mass_key}', '1')", "<=", 250),
         (f"('{mass_key}', '0')", ">=", 60),
         (f"('{mass_key}', '1')", ">=", 60),
-        ("('bbFatJetPNetTXbbLegacy', '0')", ">=", 0.8),
     ],
     [
         ("('bbFatJetPt', '0')", ">=", 300),
         ("('bbFatJetPt', '1')", ">=", 300),
-        # added
         (f"('{mass_key}', '0')", "<=", 250),
         (f"('{mass_key}', '1')", "<=", 250),
         (f"('{mass_key}', '0')", ">=", 60),
         (f"('{mass_key}', '1')", ">=", 60),
-        ("('bbFatJetPNetTXbbLegacy', '1')", ">=", 0.8),
     ],
 ]
 
@@ -114,6 +109,11 @@ load_columns_legacy = load_columns + [
     ("bbFatJetPNetPQCDbbLegacy", 2),
     ("bbFatJetPNetPQCDothersLegacy", 2),
     ("bbFatJetPNetMassLegacy", 2),
+    ("bbFatJetPNetTXbb", 2),
+    ("bbFatJetPNetMass", 2),
+    ("bbFatJetPNetQCD0HF", 2),
+    ("bbFatJetPNetQCD1HF", 2),
+    ("bbFatJetPNetQCD2HF", 2),
 ]
 
 load_columns_v12 = load_columns + [
@@ -184,27 +184,19 @@ var_to_shapevar = {
 }
 
 
-def load_run3_samples(input_dir: str, year: str, legacy: bool, samples_run3: dict[str, list[str]]):
+def load_run3_samples(
+    input_dir: str,
+    year: str,
+    legacy: bool,
+    samples_run3: dict[str, list[str]],
+    reorder_txbb: bool,
+    txbb: str,
+):
     filters = filters_legacy if legacy else filters_v12
     load_columns = load_columns_legacy if legacy else load_columns_v12
 
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
-
-    # add ORs of HLTs to filters
-    # filters_hlt = []
-    # for hlt in HLTs[year]:
-    #     filter_hlt = [(f"('{hlt}', '0')", "==", 1)]
-    #     filters_temp = filters.copy()
-    #     for i, filter_ in enumerate(filters_temp):
-    #         filters_temp[i] = filter_hlt + filter_
-    #     filters_hlt.append(filters_temp)
-
-    # if len(HLTs[year]) == 1:
-    #     filters_hlt = filters_hlt[0]
-
-    # print("Filters:")
-    # pprint(filters_hlt)
 
     # pre-selection
     events_dict = utils.load_samples(
@@ -213,6 +205,8 @@ def load_run3_samples(input_dir: str, year: str, legacy: bool, samples_run3: dic
         year,
         filters=filters,
         columns=utils.format_columns(load_columns_year),
+        reorder_txbb=reorder_txbb,
+        txbb=txbb,
         variations=False,
     )
 
@@ -222,13 +216,12 @@ def load_run3_samples(input_dir: str, year: str, legacy: bool, samples_run3: dic
 def combine_run3_samples(
     events_dict_years: dict[str, dict[str, pd.DataFrame]],
     processes: list[str],
-    bg_keys: list[str] = bg_keys,
+    bg_keys=None,
 ):
     # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
     scale_processes = {
         "hh4b": ["2022EE", "2023", "2023BPix"],
         "vbfhh4b-k2v0": ["2022", "2022EE"],
-        "qcd": ["2022EE"],
     }
 
     # create combined datasets
@@ -243,24 +236,28 @@ def combine_run3_samples(
                 [events_dict_years[year][key].copy() for year in scale_processes[key]]
             )
             lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
+            print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
             combined["weight"] = combined["weight"] * lumi_scale
 
         events_combined[key] = combined
 
     # combine ttbar
-    if "ttbar" in bg_keys and "ttlep" in bg_keys:
+    if "ttbar" in processes and "ttlep" in processes:
         events_combined["ttbar"] = pd.concat([events_combined["ttbar"], events_combined["ttlep"]])
         events_combined.pop("ttlep")
-        bg_keys.remove("ttlep")
+        if bg_keys:
+            bg_keys.remove("ttlep")
 
     # combine others (?)
     others = ["diboson", "vjets"]
-    if np.all([key in bg_keys for key in others]):
+    if np.all([key in processes for key in others]):
         events_combined["others"] = pd.concat([events_combined[key] for key in others])
         for key in others:
             events_combined.pop(key)
-            bg_keys.remove(key)
-        bg_keys.append("others")
+            if bg_keys:
+                bg_keys.remove(key)
+        if bg_keys:
+            bg_keys.append("others")
 
     return events_combined
 

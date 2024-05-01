@@ -86,28 +86,41 @@ for year in samples_run3:
     ]
 
 
-def get_legtitle(legacy: bool):
+def get_legtitle(legacy, pnet_xbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "$T_{Xbb}^{0}$>0.8"
-    # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n" + "$T_{Xbb}^{0}$>0.8"
+    if "Legacy" in pnet_xbb_str:
+        title += "\n" + "PNet Legacy"
 
-    # if not legacy:
-    #   title += "\n" + r"m$_{SD}^{(0,1)}$ > 30 GeV"
     if legacy:
-        title += "\n" + r"m$_{SD}^{(0,1)}$ > 30 GeV"
+        title += "\n" + r"m$_{SD}$ or m$_{reg Legacy}$ > 50 GeV"
+    else:
+        title += "\n" + r"m$_{SD}$ or m$_{reg}$ > 50 GeV"
+        # title += "\n" + r"m$_{SD}$ > 30 GeV"
 
     return title
 
 
-def apply_cuts(events_dict, legacy):
+def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
+    """
+    Apply cuts
+    Skimmer selection already includes
+    - 2 AK8 jets pT > 250 GeV, mSD > 60 or mReg > 60
+    - HLT OR
+    - Here we apply a pT selection at the very least
+    """
+    mass_cut = False
     for key in events_dict:
-        if not legacy:
-            msd1 = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
-            msd2 = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
-            events_dict[key] = events_dict[key][(msd1 > 30) & (msd2 > 30)]
-        else:
-            mass1 = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy()[:, 0]
-            mass2 = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy()[:, 1]
-            events_dict[key] = events_dict[key][(mass1 > 60) & (mass2 > 60)]
+        msd1 = events_dict[key]["bbFatJetMsd"][0]
+        msd2 = events_dict[key]["bbFatJetMsd"][1]
+        pt1 = events_dict[key]["bbFatJetPt"][0]
+        pt2 = events_dict[key]["bbFatJetPt"][1]
+        xbb1 = events_dict[key][pnet_xbb_str][0]
+        mass1 = events_dict[key][pnet_mass_str][0]
+        mass2 = events_dict[key][pnet_mass_str][1]
+        events_dict[key] = events_dict[key][(pt1 > 300) & (pt2 > 300) & (xbb1 > 0.8)].copy()
+        if mass_cut:
+            events_dict[key] = events_dict[key][(msd1 > 30) & (msd2 > 30)].copy()
+            events_dict[key] = events_dict[key][(mass1 > 60) & (mass2 > 60)].copy()
 
     return events_dict
 
@@ -323,8 +336,10 @@ def evaluate_model(
     sig_keys: list[str],
     bg_keys: list[str],
     training_keys: list[str],
-    legacy: bool,
     pnet_plots: bool,
+    legacy: bool,
+    pnet_xbb_str: str,
+    pnet_mass_str: str,
 ):
     """
     1) Makes ROC curves for testing data
@@ -340,9 +355,6 @@ def evaluate_model(
     )
     feature_importance_df = pd.DataFrame.from_dict({"Importance": feature_importances})
     feature_importance_df.to_markdown(f"{model_dir}/feature_importances.md")
-
-    pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
-    pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
 
     # make and save ROCs for testing data
     def find_nearest(array, value):
@@ -420,7 +432,7 @@ def evaluate_model(
 
         print("Making BDT shape plots")
 
-        legtitle = get_legtitle(legacy)
+        legtitle = get_legtitle(legacy, pnet_xbb_str)
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
@@ -470,8 +482,8 @@ def evaluate_model(
             fig, ax = plt.subplots(1, 1, figsize=(18, 12))
             bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
             legends = {**plotting.label_by_sample, "merged": "Total Background"}
-            plot_thresholds = [0.68, 0.9, 0.92]
-            th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
+            plot_thresholds = bdt_cuts
+            th_colours = ["#9381FF", "#1f78b4", "#a6cee3", "cyan", "blue"]
 
             for bkg in [*bg_keys, "merged"]:
                 if bkg != "merged":
@@ -753,11 +765,9 @@ def plot_allyears(
     multiclass,
     sig_keys: list[str],
     bg_keys: list[str],
-    legacy,
+    pnet_xbb_str: str,
+    pnet_mass_str: str,
 ):
-
-    pnet_xbb_str = "bbFatJetPNetTXbb" if not legacy else "bbFatJetPNetTXbbLegacy"
-    pnet_mass_str = "bbFatJetPNetMass" if not legacy else "bbFatJetPNetMassLegacy"
     make_bdt_dataframe = importlib.import_module(
         f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
     )
@@ -849,6 +859,7 @@ def plot_train_test(
     training_keys,
     model_dir,
     legacy,
+    pnet_xbb_str,
 ):
     plot_dir = model_dir / "train_test_plots"
     plot_dir.mkdir(exist_ok=True, parents=True)
@@ -945,7 +956,7 @@ def plot_train_test(
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
 
-            legtitle = get_legtitle(legacy)
+            legtitle = get_legtitle(legacy, pnet_xbb_str)
 
             ax.legend(
                 title=legtitle,
@@ -1010,22 +1021,39 @@ def plot_train_test(
 def main(args):
     training_keys = args.sig_keys + args.bg_keys  # default: ["hh4b", "ttbar", "qcd"]
 
+    if args.year == "2022-2023":
+        years = ["2022", "2022EE", "2023", "2023BPix"]
+    else:
+        years = args.year
+
     events_dict_years = {}
-    for year in args.years:
+    for year in years:
+        print(samples_run3[year])
         for key in list(samples_run3[year].keys()):
             if key not in training_keys:
                 samples_run3[year].pop(key)
 
-        events_dict_years[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
-        # apply cuts
-        # events_dict_years[year] = apply_cuts(events_dict_years[year], args.legacy)
+        events_dict_years[year] = load_run3_samples(
+            args.data_path,
+            year,
+            args.legacy,
+            samples_run3,
+            reorder_txbb=True,
+            txbb=args.pnet_xbb_str,
+        )
 
-    if len(args.years) == 1:
-        year = args.years[0]
-        events_dict = events_dict_years[year]
-    else:
+        if args.apply_cuts:
+            # apply cuts
+            events_dict_years[year] = apply_cuts(
+                events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str
+            )
+
+    if args.year == "2022-2023":
         year = "2022-2023"
-        events_dict = combine_run3_samples(events_dict_years)
+        events_dict = combine_run3_samples(events_dict_years, training_keys)
+    else:
+        year = args.year[0]
+        events_dict = events_dict_years[year]
 
     (
         X_train,
@@ -1103,6 +1131,7 @@ def main(args):
         training_keys,
         model_dir,
         args.legacy,
+        args.pnet_xbb_str,
     )
 
     evaluate_model(
@@ -1118,16 +1147,26 @@ def main(args):
         args.sig_keys,
         args.bg_keys,
         training_keys,
-        args.legacy,
         args.pnet_plots,
+        args.legacy,
+        args.pnet_xbb_str,
+        args.pnet_mass_str,
     )
 
     # test in other years
     events_dict = {}
     years_test = ["2022", "2022EE", "2023", "2023BPix"]
     for year in years_test:
-        events_dict[year] = load_run3_samples(args.data_path, year, args.legacy, samples_run3)
-        # events_dict[year] = apply_cuts(events_dict[year], args.legacy)
+        events_dict[year] = load_run3_samples(
+            args.data_path,
+            year,
+            args.legacy,
+            samples_run3,
+            reorder_txbb=True,
+            txbb=args.pnet_xbb_str,
+        )
+        if args.apply_cuts:
+            events_dict[year] = apply_cuts(events_dict[year], args.pnet_xbb_str, args.pnet_mass_str)
 
     plot_allyears(
         events_dict,
@@ -1137,18 +1176,18 @@ def main(args):
         args.multiclass,
         args.sig_keys,
         args.bg_keys,
-        args.legacy,
+        args.pnet_xbb_str,
+        args.pnet_mass_str,
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--years",
+        "--year",
         type=str,
-        nargs="+",
         default=["2022EE"],
-        choices=hh_vars.years,
+        choices=hh_vars.years + ["2022-2023"],
         help="years to train on",
     )
     parser.add_argument(
@@ -1182,22 +1221,28 @@ if __name__ == "__main__":
         type=str,
         nargs="+",
     )
+    parser.add_argument(
+        "--xbb", choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy"], help="xbb branch"
+    )
+    parser.add_argument(
+        "--mass", choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"], help="xbb pnet mass"
+    )
 
+    add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
     add_bool_arg(parser, "evaluate-only", "Only evaluation, no training", default=False)
     add_bool_arg(parser, "multiclass", "Classify each background separately", default=True)
-    add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
     add_bool_arg(
         parser, "equalize-weights", "Equalise total signal and background weights", default=True
     )
     add_bool_arg(parser, "run2-wapproach", "Run2 weight approach", default=False)
     add_bool_arg(parser, "pnet-plots", "Make PNet plots", default=True)
+    add_bool_arg(parser, "apply-cuts", "Apply cuts", default=True)
 
     args = parser.parse_args()
+    args.pnet_xbb_str = args.xbb
+    args.pnet_mass_str = args.mass
 
     if args.config_name is None:
         args.config_name = args.model_name
-
-    if not (len(args.years) == 1 or len(args.years) == 4):
-        raise NotImplementedError("Load samples only implemented for 1 year or all 4 years")
 
     main(args)
