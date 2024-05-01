@@ -263,3 +263,37 @@ def vbf_jets(
     )
 
     return jets[ak4_sel][:, :2]
+
+
+def ak4_jets_awayfromak8(
+    jets: JetArray,
+    fatjets: FatJetArray,
+    events,
+    pt: float,
+    id: str,  # noqa: ARG001
+    eta_max: float,
+    dr_fatjets: float,
+    dr_leptons: float,
+    electron_pt: float,
+    muon_pt: float,
+):
+    """Top 2 jets in b-tag away from AK8 fatjets"""
+    electrons = events.Electron
+    electrons = electrons[electrons.pt > electron_pt]
+
+    muons = events.Muon
+    muons = muons[muons.pt > muon_pt]
+
+    ak4_sel = (
+        jets.isTight
+        & (jets.pt >= pt)
+        & (np.abs(jets.eta) <= eta_max)
+        & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
+        & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
+        & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
+    )
+
+    # sort by btagPNetB
+    jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
+
+    return jets_pnetb[ak4_sel][:, :2]

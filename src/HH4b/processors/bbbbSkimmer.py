@@ -29,7 +29,7 @@ from .corrections import (
     get_scale_weights,
     get_trig_weights,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top, gen_selection_V
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -128,6 +128,19 @@ class bbbbSkimmer(SkimmerABC):
         "muon_pt": 7,
     }
 
+    ak4_bjet_selection = {  # noqa: RUF012 
+        "pt": 25,
+        "eta_max": 2.5,
+        "id": "tight",
+        "dr_fatjets": 0.9,
+        "dr_leptons": 0.4,
+    }
+
+    ak4_bjet_lepton_selection = { # noqa: RUF012
+        "electron_pt": 5,
+        "muon_pt": 7,
+    }
+
     def __init__(
         self,
         xsecs=None,
@@ -215,6 +228,7 @@ class bbbbSkimmer(SkimmerABC):
                 ],
             },
         }
+        HLTs["pre-sel"] = HLTs["signal"]
 
         self.HLTs = HLTs[region]
 
@@ -232,7 +246,10 @@ class bbbbSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "ecalBadCalibFilter",
+            "hfNoisyHitsFilter",
+            "eeBadScFilter",
+            # getting rid of this filter for run-3 data https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#ECal_BadCalibration_Filter_Flag
+            # "ecalBadCalibFilter",
         ]
 
         """
@@ -396,6 +413,15 @@ class bbbbSkimmer(SkimmerABC):
             events,
             **self.vbf_jet_selection,
             **self.vbf_veto_lepton_selection,
+        )
+
+        # AK4 objects away from fatjets
+        ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
+            jets,
+            fatjets_xbb[:, :2],
+            events,
+            **self.ak4_bjet_selection,
+            **self.ak4_bjet_lepton_selection,
         )
 
         # JMSR
@@ -616,6 +642,7 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **vbfJetVars,
                 **bbFatDijetVars,
+                **trigObjFatJetVars,
             }
         else:
             # these variables aren't needed for signal region
@@ -623,7 +650,6 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **ak8FatJetVars,
                 **ak4JetVars,
-                **trigObjFatJetVars,
             }
 
         if self._region == "semilep-tt":
