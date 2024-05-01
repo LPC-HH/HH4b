@@ -18,13 +18,12 @@ from coffea.analysis_tools import PackedSelection, Weights
 import HH4b
 
 from . import utils
-from .GenSelection import gen_selection_Top
 from .corrections import (
     JECs,
     add_pileup_weight,
     add_trig_weights,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb
+from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
     get_ak8jets,
 )
@@ -45,6 +44,7 @@ gen_selection_dict = {
     "TTto2L2Nu": gen_selection_Top,
     "TTtoLNu2Q": gen_selection_Top,
 }
+
 
 class ttSkimmer(SkimmerABC):
     """
@@ -300,7 +300,7 @@ class ttSkimmer(SkimmerABC):
             if len(selection.names)
             else np.ones(len(events)).astype(bool)
         )
-                
+
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
         if not isData:
@@ -335,7 +335,7 @@ class ttSkimmer(SkimmerABC):
 
         # event variable
         met_pt = met.pt
-        
+
         eventVars = {
             key: events[val].to_numpy()
             for key, val in self.skim_vars["Event"].items()

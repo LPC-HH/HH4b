@@ -639,7 +639,6 @@ def ratioHistPlot(
                 color=sig_colours[: len(sig_keys)],
             )
 
-
     # plot background errors
     print(bg_keys)
     print("I am here")
@@ -673,7 +672,7 @@ def ratioHistPlot(
                 label="BG Total",
                 baseline=bg_tot.values(),
             )
-    
+
             ax.stairs(
                 bg_err[0],
                 hists.axes[1].edges,
@@ -682,7 +681,7 @@ def ratioHistPlot(
                 label="BG Down",
                 baseline=bg_err[0],
             )
-    
+
             ax.stairs(
                 bg_err[1],
                 hists.axes[1].edges,
