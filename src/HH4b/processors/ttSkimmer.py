@@ -209,17 +209,14 @@ class ttSkimmer(SkimmerABC):
 
         isData = not hasattr(events, "genWeight")
 
-        if not isData:
-            gen_weights = events["genWeight"].to_numpy()
-        else:
-            gen_weights = None
+        gen_weights = events["genWeight"].to_numpy() if not isData else None
 
         n_events = len(events) if isData else np.sum(gen_weights)
 
         cutflow = OrderedDict()
         cutflow["all"] = n_events
         selection = PackedSelection()
-        weights = Weights(len(events), storeIndividual=True)
+        # weights = Weights(len(events), storeIndividual=True)
         selection_args = (selection, cutflow, isData, gen_weights)
 
         # JEC factory loader
@@ -230,14 +227,14 @@ class ttSkimmer(SkimmerABC):
         #########################
         print("Starting object definition", f"{time.time() - start:.2f}")
 
-        run = events.run.to_numpy()
+        # run = events.run.to_numpy()
 
         muon = events.Muon
         muon["id"] = muon.charge * (13)
 
-        electron = events.Electron
+        # electron = events.Electron
 
-        num_jets = 4
+        # num_jets = 4
         ak4_jets, jec_shifted_jetvars = JEC_loader.get_jec_jets(
             events,
             events.Jet,
@@ -404,7 +401,7 @@ class ttSkimmer(SkimmerABC):
             * (ak4_jets.pt > self.ak4_jet_selection["pt"])
             * (np.abs(ak4_jets.eta) < self.ak4_jet_selection["eta"])
         )
-        ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
+        # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
         ak4_jet_selector_btag_muon = ak4_jet_selector * (

@@ -661,7 +661,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label=bg_err_label,
+                # label=bg_err_label,
             )
         else:
             ax.stairs(
@@ -701,13 +701,13 @@ def ratioHistPlot(
     # print(hists.axes[1].widths)
 
     if bg_err_mcstat:
-        if exclude_qcd_mcstat:
-            bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
-            # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
-        else:
-            bg_err_label = "Stat. MC Uncertainty"
-            # bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        # tot_bg_err = get_variances(bg_tot)
+        # if exclude_qcd_mcstat:
+        #     bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
+        #     # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
+        # else:
+        #     bg_err_label = "Stat. MC Uncertainty"
+        #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        #  tot_bg_err = get_variances(bg_tot)
 
         # this is a stack
         plot_shaded = False
