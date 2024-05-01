@@ -270,7 +270,7 @@ def gen_selection_Top(
 def gen_selection_V(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
-    fatjets: FatJetArray,
+    fatjets: FatJetArray, 
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
 ):
@@ -280,4 +280,16 @@ def gen_selection_V(
     ]
     GenVVars = {f"GenV{key}": vs[var].to_numpy() for (var, key) in skim_vars.items()}
 
-    return {**GenVVars}
+    matched_to_v = fatjets.metric_table(vs) < 0.8
+    is_fatjet_matched = ak.any(matched_to_v, axis=2)
+
+    fatjets["VMatch"] = is_fatjet_matched
+
+    bbFatJetVars = {
+        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "VMatch",
+        ]
+    }
+
+    return {**GenVVars, **bbFatJetVars}

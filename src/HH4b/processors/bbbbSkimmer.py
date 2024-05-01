@@ -476,7 +476,7 @@ class bbbbSkimmer(SkimmerABC):
 
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
-            for (var, key) in self.skim_vars["Jet"].items()
+            for (var, key) in jet_skimvars.items()
         }
 
         # FatJet variables
@@ -627,6 +627,12 @@ class bbbbSkimmer(SkimmerABC):
                 f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
                 for (var, key) in self.skim_vars["Jet"].items()
             }
+            
+            # AK4 jets
+            ak4JetAwayVars = {
+                f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+                for (var, key) in jet_skimvars.items()
+            }            
 
             # JEC variations for VBF Jets (for signal only for now)
             if self._region == "signal" and isSignal:
