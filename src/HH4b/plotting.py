@@ -96,6 +96,9 @@ color_by_sample = {
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
     "vjetslnu": colours["orange"],
+    "top_matched": colours["darkblue"],
+    "W_matched": colours["orange"],
+    "unmatched": colours["canary"],
 }
 
 label_by_sample = {
@@ -121,6 +124,9 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
+    "top_matched": "top matched",
+    "W_matched": "W matched",
+    "unmatched": "unmatched",
 }
 
 bg_order_default = [
@@ -634,7 +640,13 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    bg_err_label = "Total Background Uncertainty"
+    print(bg_keys)
+    print("I am here")
+    if bg_err is None:
+        # get background error from variances
+        bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        bg_err = np.sqrt(bg_tot.variances())
+
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         if len(np.array(bg_err).shape) == 1:
@@ -649,7 +661,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label=bg_err_label,
+                # label=bg_err_label,
             )
         else:
             ax.stairs(
@@ -689,13 +701,13 @@ def ratioHistPlot(
     # print(hists.axes[1].widths)
 
     if bg_err_mcstat:
-        if exclude_qcd_mcstat:
-            bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
-            # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
-        else:
-            bg_err_label = "Stat. MC Uncertainty"
-            # bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        # tot_bg_err = get_variances(bg_tot)
+        # if exclude_qcd_mcstat:
+        #     bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
+        #     # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
+        # else:
+        #     bg_err_label = "Stat. MC Uncertainty"
+        #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        #  tot_bg_err = get_variances(bg_tot)
 
         # this is a stack
         plot_shaded = False
