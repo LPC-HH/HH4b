@@ -21,7 +21,6 @@ from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
-    add_trig_weights,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -525,9 +524,6 @@ class ttSkimmer(SkimmerABC):
         weights.add("genweight", gen_weights)
 
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
-
-        # TODO: update trigger weights with those derived by Armen
-        add_trig_weights(weights, fatjets, year, num_fatjets_cut)
 
         logger.debug("weights", extra=weights._weights.keys())
 
