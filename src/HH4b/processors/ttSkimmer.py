@@ -349,7 +349,7 @@ class ttSkimmer(SkimmerABC):
 
         print("Vars", f"{time.time() - start:.2f}")
 
-        # A sumary of https://www.notion.so/Create-processor-TT-mass-regression-6f0a714558474bd192732698bd85ff9e
+        # A summary of https://www.notion.so/Create-processor-TT-mass-regression-6f0a714558474bd192732698bd85ff9e
         #########################
         # Selection Starts
         #########################
