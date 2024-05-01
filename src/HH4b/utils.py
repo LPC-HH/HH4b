@@ -265,14 +265,14 @@ def _normalize_weights(
             events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
 
 
-def _reorder_legacy_txbb(events: pd.DataFrame):
-    """Reorder all the bbFatJet columns by legacy TXbb (instead of by v12 TXbb)"""
-    if "bbFatJetPNetTXbbLegacy" not in events:
+def _reorder_txbb(events: pd.DataFrame, txbb):
+    """Reorder all the bbFatJet columns by given TXbb"""
+    if txbb not in events:
         raise ValueError(
-            "bbFatJetPNetTXbbLegacy not found in events! Need to include that in load columns, or set reorder_legacy_txbb to False."
+            f"{txbb} not found in events! Need to include that in load columns, or set reorder_legacy_txbb to False."
         )
 
-    bbord = np.argsort(events["bbFatJetPNetTXbbLegacy"].to_numpy(), axis=1)[:, ::-1]
+    bbord = np.argsort(events[txbb].to_numpy(), axis=1)[:, ::-1]
     for key in np.unique(events.columns.get_level_values(0)):
         if key.startswith("bbFatJet"):
             events[key] = np.take_along_axis(events[key].to_numpy(), bbord, axis=1)
@@ -286,7 +286,8 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
-    reorder_legacy_txbb: bool = True,  # temporary fix for sorting by legacy txbb
+    reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
+    txbb: str = "bbFatJetPNetTXbbLegacy",
     # select_testing: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -340,20 +341,8 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
-            """
-            # select events if in testing
-            if select_testing:
-                if year == "2022EE" and label in ["qcd", "ttbar", "hh4b"]:
-                    # hard code
-                    print(events["weight"])
-                    evt_list = np.load(f"bdt_trainings_run3/v1_msd30/inferences/2022EE/evt_{label}.npy")
-                    events_tmp = events[["event"]].droplevel(1, axis=1)
-                    events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
-                    events = events[events.index.isin(events_tmp.index)]
-            """
-
-            if reorder_legacy_txbb:
-                _reorder_legacy_txbb(events)
+            if reorder_txbb:
+                _reorder_txbb(events, txbb)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)

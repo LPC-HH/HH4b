@@ -155,6 +155,17 @@ def get_processor(
             nano_version=nano_version,
         )
 
+    if processor == "ttSkimmer":
+        from HH4b.processors import ttSkimmer
+
+        return ttSkimmer(
+            xsecs=xsecs,
+            save_systematics=save_systematics,
+            region=region,
+            save_array=save_array,
+            nano_version=nano_version,
+        )
+
 
 def parse_common_args(parser):
     parser.add_argument(
@@ -162,7 +173,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching"],
+        choices=["skimmer", "matching", "ttSkimmer"],
     )
 
     parser.add_argument(
