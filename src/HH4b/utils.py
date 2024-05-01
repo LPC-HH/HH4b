@@ -341,18 +341,6 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
-            """
-            # select events if in testing
-            if select_testing:
-                if year == "2022EE" and label in ["qcd", "ttbar", "hh4b"]:
-                    # hard code
-                    print(events["weight"])
-                    evt_list = np.load(f"bdt_trainings_run3/v1_msd30/inferences/2022EE/evt_{label}.npy")
-                    events_tmp = events[["event"]].droplevel(1, axis=1)
-                    events_tmp = events_tmp[events_tmp.event.isin(evt_list)]
-                    events = events[events.index.isin(events_tmp.index)]
-            """
-
             if reorder_txbb:
                 _reorder_txbb(events, txbb)
 
@@ -591,7 +579,6 @@ def singleVarHist(
         else:
             fill_var = var
 
-        # TODO: add b1, b2 assignment if needed
         fill_data = {var: get_feat(events, fill_var)}
         weight = events[weight_key].to_numpy().squeeze()
 
@@ -603,7 +590,7 @@ def singleVarHist(
         # if sf is not None and year is not None and sample == "ttbar" and apply_tt_sf:
         #     weight = weight   * tau32FittedSF_4(events) * ttbar_pTjjSF(year, events)
 
-        if len(fill_data[var]):
+        if fill_data[var] is not None:
             h.fill(Sample=sample, **fill_data, weight=weight)
 
     if shape_var.blind_window is not None:

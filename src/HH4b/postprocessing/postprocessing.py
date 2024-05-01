@@ -6,7 +6,6 @@ from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
-import click
 import hist
 import numpy as np
 import pandas as pd
@@ -18,13 +17,12 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    samples,
     sig_keys,
     years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import CUT_MAX_VAL, ShapeVar, Syst
+from HH4b.utils import ShapeVar, Syst
 
 
 @dataclass
@@ -96,10 +94,10 @@ load_columns = [
     ("bbFatJetPhi", 2),
     ("bbFatJetMsd", 2),
     ("bbFatJetTau3OverTau2", 2),
-    ("VBFJetPt", 2),
-    ("VBFJetEta", 2),
-    ("VBFJetPhi", 2),
-    ("VBFJetMass", 2),
+    # ("VBFJetPt", 2),
+    # ("VBFJetEta", 2),
+    # ("VBFJetPhi", 2),
+    # ("VBFJetMass", 2),
 ]
 
 load_columns_legacy = load_columns + [
@@ -118,6 +116,7 @@ load_columns_legacy = load_columns + [
 
 load_columns_v12 = load_columns + [
     ("bbFatJetPNetTXbb", 2),
+    # ("bbFatJetPNetXbb", 2),
     ("bbFatJetPNetMass", 2),
     ("bbFatJetPNetQCD0HF", 2),
     ("bbFatJetPNetQCD1HF", 2),
@@ -131,56 +130,6 @@ weight_shifts = {
     # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
     # "top_pt": ["ttbar"],
-}
-
-# {label: {cutvar: [min, max], ...}, ...}
-txbb_cut = 0.985
-
-selection_regions = {
-    "pass": Region(
-        cuts={
-            "bb0FatJetPNetXbb": [txbb_cut, CUT_MAX_VAL],
-            "bb1FatJetPNetXbb": [txbb_cut, CUT_MAX_VAL],
-            "bb0FatJetPNetMass": [100, 150],
-        },
-        label="Pass",
-    ),
-    "fail": Region(
-        cuts={
-            "bb0FatJetPNetXbb": [-CUT_MAX_VAL, txbb_cut],
-            "bb1FatJetPNetXbb": [-CUT_MAX_VAL, txbb_cut],
-            "bb0FatJetPNetMass": [100, 150],
-        },
-        label="Fail",
-    ),
-}
-
-fit_shape_var = ShapeVar(
-    "bb1FatJetPNetMass",
-    r"$m^{j2}_\mathrm{Reg}$ (GeV)",
-    [19, 60, 250],
-    reg=True,
-    blind_window=[100, 150],
-)
-
-
-var_to_shapevar = {
-    # var must match key in events dictionary (i.e. as saved in parquet file)
-    "DijetMass": ShapeVar(var="DijetMass", label=r"$m^{jj}$ (GeV)", bins=[30, 600, 4000]),
-    "ak8FatJetPt0": ShapeVar(
-        var="ak8FatJetPt0", label=r"$p_T^0$ (GeV)", bins=[30, 300, 1500], significance_dir="right"
-    ),
-    "ak8FatJetPt1": ShapeVar(
-        var="ak8FatJetPt1", label=r"$p_T^1$ (GeV)", bins=[30, 300, 1500], significance_dir="right"
-    ),
-    "ak8FatJetPNetMass0": ShapeVar(
-        var="ak8FatJetPNetMass0", label=r"$m_{reg}^{0}$ (GeV)", bins=[20, 50, 250]
-    ),
-    "ak8FatJetPNetXbb0": ShapeVar(
-        var="ak8FatJetPNetXbb0",
-        label=r"$TX_{bb}^{0}$",
-        bins=[50, 0.0, 1],
-    ),
 }
 
 
@@ -216,7 +165,8 @@ def load_run3_samples(
 def combine_run3_samples(
     events_dict_years: dict[str, dict[str, pd.DataFrame]],
     processes: list[str],
-    bg_keys=None,
+    bg_keys: list[str] = None,
+    weight_key: str = "weight",
 ):
     # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
     scale_processes = {
@@ -237,7 +187,7 @@ def combine_run3_samples(
             )
             lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
-            combined["weight"] = combined["weight"] * lumi_scale
+            combined[weight_key] = combined[weight_key] * lumi_scale
 
         events_combined[key] = combined
 
@@ -248,7 +198,8 @@ def combine_run3_samples(
         if bg_keys:
             bg_keys.remove("ttlep")
 
-    # combine others (?)
+    # combine others
+    # ignoring ggF, VBF Hbb
     others = ["diboson", "vjets"]
     if np.all([key in processes for key in others]):
         events_combined["others"] = pd.concat([events_combined[key] for key in others])
@@ -310,103 +261,6 @@ def make_rocs(
         }
 
     return rocs
-
-
-@click.command()
-@click.option(
-    "--year",
-    "years",
-    required=True,
-    multiple=True,
-    type=click.Choice(["2022", "2022EE", "2023", "2018"], case_sensitive=False),
-    help="year",
-)
-def postprocess(years):
-    # TODO: set this as a yaml file
-    dirs = {"/eos/uscms/store/user/cmantill/bbbb/skimmer/Oct2/": samples}
-
-    vars_to_plot = [
-        "ak8FatJetPt0",
-        "ak8FatJetPt1",
-        "DijetMass",
-        "ak8FatJetPNetXbb0",
-    ]
-
-    # weight to apply to histograms
-    weight_key = ["finalWeight"]
-
-    # filters are sequences of strings that can be used to place a selection
-    # e.g. https://github.com/rkansal47/HHbbVV/blob/main/src/HHbbVV/postprocessing/postprocessing.py#L80
-    filters = [
-        [
-            # [
-            #    ("('HLT_AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35', '0')", "==", 1),
-            #    ("('HLT_AK8PFJet425_SoftDropMass40', '0')", "==", 1),
-            # ],
-            # ("('HLT_AK8PFJet425_SoftDropMass40', '0')", "==", 1),
-            ("('ak8FatJetPt', '0')", ">=", 300),
-            ("('ak8FatJetPt', '1')", ">=", 250),
-            ("('ak8FatJetMsd', '0')", ">=", 60),
-            ("('ak8FatJetMsd', '1')", ">=", 60),
-            # ("('ak8FatJetPNetXbb', '0')", ">=", 0.8),
-            # ("('ak8FatJetPNetXbb', '1')", ">=", 0.8),
-        ],
-    ]
-
-    # columns to load
-    load_columns = [
-        ("weight", 1),
-        ("DijetMass", 1),
-        ("ak8FatJetPt", 2),
-        ("ak8FatJetPNetXbb", 2),
-        # "single_weight_trigsf_2jet"
-        # ("ak8FatJetPNetMass", 2),
-    ]
-    # reformat into ("column name", "idx") format for reading multiindex columns
-    columns = []
-    for key, num_columns in load_columns:
-        for i in range(num_columns):
-            columns.append(f"('{key}', '{i}')")
-
-    for year in years:
-        # load all samples, apply filters if needed
-        events_dict = {}
-        for input_dir, in_samples in dirs.items():
-            events_dict = {
-                **events_dict,
-                **utils.load_samples(
-                    input_dir,
-                    in_samples,
-                    year,
-                    filters,
-                    columns,
-                    variations=True,
-                    weight_shifts=weight_shifts,
-                ),
-            }
-
-        # samples_loaded = list(events_dict.keys())
-        # keys_loaded = list(events_dict[samples_loaded[0]].keys())
-        # print(f"Keys in events_dict {keys_loaded}")
-
-        # make a histogram
-        hists = {}
-        for var in vars_to_plot:
-            shape_var = var_to_shapevar[var]
-            if shape_var.var not in hists:
-                hists[shape_var.var] = utils.singleVarHist(
-                    events_dict,
-                    shape_var,
-                    weight_key=weight_key,
-                    selection=None,
-                )
-
-        # make a stacked plot
-        plotting.plot_hists(
-            year,
-            hists,
-            vars_to_plot,
-        )
 
 
 def _get_fill_data(
@@ -679,4 +533,4 @@ def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: S
 
 
 if __name__ == "__main__":
-    sys.exit(postprocess())
+    sys.exit()
