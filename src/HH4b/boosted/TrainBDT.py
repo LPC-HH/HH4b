@@ -88,14 +88,14 @@ for year in samples_run3:
 
 def get_legtitle(legacy, pnet_xbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "$T_{Xbb}^{0}$>0.8"
+    title += "\n" + r"m$_{SD}^{0}$ > 30 GeV"
     if "Legacy" in pnet_xbb_str:
         title += "\n" + "PNet Legacy"
 
     if legacy:
-        title += "\n" + r"m$_{SD}$ or m$_{reg Legacy}$ > 50 GeV"
+        title += "\n" + r"m$_{reg Legacy}$ > 50 GeV"
     else:
-        title += "\n" + r"m$_{SD}$ or m$_{reg}$ > 50 GeV"
-        # title += "\n" + r"m$_{SD}$ > 30 GeV"
+        title += "\n" + r"m$_{reg}$ > 50 GeV"
 
     return title
 
@@ -117,10 +117,16 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
         xbb1 = events_dict[key][pnet_xbb_str][0]
         mass1 = events_dict[key][pnet_mass_str][0]
         mass2 = events_dict[key][pnet_mass_str][1]
-        events_dict[key] = events_dict[key][(pt1 > 300) & (pt2 > 300) & (xbb1 > 0.8)].copy()
+        # add msd > 40 cut for the first jet
+        # add regressed mass cut above 50
+        # FIXME: replace this by the trigobj matched jet
+        events_dict[key] = events_dict[key][
+            (pt1 > 300) & (pt2 > 300) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+        ].copy()
+        # mass cuts on both jets (false by default)
         if mass_cut:
+            # for legacy add msd cuts for both jets
             events_dict[key] = events_dict[key][(msd1 > 30) & (msd2 > 30)].copy()
-            events_dict[key] = events_dict[key][(mass1 > 60) & (mass2 > 60)].copy()
 
     return events_dict
 

@@ -16,3 +16,8 @@ python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimm
 ```
 python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr23LegacyLowerThresholds_v12_private_signal/ --model-name  24May1_legacy_pt300xbb08_2022EE2023 --xbb bbFatJetPNetTXbbLegacy --mass bbFatJetPNetMassLegacy --legacy --pnet-plots --apply-cuts --config-name 24Apr20_legacy_fix --year 2022-2023
 ```
+
+- 24May1_legacy_pt300xbb08msd140_2022EE2023
+```
+python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr23LegacyLowerThresholds_v12_private_signal/ --model-name  24May1_legacy_pt300xbb08msd140_2022EE2023 --xbb bbFatJetPNetTXbbLegacy --mass bbFatJetPNetMassLegacy --legacy --pnet-plots --apply-cuts --config-name 24Apr20_legacy_fix --year 2022-2023
+```
