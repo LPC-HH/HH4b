@@ -48,9 +48,10 @@ gen_selection_dict = {
     "HHto4B": gen_selection_HHbbbb,
     "HToBB": gen_selection_Hbb,
     "TTto4Q": gen_selection_Top,
-    "Wto2Q": gen_selection_V,
-    "Zto2Q": gen_selection_V,
+    "Wto2Q-": gen_selection_V,
+    "Zto2Q-": gen_selection_V,
     "WtoLNu-": gen_selection_V,
+    "DYto2L-": gen_selection_V,
 }
 
 logger = logging.getLogger(__name__)
