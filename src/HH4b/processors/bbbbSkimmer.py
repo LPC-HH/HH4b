@@ -662,7 +662,10 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events = {
                 **skimmed_events,
                 **ak8FatJetVars,
+                **ak4JetAwayVars,
                 **ak4JetVars,
+                **bbFatDijetVars,
+                **trigObjFatJetVars,
             }
 
         if self._region == "semilep-tt":
@@ -706,7 +709,7 @@ class bbbbSkimmer(SkimmerABC):
             apply_trigger = False
 
         # if apply_trigger:
-        #    add_selection("trigger", HLT_triggered, *selection_args)
+        #     add_selection("trigger", HLT_triggered, *selection_args)
 
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
