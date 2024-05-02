@@ -166,8 +166,9 @@ def get_processor(
             nano_version=nano_version,
         )
 
-    if processor == "vpt": 
+    if processor == "vpt":
         from HH4b.processors import vptProc
+
         return vptProc()
 
 
