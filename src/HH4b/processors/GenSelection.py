@@ -265,3 +265,33 @@ def gen_selection_Top(
     }
 
     return {**GenTopVars, **bbFatJetVars}
+
+
+def gen_selection_V(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list,  # noqa: ARG001
+    skim_vars: dict,
+):
+    """Get W/Z and children information"""
+    vs = events.GenPart[
+        ((abs(events.GenPart.pdgId) == W_PDGID) | (abs(events.GenPart.pdgId) == Z_PDGID))
+        * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    GenVVars = {f"GenV{key}": vs[var].to_numpy() for (var, key) in skim_vars.items()}
+
+    matched_to_v = fatjets.metric_table(vs) < 0.8
+    is_fatjet_matched = ak.any(matched_to_v, axis=2)
+
+    fatjets["VMatch"] = is_fatjet_matched
+
+    num_fatjets = 2
+    bbFatJetVars = {
+        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "VMatch",
+        ]
+    }
+
+    return {**GenVVars, **bbFatJetVars}
