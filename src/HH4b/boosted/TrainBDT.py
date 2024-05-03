@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import pickle
-from collections import OrderedDict  # noqa: F401
+from collections import OrderedDict
 from pathlib import Path
 
 import hist
@@ -20,7 +20,7 @@ from sklearn.preprocessing import LabelEncoder
 from HH4b import hh_vars, plotting
 from HH4b.hh_vars import samples_run3
 from HH4b.postprocessing import (
-    combine_run3_samples,
+    get_evt_testing,
     load_run3_samples,
 )
 from HH4b.run_utils import add_bool_arg
@@ -133,7 +133,7 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
 
 def preprocess_data(
     events_dict: dict,
-    training_keys: list[str],
+    train_keys: list[str],
     config_name: str,
     test_size: float,
     seed: int,
@@ -146,6 +146,15 @@ def preprocess_data(
     make_bdt_dataframe = importlib.import_module(
         f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
     )
+
+    training_keys = train_keys.copy()
+    print("Training keys ", training_keys)
+
+    for key in training_keys:
+        if key not in events_dict:
+            training_keys.remove(key)
+
+    print("Train keys ", training_keys)
 
     events_dict_bdt = {}
     weights_bdt = {}
@@ -166,7 +175,7 @@ def preprocess_data(
         keys=training_keys,
     )
 
-    for key in training_keys:
+    for key in weights_bdt:
         print(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
 
     # weights
@@ -198,6 +207,8 @@ def preprocess_data(
 
         num_sigs = len(args.sig_keys)
         for sig_key in args.sig_keys:
+            if sig_key not in weights_bdt:
+                continue
             sig_total = np.sum(weights_bdt[sig_key])
             print(f"Scaling {sig_key} by {bkg_total / sig_total} / {num_sigs} signal(s).")
             events.loc[sig_key, "weight"] = (
@@ -213,7 +224,8 @@ def preprocess_data(
     # Define target
     events["target"] = 0  # Default to 0 (background)
     for key in args.sig_keys:
-        events.loc[key, "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
+        if key in training_keys:
+            events.loc[key, "target"] = 1  # Set to 1 for 'hh4b' samples (signal)
 
     target = events["target"]
     simple_target = events["target"]
@@ -225,7 +237,6 @@ def preprocess_data(
     events["event"] = 1
     for key in training_keys:
         events.loc[key, "event"] = events_bdt[key]
-
     event_num = events["event"]
 
     # Define features
@@ -331,7 +342,7 @@ def train_model(
 
 def evaluate_model(
     config_name: str,
-    events_dict: dict,
+    events_dict_years: dict,
     model: xgb.XGBClassifier,
     model_dir: Path,
     X_test: pd.DataFrame,
@@ -418,23 +429,62 @@ def evaluate_model(
         xbb_dict = {}
 
         for key in training_keys:
-            indices = X_test[X_test.index.get_level_values(0) == key].index.get_level_values(1)
-            test_dataset = events_dict[key].loc[indices]
-            test_bdt_dataframe = make_bdt_dataframe.bdt_dataframe(test_dataset)
-            test_preds = model.predict_proba(test_bdt_dataframe)
-            scores[key] = _get_bdt_scores(test_preds, sig_keys, multiclass)[:, i]
-            weights[key] = test_dataset["finalWeight"]
-            mass_dict[key] = test_dataset[pnet_mass_str].to_numpy()[:, 1]
-            msd_dict[key] = test_dataset["bbFatJetMsd"].to_numpy()[:, 1]
-            xbb_dict[key] = test_dataset[pnet_xbb_str].to_numpy()[:, 1]
+            score = []
+            weight = []
+            mass = []
+            msd = []
+            xbb = []
+            for year in events_dict_years:
+                evt_list = get_evt_testing(f"{model_dir}/inferences/{year}", key)
+                if evt_list is None:
+                    continue
 
-        for key in events_dict:
+                events = events_dict_years[year][key]
+                bdt_events = make_bdt_dataframe.bdt_dataframe(events)
+                test_bdt_dataframe = bdt_events.copy()
+                bdt_events["event"] = events["event"].to_numpy()[:, 0]
+                bdt_events["finalWeight"] = events["finalWeight"]
+                bdt_events["mass"] = events[pnet_mass_str][1]
+                bdt_events["msd"] = events["bbFatJetMsd"][1]
+                bdt_events["xbb"] = events[pnet_xbb_str][1]
+                mask = bdt_events["event"].isin(evt_list)
+                test_dataset = bdt_events[mask]
+
+                test_bdt_dataframe = test_bdt_dataframe[mask]
+                test_preds = model.predict_proba(test_bdt_dataframe)
+
+                score.append(_get_bdt_scores(test_preds, sig_keys, multiclass)[:, i])
+                weight.append(test_dataset["finalWeight"])
+                mass.append(test_dataset["mass"])
+                msd.append(test_dataset["msd"])
+                xbb.append(test_dataset["xbb"])
+
+            scores[key] = np.concatenate(score)
+            weights[key] = np.concatenate(weight)
+            mass_dict[key] = np.concatenate(mass)
+            msd_dict[key] = np.concatenate(msd)
+            xbb_dict[key] = np.concatenate(xbb)
+
+        for key in events_dict_years[year]:
             if key in training_keys:
                 continue
-            preds = model.predict_proba(make_bdt_dataframe.bdt_dataframe(events_dict[key]))
-            scores[key] = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
-            weights[key] = events_dict[key]["finalWeight"]
-            xbb_dict[key] = events_dict[key][pnet_xbb_str].to_numpy()[:, 1]
+            score = []
+            weight = []
+            xbb = []
+            for year in events_dict_years:
+                preds = model.predict_proba(
+                    make_bdt_dataframe.bdt_dataframe(events_dict_years[year][key])
+                )
+                score.append(_get_bdt_scores(preds, sig_keys, multiclass)[:, i])
+                weight.append(events_dict_years[year][key]["finalWeight"])
+                xbb.append(events_dict_years[year][key][pnet_xbb_str][1])
+                msd.append(events_dict_years[year][key]["bbFatJetMsd"][1])
+                mass.append(events_dict_years[year][key][pnet_mass_str][1])
+            scores[key] = np.concatenate(score)
+            weights[key] = np.concatenate(weight)
+            xbb_dict[key] = np.concatenate(xbb)
+            msd_dict[key] = np.concatenate(msd)
+            xbb_dict[key] = np.concatenate(xbb)
 
         print("Making BDT shape plots")
 
@@ -442,7 +492,7 @@ def evaluate_model(
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
-        for key in events_dict:
+        for key in scores:
             h_bdt.fill(bdt=scores[key], cat=key)
             h_bdt_weight.fill(scores[key], key, weight=weights[key])
 
@@ -455,7 +505,7 @@ def evaluate_model(
             legends = plotting.label_by_sample
 
             fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-            for key in events_dict:
+            for key in scores:
                 hep.histplot(
                     h[{"cat": key}],
                     ax=ax,
@@ -593,14 +643,8 @@ def evaluate_model(
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
 
         for key in training_keys:
-            events = events_dict[key]
-            if key in msd_dict:
-                h2_mass = mass_dict[key]
-                h2_msd = msd_dict[key]
-            else:
-                h2_mass = events[pnet_mass_str].to_numpy()[:, 1]
-                h2_msd = events["bbFatJetMsd"].to_numpy()[:, 1]
-
+            h2_mass = mass_dict[key]
+            h2_msd = msd_dict[key]
             for cut in bdt_cuts:
                 mask = scores[key] >= cut
                 hist_h2.fill(h2_mass[mask], str(cut), key)
@@ -723,22 +767,16 @@ def evaluate_model(
     for xbb_cut in xbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        for key in events_dict:
-            events = events_dict[key]
-            if key in msd_dict:
-                h2_mass = mass_dict[key]
-                h2_msd = msd_dict[key]
-                h2_xbb = xbb_dict[key]
-            else:
-                h2_mass = events[pnet_mass_str].to_numpy()[:, 1]
-                h2_msd = events["bbFatJetMsd"].to_numpy()[:, 1]
-                h2_xbb = events[pnet_xbb_str].to_numpy()[:, 1]
-
+        for key in xbb_dict:
+            h2_mass = mass_dict[key]
+            h2_msd = msd_dict[key]
+            h2_xbb = xbb_dict[key]
             for cut in bdt_cuts:
                 mask = (scores[key] >= cut) & (h2_xbb >= xbb_cut)
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
-        for key in events_dict:
+
+        for key in xbb_dict:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -1024,20 +1062,51 @@ def plot_train_test(
         fig.savefig(plot_dir / "bdt_shape_traintest.pdf", bbox_inches="tight")
 
 
+def get_combined(data_dict):
+    """
+    Combine all years
+    """
+    X = []
+    is_pandas = True
+    for _year, data in data_dict.items():
+        if isinstance(data, np.ndarray):
+            is_pandas = False
+        X.append(data)
+
+    if is_pandas:
+        return pd.concat(X, axis=0)
+    else:
+        return np.concatenate(X, axis=0)
+
+
 def main(args):
     training_keys = args.sig_keys + args.bg_keys  # default: ["hh4b", "ttbar", "qcd"]
+
+    model_dir = Path(f"./bdt_trainings_run3/{args.model_name}/")
+    model_dir.mkdir(exist_ok=True, parents=True)
 
     if args.year == "2022-2023":
         years = ["2022", "2022EE", "2023", "2023BPix"]
     else:
         years = args.year
 
+    X_train = OrderedDict()
+    X_test = OrderedDict()
+    y_train = OrderedDict()
+    y_test = OrderedDict()
+    weights_train = OrderedDict()
+    weights_test = OrderedDict()
+    yt_train = OrderedDict()
+    yt_test = OrderedDict()
+
     events_dict_years = {}
+
     for year in years:
-        print(samples_run3[year])
         for key in list(samples_run3[year].keys()):
             if key not in training_keys:
                 samples_run3[year].pop(key)
+
+    for year in years:
         events_dict_years[year] = load_run3_samples(
             args.data_path,
             year,
@@ -1053,42 +1122,42 @@ def main(args):
                 events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str
             )
 
-    if args.year == "2022-2023":
-        year = "2022-2023"
-        events_dict = combine_run3_samples(events_dict_years, training_keys)
-    else:
-        year = args.year[0]
-        events_dict = events_dict_years[year]
+        # pre-process data
+        (
+            X_train[year],
+            X_test[year],
+            y_train[year],
+            y_test[year],
+            weights_train[year],
+            weights_test[year],
+            yt_train[year],
+            yt_test[year],
+            _,
+            ev_test,
+        ) = preprocess_data(
+            events_dict_years[year],
+            training_keys,
+            args.config_name,
+            args.test_size,
+            args.seed,
+            args.multiclass,
+            args.equalize_weights,
+            args.run2_wapproach,
+        )
 
-    (
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        weights_train,
-        weights_test,
-        yt_train,
-        yt_test,
-        ev_train,
-        ev_test,
-    ) = preprocess_data(
-        events_dict,
-        training_keys,
-        args.config_name,
-        args.test_size,
-        args.seed,
-        args.multiclass,
-        args.equalize_weights,
-        args.run2_wapproach,
-    )
+        (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
+        for key in training_keys:
+            if key in events_dict_years[year]:
+                np.save(f"{model_dir}/inferences/{year}/evt_{key}.npy", ev_test.loc[key])
 
-    model_dir = Path(f"./bdt_trainings_run3/{args.model_name}/")
-    model_dir.mkdir(exist_ok=True, parents=True)
-
-    (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
-
-    for key in training_keys:
-        np.save(f"{model_dir}/inferences/{year}/evt_{key}.npy", ev_test.loc[key])
+    X_train_combined = get_combined(X_train)
+    X_test_combined = get_combined(X_test)
+    y_train_combined = get_combined(y_train)
+    y_test_combined = get_combined(y_test)
+    yt_train_combined = get_combined(yt_train)
+    yt_test_combined = get_combined(yt_test)
+    weights_train_combined = get_combined(weights_train)
+    weights_test_combined = get_combined(weights_test)
 
     classifier_params = {
         "max_depth": 3,
@@ -1107,47 +1176,51 @@ def main(args):
             evals_result = eval(f.read())
     else:
         model, evals_result = train_model(
-            X_train,
-            X_test,
-            y_train,
-            y_test,
-            weights_train,
-            weights_test,
+            X_train_combined,
+            X_test_combined,
+            y_train_combined,
+            y_test_combined,
+            weights_train_combined,
+            weights_test_combined,
             training_keys,
             model_dir,
             **classifier_params,
         )
 
+        print(args.multiclass)
         plot_losses(evals_result, model_dir, args.multiclass)
 
-    # if not args.evaluate_only:
-    plot_train_test(
-        X_train,
-        y_train,
-        yt_train,
-        weights_train,
-        X_test,
-        y_test,
-        yt_test,
-        weights_test,
-        model,
-        args.multiclass,
-        args.sig_keys,
-        training_keys,
-        model_dir,
-        args.legacy,
-        args.pnet_xbb_str,
-    )
+    if not args.evaluate_only:
+        plot_train_test(
+            X_train_combined,
+            y_train_combined,
+            yt_train_combined,
+            weights_train_combined,
+            X_test_combined,
+            y_test_combined,
+            yt_test_combined,
+            weights_test_combined,
+            model,
+            args.multiclass,
+            args.sig_keys,
+            training_keys,
+            model_dir,
+            args.legacy,
+            args.pnet_xbb_str,
+        )
+
+    # no combination for now
+    # events_dict = combine_run3_samples(events_dict_years, training_keys, scale_processes = {"hh4b": ["2022EE", "2023"]}, years_run3=years)
 
     evaluate_model(
         args.config_name,
-        events_dict,
+        events_dict_years,
         model,
         model_dir,
-        X_test,
-        y_test,
-        yt_test,
-        weights_test,
+        X_test_combined,
+        y_test_combined,
+        yt_test_combined,
+        weights_test_combined,
         args.multiclass,
         args.sig_keys,
         args.bg_keys,
@@ -1190,9 +1263,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--year",
+        nargs="+",
         type=str,
         default=["2022EE"],
-        choices=hh_vars.years + ["2022-2023"],
+        choices=hh_vars.years,
         help="years to train on",
     )
     parser.add_argument(
