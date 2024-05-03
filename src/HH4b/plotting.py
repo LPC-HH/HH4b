@@ -640,8 +640,6 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    print(bg_keys)
-    print("I am here")
     if bg_err is None:
         # get background error from variances
         bg_tot = sum([hists[sample, :] for sample in bg_keys])
