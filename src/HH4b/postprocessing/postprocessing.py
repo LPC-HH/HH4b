@@ -32,23 +32,23 @@ class Region:
 
 
 mass_key = "bbFatJetPNetMassLegacy"
-# both jets pT > 300, both jets mass [60, 250]
+# both jets pT > 300, both jets mass [50, 250]
 filters_legacy = [
     [
         ("('bbFatJetPt', '0')", ">=", 300),
         ("('bbFatJetPt', '1')", ">=", 300),
         (f"('{mass_key}', '0')", "<=", 250),
         (f"('{mass_key}', '1')", "<=", 250),
-        (f"('{mass_key}', '0')", ">=", 60),
-        (f"('{mass_key}', '1')", ">=", 60),
+        (f"('{mass_key}', '0')", ">=", 50),
+        (f"('{mass_key}', '1')", ">=", 50),
     ],
     [
         ("('bbFatJetPt', '0')", ">=", 300),
         ("('bbFatJetPt', '1')", ">=", 300),
         (f"('{mass_key}', '0')", "<=", 250),
         (f"('{mass_key}', '1')", "<=", 250),
-        (f"('{mass_key}', '0')", ">=", 60),
-        (f"('{mass_key}', '1')", ">=", 60),
+        (f"('{mass_key}', '0')", ">=", 50),
+        (f"('{mass_key}', '1')", ">=", 50),
     ],
 ]
 
@@ -188,9 +188,15 @@ def combine_run3_samples(
             combined = pd.concat([events_dict_years[year][key] for year in years_run3])
         else:
             combined = pd.concat(
-                [events_dict_years[year][key].copy() for year in scale_processes[key]]
+                [
+                    events_dict_years[year][key].copy()
+                    for year in scale_processes[key]
+                    if year in years_run3
+                ]
             )
-            lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key]])
+            lumi_scale = lumi_total / np.sum(
+                [LUMI[year] for year in scale_processes[key] if year in years_run3]
+            )
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
             combined[weight_key] = combined[weight_key] * lumi_scale
 
