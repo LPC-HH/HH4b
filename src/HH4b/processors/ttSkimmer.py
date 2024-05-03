@@ -250,7 +250,6 @@ class ttSkimmer(SkimmerABC):
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save
-        num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
@@ -264,14 +263,6 @@ class ttSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        # fatjets ordered by xbb
-        legacy = "particleNetLegacy_mass" in fatjets.fields
-
-        if not legacy:
-            # fatjets ordered by xbb
-            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
-        else:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         print("Object definition", f"{time.time() - start:.2f}")
 
@@ -283,7 +274,7 @@ class ttSkimmer(SkimmerABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets_xbb, selection_args, P4)
+                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
@@ -315,7 +306,6 @@ class ttSkimmer(SkimmerABC):
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
-        # FatJet ordered by bb
 
         print("FatJet vars", f"{time.time() - start:.2f}")
 

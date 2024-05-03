@@ -484,6 +484,11 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
+        ak4JetAwayVars = {
+            f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+            for (var, key) in jet_skimvars.items()
+        }
+
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
         if not isData:
@@ -621,6 +626,7 @@ class bbbbSkimmer(SkimmerABC):
             **eventVars,
             **pileupVars,
             **HLTVars,
+            **ak4JetAwayVars,
         }
 
         if self._region == "signal":
@@ -631,12 +637,6 @@ class bbbbSkimmer(SkimmerABC):
             vbfJetVars = {
                 f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
                 for (var, key) in self.skim_vars["Jet"].items()
-            }
-
-            # AK4 jets
-            ak4JetAwayVars = {
-                f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
-                for (var, key) in jet_skimvars.items()
             }
 
             # JEC variations for VBF Jets (for signal only for now)
@@ -653,7 +653,6 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events = {
                 **skimmed_events,
                 **vbfJetVars,
-                **ak4JetAwayVars,
                 **bbFatDijetVars,
                 **trigObjFatJetVars,
             }
@@ -662,7 +661,6 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events = {
                 **skimmed_events,
                 **ak8FatJetVars,
-                **ak4JetAwayVars,
                 **ak4JetVars,
                 **bbFatDijetVars,
                 **trigObjFatJetVars,
@@ -708,20 +706,20 @@ class bbbbSkimmer(SkimmerABC):
             # in run2 we do not apply the trigger to MC
             apply_trigger = False
 
-        # if apply_trigger:
-        #     add_selection("trigger", HLT_triggered, *selection_args)
+        if apply_trigger:
+            add_selection("trigger", HLT_triggered, *selection_args)
 
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
-        # for mf in self.met_filters:
-        #    if mf in events.Flag.fields:
-        #        cut_metfilters = cut_metfilters & events.Flag[mf]
+        for mf in self.met_filters:
+           if mf in events.Flag.fields:
+               cut_metfilters = cut_metfilters & events.Flag[mf]
         add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
         if is_run3:
             cut_jetveto = get_jetveto_event(jets, year)
-            # add_selection("ak4_jetveto", cut_jetveto, *selection_args)
+            add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "signal":
             # >=2 AK8 jets passing selections
@@ -754,17 +752,17 @@ class bbbbSkimmer(SkimmerABC):
                 *selection_args,
             )
 
-            # VBF veto cut
+            # VBF veto cut (not now)
             # add_selection("vbf_veto", ~(cut_vbf), *selection_args)
 
         elif self._region == "pre-sel":
             # >=1 AK8 jets with pT>250
             cut_pt = np.sum(ak8FatJetVars["ak8FatJetPt"] >= 250, axis=1) >= 1
-            # add_selection("ak8_pt", cut_pt, *selection_args)
+            add_selection("ak8_pt", cut_pt, *selection_args)
 
             # >=1 AK8 jets (ordered by pT) mSD >= 40
             cut_mass = np.sum(ak8FatJetVars["ak8FatJetMsd"] >= 40, axis=1) >= 1
-            # add_selection("ak8_mass", cut_mass, *selection_args)
+            add_selection("ak8_mass", cut_mass, *selection_args)
 
         elif self._region == "semilep-tt":
             # >=1 "good" isolated lepton with pT>50
