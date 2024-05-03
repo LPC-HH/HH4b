@@ -1301,10 +1301,16 @@ if __name__ == "__main__":
         nargs="+",
     )
     parser.add_argument(
-        "--xbb", choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy"], help="xbb branch"
+        "--xbb",
+        choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy"],
+        help="xbb branch",
+        required=True,
     )
     parser.add_argument(
-        "--mass", choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"], help="xbb pnet mass"
+        "--mass",
+        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"],
+        help="xbb pnet mass",
+        required=True,
     )
 
     add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
