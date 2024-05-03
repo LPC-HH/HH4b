@@ -467,7 +467,11 @@ class ttSkimmer(SkimmerABC):
             skimmed_events["weight"] = np.ones(n_events)
         else:
             weights_dict, totals_temp = self.add_weights(
-                events, year, dataset, gen_weights, gen_selected,
+                events,
+                year,
+                dataset,
+                gen_weights,
+                gen_selected,
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
@@ -507,7 +511,12 @@ class ttSkimmer(SkimmerABC):
         return accumulator
 
     def add_weights(
-        self, events, year, dataset, gen_weights, gen_selected,
+        self,
+        events,
+        year,
+        dataset,
+        gen_weights,
+        gen_selected,
     ) -> tuple[dict, dict]:
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights = Weights(len(events), storeIndividual=True)
