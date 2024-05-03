@@ -1,0 +1,13 @@
+{
+   "2022EE": {
+        "Muon": {
+            "subsamples": [
+                "Muon_Run2022E",
+                "Muon_Run2022F",
+                "Muon_Run2022G",
+            ],
+            "files_per_job": 8,
+        },
+        "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
+    },
+}
