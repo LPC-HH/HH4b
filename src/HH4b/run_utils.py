@@ -166,6 +166,11 @@ def get_processor(
             nano_version=nano_version,
         )
 
+    if processor == "vpt":
+        from HH4b.processors import vptProc
+
+        return vptProc()
+
 
 def parse_common_args(parser):
     parser.add_argument(
@@ -173,7 +178,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching", "ttSkimmer"],
+        choices=["skimmer", "matching", "ttSkimmer", "vpt"],
     )
 
     parser.add_argument(

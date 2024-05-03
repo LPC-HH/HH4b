@@ -21,7 +21,6 @@ from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
-    add_trig_weights,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -251,7 +250,6 @@ class ttSkimmer(SkimmerABC):
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save
-        num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
@@ -265,14 +263,6 @@ class ttSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        # fatjets ordered by xbb
-        legacy = "particleNetLegacy_mass" in fatjets.fields
-
-        if not legacy:
-            # fatjets ordered by xbb
-            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
-        else:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         print("Object definition", f"{time.time() - start:.2f}")
 
@@ -284,7 +274,7 @@ class ttSkimmer(SkimmerABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets_xbb, selection_args, P4)
+                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
@@ -316,7 +306,6 @@ class ttSkimmer(SkimmerABC):
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
-        # FatJet ordered by bb
 
         print("FatJet vars", f"{time.time() - start:.2f}")
 
@@ -478,7 +467,11 @@ class ttSkimmer(SkimmerABC):
             skimmed_events["weight"] = np.ones(n_events)
         else:
             weights_dict, totals_temp = self.add_weights(
-                events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+                events,
+                year,
+                dataset,
+                gen_weights,
+                gen_selected,
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
@@ -518,16 +511,18 @@ class ttSkimmer(SkimmerABC):
         return accumulator
 
     def add_weights(
-        self, events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+        self,
+        events,
+        year,
+        dataset,
+        gen_weights,
+        gen_selected,
     ) -> tuple[dict, dict]:
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
-
-        # TODO: update trigger weights with those derived by Armen
-        add_trig_weights(weights, fatjets, year, num_fatjets_cut)
 
         logger.debug("weights", extra=weights._weights.keys())
 
