@@ -165,7 +165,14 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
 
-    events_dict = load_run3_samples(f"{args.data_dir}/{args.tag}", year, args.legacy, samples_run3, reorder_txbb=True, txbb=f"bbFatJetPNetTXbb{legacy_label}")
+    events_dict = load_run3_samples(
+        f"{args.data_dir}/{args.tag}",
+        year,
+        args.legacy,
+        samples_run3,
+        reorder_txbb=True,
+        txbb=f"bbFatJetPNetTXbb{legacy_label}",
+    )
 
     cutflow = pd.DataFrame(index=list(events_dict.keys()))
     cutflow_dict = {
@@ -219,7 +226,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # finalWeight: includes genWeight, puWeight
         # FIXME: genWeight taken only as sign for HH sample...
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
-        
+
         ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
         # if key == "ttbar" and not args.legacy:
         #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
@@ -244,13 +251,18 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         # FIXME: replace by jet matched to trigger object
-        mask_presel = (bdt_events["H1Msd"] > 30) & (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & (bdt_events["H1TXbb"] > 0.8)
+        mask_presel = (
+            (bdt_events["H1Msd"] > 30)
+            & (bdt_events["H1Pt"] > 300)
+            & (bdt_events["H2Pt"] > 300)
+            & (bdt_events["H1TXbb"] > 0.8)
+        )
         bdt_events = bdt_events[mask_presel]
         cutflow_dict[key]["H1Msd > 30 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
 
         ###### FINISH pre-selection
         mask_mass = (bdt_events[args.mass] > 110) & (bdt_events[args.mass] <= 140)
-        
+
         # define category
         bdt_events["Category"] = 5  # all events
         if args.vbf:
@@ -270,8 +282,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
-        cutflow_dict[key]["Bin 1 [110-140]"] = np.sum(bdt_events["weight"][mask_bin1 & mask_mass].to_numpy())
-        
+        cutflow_dict[key]["Bin 1 [110-140]"] = np.sum(
+            bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
+        )
+
         mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
             bdt_events["bdt_score"] < args.bdt_wps[0]
         )
@@ -284,16 +298,22 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
         cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
-        cutflow_dict[key]["Bin 2 [110-140]"] = np.sum(bdt_events["weight"][mask_bin2 & mask_mass].to_numpy())
+        cutflow_dict[key]["Bin 2 [110-140]"] = np.sum(
+            bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
+        )
 
         mask_bin3 = (
             ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2]) & ~(mask_vbf)
         )
         bdt_events.loc[mask_bin3, "Category"] = 3
         cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
-        cutflow_dict[key]["Bin 3 [110-140]"] = np.sum(bdt_events["weight"][mask_bin3 & mask_mass].to_numpy())
+        cutflow_dict[key]["Bin 3 [110-140]"] = np.sum(
+            bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
+        )
 
-        mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (bdt_events["bdt_score"] > args.bdt_wps[2])
+        mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
+            bdt_events["bdt_score"] > args.bdt_wps[2]
+        )
         bdt_events.loc[mask_fail, "Category"] = 4
 
         # keep some (or all) columns
@@ -424,7 +444,7 @@ def get_cuts(args, region: str):
 
     def get_cut_novbf(events):
         return np.zeros(len(events), dtype=bool)
-    
+
     # bin 1 with VBF region veto
     def get_cut_bin1(events, xbb_cut, bdt_cut):
         vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
@@ -492,12 +512,12 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
     control_plot_vars = [
         ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),
-        ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$ "+legacy_label, bins=[30, 0, 1]),
-        ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ "+legacy_label, bins=[30, 0, 1]),
+        ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$ " + legacy_label, bins=[30, 0, 1]),
+        ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ " + legacy_label, bins=[30, 0, 1]),
         ShapeVar(var="H1TXbbNoLeg", label=r"Xbb$^{1}$ v12", bins=[30, 0, 1]),
         ShapeVar(var="H2TXbbNoLeg", label=r"Xbb$^{2}$ v12", bins=[30, 0, 1]),
-        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) "+legacy_label, bins=[30, 0, 300]),
-        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) "+legacy_label, bins=[30, 0, 300]),
+        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
+        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
         ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
         ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
@@ -585,24 +605,29 @@ def postprocess_run3(args):
     for year in args.years:
         print(f"\n{year}")
         events_dict_postprocess[year], cutflows[year] = load_process_run3_samples(
-            args, year, bdt_training_keys, args.control_plots, plot_dir,
+            args,
+            year,
+            bdt_training_keys,
+            args.control_plots,
+            plot_dir,
         )
 
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
 
-    if len(args.years) >1:
+    if len(args.years) > 1:
         events_combined = combine_run3_samples(
-            events_dict_postprocess, processes,
+            events_dict_postprocess,
+            processes,
             scale_processes={"hh4b": ["2022EE", "2023"], "vbfhh4b-k2v0": ["2022", "2022EE"]},
-            years_run3=args.years
+            years_run3=args.years,
         )
         print("Combined years")
     else:
         events_combined = events_dict_postprocess[args.years[0]]
         args.templates = False
-        
+
     if args.fom_scan:
         mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
 
@@ -651,7 +676,7 @@ def postprocess_run3(args):
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
-        
+
     if not args.templates:
         return
 

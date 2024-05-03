@@ -188,9 +188,15 @@ def combine_run3_samples(
             combined = pd.concat([events_dict_years[year][key] for year in years_run3])
         else:
             combined = pd.concat(
-                [events_dict_years[year][key].copy() for year in scale_processes[key] if year in years_run3]
+                [
+                    events_dict_years[year][key].copy()
+                    for year in scale_processes[key]
+                    if year in years_run3
+                ]
             )
-            lumi_scale = lumi_total / np.sum([LUMI[year] for year in scale_processes[key] if year in years_run3])
+            lumi_scale = lumi_total / np.sum(
+                [LUMI[year] for year in scale_processes[key] if year in years_run3]
+            )
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
             combined[weight_key] = combined[weight_key] * lumi_scale
 
