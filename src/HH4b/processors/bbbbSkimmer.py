@@ -662,7 +662,6 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **ak8FatJetVars,
                 **ak4JetVars,
-                **bbFatDijetVars,
                 **trigObjFatJetVars,
             }
 
