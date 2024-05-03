@@ -712,8 +712,8 @@ class bbbbSkimmer(SkimmerABC):
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:
-           if mf in events.Flag.fields:
-               cut_metfilters = cut_metfilters & events.Flag[mf]
+            if mf in events.Flag.fields:
+                cut_metfilters = cut_metfilters & events.Flag[mf]
         add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
