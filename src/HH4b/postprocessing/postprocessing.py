@@ -162,25 +162,30 @@ def load_run3_samples(
     return events_dict
 
 
+def get_evt_testing(inferences_dir, key):
+    evt_file = Path(f"{inferences_dir}/evt_{key}.npy")
+    if evt_file.is_file():
+        evt_list = np.load(f"{inferences_dir}/evt_{key}.npy")
+    else:
+        evt_list = None
+    return evt_list
+
+
 def combine_run3_samples(
     events_dict_years: dict[str, dict[str, pd.DataFrame]],
     processes: list[str],
     bg_keys: list[str] = None,
     weight_key: str = "weight",
+    scale_processes: dict = None,  # processes which are temporarily on certain eras, e.g {"hh4b": ["2022EE", "2023"]}
+    years_run3: list[str] = years,
 ):
-    # these processes are temporarily only in certain eras, so their weights have to be scaled up to full luminosity
-    scale_processes = {
-        "hh4b": ["2022EE", "2023", "2023BPix"],
-        "vbfhh4b-k2v0": ["2022", "2022EE"],
-    }
-
     # create combined datasets
-    lumi_total = np.sum([LUMI[year] for year in years])
+    lumi_total = np.sum([LUMI[year] for year in years_run3])
 
     events_combined = {}
     for key in processes:
         if key not in scale_processes:
-            combined = pd.concat([events_dict_years[year][key] for year in years])
+            combined = pd.concat([events_dict_years[year][key] for year in years_run3])
         else:
             combined = pd.concat(
                 [events_dict_years[year][key].copy() for year in scale_processes[key]]
