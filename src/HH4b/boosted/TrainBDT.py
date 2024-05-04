@@ -1210,7 +1210,7 @@ def main(args):
         )
 
     # no combination for now
-    # events_dict = combine_run3_samples(events_dict_years, training_keys, scale_processes = {"hh4b": ["2022EE", "2023"]}, years_run3=years)
+    # events_dict, _ = combine_run3_samples(events_dict_years, training_keys, scale_processes = {"hh4b": ["2022EE", "2023"]}, years_run3=years)
 
     evaluate_model(
         args.config_name,

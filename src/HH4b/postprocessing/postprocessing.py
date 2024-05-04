@@ -183,6 +183,7 @@ def combine_run3_samples(
     lumi_total = np.sum([LUMI[year] for year in years_run3])
 
     events_combined = {}
+    scaled_by = {}
     for key in processes:
         if key not in scale_processes:
             combined = pd.concat([events_dict_years[year][key] for year in years_run3])
@@ -197,6 +198,7 @@ def combine_run3_samples(
             lumi_scale = lumi_total / np.sum(
                 [LUMI[year] for year in scale_processes[key] if year in years_run3]
             )
+            scaled_by[key] = lumi_scale
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
             combined[weight_key] = combined[weight_key] * lumi_scale
 
@@ -211,17 +213,17 @@ def combine_run3_samples(
 
     # combine others
     # ignoring ggF, VBF Hbb
-    others = ["diboson", "vjets"]
-    if np.all([key in processes for key in others]):
-        events_combined["others"] = pd.concat([events_combined[key] for key in others])
-        for key in others:
-            events_combined.pop(key)
-            if bg_keys:
-                bg_keys.remove(key)
-        if bg_keys:
-            bg_keys.append("others")
+    # others = ["diboson", "vjets"]
+    # if np.all([key in processes for key in others]):
+    #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
+    #     for key in others:
+    #         events_combined.pop(key)
+    #         if bg_keys:
+    #             bg_keys.remove(key)
+    #     if bg_keys:
+    #         bg_keys.append("others")
 
-    return events_combined
+    return events_combined,scaled_by
 
 
 def make_rocs(
@@ -478,6 +480,8 @@ def get_templates(
                     "year": year,
                     "ylim": pass_ylim if pass_region else fail_ylim,
                     "plot_data": not (rname == "pass" and blind_pass),
+                    "bg_err_mcstat": True,
+                    "reweight_qcd": False,
                 }
 
                 plot_name = (

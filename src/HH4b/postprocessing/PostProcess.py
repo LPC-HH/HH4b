@@ -90,6 +90,15 @@ label_by_mass = {
     "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
 }
 
+"""
+Test suggested by Marko
+- Fill data mass and BDT histogram before BDT (unblinded)
+- For one toy
+  - Sample mass histogram (TH1->GetRandom()) -> New mass histogram
+  - (LATER): Inject 3sigma HH4b
+  - Optimize for FOM using sideband
+"""
+
 
 def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
@@ -175,6 +184,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     )
 
     cutflow = pd.DataFrame(index=list(events_dict.keys()))
+    cutflow_print = pd.DataFrame(index=list(events_dict.keys()))
     cutflow_dict = {
         key: OrderedDict(
             [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
@@ -197,6 +207,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         preds = bdt_model.predict_proba(bdt_events)
         add_bdt_scores(bdt_events, preds)
 
+        bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
+        bdt_events["H2Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 1]
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
         bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
         bdt_events["H1TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 0]
@@ -261,7 +273,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["H1Msd > 30 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
 
         ###### FINISH pre-selection
-        mask_mass = (bdt_events[args.mass] > 110) & (bdt_events[args.mass] <= 140)
+        mass_window = [110, 140]
+        mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
+        mask_mass = (bdt_events[args.mass] > mass_window[0]) & (bdt_events[args.mass] <= mass_window[1])
 
         # define category
         bdt_events["Category"] = 5  # all events
@@ -282,7 +296,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
-        cutflow_dict[key]["Bin 1 [110-140]"] = np.sum(
+        cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
         )
 
@@ -298,7 +312,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
         cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
-        cutflow_dict[key]["Bin 2 [110-140]"] = np.sum(
+        cutflow_dict[key][f"Bin 2 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
         )
 
@@ -307,7 +321,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
         bdt_events.loc[mask_bin3, "Category"] = 3
         cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
-        cutflow_dict[key]["Bin 3 [110-140]"] = np.sum(
+        cutflow_dict[key][f"Bin 3 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
 
@@ -329,23 +343,29 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         else:
             events_dict_postprocess[key] = bdt_events[columns]
 
-        # blind
+        # blind!!
         if key == "data":
-            cutflow_dict[key]["Bin 1 [110-140]"] = 0
-            cutflow_dict[key]["Bin 2 [110-140]"] = 0
-            cutflow_dict[key]["Bin 3 [110-140]"] = 0
+            cutflow_dict[key][f"Bin 1 {mass_str}"] = 0
+            cutflow_dict[key][f"Bin 2 {mass_str}"] = 0
+            cutflow_dict[key][f"Bin 3 {mass_str}"] = 0
 
+            # get sideband estimate instead
+            print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(bdt_events, mask_bin1, args.mass, mass_window)
+            cutflow_dict[key][f"Bin 2 {mass_str}"] = get_nevents_data(bdt_events, mask_bin2, args.mass, mass_window)
+            cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(bdt_events, mask_bin3, args.mass, mass_window)
+    
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.legacy)
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns]
 
     for cut in cutflow_dict[key]:
-        yields = [f"{cutflow_dict[key][cut]:.2f}" for key in events_dict]
-        cutflow[cut] = yields
+        cutflow[cut] = [cutflow_dict[key][cut] for key in events_dict]
+        cutflow_print[cut] = [f"{cutflow_dict[key][cut]:.2f}" for key in events_dict]
 
     print("\nCutflow")
-    print(cutflow)
+    print(cutflow_print)
     return events_dict_postprocess, cutflow
 
 
@@ -366,6 +386,13 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
     # get yield in Higgs mass window
     return np.sum(events["weight"][cut & cut_mass])
+
+
+def get_nevents_nosignal(events, cut, mass, mass_window):
+    cut_mass = (events[mass] >= mass_window[0]) & (events[mass] <= mass_window[1])
+
+    # get yield NOT in Higgs mass window
+    return np.sum(events["weight"][cut & ~cut_mass])
 
 
 def scan_fom(
@@ -563,6 +590,41 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             # ylim=ylims[year],
         )
 
+def abcd(events_dict, txbb_cut, bdt_cut, mass, mass_window):
+    dicts = {"data": [], **{key: [] for key in bg_keys}}
+
+    for key in ["hh4b", "data"] + bg_keys:
+        events = events_dict[key]
+        cut = (events["bdt_score"] > bdt_cut) & (events["H2TXbb"] > txbb_cut)
+
+        if key == "hh4b":
+            s = get_nevents_signal(events, cut, mass, mass_window)
+            continue
+
+        # region A
+        if key == "data":
+            dicts[key].append(0)
+        else:
+            dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
+
+        # region B
+        dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
+
+        cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
+        # region C
+        dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
+        # region D
+        dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
+
+    # other backgrounds
+    bg_tots = np.sum([dicts[key] for key in bg_keys], axis=0)
+    # subtract other backgrounds 
+    dmt = np.array(dicts["data"]) - bg_tots
+    # C/D * B 
+    bqcd = dmt[2] * dmt[1] / dmt[3]
+
+    return s, bqcd + bg_tots[0], dicts
+
 
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0603
@@ -585,6 +647,7 @@ def postprocess_run3(args):
         window_by_mass["H2PNetMass"] = [120, 150]
     else:
         window_by_mass["H2PNetMass"] = [115, 135]
+    mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -617,19 +680,52 @@ def postprocess_run3(args):
     processes = ["data"] + args.sig_keys + bg_keys
 
     if len(args.years) > 1:
-        events_combined = combine_run3_samples(
+        events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
+            bg_keys=bg_keys,
             scale_processes={"hh4b": ["2022EE", "2023"], "vbfhh4b-k2v0": ["2022", "2022EE"]},
             years_run3=args.years,
         )
         print("Combined years")
     else:
         events_combined = events_dict_postprocess[args.years[0]]
-        args.templates = False
+        scaled_by = {}
 
+    # combined cutflow
+    if len(args.years) > 0:
+        cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+
+        # get ABCD (warning: not considering VBF region veto)
+        s_bin1, b_bin1, _ = abcd(events_combined, args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window)
+        # print("abcd ", s_bin1, b_bin1, mass_window)
+        
+        # note: need to do this since not all the years have all the samples..
+        year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
+        cut_0 = cutflows[year_0].keys()[0]
+        samples = list(events_combined.keys())
+        for cut in cutflows[year_0]:
+            yield_s = 0
+            yield_b = 0
+            for s in samples:
+                cutflow_sample = np.sum([cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0. for year in args.years])
+                if s in scaled_by:
+                    print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
+                    cutflow_sample *= scaled_by[s]
+                if s == "hh4b":
+                    yield_s = cutflow_sample
+                if s == "data":
+                    yield_b = cutflow_sample
+                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.2f}"
+
+            if "Bin 1 [" in cut:
+                if yield_b > 0:
+                    cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
+                cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+        
+        print(cutflow_combined)
+                
     if args.fom_scan:
-        mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
 
         if args.fom_scan_vbf:
             print("Scanning VBF WPs")
@@ -688,8 +784,6 @@ def postprocess_run3(args):
     for cyear in args.years:
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
 
-    print(events_combined["data"].columns)
-
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
@@ -703,7 +797,7 @@ def postprocess_run3(args):
         systematics={},
         template_dir=templ_dir,
         bg_keys=bg_keys,
-        plot_dir=f"{templ_dir}/{year}",  # commented out temporarily because I'm getting an error
+        plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
         show=False,
         energy=13.6,
