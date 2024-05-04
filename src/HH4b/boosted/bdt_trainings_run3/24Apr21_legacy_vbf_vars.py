@@ -49,6 +49,17 @@ def bdt_dataframe(events):
 
     jj = vbf1 + vbf2
 
+    system_4vec = jj + hh
+    j1_CMF = vbf1.boostCM_of_p4(system_4vec)
+
+    vbf_cos_j1 = np.abs(np.cos(2 * np.arctan(np.exp(-j1_CMF.eta))))
+
+    delta_eta = vbf1.eta - vbf2.eta
+    avg_eta = (vbf1.eta + vbf2.eta) / 2
+    prod_centrality = np.exp(
+        -np.power((h1.eta - avg_eta) / delta_eta, 2) - np.power((h2.eta - avg_eta) / delta_eta, 2)
+    )
+
     df_events = pd.DataFrame(
         {
             # dihiggs system
@@ -78,7 +89,10 @@ def bdt_dataframe(events):
             "H1Pt/H2Pt": h1.pt / h2.pt,
             # vbf mjj and eta_jj
             "VBFjjMass": jj.mass,
-            "VBFjjDeltaEta": np.abs(vbf1.eta - vbf2.eta),
+            "VBFjjDeltaEta": np.abs(delta_eta),
+            # h1-centrality * h2-centrality and Leading vbf j1 cos(θ) in HH+2j COM
+            "VBFProdCentrality": prod_centrality,
+            "VBFj1CosTheta": vbf_cos_j1,
         }
     )
 
