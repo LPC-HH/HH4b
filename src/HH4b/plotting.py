@@ -640,7 +640,7 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    #if bg_err is None:
+    # if bg_err is None:
     # get background error from variances
     #    bg_tot = sum([hists[sample, :] for sample in bg_keys])
     #    bg_err = np.sqrt(bg_tot.variances())
@@ -697,16 +697,20 @@ def ratioHistPlot(
             return np.sqrt(bg_hist.variances())
 
     # print(hists.axes[1].widths)
-    
+
     if bg_err_mcstat:
-        bg_err_label = "Stat. MC Uncertainty (excl. Multijet)" if exclude_qcd_mcstat else "Stat. MC Uncertainty"
-        
+        bg_err_label = (
+            "Stat. MC Uncertainty (excl. Multijet)"
+            if exclude_qcd_mcstat
+            else "Stat. MC Uncertainty"
+        )
+
         plot_shaded = False
-        
+
         mcstat_up = {}
         mcstat_dn = {}
         stack = None
-        for isam,sample in enumerate(bg_keys):
+        for isam, sample in enumerate(bg_keys):
             if exclude_qcd_mcstat and sample == "qcd":
                 continue
             bg_yield = hists[sample, :] * kfactor[sample]
@@ -731,7 +735,7 @@ def ratioHistPlot(
                         histtype="errorbar",
                         markersize=0,
                         color="gray",
-                        label=bg_err_label
+                        label=bg_err_label,
                     )
                 else:
                     hep.histplot(
@@ -744,11 +748,11 @@ def ratioHistPlot(
                     )
 
         if plot_shaded:
-            for isam,sample in enumerate(bg_keys):
+            for isam, sample in enumerate(bg_keys):
                 if exclude_qcd_mcstat and sample == "qcd":
                     continue
 
-                if isam==0:
+                if isam == 0:
                     ax.fill_between(
                         np.repeat(hists.axes[1].edges, 2)[1:-1],
                         np.repeat(mcstat_up[sample], 2),

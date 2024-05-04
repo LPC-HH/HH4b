@@ -27,7 +27,7 @@ python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v
 
 ### Apr22
 ```
-python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --no-fom-scan --templates --txbb-wps 
+python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --no-fom-scan --templates --txbb-wps
 ```
 
 # Run-2

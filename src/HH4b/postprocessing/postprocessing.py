@@ -223,7 +223,7 @@ def combine_run3_samples(
     #     if bg_keys:
     #         bg_keys.append("others")
 
-    return events_combined,scaled_by
+    return events_combined, scaled_by
 
 
 def make_rocs(
