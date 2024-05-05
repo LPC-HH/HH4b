@@ -510,4 +510,4 @@ def get_trig_weights(fatjets: FatJetArray, year: str, num_jets: int = 2):
         combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
 
         weights.add("trig_effs", combined_trigEffs)  # noqa: F821
-        return None
+        return

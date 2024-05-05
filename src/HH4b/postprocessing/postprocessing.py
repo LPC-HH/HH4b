@@ -94,10 +94,10 @@ load_columns = [
     ("bbFatJetPhi", 2),
     ("bbFatJetMsd", 2),
     ("bbFatJetTau3OverTau2", 2),
-    # ("VBFJetPt", 2),
-    # ("VBFJetEta", 2),
-    # ("VBFJetPhi", 2),
-    # ("VBFJetMass", 2),
+    ("VBFJetPt", 2),
+    ("VBFJetEta", 2),
+    ("VBFJetPhi", 2),
+    ("VBFJetMass", 2),
 ]
 
 load_columns_legacy = load_columns + [
@@ -223,7 +223,7 @@ def combine_run3_samples(
     #     if bg_keys:
     #         bg_keys.append("others")
 
-    return events_combined,scaled_by
+    return events_combined, scaled_by
 
 
 def make_rocs(

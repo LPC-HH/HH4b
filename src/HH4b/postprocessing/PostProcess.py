@@ -245,8 +245,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
-        """
         if year in args.training_years:
+            print(f"year {year} used in training")
             inferences_dir = Path(
                 f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/{year}"
             )
@@ -255,7 +255,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 evt_list = np.load(inferences_dir / f"evt_{key}.npy")
                 bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
                 bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
-        """
 
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
@@ -275,7 +274,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         ###### FINISH pre-selection
         mass_window = [110, 140]
         mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
-        mask_mass = (bdt_events[args.mass] > mass_window[0]) & (bdt_events[args.mass] <= mass_window[1])
+        mask_mass = (bdt_events[args.mass] > mass_window[0]) & (
+            bdt_events[args.mass] <= mass_window[1]
+        )
 
         # define category
         bdt_events["Category"] = 5  # all events
@@ -351,10 +352,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
             # get sideband estimate instead
             print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
-            cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(bdt_events, mask_bin1, args.mass, mass_window)
-            cutflow_dict[key][f"Bin 2 {mass_str}"] = get_nevents_data(bdt_events, mask_bin2, args.mass, mass_window)
-            cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(bdt_events, mask_bin3, args.mass, mass_window)
-    
+            cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin1, args.mass, mass_window
+            )
+            cutflow_dict[key][f"Bin 2 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin2, args.mass, mass_window
+            )
+            cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin3, args.mass, mass_window
+            )
+
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.legacy)
         for key in events_dict_postprocess:
@@ -590,6 +597,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             # ylim=ylims[year],
         )
 
+
 def abcd(events_dict, txbb_cut, bdt_cut, mass, mass_window):
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
@@ -618,9 +626,9 @@ def abcd(events_dict, txbb_cut, bdt_cut, mass, mass_window):
 
     # other backgrounds
     bg_tots = np.sum([dicts[key] for key in bg_keys], axis=0)
-    # subtract other backgrounds 
+    # subtract other backgrounds
     dmt = np.array(dicts["data"]) - bg_tots
-    # C/D * B 
+    # C/D * B
     bqcd = dmt[2] * dmt[1] / dmt[3]
 
     return s, bqcd + bg_tots[0], dicts
@@ -697,18 +705,24 @@ def postprocess_run3(args):
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
         # get ABCD (warning: not considering VBF region veto)
-        s_bin1, b_bin1, _ = abcd(events_combined, args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window)
+        s_bin1, b_bin1, _ = abcd(
+            events_combined, args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window
+        )
         # print("abcd ", s_bin1, b_bin1, mass_window)
-        
+
         # note: need to do this since not all the years have all the samples..
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
-        cut_0 = cutflows[year_0].keys()[0]
         samples = list(events_combined.keys())
         for cut in cutflows[year_0]:
             yield_s = 0
             yield_b = 0
             for s in samples:
-                cutflow_sample = np.sum([cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0. for year in args.years])
+                cutflow_sample = np.sum(
+                    [
+                        cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0.0
+                        for year in args.years
+                    ]
+                )
                 if s in scaled_by:
                     print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
                     cutflow_sample *= scaled_by[s]
@@ -722,9 +736,9 @@ def postprocess_run3(args):
                 if yield_b > 0:
                     cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
-        
+
         print(cutflow_combined)
-                
+
     if args.fom_scan:
 
         if args.fom_scan_vbf:
@@ -834,6 +848,14 @@ if __name__ == "__main__":
         default=hh_vars.years,
         choices=hh_vars.years,
         help="years to postprocess",
+    )
+    parser.add_argument(
+        "--training-years",
+        "training_years",
+        default=None,
+        nargs="+",
+        choices=hh_vars.years,
+        help="years used in training"
     )
     parser.add_argument(
         "--mass",
