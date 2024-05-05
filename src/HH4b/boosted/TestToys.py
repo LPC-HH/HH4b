@@ -175,7 +175,7 @@ def main(args):
         h_mass.fill(bdt_events_data[mass_var])
 
         print("Xbb BDT S/(S+B) Difference Expected")
-        for i in range(ntoys): # noqa: B007
+        for i in range(ntoys):  # noqa: B007
             random_mass = get_toy_from_hist(h_mass)
 
             # build toy = data + injected signal
@@ -202,7 +202,11 @@ def main(args):
                 soversb = nevents_sig_bdt_cut / np.sqrt(nevents_data_bdt_cut + nevents_sig_bdt_cut)
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
-                if nevents_sig_bdt_cut > 0.5 and nevents_data_bdt_cut >= 2 and soversb > max_soversb:
+                if (
+                    nevents_sig_bdt_cut > 0.5
+                    and nevents_data_bdt_cut >= 2
+                    and soversb > max_soversb
+                ):
                     cuts.append(bdt_cut)
                     figure_of_merits.append(soversb)
 
@@ -240,12 +244,12 @@ if __name__ == "__main__":
         "bdt_model_name",
         help="model name",
         type=str,
-        default = "24Apr20_legacy_fix",
+        default="24Apr20_legacy_fix",
     )
     parser.add_argument(
         "--config-name",
         "bdt_config",
-        default	= "24Apr20_legacy_fix",
+        default="24Apr20_legacy_fix",
         help="config name in case model name is different",
         type=str,
     )
