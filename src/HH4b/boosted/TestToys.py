@@ -21,9 +21,6 @@ plt.rcParams["grid.color"] = "#CCCCCC"
 plt.rcParams["grid.linewidth"] = 0.5
 plt.rcParams["figure.edgecolor"] = "none"
 
-bdt_config = "24Apr20_legacy_fix"
-bdt_model_name = "24Apr20_legacy_fix"
-
 mass_axis = hist.axis.Regular(20, 50, 250, name="mass")
 bdt_axis = hist.axis.Regular(60, 0, 1, name="bdt")
 diff_axis = hist.axis.Regular(100, -2, 2, name="diff")
@@ -40,13 +37,13 @@ def get_toy_from_hist(h_hist):
     bin_midpoints = bins[:-1] + np.diff(bins)/2
     cdf = np.cumsum(h)
     cdf = cdf / cdf[-1]
-    values = np.random.rand(integral)
+    values = np.random.Generator(integral)
     value_bins = np.searchsorted(cdf, values)
     random_from_cdf = bin_midpoints[value_bins]
     return random_from_cdf
 
 
-def get_dataframe(events_dict, year):
+def get_dataframe(events_dict, year, bdt_model_name, bdt_config):
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model")
     make_bdt_dataframe = importlib.import_module(
@@ -140,7 +137,7 @@ def main(args):
         variations=False,
     )
     mass_var = "H2PNetMass"
-    bdt_events_dict = get_dataframe(events_dict, year)
+    bdt_events_dict = get_dataframe(events_dict, year, args.bdt_model_name, args.bdt_config)
     ntoys = 100
     
     mass_window = [110, 140]
@@ -179,7 +176,7 @@ def main(args):
         h_mass.fill(bdt_events_data[mass_var])
 
         print("Xbb BDT S/(S+B) Difference Expected")
-        for i in range(ntoys):
+        for i in range(ntoys): # noqa: B007
             random_mass = get_toy_from_hist(h_mass)
 
             # build toy = data + injected signal
@@ -204,10 +201,9 @@ def main(args):
                 soversb = nevents_sig_bdt_cut / np.sqrt(nevents_data_bdt_cut+nevents_sig_bdt_cut)
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
-                if nevents_sig_bdt_cut > 0.5 and nevents_data_bdt_cut >= 2:
-                    if soversb > max_soversb:
-                        cuts.append(bdt_cut)
-                        figure_of_merits.append(soversb)
+                if nevents_sig_bdt_cut > 0.5 and nevents_data_bdt_cut >= 2 and soversb > max_soversb:
+                    cuts.append(bdt_cut)
+                    figure_of_merits.append(soversb)
 
             # choose "optimal" bdt cut, check if it gives the expected sensitivity
             if len(cuts) > 0:
@@ -237,12 +233,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()    
     parser.add_argument(
         "--model-name",
+        "bdt_model_name",
         help="model name",
         type=str,
+        default = "24Apr20_legacy_fix",
     )
     parser.add_argument(
         "--config-name",
-        default=None,
+        "bdt_config",
+        default	= "24Apr20_legacy_fix",
         help="config name in case model name is different",
         type=str,
     )
