@@ -545,7 +545,9 @@ def alphabet_fit(
             # don't subtract signals (#TODO: do we want to subtract SM signal?)
             if sample.sampletype == rl.Sample.SIGNAL:
                 continue
-            logging.debug(f"subtracting {sample._name}={sample.getExpectation(nominal=True)} from qcd")
+            logging.debug(
+                f"subtracting {sample._name}={sample.getExpectation(nominal=True)} from qcd"
+            )
             initial_qcd -= sample.getExpectation(nominal=True)
 
         if np.any(initial_qcd < 0.0):
