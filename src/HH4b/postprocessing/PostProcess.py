@@ -885,7 +885,7 @@ if __name__ == "__main__":
         "--training-years",
         nargs="+",
         choices=hh_vars.years,
-        help="years used in training"
+        help="years used in training",
     )
     parser.add_argument(
         "--mass",
