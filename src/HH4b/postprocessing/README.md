@@ -36,8 +36,14 @@ python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_
 ```
 
 ### May2
+Scan:
 ```
 python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24May1_legacy_vbf_vars --fom-scan --txbb-wps 0.985 0.94 --bdt-wps 0.98 0.9 0.03 --no-control-plots --no-bdt-roc --no-templates --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --method abcd
+```
+
+Templates:
+```
+python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24May1_legacy_vbf_vars --txbb-wps 0.985 0.94 --bdt-wps 0.98 0.9 0.03 --bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix
 ```
 
 # Run-2

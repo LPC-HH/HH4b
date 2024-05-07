@@ -722,9 +722,9 @@ def postprocess_run3(args):
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
         # get ABCD (warning: not considering VBF region veto)
-        s_bin1, b_bin1, _ = abcd(
-            events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
-        )
+        #s_bin1, b_bin1, _ = abcd(
+        #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
+        #)
         #s_bin1, b_bin1, _ = sideband(
         #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
         #)
@@ -754,7 +754,7 @@ def postprocess_run3(args):
             if "Bin 1 [" in cut:
                 if yield_b > 0:
                     cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
-                cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+                # cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
