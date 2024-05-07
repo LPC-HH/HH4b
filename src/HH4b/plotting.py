@@ -589,6 +589,8 @@ def ratioHistPlot(
     # re-weight qcd
     kfactor = {sample: 1 for sample in bg_keys}
     if reweight_qcd:
+        print("bg keys ", bg_keys)
+        print(sum([hists[sample, :] for sample in bg_keys]))
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
         if bg_yield > 0:

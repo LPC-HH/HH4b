@@ -32,7 +32,7 @@ python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_
 ```
 For templates:
 ```
-python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --no-fom-scan --templates --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --years 2022 2022EE 2023 2023BPix
+python3 PostProcess.py --templates-tag 24May7xcheckvjetsApr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr20_legacy_fix --bdt-model 24Apr20_legacy_fix --txbb-wps 0.985 0.94 --bdt-wps 0.98 0.9 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE
 ```
 
 ### May2

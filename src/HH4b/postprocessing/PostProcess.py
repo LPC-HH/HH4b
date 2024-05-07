@@ -130,7 +130,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
-    legtitle = get_legtitle(legacy)
+    legtitle = get_legtitle(legacy, pnet_xbb_str="Legacy")
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
         sig_keys.remove("vbfhh4b-k2v0")
@@ -666,7 +666,7 @@ def postprocess_run3(args):
                 if key in samples_year:
                     samples_year.pop(key)
 
-    if not args.templates and not args.bdt_roc:  # and not args.control_plots:
+    if not args.templates and not args.bdt_roc and not args.control_plots:
         bg_keys = []
 
     window_by_mass = {
@@ -708,13 +708,14 @@ def postprocess_run3(args):
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
-
+    bg_keys_combined = bg_keys.copy()
+    
     if len(args.years) > 1:
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
-            bg_keys=bg_keys,
-            scale_processes={"hh4b": ["2022EE", "2023"], "vbfhh4b-k2v0": ["2022", "2022EE"]},
+            bg_keys=bg_keys_combined,
+            scale_processes={"hh4b": ["2022EE", "2023", "2023BPix"], "vbfhh4b-k2v0": ["2022", "2022EE"]},
             years_run3=args.years,
         )
         print("Combined years")
@@ -847,7 +848,7 @@ def postprocess_run3(args):
         shape_vars=[fit_shape_var],
         systematics={},
         template_dir=templ_dir,
-        bg_keys=bg_keys,
+        bg_keys=bg_keys_combined,
         plot_dir=f"{templ_dir}/{year}",
         weight_key="weight",
         show=False,
