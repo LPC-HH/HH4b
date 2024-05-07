@@ -126,7 +126,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("others", "others"),
+        ("diboson", "diboson"),
+        ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
 )
@@ -544,7 +545,9 @@ def alphabet_fit(
             # don't subtract signals (#TODO: do we want to subtract SM signal?)
             if sample.sampletype == rl.Sample.SIGNAL:
                 continue
-            logging.debug("subtracting %s from qcd" % sample._name)
+            logging.debug(
+                f"subtracting {sample._name}={sample.getExpectation(nominal=True)} from qcd"
+            )
             initial_qcd -= sample.getExpectation(nominal=True)
 
         if np.any(initial_qcd < 0.0):
