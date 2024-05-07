@@ -212,8 +212,7 @@ def combine_run3_samples(
             bg_keys.remove("ttlep")
 
     # combine others
-    # ignoring ggF, VBF Hbb
-    # others = ["diboson", "vjets"]
+    # others = ["diboson", "vjets", "gghtobb", "vbfhtobb"]
     # if np.all([key in processes for key in others]):
     #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
     #     for key in others:

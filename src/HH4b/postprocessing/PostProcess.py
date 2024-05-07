@@ -266,6 +266,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             & (bdt_events["H1Pt"] > 300)
             & (bdt_events["H2Pt"] > 300)
             & (bdt_events["H1TXbb"] > 0.8)
+            & (bdt_events[args.mass] >= 60)
+            & (bdt_events[args.mass] <= 220)
         )
         bdt_events = bdt_events[mask_presel]
         cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
