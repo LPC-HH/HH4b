@@ -22,7 +22,8 @@ def plot_fits(args):
     hist_label_map_inverse = OrderedDict(
         [
             ("qcd", "CMS_bbbb_hadronic_qcd_datadriven"),
-            ("others", "others"),
+            ("diboson", "diboson"),
+            ("vjets", "vjets"),
             ("ttbar", "ttbar"),
             ("vhtobb", "VH_hbb"),
             ("tthtobb", "ttH_hbb"),
@@ -31,8 +32,8 @@ def plot_fits(args):
         ]
     )
 
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
-    bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
+    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
+    bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
 
     hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
     samples = list(hist_label_map.values())
@@ -62,10 +63,10 @@ def plot_fits(args):
         "fail": "Fail",
     }
     ylims = {
-        "passbin1": 6,
-        "passbin2": 50,
-        "passbin3": 800,
-        "fail": 85000,
+        "passbin1": 10,
+        "passbin2": 40,
+        "passbin3": 1500,
+        "fail": 300000,
     }
 
     if args.regions == "all":
