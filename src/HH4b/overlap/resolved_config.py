@@ -19,7 +19,7 @@ def bdt_dataframe_resolved(events):
             "pt": jet0["ak8_pt"],
             "phi": jet0["ak8_phi"],
             "eta": jet0["ak8_eta"],
-            "M": jet0["dHH_H1_regmass"],
+            "M": jet0["ak8_particleNet_mass"],  # use reg mass (PNET)'ak8_particleNet_mass'
         }
     )
     h2 = vector.array(
@@ -27,7 +27,7 @@ def bdt_dataframe_resolved(events):
             "pt": jet1["ak8_pt"],
             "phi": jet1["ak8_phi"],
             "eta": jet1["ak8_eta"],
-            "M": jet1["dHH_H2_regmass"],
+            "M": jet1["ak8_particleNet_mass"],
         }
     )
 
@@ -40,10 +40,10 @@ def bdt_dataframe_resolved(events):
             "HHeta": hh.eta,
             "HHmass": hh.mass,
             # met in the event
-            "MET": events["MET_pt"],  # TODO: Check how MET is stored and adjust accordingly
+            "MET": events["met"][:, 0],
             # pseudo-fatjet tau32
-            "H1T32": jet0["ak8_tau3"] / jet0["ak8_tau2"],
-            "H2T32": jet1["ak8_tau3"] / jet1["ak8_tau2"],
+            "H1T32": jet0["ak8_tau3"].to_numpy() / jet0["ak8_tau2"].to_numpy(),
+            "H2T32": jet1["ak8_tau3"].to_numpy() / jet1["ak8_tau2"].to_numpy(),
             # pseudo-fatjet mass
             "H1Mass": h1.M,
             # pseudo-fatjet kinematics
