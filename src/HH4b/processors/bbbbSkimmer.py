@@ -29,7 +29,12 @@ from .corrections import (
     get_scale_weights,
     get_trig_weights,
 )
-from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
+from .GenSelection import (
+    gen_selection_Hbb,
+    gen_selection_HHbbbb,
+    gen_selection_Top,
+    gen_selection_V,
+)
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -48,6 +53,10 @@ gen_selection_dict = {
     "HHto4B": gen_selection_HHbbbb,
     "HToBB": gen_selection_Hbb,
     "TTto4Q": gen_selection_Top,
+    "Wto2Q-": gen_selection_V,
+    "Zto2Q-": gen_selection_V,
+    "WtoLNu-": gen_selection_V,
+    "DYto2L-": gen_selection_V,
 }
 
 logger = logging.getLogger(__name__)
@@ -121,6 +130,19 @@ class bbbbSkimmer(SkimmerABC):
     }
 
     vbf_veto_lepton_selection = {  # noqa: RUF012
+        "electron_pt": 5,
+        "muon_pt": 7,
+    }
+
+    ak4_bjet_selection = {  # noqa: RUF012
+        "pt": 25,
+        "eta_max": 2.5,
+        "id": "tight",
+        "dr_fatjets": 0.9,
+        "dr_leptons": 0.4,
+    }
+
+    ak4_bjet_lepton_selection = {  # noqa: RUF012
         "electron_pt": 5,
         "muon_pt": 7,
     }
@@ -212,6 +234,7 @@ class bbbbSkimmer(SkimmerABC):
                 ],
             },
         }
+        HLTs["pre-sel"] = HLTs["signal"]
 
         self.HLTs = HLTs[region]
 
@@ -229,7 +252,10 @@ class bbbbSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "ecalBadCalibFilter",
+            "hfNoisyHitsFilter",
+            "eeBadScFilter",
+            # getting rid of this filter for run-3 data https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#ECal_BadCalibration_Filter_Flag
+            # "ecalBadCalibFilter",
         ]
 
         """
@@ -395,6 +421,15 @@ class bbbbSkimmer(SkimmerABC):
             **self.vbf_veto_lepton_selection,
         )
 
+        # AK4 objects away from fatjets
+        ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
+            jets,
+            fatjets_xbb[:, :2],
+            events,
+            **self.ak4_bjet_selection,
+            **self.ak4_bjet_lepton_selection,
+        )
+
         # JMSR
         jmsr_vars = (
             ["msoftdrop", "particleNet_mass_legacy"]
@@ -446,7 +481,12 @@ class bbbbSkimmer(SkimmerABC):
 
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
-            for (var, key) in self.skim_vars["Jet"].items()
+            for (var, key) in jet_skimvars.items()
+        }
+
+        ak4JetAwayVars = {
+            f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+            for (var, key) in jet_skimvars.items()
         }
 
         # FatJet variables
@@ -586,6 +626,7 @@ class bbbbSkimmer(SkimmerABC):
             **eventVars,
             **pileupVars,
             **HLTVars,
+            **ak4JetAwayVars,
         }
 
         if self._region == "signal":
@@ -613,6 +654,7 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **vbfJetVars,
                 **bbFatDijetVars,
+                **trigObjFatJetVars,
             }
         else:
             # these variables aren't needed for signal region
@@ -620,6 +662,7 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **ak8FatJetVars,
                 **ak4JetVars,
+                **bbFatDijetVars,
                 **trigObjFatJetVars,
             }
 
@@ -709,7 +752,7 @@ class bbbbSkimmer(SkimmerABC):
                 *selection_args,
             )
 
-            # VBF veto cut
+            # VBF veto cut (not now)
             # add_selection("vbf_veto", ~(cut_vbf), *selection_args)
 
         elif self._region == "pre-sel":

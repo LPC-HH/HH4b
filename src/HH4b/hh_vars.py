@@ -66,7 +66,10 @@ samples_run3 = {
     },
     "2023": {
         **common_samples_bg,
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+        "hh4b": [
+            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
+        ],
     },
     "2023BPix": {
         **common_samples_bg,
