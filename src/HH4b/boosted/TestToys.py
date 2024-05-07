@@ -38,7 +38,7 @@ def get_toy_from_hist(h_hist):
     bin_midpoints = bins[:-1] + np.diff(bins) / 2
     cdf = np.cumsum(h)
     cdf = cdf / cdf[-1]
-    values = np.random.rand(integral) # noqa: NPY002
+    values = np.random.rand(integral)  # noqa: NPY002
     value_bins = np.searchsorted(cdf, values)
     random_from_cdf = bin_midpoints[value_bins]
     return random_from_cdf
@@ -109,35 +109,49 @@ def sideband_fom(mass_data, mass_sig, cut_data, cut_sig, weight_data, weight_sig
 
     return nevents_sig, nevents_bkg
 
-def abcd_fom(mass_data, mass_sig, mass_others,
-             cut_data, cut_sig, cut_others,
-             weight_data, weight_signal, weight_others,
-             # definitions of mass values, BDT cut and weights for inverted Xbb regions (C,D)
-             mass_inv_data, mass_inv_others,
-             invcut_data, invcut_others,
-             weight_inv_data, weight_inv_others,
-             mass_window):
+
+def abcd_fom(
+    mass_data,
+    mass_sig,
+    mass_others,
+    cut_data,
+    cut_sig,
+    cut_others,
+    weight_data,
+    weight_signal,
+    weight_others,
+    # definitions of mass values, BDT cut and weights for inverted Xbb regions (C,D)
+    mass_inv_data,
+    mass_inv_others,
+    invcut_data,
+    invcut_others,
+    weight_inv_data,
+    weight_inv_others,
+    mass_window,
+):
     # get A,B,C,D
     dicts = {"data": [], "others": []}
 
     cut_mass = (mass_data >= mass_window[0]) & (mass_data <= mass_window[1])
     cut_mass_invregion = (mass_inv_data >= mass_window[0]) & (mass_inv_data <= mass_window[1])
     dicts["data"] = [
-        0, # A
-        np.sum(weight_data[~cut_mass & cut_data]), #B,
-        np.sum(weight_inv_data[cut_mass_invregion & invcut_data]), #C
-        np.sum(weight_inv_data[~cut_mass_invregion & invcut_data]), #D
+        0,  # A
+        np.sum(weight_data[~cut_mass & cut_data]),  # B,
+        np.sum(weight_inv_data[cut_mass_invregion & invcut_data]),  # C
+        np.sum(weight_inv_data[~cut_mass_invregion & invcut_data]),  # D
     ]
 
     if mass_others is not None:
         cut_mass = (mass_others >= mass_window[0]) & (mass_others <= mass_window[1])
-        cut_mass_invregion = (mass_inv_others >= mass_window[0]) & (mass_inv_others <= mass_window[1])
+        cut_mass_invregion = (mass_inv_others >= mass_window[0]) & (
+            mass_inv_others <= mass_window[1]
+        )
 
         dicts["others"] = [
-            np.sum(weight_others[cut_mass & cut_others]), #A
-       	    np.sum(weight_others[~cut_mass & cut_others]), #B
-            np.sum(weight_inv_others[cut_mass_invregion & invcut_others]), #C
-            np.sum(weight_inv_others[~cut_mass_invregion & invcut_others]), #D
+            np.sum(weight_others[cut_mass & cut_others]),  # A
+            np.sum(weight_others[~cut_mass & cut_others]),  # B
+            np.sum(weight_inv_others[cut_mass_invregion & invcut_others]),  # C
+            np.sum(weight_inv_others[~cut_mass_invregion & invcut_others]),  # D
         ]
         # subtract other backgrounds
         dmt = np.array(dicts["data"]) - np.array(dicts["others"])
@@ -193,19 +207,21 @@ def main(args):
     xbb_cuts = [0.8, 0.95]
 
     bdt_fail = 0.6
-    
+
     h_pull = hist.Hist(diff_axis, cut_axis)
 
     # fixed signal k-factor
     kfactor_signal = 80
     print(f"Fixed factor by which to scale signal: {kfactor_signal}")
-    
+
     expected_by_xbb = {}
     for xbb_cut in xbb_cuts:
         print(f"\n Xbb cut:{xbb_cut}")
         bdt_events_data = bdt_events_dict["data"][bdt_events_dict["data"]["H2TXbb"] > xbb_cut]
         bdt_events_sig = bdt_events_dict["hh4b"][bdt_events_dict["hh4b"]["H2TXbb"] > xbb_cut]
-        bdt_events_data_invertedXbb = bdt_events_dict["data"][bdt_events_dict["data"]["H2TXbb"] < 0.8]
+        bdt_events_data_invertedXbb = bdt_events_dict["data"][
+            bdt_events_dict["data"]["H2TXbb"] < 0.8
+        ]
 
         # get expected sensitivity for each bdt cut
         expected_soverb_by_bdt_cut = {}
@@ -224,29 +240,31 @@ def main(args):
                 )
             else:
                 nevents_sig, nevents_bkg = abcd_fom(
-                    mass_data = bdt_events_data[mass_var],
-		    mass_sig = bdt_events_sig[mass_var],
-                    mass_others = None, # no contribution from other backgrounds
-                    cut_data = (bdt_events_data["bdt_score"] >= bdt_cut),
-                    cut_sig = (bdt_events_sig["bdt_score"] >= bdt_cut),
-                    cut_others = None,
-                    weight_data = bdt_events_data["weight"],
-                    weight_signal = bdt_events_sig["weight"],
-                    weight_others = None,
+                    mass_data=bdt_events_data[mass_var],
+                    mass_sig=bdt_events_sig[mass_var],
+                    mass_others=None,  # no contribution from other backgrounds
+                    cut_data=(bdt_events_data["bdt_score"] >= bdt_cut),
+                    cut_sig=(bdt_events_sig["bdt_score"] >= bdt_cut),
+                    cut_others=None,
+                    weight_data=bdt_events_data["weight"],
+                    weight_signal=bdt_events_sig["weight"],
+                    weight_others=None,
                     # INVERTED stuff
-                    mass_inv_data = bdt_events_data_invertedXbb[mass_var],
-                    mass_inv_others = None,
-                    invcut_data = (bdt_events_data_invertedXbb["bdt_score"] < bdt_fail), # fail region
-                    invcut_others = None,
-                    weight_inv_data = bdt_events_data_invertedXbb["weight"],
-                    weight_inv_others = None,
-                    mass_window = mass_window,
+                    mass_inv_data=bdt_events_data_invertedXbb[mass_var],
+                    mass_inv_others=None,
+                    invcut_data=(
+                        bdt_events_data_invertedXbb["bdt_score"] < bdt_fail
+                    ),  # fail region
+                    invcut_others=None,
+                    weight_inv_data=bdt_events_data_invertedXbb["weight"],
+                    weight_inv_others=None,
+                    mass_window=mass_window,
                 )
 
             nevents_sig_scaled = nevents_sig * kfactor_signal
             soversb = nevents_sig_scaled / np.sqrt(nevents_bkg + nevents_sig_scaled)
             expected_soverb_by_bdt_cut[bdt_cut] = soversb
-            
+
             if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(soversb)
@@ -262,19 +280,19 @@ def main(args):
                 f"From Data: Xbb:{xbb_cut:.3f} BDT:{optimal_bdt_cut_data:.2f} S/(S+B):{sensitivity_data:.2f}"
             )
         expected_by_xbb[xbb_cut] = sensitivity_data
-        
+
         print(f"Expected sensitivity by BDT cut {expected_soverb_by_bdt_cut}")
-            
+
         # create toy from data mass distribution (with xbb cut)
         h_mass = hist.Hist(mass_axis)
         h_mass.fill(bdt_events_data[mass_var])
 
         h_mass_invertedXbb = hist.Hist(mass_axis)
         h_mass_invertedXbb.fill(bdt_events_data_invertedXbb[mass_var])
-        
+
         print("Xbb BDT Index-BDT S/(S+B) Difference Expected")
         expected_sensitivities = []
-        for i in range(ntoys): # noqa: B007
+        for i in range(ntoys):  # noqa: B007
             random_mass = get_toy_from_hist(h_mass)
 
             # build toy = data + injected signal
@@ -291,7 +309,7 @@ def main(args):
             mass_toy_invertedXbb = np.concatenate([random_mass_invertedXbb])
             bdt_toy_invertedXbb = np.concatenate([bdt_events_data_invertedXbb["bdt_score"]])
             weight_toy_invertedXbb = np.concatenate([bdt_events_data_invertedXbb["weight"]])
-            
+
             max_soversb = 0
             cuts = []
             figure_of_merits = []
@@ -361,7 +379,7 @@ def main(args):
             label=f"Xbb > {xbb_cut}, Expected: {expected_by_xbb[xbb_cut]:.2f}",
         )
     ax.set_xlabel("Difference w.r.t expected " + r"S/$\sqrt{S+B}$")
-    ax.set_title(r"Injected S, S $\times$ "+f"{kfactor_signal}, 2022EE")
+    ax.set_title(r"Injected S, S $\times$ " + f"{kfactor_signal}, 2022EE")
     ax.legend(title=f"{ntoys} toys")
     fig.savefig(f"toytest_{args.method}.png")
 
@@ -376,15 +394,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--bdt-config",
-        default	= "24Apr20_legacy_fix",
+        default="24Apr20_legacy_fix",
         help="config name in case model name is different",
         type=str,
     )
     parser.add_argument(
-        "--method",
-        required=True,
-        choices=["sideband", "abcd"],
-        help="method to test"
+        "--method", required=True, choices=["sideband", "abcd"], help="method to test"
     )
     args = parser.parse_args()
     main(args)

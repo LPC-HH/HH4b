@@ -251,7 +251,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 inferences_dir = Path(
                     f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/{year}"
                 )
-                
+
                 evt_list = np.load(inferences_dir / f"evt_{key}.npy")
                 bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
                 bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
@@ -262,7 +262,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         mask_presel = (
-            (bdt_events["H1Msd"] > 40) # FIXME: replace by jet matched to trigger object
+            (bdt_events["H1Msd"] > 40)  # FIXME: replace by jet matched to trigger object
             & (bdt_events["H1Pt"] > 300)
             & (bdt_events["H2Pt"] > 300)
             & (bdt_events["H1TXbb"] > 0.8)
@@ -428,13 +428,17 @@ def scan_fom(
 
         for bdt_cut in bdt_cuts:
             if method == "abcd":
-                nevents_sig, nevents_bkg, _ = abcd(events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key)
-                #print("abcd ", nevents_sig, nevents_bkg)
+                nevents_sig, nevents_bkg, _ = abcd(
+                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
+                )
+                # print("abcd ", nevents_sig, nevents_bkg)
             else:
-                nevents_sig, nevents_bkg, _ = sideband(events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key)
-                #print("sideband ",  nevents_sig, nevents_bkg)
-                #print("\n")
-            
+                nevents_sig, nevents_bkg, _ = sideband(
+                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
+                )
+                # print("sideband ",  nevents_sig, nevents_bkg)
+                # print("\n")
+
             if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
             elif fom == "2sqrt(b)/s":
@@ -593,7 +597,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             # ylim=ylims[year],
         )
 
-        
+
 def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
     nevents_bkg = get_nevents_data(
         events_dict["data"],
@@ -645,7 +649,6 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh
 
     background = bqcd + bg_tots[0] if bg_tots != 0 else bqcd
     return s, background, dicts
-    
 
 
 def postprocess_run3(args):
@@ -672,7 +675,7 @@ def postprocess_run3(args):
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
 
-    mass_window = np.array(window_by_mass[args.mass]) # + np.array([-5, 5])
+    mass_window = np.array(window_by_mass[args.mass])  # + np.array([-5, 5])
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -727,8 +730,8 @@ def postprocess_run3(args):
         #)
         #s_bin1, b_bin1, _ = sideband(
         #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
-        #)
-        
+        # )
+
         # note: need to do this since not all the years have all the samples..
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
         samples = list(events_combined.keys())
@@ -778,10 +781,12 @@ def postprocess_run3(args):
 
         if args.fom_scan_bin1:
             if args.vbf:
-                print(f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}")
+                print(
+                    f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
+                )
             else:
-                print(f"Scanning Bin 1, no VBF")
-                
+                print("Scanning Bin 1, no VBF")
+
             scan_fom(
                 args.method,
                 events_combined,
@@ -800,9 +805,7 @@ def postprocess_run3(args):
                     f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
                 )
             else:
-                print(
-                    f"Scanning Bin 2 with bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-                )
+                print(f"Scanning Bin 2 with bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
             scan_fom(
                 args.method,
                 events_combined,
@@ -929,7 +932,7 @@ if __name__ == "__main__":
         choices=["abcd", "sideband"],
         help="method for scanning",
     )
-   
+
     parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
     parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
 
