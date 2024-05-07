@@ -1161,7 +1161,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
 
     eff, bins_x, bins_y = h_sb.to_numpy()
     fig, ax = plt.subplots(1, 1, figsize=(16, 12))
-    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]))
+    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow='none')
     cbar.cbar.set_label(r"Fig Of Merit", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
     for i in range(len(bins_x) - 1):
@@ -1179,7 +1179,8 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
 
     ax.set_xlabel("BDT Cut")
     ax.set_ylabel(r"$T_{Xbb}$ Cut")
-
+    ax.set_ylim([0.8, 1.0])
+    ax.set_xlim([0.8, 1.0])
     fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")

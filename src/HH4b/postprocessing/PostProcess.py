@@ -245,13 +245,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
-        if year in args.training_years:
-            print(f"year {year} used in training")
-            inferences_dir = Path(
-                f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/{year}"
-            )
-
-            if key in bdt_training_keys:
+        if args.training_years is not None:
+            if year in args.training_years and key in bdt_training_keys:
+                print(f"year {year} used in training")
+                inferences_dir = Path(
+                    f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/{year}"
+                )
+                
                 evt_list = np.load(inferences_dir / f"evt_{key}.npy")
                 bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
                 bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
@@ -261,20 +261,19 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        # FIXME: replace by jet matched to trigger object
         mask_presel = (
-            (bdt_events["H1Msd"] > 30)
+            (bdt_events["H1Msd"] > 40) # FIXME: replace by jet matched to trigger object
             & (bdt_events["H1Pt"] > 300)
             & (bdt_events["H2Pt"] > 300)
             & (bdt_events["H1TXbb"] > 0.8)
         )
         bdt_events = bdt_events[mask_presel]
-        cutflow_dict[key]["H1Msd > 30 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
 
         ###### FINISH pre-selection
         mass_window = [110, 140]
         mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
-        mask_mass = (bdt_events[args.mass] > mass_window[0]) & (
+        mask_mass = (bdt_events[args.mass] >= mass_window[0]) & (
             bdt_events[args.mass] <= mass_window[1]
         )
 
@@ -284,7 +283,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
                 bdt_events["H2TXbb"] > args.vbf_txbb_wp
             )
-            bdt_events.loc[mask_vbf, "Category"] = 0
         else:
             # if no VBF region, set all events to "fail VBF"
             mask_vbf = np.zeros(len(bdt_events), dtype=bool)
@@ -403,6 +401,7 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
 
 
 def scan_fom(
+    method: str,
     events_combined: pd.DataFrame,
     get_cut: Callable,
     xbb_cuts: np.ArrayLike,
@@ -420,6 +419,7 @@ def scan_fom(
         hist.axis.Variable(xbb_cuts, name="xbb_cut"),
     )
 
+    print(f"Scanning {fom} with {method}")
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
@@ -427,33 +427,28 @@ def scan_fom(
         min_nevents = []
 
         for bdt_cut in bdt_cuts:
-            nevents_data = get_nevents_data(
-                events_combined["data"],
-                get_cut(events_combined["data"], xbb_cut, bdt_cut),
-                mass,
-                mass_window,
-            )
-            nevents_signal = get_nevents_signal(
-                events_combined[sig_key],
-                get_cut(events_combined[sig_key], xbb_cut, bdt_cut),
-                mass,
-                mass_window,
-            )
-
+            if method == "abcd":
+                nevents_sig, nevents_bkg, _ = abcd(events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key)
+                #print("abcd ", nevents_sig, nevents_bkg)
+            else:
+                nevents_sig, nevents_bkg, _ = sideband(events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key)
+                #print("sideband ",  nevents_sig, nevents_bkg)
+                #print("\n")
+            
             if fom == "s/sqrt(s+b)":
-                figure_of_merit = nevents_signal / np.sqrt(nevents_signal + nevents_data)
+                figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
             elif fom == "2sqrt(b)/s":
-                figure_of_merit = 2 * np.sqrt(nevents_data) / nevents_signal
+                figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_signal > 0.5 and nevents_data >= 2:
+            if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
                 if figure_of_merit < min_fom:
                     min_fom = figure_of_merit
-                    min_nevents = [nevents_data, nevents_signal]
+                    min_nevents = [nevents_bkg, nevents_sig]
 
         if len(cuts) > 0:
             cuts = np.array(cuts)
@@ -461,12 +456,13 @@ def scan_fom(
             smallest = np.argmin(figure_of_merits)
 
             print(
-                f"{xbb_cut:.3f} {cuts[smallest]:.2f} {figure_of_merits[smallest]:.2f} "
-                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f}"
+                f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
+                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f}"
             )
 
-    print(f"Plotting FOM scan: {plot_dir}/{plot_name}")
-    plotting.plot_fom(h_sb, plot_dir, name=plot_name)
+    name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
+    print(f"Plotting FOM scan: {plot_dir}/{name} \n")
+    plotting.plot_fom(h_sb, plot_dir, name=name)
 
 
 def get_cuts(args, region: str):
@@ -476,7 +472,7 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    def get_cut_novbf(events):
+    def get_cut_novbf(events, xbb_cut, bdt_cut):
         return np.zeros(len(events), dtype=bool)
 
     # bin 1 with VBF region veto
@@ -597,15 +593,31 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             # ylim=ylims[year],
         )
 
+        
+def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
+    nevents_bkg = get_nevents_data(
+        events_dict["data"],
+        get_cut(events_dict["data"], txbb_cut, bdt_cut),
+        mass,
+        mass_window,
+    )
+    nevents_sig = get_nevents_signal(
+        events_dict[sig_key],
+        get_cut(events_dict[sig_key], txbb_cut, bdt_cut),
+        mass,
+        mass_window,
+    )
+    return nevents_sig, nevents_bkg, {}
 
-def abcd(events_dict, txbb_cut, bdt_cut, mass, mass_window):
+
+def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
-    for key in ["hh4b", "data"] + bg_keys:
+    for key in [sig_key, "data"] + bg_keys:
         events = events_dict[key]
-        cut = (events["bdt_score"] > bdt_cut) & (events["H2TXbb"] > txbb_cut)
+        cut = get_cut(events, txbb_cut, bdt_cut)
 
-        if key == "hh4b":
+        if key == sig_key:
             s = get_nevents_signal(events, cut, mass, mass_window)
             continue
 
@@ -631,7 +643,9 @@ def abcd(events_dict, txbb_cut, bdt_cut, mass, mass_window):
     # C/D * B
     bqcd = dmt[2] * dmt[1] / dmt[3]
 
-    return s, bqcd + bg_tots[0], dicts
+    background = bqcd + bg_tots[0] if bg_tots != 0 else bqcd
+    return s, background, dicts
+    
 
 
 def postprocess_run3(args):
@@ -650,12 +664,15 @@ def postprocess_run3(args):
     if not args.templates and not args.bdt_roc:  # and not args.control_plots:
         bg_keys = []
 
-    window_by_mass = {"H2Msd": [110, 140]}
+    window_by_mass = {
+        "H2Msd": [110, 140],
+        "H2PNetMass": [110, 140],
+        # "H2PNetMass": [115, 135],
+    }
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
-    else:
-        window_by_mass["H2PNetMass"] = [115, 135]
-    mass_window = np.array(window_by_mass[args.mass]) + np.array([-5, 5])
+
+    mass_window = np.array(window_by_mass[args.mass]) # + np.array([-5, 5])
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -706,10 +723,12 @@ def postprocess_run3(args):
 
         # get ABCD (warning: not considering VBF region veto)
         s_bin1, b_bin1, _ = abcd(
-            events_combined, args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window
+            events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
         )
-        # print("abcd ", s_bin1, b_bin1, mass_window)
-
+        #s_bin1, b_bin1, _ = sideband(
+        #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
+        #)
+        
         # note: need to do this since not all the years have all the samples..
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
         samples = list(events_combined.keys())
@@ -737,13 +756,15 @@ def postprocess_run3(args):
                     cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
+        print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
 
     if args.fom_scan:
 
-        if args.fom_scan_vbf:
+        if args.fom_scan_vbf and args.vbf:
             print("Scanning VBF WPs")
             scan_fom(
+                args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
                 np.arange(0.8, 1, 0.01),
@@ -756,8 +777,13 @@ def postprocess_run3(args):
             )
 
         if args.fom_scan_bin1:
-            print(f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}")
+            if args.vbf:
+                print(f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}")
+            else:
+                print(f"Scanning Bin 1, no VBF")
+                
             scan_fom(
+                args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
                 np.arange(0.95, 1, 0.005),
@@ -769,10 +795,16 @@ def postprocess_run3(args):
             )
 
         if args.fom_scan_bin2:
-            print(
-                f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-            )
+            if args.vbf:
+                print(
+                    f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                )
+            else:
+                print(
+                    f"Scanning Bin 2 with bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                )
             scan_fom(
+                args.method,
                 events_combined,
                 get_cuts(args, "bin2"),
                 np.arange(0.8, args.txbb_wps[0], 0.02),
@@ -851,8 +883,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--training-years",
-        "training_years",
-        default=None,
         nargs="+",
         choices=hh_vars.years,
         help="years used in training"
@@ -892,7 +922,14 @@ if __name__ == "__main__":
         default=[0.95, 0.75, 0.03],
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
-
+    parser.add_argument(
+        "--method",
+        type=str,
+        default="sideband",
+        choices=["abcd", "sideband"],
+        help="method for scanning",
+    )
+   
     parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
     parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
 
@@ -909,7 +946,7 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
-    run_utils.add_bool_arg(parser, "fom-scan-vbf", default=True, help="FOM scan for VBF bin")
+    run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
     run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
