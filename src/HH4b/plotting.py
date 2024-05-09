@@ -901,24 +901,23 @@ def ratioHistPlot(
         data_val = hists[data_key, :].values()
         data_val[tot_val_zero_mask] = 1
 
-
         dataerr = np.sqrt(hists[data_key, :].variances())
         yhist = (hists[data_key, :] - bg_tot) / dataerr
         yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
-        #if math.isinf(yhist[5]):
+        # if math.isinf(yhist[5]):
         # blind!
-        yhist[5]=0
-        yhist[6]=0
-        yhist[7]=0
-            
+        yhist[5] = 0
+        yhist[6] = 0
+        yhist[7] = 0
+
         hep.histplot(
             yhist,
             ax=sax,
             yerr=yerr,
             histtype="fill",
-            facecolor='gray',
-            edgecolor='k',
+            facecolor="gray",
+            edgecolor="k",
         )
         sax.set_ylim([-2, 2])
         sax.set_xlabel(hists.axes[1].label)

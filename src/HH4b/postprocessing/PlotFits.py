@@ -54,7 +54,7 @@ def plot_fits(args):
             reg=True,
             blind_window=[110, 140],
         )
-        
+
     shape_vars = [fit_shape_var]
 
     shapes = {

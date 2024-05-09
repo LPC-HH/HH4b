@@ -85,7 +85,6 @@ class ttSkimmer(SkimmerABC):
         },
     }
 
-
     muon_selection = {  # noqa: RUF012
         "Id": "tight",
         "pt": 55,
@@ -371,9 +370,9 @@ class ttSkimmer(SkimmerABC):
         add_selection(
             "no_other_leptons",
             (ak.sum(veto_electron_sel, axis=1) == 0) & (ak.sum(veto_tau_sel, axis=1) == 0),
-            *selection_args
+            *selection_args,
         )
-        
+
         # MET
         met_selection = met.pt >= self.met_selection["pt"]
 

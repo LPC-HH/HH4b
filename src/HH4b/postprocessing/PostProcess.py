@@ -709,13 +709,16 @@ def postprocess_run3(args):
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
-    
+
     if len(args.years) > 1:
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
             bg_keys=bg_keys_combined,
-            scale_processes={"hh4b": ["2022EE", "2023", "2023BPix"], "vbfhh4b-k2v0": ["2022", "2022EE"]},
+            scale_processes={
+                "hh4b": ["2022EE", "2023", "2023BPix"],
+                "vbfhh4b-k2v0": ["2022", "2022EE"],
+            },
             years_run3=args.years,
         )
         print("Combined years")
