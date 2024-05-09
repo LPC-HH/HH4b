@@ -31,6 +31,8 @@ cut_axis = hist.axis.StrCategory([], name="cut", growth=True)
 
 legacy_label = "Legacy"
 
+CUT_MAX_VAL = 9999.0
+
 
 def get_toy_from_hist(h_hist):
     """
@@ -171,13 +173,14 @@ def abcd_fom(
 def main(args):
 
     # do not load any QCD samples
-    for year in samples_run3:
-        for key in ["qcd"]:
-            if key in samples_run3[year]:
-                samples_run3[year].pop(key)
+    # for year in samples_run3:
+    #     for key in ["qcd"]:
+    #         if key in samples_run3[year]:
+    #             samples_run3[year].pop(key)
 
     data_dir = "24Apr23LegacyLowerThresholds_v12_private_signal"
-    input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
+    # input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
+    input_dir = f"/ceph/cms/store/user/rkansal/bbbb/skimmer/{data_dir}"
     year = "2022EE"
 
     events_dict = postprocessing.load_run3_samples(
@@ -231,10 +234,16 @@ def main(args):
         (templ_dir / year).mkdir(parents=True, exist_ok=True)
         (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
 
+        bdt_events_dict_xbb_cut = {}
+        for key in bdt_events_dict:
+            bdt_events_dict_xbb_cut[key] = bdt_events_dict[key][
+                bdt_events_dict[key]["H2TXbb"] > xbb_cut
+            ]
+
         print(f"\n Xbb cut:{xbb_cut}")
-        bdt_events_data = bdt_events_dict["data"][bdt_events_dict["data"]["H2TXbb"] > xbb_cut]
-        bdt_events_sig = bdt_events_dict["hh4b"][bdt_events_dict["hh4b"]["H2TXbb"] > xbb_cut]
-        bdt_events_others = bdt_events_dict["others"][bdt_events_dict["others"]["H2TXbb"] > xbb_cut]
+        bdt_events_data = bdt_events_dict_xbb_cut["data"]
+        bdt_events_sig = bdt_events_dict_xbb_cut["hh4b"]
+        bdt_events_others = bdt_events_dict_xbb_cut["others"]
         bdt_events_data_invertedXbb = bdt_events_dict["data"][
             bdt_events_dict["data"]["H2TXbb"] < 0.8
         ]
@@ -389,16 +398,16 @@ def main(args):
             # for this toy the BDT and Xbb cut are
             print("Xbb ", xbb_cut, "BDT ", optimal_bdt_cut)
 
-            # define regions
+            # define regions with optimal cut
             selection_regions = {
-                "pass_bin1": Region(
+                "pass_bin1": postprocessing.Region(
                     cuts={
                         "H2TXbb": [xbb_cut, CUT_MAX_VAL],
                         "bdt_score": [optimal_bdt_cut, CUT_MAX_VAL],
                     },
                     label="Bin1",
                 ),
-                "fail": Region(
+                "fail": postprocessing.Region(
                     cuts={
                         "H2TXbb": [-CUT_MAX_VAL, xbb_cut],
                     },
@@ -406,9 +415,9 @@ def main(args):
                 ),
             }
 
-            # replace data distribution with toy
-            bdt_events_for_templates = bdt_events_dict.copy()
-            bdt_events_for_templates["data"][mass_var] = mass_toy
+            # replace data distribution with toy!!
+            bdt_events_for_templates = bdt_events_dict_xbb_cut.copy()
+            bdt_events_for_templates["data"][mass_var] = random_mass
 
             templates = postprocessing.get_templates(
                 bdt_events_dict,
@@ -423,6 +432,11 @@ def main(args):
                 weight_key="weight",
                 show=False,
                 energy=13.6,
+            )
+
+            # save toys!
+            postprocessing.save_templates(
+                templates, templ_dir / f"{year}_templates.pkl", fit_shape_var
             )
 
     # plot pull
