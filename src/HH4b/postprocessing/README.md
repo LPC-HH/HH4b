@@ -20,18 +20,19 @@ run_blinded_hh4b.sh --workspace --bfit --limits --dfit --passbin=0
 python3 postprocessing/PlotFits.py --fit-file cards/run3-bdt-apr18/FitShapes.root --plots-dir ../../plots/PostFit/run3-bdt-apr18 --signal-scale 10
 ```
 
-### Reproducing ANv1
+### ANv1
 ```
 python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2Msd --no-legacy --bdt-config v1_msd30_txbb  --bdt-model v1_msd30_nomulticlass  --no-fom-scan --templates --txbb-wps 0.92 0.8 --bdt-wps 0.94 0.68 0.03 --years 2022 2022EE 2023 2023BPix
 ```
 
-### Apr22 (freeze for ANv2)
+### ANv2
+Apr 22
 ```
 python PostProcess.py --templates-tag 24Apr21_legacy_bdt_ggf --data-dir /ceph/cms/store/user/rkansal/bbbb/skimmer/ --tag 24Apr19LegacyFixes_v12_private_signal --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --legacy --no-fom-scan-bin1 --no-fom-scan --no-fom-scan-vbf --no-vbf 
 ```
-OR for templates
+Frozen for ANv2
 ```
-python3 PostProcess.py --templates-tag 24May9xcheckvjets24Apr21 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars  --bdt-model 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE
+python3 PostProcess.py --templates-tag 24May9v2Msd40 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars  --bdt-model 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE --no-vbf
 ```
 
 To scan:
