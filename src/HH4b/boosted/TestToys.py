@@ -320,7 +320,7 @@ def main(args):
         h_mass_invertedXbb.fill(bdt_events_data_invertedXbb[mass_var])
 
         print("Xbb BDT Index-BDT S/(S+B) Difference Expected")
-        for itoy in range(ntoys):  # noqa: B007
+        for itoy in range(ntoys):
             templ_dir = Path(f"templates/toys_{args.tag}/xbb_cut_{xbb_cut:.3f}/toy_{itoy}")
             (templ_dir / year).mkdir(parents=True, exist_ok=True)
             (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
