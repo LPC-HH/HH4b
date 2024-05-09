@@ -179,8 +179,8 @@ def main(args):
     #             samples_run3[year].pop(key)
 
     data_dir = "24Apr23LegacyLowerThresholds_v12_private_signal"
-    # input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
-    input_dir = f"/ceph/cms/store/user/rkansal/bbbb/skimmer/{data_dir}"
+    input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
+    # input_dir = f"/ceph/cms/store/user/rkansal/bbbb/skimmer/{data_dir}"
     year = "2022EE"
 
     events_dict = postprocessing.load_run3_samples(
@@ -206,7 +206,7 @@ def main(args):
     all_bdt_cuts = 0.01 * np.arange(80, 100)
     bdt_cuts = all_bdt_cuts
 
-    xbb_cuts = [0.8]  # , 0.95]
+    xbb_cuts = [0.8, 0.95]
 
     # define fail region for ABCD
     bdt_fail = 0.03
@@ -230,10 +230,6 @@ def main(args):
 
     expected_by_xbb = {}
     for xbb_cut in xbb_cuts:
-        templ_dir = Path(f"templates/toys_{args.tag}")
-        (templ_dir / year).mkdir(parents=True, exist_ok=True)
-        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-
         bdt_events_dict_xbb_cut = {}
         for key in bdt_events_dict:
             bdt_events_dict_xbb_cut[key] = bdt_events_dict[key][
@@ -245,10 +241,10 @@ def main(args):
         bdt_events_sig = bdt_events_dict_xbb_cut["hh4b"]
         bdt_events_others = bdt_events_dict_xbb_cut["others"]
         bdt_events_data_invertedXbb = bdt_events_dict["data"][
-            bdt_events_dict["data"]["H2TXbb"] < 0.8
+            bdt_events_dict["data"]["H2TXbb"] < xbb_cut
         ]
         bdt_events_others_invertedXbb = bdt_events_dict["others"][
-            bdt_events_dict["others"]["H2TXbb"] < 0.8
+            bdt_events_dict["others"]["H2TXbb"] < xbb_cut
         ]
 
         ################################################
@@ -324,7 +320,11 @@ def main(args):
         h_mass_invertedXbb.fill(bdt_events_data_invertedXbb[mass_var])
 
         print("Xbb BDT Index-BDT S/(S+B) Difference Expected")
-        for i in range(ntoys):  # noqa: B007
+        for itoy in range(ntoys):  # noqa: B007
+            templ_dir = Path(f"templates/toys_{args.tag}/toy_{itoy}")
+            (templ_dir / year).mkdir(parents=True, exist_ok=True)
+            (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)        
+
             random_mass = get_toy_from_hist(h_mass)
 
             # build toy = data + injected signal
