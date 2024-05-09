@@ -179,8 +179,8 @@ def main(args):
     #             samples_run3[year].pop(key)
 
     data_dir = "24Apr23LegacyLowerThresholds_v12_private_signal"
-    input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
-    # input_dir = f"/ceph/cms/store/user/rkansal/bbbb/skimmer/{data_dir}"
+    # input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
+    input_dir = f"/ceph/cms/store/user/rkansal/bbbb/skimmer/{data_dir}"
     year = "2022EE"
 
     events_dict = postprocessing.load_run3_samples(
@@ -321,7 +321,7 @@ def main(args):
 
         print("Xbb BDT Index-BDT S/(S+B) Difference Expected")
         for itoy in range(ntoys):  # noqa: B007
-            templ_dir = Path(f"templates/toys_{args.tag}/toy_{itoy}")
+            templ_dir = Path(f"templates/toys_{args.tag}/xbb_cut_{xbb_cut:.3f}/toy_{itoy}")
             (templ_dir / year).mkdir(parents=True, exist_ok=True)
             (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)        
 
