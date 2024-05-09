@@ -323,7 +323,7 @@ def main(args):
         for itoy in range(ntoys):  # noqa: B007
             templ_dir = Path(f"templates/toys_{args.tag}/xbb_cut_{xbb_cut:.3f}/toy_{itoy}")
             (templ_dir / year).mkdir(parents=True, exist_ok=True)
-            (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)        
+            (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
 
             random_mass = get_toy_from_hist(h_mass)
 
