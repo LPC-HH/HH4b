@@ -303,6 +303,11 @@ def get_v12_private():
                 "JetMET_Run2022C": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/JetMET/JetMET/JetMET_Run2022C/",
                 "JetMET_Run2022D": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/JetMET/JetMET/JetMET_Run2022D/",
             },
+            "Muon": {
+                "Muon_Run2022C_single": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/SingleMuon/SingleMuon_Run2022C/",
+                "Muon_Run2022C": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/Muon/Muon_Run2022C/",
+                "Muon_Run2022D": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/Muon/Muon_Run2022D/",
+            },
             "VBFHH": {
                 "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/",
@@ -395,6 +400,11 @@ def get_v12_private():
                 "JetMET_Run2022F": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022F",
                 "JetMET_Run2022G": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022EE/JetMET/JetMET/JetMET_Run2022G",
             },
+            "Muon": {
+                # "Muon_Run2022E": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/Muon/Muon/",
+                "Muon_Run2022F": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/Muon/Muon/Muon_Run2022F/",
+                "Muon_Run2022G": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/Muon/Muon/Muon_Run2022G/",
+            },
             "VBFHH": {
                 "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8/",
                 "VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/signal/VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/",
@@ -431,6 +441,24 @@ def get_v12_private():
             },
         },
         "2023": {
+            "Muon": {
+                "Muon_Run2023Cv1": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon0/Muon0_2023Cv1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon1/Muon1_2023Cv1/",
+                ],
+                "Muon_Run2023Cv2": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon0/Muon0_2023Cv2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon1/Muon1_2023Cv2/",
+                ],
+                "Muon_Run2023Cv3": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon0/Muon0_Run2023Cv3/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon1/Muon1_Run2023Cv3/",
+                ],
+                "Muon_Run2023Cv4": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon0/Muon0_Run2023Cv4/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/Muon/Muon1/Muon1_Run2023Cv4/",
+                ],
+            },
             "JetMET": {
                 "JetMET_Run2023Cv1": [
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-pre-Bpix/JetMET/JetMET0/JetMET_Run2023C_0v1/",
@@ -514,6 +542,14 @@ def get_v12_private():
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET0/JetMET_Run2023D_0v2/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET1/JetMET_Run2023D_1v1/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/JetMET/JetMET1/JetMET_Run2023D_1v2/",
+                ],
+            },
+            "Muon": {
+                "Muon_Run2023D": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Muon/Muon0/Muon0_2023Dv1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Muon/Muon0/Muon0_2023Dv2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Muon/Muon1/Muon1_2023Dv1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/Muon/Muon1/Muon1_2023Dv2/",
                 ],
             },
             "Hbb": {
@@ -1314,7 +1350,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12"]:  # ,"v12_private"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

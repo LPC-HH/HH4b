@@ -589,8 +589,6 @@ def ratioHistPlot(
     # re-weight qcd
     kfactor = {sample: 1 for sample in bg_keys}
     if reweight_qcd:
-        print("bg keys ", bg_keys)
-        print(sum([hists[sample, :] for sample in bg_keys]))
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
         if bg_yield > 0:
@@ -903,18 +901,26 @@ def ratioHistPlot(
         data_val = hists[data_key, :].values()
         data_val[tot_val_zero_mask] = 1
 
-        yhist = (hists[data_key, :] - bg_tot) / data_err
-        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, data_err, "poisson")
 
+        dataerr = np.sqrt(hists[data_key, :].variances())
+        yhist = (hists[data_key, :] - bg_tot) / dataerr
+        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
+
+        #if math.isinf(yhist[5]):
+        # blind!
+        yhist[5]=0
+        yhist[6]=0
+        yhist[7]=0
+            
         hep.histplot(
             yhist,
             ax=sax,
             yerr=yerr,
-            histtype="errorbar",
-            markersize=20,
-            color="black",
+            histtype="fill",
+            facecolor='gray',
+            edgecolor='k',
         )
-        sax.set_ylim([-4, 4])
+        sax.set_ylim([-2, 2])
         sax.set_xlabel(hists.axes[1].label)
         sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
 

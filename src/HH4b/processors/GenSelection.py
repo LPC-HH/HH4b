@@ -219,6 +219,14 @@ def gen_selection_Top(
     daughters = daughters[daughters.hasFlags(["fromHardProcess", "isLastCopy"])]
     daughters_pdgId = abs(daughters.pdgId)
 
+    wboson_0 = ak.firsts(daughters[(daughters_pdgId == W_PDGID)][:, 0:1])
+    wboson_1 = ak.firsts(daughters[(daughters_pdgId == W_PDGID)][:, 1:2])
+    GenTopVars = {
+        **GenTopVars,
+        **{f"GenTopW0{key}": wboson_0[var].to_numpy() for (var, key) in skim_vars.items()},
+        **{f"GenTopW1{key}": wboson_0[var].to_numpy() for (var, key) in skim_vars.items()},
+    }
+    
     wboson_daughters = ak.flatten(daughters[(daughters_pdgId == W_PDGID)].distinctChildren, axis=2)
     wboson_daughters = wboson_daughters[
         wboson_daughters.hasFlags(["fromHardProcess", "isLastCopy"])

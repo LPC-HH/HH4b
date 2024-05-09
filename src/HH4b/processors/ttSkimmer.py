@@ -25,6 +25,8 @@ from .corrections import (
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
     get_ak8jets,
+    veto_electrons,
+    veto_taus,
 )
 from .SkimmerABC import SkimmerABC
 from .utils import P4, add_selection, pad_val
@@ -64,41 +66,25 @@ class ttSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
-            "Txbb": "PNetXbb",
-            "Txjj": "PNetXjj",
+            "Txbb": "PNetTXbb",
+            "Txjj": "PNetTXjj",
             "Tqcd": "PNetQCD",
-            # "TQCDb": "PNetQCD1HF",
-            # "TQCDbb": "PNetQCD2HF",
-            # "TQCDothers": "PNetQCD0HF",
+            "PQCDb": "PNetQCD1HF",
+            "PQCDbb": "PNetQCD2HF",
+            "PQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t21": "Tau2OverTau1",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
         },
-        # "GenHiggs": P4,
         "Event": {
             "run": "run",
             "event": "event",
             "luminosityBlock": "luminosityBlock",
         },
-        # "Pileup": {
-        #     "nPU",
-        # },
-        # "TriggerObject": {
-        #     "pt": "Pt",
-        #     "eta": "Eta",
-        #     "phi": "Phi",
-        #     "filterBits": "Bit",
-        # },
     }
 
-    # preselection = {
-    #     "fatjet_pt": 270,
-    #     "fatjet_msd": 60,
-    #     "fatjet_mreg": 60,
-    #     "Txbb0": 0.8,
-    # }
 
     muon_selection = {  # noqa: RUF012
         "Id": "tight",
@@ -157,6 +143,15 @@ class ttSkimmer(SkimmerABC):
                 "2022EE": [
                     "Mu50",
                 ],
+                "2022": [
+                    "Mu50",
+                ],
+                "2023": [
+                    "Mu50",
+                ],
+                "2023BPix": [
+                    "Mu50",
+                ],
             },
         }
 
@@ -174,14 +169,9 @@ class ttSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "ecalBadCalibFilter",
             "hfNoisyHitsFilt",
         ]
 
-        """
-        This skimmer didn't use the region attribute
-
-        """
         self._region = region
 
         self._accumulator = processor.dict_accumulator({})
@@ -298,7 +288,8 @@ class ttSkimmer(SkimmerABC):
         if self._nano_version == "v12_private":
             fatjet_skimvars = {
                 **fatjet_skimvars,
-                "Txbb_legacy": "PNetXbbLegacy",
+                "TXqq_legacy": "PNetTXqqLegacy",
+                "TXbb_legacy": "PNetTXbbLegacy",
                 "particleNet_mass_legacy": "PNetMassLegacy",
             }
 
@@ -374,6 +365,15 @@ class ttSkimmer(SkimmerABC):
 
         add_selection("muon", muon_selector, *selection_args)
 
+        # loose taus/electrons
+        veto_electron_sel = veto_electrons(events.Electron)
+        veto_tau_sel = veto_taus(events.Tau)
+        add_selection(
+            "no_other_leptons",
+            (ak.sum(veto_electron_sel, axis=1) == 0) & (ak.sum(veto_tau_sel, axis=1) == 0),
+            *selection_args
+        )
+        
         # MET
         met_selection = met.pt >= self.met_selection["pt"]
 
