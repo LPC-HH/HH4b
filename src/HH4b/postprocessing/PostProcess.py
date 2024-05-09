@@ -266,7 +266,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             & (bdt_events["H2Pt"] > 300)
             & (bdt_events["H1TXbb"] > 0.8)
             & (bdt_events[args.mass] >= 60)
-            & (bdt_events[args.mass] <= 220)
+            & (bdt_events[args.mass] <= 250)
+            & (bdt_events[args.mass.replace("H2", "H1")] >= 60)
+            & (bdt_events[args.mass.replace("H2", "H1")] <= 250)
         )
         bdt_events = bdt_events[mask_presel]
         cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
@@ -648,7 +650,11 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh
     # C/D * B
     bqcd = dmt[2] * dmt[1] / dmt[3]
 
-    background = bqcd + bg_tots[0] if bg_tots != 0 else bqcd
+    #print("bqcd ",bqcd)
+    #print("bg0 ",bg_tots != 0)
+    #print("bg_tots ",bg_tots[0])
+    
+    background = bqcd + bg_tots[0] if len(bg_tots) > 0 else bqcd
     return s, background, dicts
 
 
@@ -729,13 +735,10 @@ def postprocess_run3(args):
     if len(args.years) > 0:
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
-        # get ABCD (warning: not considering VBF region veto)
-        # s_bin1, b_bin1, _ = abcd(
-        #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
-        # )
-        # s_bin1, b_bin1, _ = sideband(
-        #    events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
-        # )
+        # get ABCD (warning!: not considering VBF region veto)
+        s_bin1, b_bin1, _ = abcd(
+           events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
+        )
 
         # note: need to do this since not all the years have all the samples..
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
@@ -761,7 +764,7 @@ def postprocess_run3(args):
 
             if "Bin 1 [" in cut and yield_b > 0:
                 cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
-                # cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+                cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
