@@ -99,7 +99,7 @@ color_by_sample = {
     "top_matched": "cornflowerblue",
     "W_matched": "royalblue",
     "unmatched": "lightsteelblue",
-    'singletop': "cadetblue",
+    "singletop": "cadetblue",
 }
 
 label_by_sample = {

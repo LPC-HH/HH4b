@@ -654,10 +654,10 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh
     # C/D * B
     bqcd = dmt[2] * dmt[1] / dmt[3]
 
-    #print("bqcd ",bqcd)
-    #print("bg0 ",bg_tots != 0)
-    #print("bg_tots ",bg_tots[0])
-    
+    # print("bqcd ",bqcd)
+    # print("bg0 ",bg_tots != 0)
+    # print("bg_tots ",bg_tots[0])
+
     background = bqcd + bg_tots[0] if len(bg_tots) > 0 else bqcd
     return s, background, dicts
 
@@ -741,7 +741,13 @@ def postprocess_run3(args):
 
         # get ABCD (warning!: not considering VBF region veto)
         s_bin1, b_bin1, _ = abcd(
-           events_combined, get_cuts(args, "bin1"), args.txbb_wps[0], args.bdt_wps[0], args.mass, mass_window, "hh4b"
+            events_combined,
+            get_cuts(args, "bin1"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            "hh4b",
         )
 
         # note: need to do this since not all the years have all the samples..

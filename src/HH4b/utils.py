@@ -321,7 +321,7 @@ def load_samples(
     for label, selector in samples.items():
         # important to check that samples have been normalized properly
         load_columns = columns
-        if label !="data" and load_weight_noxsec:
+        if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
         events_dict[label] = []  # list of directories we load in for this sample
@@ -505,6 +505,7 @@ def make_vector(events: dict, name: str, mask=None, mstring="Mass"):
         mask (bool array, optional): array selecting desired events
     """
     import vector
+
     if mask is None:
         return vector.array(
             {
