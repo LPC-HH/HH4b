@@ -245,16 +245,20 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # add selection to testing events
         bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
-        if args.training_years is not None and year in args.training_years and key in bdt_training_keys:
+        if (
+            args.training_years is not None
+            and year in args.training_years
+            and key in bdt_training_keys
+        ):
             print(f"year {year} used in training")
             inferences_dir = Path(
                 f"../boosted/bdt_trainings_run3/{args.bdt_model}/inferences/{year}"
             )
-            
+
             evt_list = np.load(inferences_dir / f"evt_{key}.npy")
             bdt_events = bdt_events[bdt_events["event"].isin(evt_list)]
             bdt_events["weight"] *= 1 / 0.4  # divide by BDT test / train ratio
-                
+
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
         bdt_events = bdt_events[mask_hlt]
@@ -477,7 +481,7 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    def get_cut_novbf(events, xbb_cut, bdt_cut): # noqa ARG001
+    def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa ARG001
         return np.zeros(len(events), dtype=bool)
 
     # bin 1 with VBF region veto
