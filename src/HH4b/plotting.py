@@ -96,9 +96,10 @@ color_by_sample = {
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
     "vjetslnu": colours["orange"],
-    "top_matched": colours["darkblue"],
-    "W_matched": colours["orange"],
-    "unmatched": colours["canary"],
+    "top_matched": "cornflowerblue",
+    "W_matched": "royalblue",
+    "unmatched": "lightsteelblue",
+    'singletop': "cadetblue",
 }
 
 label_by_sample = {
@@ -124,9 +125,10 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
-    "top_matched": "top matched",
-    "W_matched": "W matched",
-    "unmatched": "unmatched",
+    "top_matched": "Top Matched",
+    "W_matched": "W Matched",
+    "unmatched": "Unmatched",
+    "singletop": "Single Top",
 }
 
 bg_order_default = [
@@ -796,7 +798,7 @@ def ratioHistPlot(
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
-    if kfactor["qcd"] != 1:
+    if "qcd" in kfactor and kfactor["qcd"] != 1:
         ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
     if xlim_low is not None:
