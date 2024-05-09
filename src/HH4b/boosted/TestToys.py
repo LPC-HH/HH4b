@@ -364,11 +364,7 @@ def main(args):
                 soversb = nevents_sig_bdt_cut / np.sqrt(nevents_bkg_bdt_cut + nevents_sig_bdt_cut)
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
-                if (
-                    nevents_sig_bdt_cut > 0.5
-                    and nevents_bkg_bdt_cut >= 2
-                    and soversb > max_soversb
-                ):
+                if nevents_sig_bdt_cut > 0.5 and nevents_bkg_bdt_cut >= 2 and soversb > max_soversb:
                     cuts.append(bdt_cut)
                     figure_of_merits.append(soversb)
 
