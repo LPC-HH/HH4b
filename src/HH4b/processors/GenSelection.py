@@ -224,7 +224,7 @@ def gen_selection_Top(
     GenTopVars = {
         **GenTopVars,
         **{f"GenTopW0{key}": wboson_0[var].to_numpy() for (var, key) in skim_vars.items()},
-        **{f"GenTopW1{key}": wboson_0[var].to_numpy() for (var, key) in skim_vars.items()},
+        **{f"GenTopW1{key}": wboson_1[var].to_numpy() for (var, key) in skim_vars.items()},
     }
 
     wboson_daughters = ak.flatten(daughters[(daughters_pdgId == W_PDGID)].distinctChildren, axis=2)

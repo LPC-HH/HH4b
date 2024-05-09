@@ -163,10 +163,7 @@ def abcd_fom(
 
     # C/D * B
     bqcd = dmt[2] * dmt[1] / dmt[3]
-    if mass_others is not None:
-        nevents_bkg = bqcd + dicts["others"][0]
-    else:
-        nevents_bkg = bqcd
+    nevents_bkg = bqcd + dicts["others"][0] if mass_others is not None else bqcd
     return nevents_sig, nevents_bkg
 
 
@@ -291,7 +288,6 @@ def main(args):
         h_mass_invertedXbb.fill(bdt_events_data_invertedXbb[mass_var])
 
         print("Xbb BDT Index-BDT S/(S+B) Difference Expected")
-        expected_sensitivities = []
         for i in range(ntoys):  # noqa: B007
             random_mass = get_toy_from_hist(h_mass)
 
@@ -350,7 +346,7 @@ def main(args):
                 # NOTE: here optimizing by soversb but can change the figure of merit...
                 if (
                     nevents_sig_bdt_cut > 0.5
-                    and nevents_data_bdt_cut >= 2
+                    and nevents_bkg_bdt_cut >= 2
                     and soversb > max_soversb
                 ):
                     cuts.append(bdt_cut)
