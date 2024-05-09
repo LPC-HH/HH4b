@@ -28,7 +28,7 @@ python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v
 ### ANv2
 Apr 22
 ```
-python PostProcess.py --templates-tag 24Apr21_legacy_bdt_ggf --data-dir /ceph/cms/store/user/rkansal/bbbb/skimmer/ --tag 24Apr19LegacyFixes_v12_private_signal --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --legacy --no-fom-scan-bin1 --no-fom-scan --no-fom-scan-vbf --no-vbf 
+python PostProcess.py --templates-tag 24Apr21_legacy_bdt_ggf --data-dir /ceph/cms/store/user/rkansal/bbbb/skimmer/ --tag 24Apr19LegacyFixes_v12_private_signal --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --legacy --no-fom-scan-bin1 --no-fom-scan --no-fom-scan-vbf --no-vbf
 ```
 Frozen for ANv2
 ```

@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
-import xgboost as xgb
 import pandas as pd
+import xgboost as xgb
 
-from HH4b import utils, postprocessing
-from HH4b.hh_vars import samples_run3, bg_keys
+from HH4b import postprocessing
+from HH4b.hh_vars import bg_keys, samples_run3
 from HH4b.utils import ShapeVar
 
 formatter = mticker.ScalarFormatter(useMathText=True)
@@ -30,6 +30,7 @@ diff_axis = hist.axis.Regular(100, -2, 2, name="diff")
 cut_axis = hist.axis.StrCategory([], name="cut", growth=True)
 
 legacy_label = "Legacy"
+
 
 def get_toy_from_hist(h_hist):
     """
@@ -69,11 +70,13 @@ def get_dataframe(events_dict, year, bdt_model_name, bdt_config):
         bdt_events["H1TXbb"] = events[f"bbFatJetPNetTXbb{legacy_label}"][0]
         bdt_events["H2TXbb"] = events[f"bbFatJetPNetTXbb{legacy_label}"][1]
         bdt_events["weight"] = events["finalWeight"].to_numpy()
-        
+
         bdt_events["hlt"] = np.any(
-            np.array([events[trigger][0] for trigger in postprocessing.HLTs[year] if trigger in events]),
+            np.array(
+                [events[trigger][0] for trigger in postprocessing.HLTs[year] if trigger in events]
+            ),
             axis=0,
-        )        
+        )
         mask_hlt = bdt_events["hlt"] == 1
 
         # masks
@@ -172,7 +175,7 @@ def main(args):
         for key in ["qcd"]:
             if key in samples_run3[year]:
                 samples_run3[year].pop(key)
-    
+
     data_dir = "24Apr23LegacyLowerThresholds_v12_private_signal"
     input_dir = f"/eos/uscms/store/user/cmantill/bbbb/skimmer/{data_dir}"
     year = "2022EE"
@@ -190,17 +193,17 @@ def main(args):
     bdt_events_dict = get_dataframe(events_dict, year, args.bdt_model_name, args.bdt_config)
 
     # get other backgrouds
-    bdt_events_dict["others"] = pd.concat([bdt_events_dict[key] for key in bg_keys if key!="qcd"])
+    bdt_events_dict["others"] = pd.concat([bdt_events_dict[key] for key in bg_keys if key != "qcd"])
 
     ntoys = args.ntoys
     print(f"Number of toys {ntoys}")
-    
+
     mass_window = [110, 140]
 
     all_bdt_cuts = 0.01 * np.arange(80, 100)
     bdt_cuts = all_bdt_cuts
 
-    xbb_cuts = [0.8] #, 0.95]
+    xbb_cuts = [0.8]  # , 0.95]
 
     # define fail region for ABCD
     bdt_fail = 0.03
@@ -218,16 +221,16 @@ def main(args):
         [16, 60, 220],
         reg=True,
         # blind or not?
-        blind_window=None
+        blind_window=None,
         # blind_window=window_by_mass[args.mass],
     )
-    
+
     expected_by_xbb = {}
     for xbb_cut in xbb_cuts:
         templ_dir = Path(f"templates/toys_{args.tag}")
         (templ_dir / year).mkdir(parents=True, exist_ok=True)
         (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-        
+
         print(f"\n Xbb cut:{xbb_cut}")
         bdt_events_data = bdt_events_dict["data"][bdt_events_dict["data"]["H2TXbb"] > xbb_cut]
         bdt_events_sig = bdt_events_dict["hh4b"][bdt_events_dict["hh4b"]["H2TXbb"] > xbb_cut]
@@ -303,7 +306,7 @@ def main(args):
         ###################
         # TOYS
         ###################
-        
+
         # create toy from data mass distribution (with xbb cut)
         h_mass = hist.Hist(mass_axis)
         h_mass.fill(bdt_events_data[mass_var])
@@ -360,7 +363,7 @@ def main(args):
                         bdt_events_others_invertedXbb["weight"],
                         mass_window,
                     )
-                    
+
                 soversb = nevents_sig_bdt_cut / np.sqrt(nevents_bkg_bdt_cut + nevents_sig_bdt_cut)
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
@@ -384,7 +387,7 @@ def main(args):
                 )
 
             # for this toy the BDT and Xbb cut are
-            print("Xbb ",xbb_cut, "BDT ",optimal_bdt_cut)
+            print("Xbb ", xbb_cut, "BDT ", optimal_bdt_cut)
 
             # define regions
             selection_regions = {
@@ -402,11 +405,11 @@ def main(args):
                     label="Fail",
                 ),
             }
-            
+
             # replace data distribution with toy
             bdt_events_for_templates = bdt_events_dict.copy()
             bdt_events_for_templates["data"][mass_var] = mass_toy
-            
+
             templates = postprocessing.get_templates(
                 bdt_events_dict,
                 year=year,
@@ -421,7 +424,7 @@ def main(args):
                 show=False,
                 energy=13.6,
             )
-            
+
     # plot pull
     fig, ax = plt.subplots(1, 1, figsize=(6, 5))
     for xbb_cut in xbb_cuts:
@@ -459,11 +462,6 @@ if __name__ == "__main__":
         type=int,
         default=1,
     )
-    parser.add_argument(
-        "--tag",
-        help="tag test",
-        required=True,
-        type=str
-    )
+    parser.add_argument("--tag", help="tag test", required=True, type=str)
     args = parser.parse_args()
     main(args)
