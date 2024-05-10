@@ -78,7 +78,7 @@ parser.add_argument(
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
 )
 parser.add_argument(
     "--regions",
