@@ -19,6 +19,6 @@ law run PlotPullsAndImpacts \
     --order-by-impact \
     --file-types "pdf,png" \
     --page 0 \
-    --campaign $campaign \
+    --campaign "$campaign" \
     --pull-range 1 \
-    --remove-output 2,a,y
+    --remove-output 0,a,y
