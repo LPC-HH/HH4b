@@ -568,7 +568,7 @@ def ratioHistPlot(
             3,
             1,
             figsize=(12, 18),
-            gridspec_kw={"height_ratios": [3, 1, 1], "hspace": 0},
+            gridspec_kw={"height_ratios": [3, 1, 1], "hspace": 0.15},
             sharex=True,
         )
     else:
@@ -895,6 +895,9 @@ def ratioHistPlot(
         sax.set_xlabel(hists.axes[1].label)
 
     if add_pull:
+        # set title of 2nd panel empty
+        rax.set_xlabel("")
+
         # (data -bkg )/unc_bkg
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         tot_val = bg_tot.values()
@@ -904,8 +907,12 @@ def ratioHistPlot(
         data_val[tot_val_zero_mask] = 1
 
         dataerr = np.sqrt(hists[data_key, :].variances())
+        # replace dataerr of 0 by 1
+        dataerr[dataerr == 0] = 1
+
         yhist = (hists[data_key, :] - bg_tot) / dataerr
-        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
+        # yerr is not used, can be nan
+        # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
         # if math.isinf(yhist[5]):
         # blind!
@@ -916,7 +923,7 @@ def ratioHistPlot(
         hep.histplot(
             yhist,
             ax=sax,
-            yerr=yerr,
+            # yerr=yerr,
             histtype="fill",
             facecolor="gray",
             edgecolor="k",
