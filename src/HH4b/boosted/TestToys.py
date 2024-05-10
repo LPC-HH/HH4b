@@ -195,7 +195,7 @@ def main(args):
     mass_var = "H2PNetMass"
     bdt_events_dict = get_dataframe(events_dict, year, args.bdt_model_name, args.bdt_config)
 
-    # get other backgrouds
+    # get other backgrounds
     bdt_events_dict["others"] = pd.concat([bdt_events_dict[key] for key in bg_keys if key != "qcd"])
 
     ntoys = args.ntoys
@@ -329,6 +329,7 @@ def main(args):
 
             # build toy = data + injected signal
             mass_toy = np.concatenate([random_mass, bdt_events_sig[mass_var]])
+            xbb_toy = np.concatenate([bdt_events_data["H2TXbb"], bdt_events_sig["H2TXbb"]])
             bdt_toy = np.concatenate([bdt_events_data["bdt_score"], bdt_events_sig["bdt_score"]])
             # sum weights together, but scale weight of signal
             weight_toy = np.concatenate(
@@ -416,8 +417,20 @@ def main(args):
             }
 
             # replace data distribution with toy!!
+            # + signal
+            inject_signal = True
             bdt_events_for_templates = bdt_events_dict_xbb_cut.copy()
-            bdt_events_for_templates["data"][mass_var] = random_mass
+            if inject_signal:
+                bdt_events_for_templates["data"] = pd.Dataframe(
+                    {
+                        "bdt_score": bdt_toy,
+                        "H2TXbb": xbb_toy,
+                        "H2PNetMass": mass_toy,
+                        "weight": weight_toy,
+                    }
+                )
+            else:
+                bdt_events_for_templates["data"][mass_var] = random_mass
 
             templates = postprocessing.get_templates(
                 bdt_events_dict,
