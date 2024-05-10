@@ -99,6 +99,7 @@ add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
+add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 args = parser.parse_args()
 
 
@@ -515,6 +516,7 @@ def alphabet_fit(
     templates_summed: dict,
     scale: float | None = None,
     min_qcd_val: float | None = None,
+    unblinded: bool = False,
 ):
     shape_var = shape_vars[0]
     m_obs = rl.Observable(shape_var.name, shape_var.bins)
@@ -532,8 +534,12 @@ def alphabet_fit(
     )
 
     fail_qcd_samples = {}
-
-    for blind_str in ["", MCB_LABEL]:
+    
+    if unblinded:
+        blind_strs = [""]
+    else:
+        blind_strs = ["", MCB_LABEL]
+    for blind_str in blind_strs:
         failChName = f"fail{blind_str}".replace("_", "")
         logging.info(f"Setting up fail region {failChName}")
         failCh = model[failChName]
@@ -600,7 +606,7 @@ def alphabet_fit(
         tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
         tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
 
-        for blind_str in ["", MCB_LABEL]:
+        for blind_str in blind_strs:
             passChName = f"{sr}{blind_str}".replace("_", "")
             passCh = model[passChName]
 
@@ -616,8 +622,13 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
+    if args.unblinded:
+        blind_strs = [""]
+    else:
+        blind_strs = ["", MCB_LABEL]
+
     regions: list[str] = [
-        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in ["", MCB_LABEL]
+        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in blind_strs
     ]
 
     # build actual fit model now
@@ -644,6 +655,7 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         templates_summed,
         args.scale_templates,
         args.min_qcd_val,
+        args.unblinded
     ]
 
     fill_regions(*fill_args)
