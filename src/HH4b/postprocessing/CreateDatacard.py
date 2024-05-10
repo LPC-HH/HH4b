@@ -535,10 +535,7 @@ def alphabet_fit(
 
     fail_qcd_samples = {}
 
-    if unblinded:
-        blind_strs = [""]
-    else:
-        blind_strs = ["", MCB_LABEL]
+    blind_strs = [""] if unblinded else ["", MCB_LABEL]
     for blind_str in blind_strs:
         failChName = f"fail{blind_str}".replace("_", "")
         logging.info(f"Setting up fail region {failChName}")
@@ -622,10 +619,7 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
-    if args.unblinded:
-        blind_strs = [""]
-    else:
-        blind_strs = ["", MCB_LABEL]
+    blind_strs = [""] if args.unblinded else ["", MCB_LABEL]
 
     regions: list[str] = [
         f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in blind_strs

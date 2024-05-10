@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086,SC2034
 
 card_dir=/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/cards/run3-bdt-may9-msd40-v2
 datacards=$card_dir/combined_snapshot.root
