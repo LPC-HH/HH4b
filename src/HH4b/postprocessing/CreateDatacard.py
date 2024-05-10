@@ -534,7 +534,7 @@ def alphabet_fit(
     )
 
     fail_qcd_samples = {}
-    
+
     if unblinded:
         blind_strs = [""]
     else:
@@ -655,7 +655,7 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         templates_summed,
         args.scale_templates,
         args.min_qcd_val,
-        args.unblinded
+        args.unblinded,
     ]
 
     fill_regions(*fill_args)
