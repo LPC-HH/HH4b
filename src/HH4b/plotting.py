@@ -897,7 +897,7 @@ def ratioHistPlot(
     if add_pull:
         # set title of 2nd panel empty
         rax.set_xlabel("")
-        
+
         # (data -bkg )/unc_bkg
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         tot_val = bg_tot.values()
@@ -912,7 +912,7 @@ def ratioHistPlot(
 
         yhist = (hists[data_key, :] - bg_tot) / dataerr
         # yerr is not used, can be nan
-        #yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
+        # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
         # if math.isinf(yhist[5]):
         # blind!
