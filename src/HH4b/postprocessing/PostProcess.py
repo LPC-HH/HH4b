@@ -666,20 +666,20 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
 
 
 def postprocess_run3(args):
-    global bg_keys  # noqa: PLW0603
+    global bg_keys  # noqa: PLW0602
 
-    # Removing all MC backgrounds for FOM scan only to save time
-    if not args.templates and not args.bdt_roc and not args.control_plots:
-        print("Not loading any backgrounds.")
+    # NOT Removing all MC backgrounds for FOM scan only to save time
+    # if not args.templates and not args.bdt_roc and not args.control_plots:
+    #     print("Not loading any backgrounds.")
 
-    for year in samples_run3:
-        if not args.templates and not args.bdt_roc and not args.control_plots:
-            for key in bg_keys:
-                if key in samples_run3[year]:
-                    samples_run3[year].pop(key)
+    # for year in samples_run3:
+    #     if not args.templates and not args.bdt_roc and not args.control_plots:
+    #         for key in bg_keys:
+    #             if key in samples_run3[year]:
+    #                 samples_run3[year].pop(key)
 
-    if not args.templates and not args.bdt_roc and not args.control_plots:
-        bg_keys = []
+    # if not args.templates and not args.bdt_roc and not args.control_plots:
+    #     bg_keys = []
 
     window_by_mass = {
         "H2Msd": [110, 140],
