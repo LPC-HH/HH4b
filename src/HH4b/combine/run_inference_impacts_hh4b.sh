@@ -22,5 +22,3 @@ law run PlotPullsAndImpacts \
     --campaign $campaign \
     --pull-range 1 \
     --remove-output 2,a,y
-
-
