@@ -1,7 +1,7 @@
 #!/bin/bash
 
-card_dir=/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/cards/run3-bdt-apr18
-datacards=$card_dir/passbin3_withmasks.root:$card_dir/passbin2_withmasks.root:$card_dir/passbin1_withmasks.root:$card_dir/combined_all_withmasks.root
+card_dir=/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/cards/run3-bdt-may9-msd40-v2
+datacards=$card_dir/passbin3_snapshot.root:$card_dir/passbin2_snapshot.root:$card_dir/passbin1_snapshot.root:$card_dir/combined_snapshot.root
 masks="mask_passbin1=0:mask_passbin2=0:mask_passbin3=0:mask_fail=0:mask_passbin1MCBlinded=1:mask_passbin2MCBlinded=1:mask_passbin3MCBlinded=1:mask_failMCBlinded=1"
 model=hh_model.model_default@noNNLOscaling@noklDependentUnc
 
