@@ -22,7 +22,8 @@ def plot_fits(args):
     hist_label_map_inverse = OrderedDict(
         [
             ("qcd", "CMS_bbbb_hadronic_qcd_datadriven"),
-            ("others", "others"),
+            ("diboson", "diboson"),
+            ("vjets", "vjets"),
             ("ttbar", "ttbar"),
             ("vhtobb", "VH_hbb"),
             ("tthtobb", "ttH_hbb"),
@@ -31,22 +32,29 @@ def plot_fits(args):
         ]
     )
 
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "others"]
-    bkg_order = ["others", "tthtobb", "vhtobb", "ttbar", "qcd"]
+    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
+    bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
 
     hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
     samples = list(hist_label_map.values())
 
-    fit_shape_var = ShapeVar(
-        "H2Msd",
-        # "H2PNetMass",
-        r"$m^{2}_\mathrm{SD}$ (GeV)",
-        # r"$m^{2}_\mathrm{reg}$ (GeV)",
-        [16, 60, 220],
-        # [17, 50, 220],
-        reg=True,
-        blind_window=[110, 140],
-    )
+    if args.mass == "H2Msd":
+        fit_shape_var = ShapeVar(
+            "H2Msd",
+            r"Jet 2 $m_\mathrm{SD}$ (GeV)",
+            [16, 60, 220],
+            reg=False,
+            blind_window=[110, 140],
+        )
+    else:
+        fit_shape_var = ShapeVar(
+            "H2PNetMass",
+            r"Jet 2 $m_\mathrm{reg}$ (GeV)",
+            [16, 60, 220],
+            reg=True,
+            blind_window=[110, 140],
+        )
+
     shape_vars = [fit_shape_var]
 
     shapes = {
@@ -62,10 +70,10 @@ def plot_fits(args):
         "fail": "Fail",
     }
     ylims = {
-        "passbin1": 6,
-        "passbin2": 50,
-        "passbin3": 800,
-        "fail": 85000,
+        "passbin1": 10,
+        "passbin2": 40,
+        "passbin3": 1500,
+        "fail": 300000,
     }
 
     if args.regions == "all":
@@ -152,7 +160,7 @@ def plot_fits(args):
                     "xlim_low": 60,
                     "ratio_ylims": pass_ratio_ylims if pass_region else fail_ratio_ylims,
                     "title": f"{shape_label} {region_label} Region",
-                    "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}.pdf",
+                    "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}.png",
                     "bg_order": bkg_order,
                     "energy": 13.6,
                     "add_pull": add_pull[shape],
@@ -182,6 +190,13 @@ if __name__ == "__main__":
         type=str,
         help="regions to plot",
         choices=["passbin1", "passbin2", "passbin3", "all"],
+    )
+    parser.add_argument(
+        "--mass",
+        type=str,
+        default="H2PNetMass",
+        choices=["H2Msd", "H2PNetMass"],
+        help="mass variable to make template",
     )
     args = parser.parse_args()
 

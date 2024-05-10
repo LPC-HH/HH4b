@@ -662,7 +662,6 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **ak8FatJetVars,
                 **ak4JetVars,
-                **bbFatDijetVars,
                 **trigObjFatJetVars,
             }
 
@@ -798,7 +797,7 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak8_pt_msd", cut_pt_msd, *selection_args)
 
             # == 2 AK8 jets with Xbb>0.1
-            cut_txbb = np.sum(ak8FatJetVars["ak8FatJetPNetXbb"] >= 0.1, axis=1) == 2
+            cut_txbb = np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
             # == 2 AK8 jets with Tau3OverTau2 < 0.46

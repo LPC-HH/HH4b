@@ -54,6 +54,22 @@ def veto_electrons(electrons: ElectronArray):
     )
 
 
+def veto_taus(taus: TauArray):
+    # https://github.com/jeffkrupa/zprime-bamboo/blob/main/zprlegacy.py#L371
+    return (
+        (taus.pt > 20)
+        & (taus.decayMode >= 0)
+        & (taus.decayMode != 5)
+        & (taus.decayMode != 6)
+        & (taus.decayMode != 7)
+        & (abs(taus.eta) < 2.3)
+        & (abs(taus.dz) < 0.2)
+        & (taus.idDeepTau2017v2p1VSe >= 2)
+        & (taus.idDeepTau2017v2p1VSmu >= 8)
+        & (taus.idDeepTau2017v2p1VSjet >= 16)
+    )
+
+
 def good_muons(muons: MuonArray):
     sel = (
         (muons.pt >= 30)
@@ -198,6 +214,9 @@ def get_ak8jets(fatjets: FatJetArray):
     if "particleNetLegacy_Xbb" in fatjets_fields:
         fatjets["TXbb_legacy"] = fatjets.particleNetLegacy_Xbb / (
             fatjets.particleNetLegacy_Xbb + fatjets.particleNetLegacy_QCD
+        )
+        fatjets["TXqq_legacy"] = fatjets.particleNetLegacy_Xqq / (
+            fatjets.particleNetLegacy_Xqq + fatjets.particleNetLegacy_QCD
         )
         fatjets["PXbb_legacy"] = fatjets.particleNetLegacy_Xbb
         fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
