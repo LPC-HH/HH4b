@@ -294,7 +294,15 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         else:
             # if no VBF region, set all events to "fail VBF"
             mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
         bdt_events.loc[mask_vbf, "Category"] = 0
+        cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
+        )
+        cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
+        cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
+        )
 
         mask_bin1 = (
             (bdt_events["H2TXbb"] > args.txbb_wps[0])
@@ -305,6 +313,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
+        )
+
+        cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
+            bdt_events["weight"][
+                (bdt_events["H2TXbb"] > args.txbb_wps[0])
+                & (bdt_events["bdt_score"] > args.bdt_wps[0])
+                & mask_vbf
+            ].to_numpy()
         )
 
         mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
@@ -352,12 +368,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # blind!!
         if key == "data":
-            cutflow_dict[key][f"Bin 1 {mass_str}"] = 0
-            cutflow_dict[key][f"Bin 2 {mass_str}"] = 0
-            cutflow_dict[key][f"Bin 3 {mass_str}"] = 0
-
             # get sideband estimate instead
             print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
+                bdt_events, mask_vbf, args.mass, mass_window
+            )
+
             cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
                 bdt_events, mask_bin1, args.mass, mass_window
             )

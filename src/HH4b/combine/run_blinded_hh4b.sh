@@ -171,6 +171,9 @@ unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*} --set
 
 # excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
 
+echo "cc args:"
+echo "$ccargs"
+
 echo "mask args:"
 echo "$maskblindedargs"
 
