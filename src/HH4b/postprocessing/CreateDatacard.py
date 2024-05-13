@@ -78,7 +78,7 @@ parser.add_argument(
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
 )
 parser.add_argument(
     "--regions",
@@ -109,7 +109,7 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1]
+        args.nTF = [0, 1, 2]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
