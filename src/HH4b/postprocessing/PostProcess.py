@@ -295,6 +295,19 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # if no VBF region, set all events to "fail VBF"
             mask_vbf = np.zeros(len(bdt_events), dtype=bool)
 
+        mask_bin1 = (
+            (bdt_events["H2TXbb"] > args.txbb_wps[0])
+            & (bdt_events["bdt_score"] > args.bdt_wps[0])
+            # & ~(mask_vbf)
+        )
+
+        if args.vbf_priority:
+            # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
+            mask_bin1 = mask_bin1 & ~(mask_vbf)
+        else:
+            # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+            mask_vbf = mask_vbf & ~(mask_bin1)
+
         bdt_events.loc[mask_vbf, "Category"] = 0
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
@@ -304,11 +317,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
 
-        mask_bin1 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[0])
-            & (bdt_events["bdt_score"] > args.bdt_wps[0])
-            & ~(mask_vbf)
-        )
         bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
@@ -999,6 +1007,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
     run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
+    run_utils.add_bool_arg(
+        parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
 
     args = parser.parse_args()
 
