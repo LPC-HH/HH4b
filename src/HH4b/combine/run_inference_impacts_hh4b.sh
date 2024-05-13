@@ -12,6 +12,7 @@ law run PlotPullsAndImpacts \
     --datacards $datacards \
     --pois r \
     --mc-stats \
+    --parameter-values "$masks" \
     --parameter-ranges r=-20,20 \
     --PullsAndImpacts-workflow "htcondor" \
     --PullsAndImpacts-tasks-per-job 10 \
