@@ -181,7 +181,10 @@ def check_selector(sample: str, selector: str | list[str]):
         selector = [selector]
 
     for s in selector:
-        if s.startswith("*"):
+        if s.endswith("?"):
+            if s[:-1] == sample:
+                return True
+        elif s.startswith("*"):
             if s[1:] in sample:
                 return True
         else:
@@ -266,6 +269,7 @@ def _normalize_weights(
 
 
 def _reorder_txbb(events: pd.DataFrame, txbb):
+    # print(f"Reordering by {txbb}")
     """Reorder all the bbFatJet columns by given TXbb"""
     if txbb not in events:
         raise ValueError(
@@ -289,6 +293,7 @@ def load_samples(
     reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
     txbb: str = "bbFatJetPNetTXbbLegacy",
     # select_testing: bool = False,
+    load_weight_noxsec: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -315,9 +320,9 @@ def load_samples(
     # selector - string used to select directories to load in for this sample
     for label, selector in samples.items():
         # important to check that samples have been normalized properly
-        load_columns = (
-            columns if label == "data" else columns + format_columns([("weight_noxsec", 1)])
-        )
+        load_columns = columns
+        if label != "data" and load_weight_noxsec:
+            load_columns = columns + format_columns([("weight_noxsec", 1)])
 
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
@@ -488,7 +493,7 @@ def get_feat_first(events: pd.DataFrame, feat: str):
     return events[feat][0].to_numpy().squeeze()
 
 
-def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None, mstring="Mass"):
+def make_vector(events: dict, name: str, mask=None, mstring="Mass"):
     """
     Creates Lorentz vector from input events and beginning name, assuming events contain
       {name}Pt, {name}Phi, {name}Eta, {Name}Msd variables
@@ -504,19 +509,19 @@ def make_vector(events: dict, name: str, bb_mask: pd.DataFrame = None, mask=None
     if mask is None:
         return vector.array(
             {
-                "pt": get_feat(events, f"{name}Pt", bb_mask),
-                "phi": get_feat(events, f"{name}Phi", bb_mask),
-                "eta": get_feat(events, f"{name}Eta", bb_mask),
-                "M": get_feat(events, f"{name}{mstring}", bb_mask),
+                "pt": get_feat(events, f"{name}Pt"),
+                "phi": get_feat(events, f"{name}Phi"),
+                "eta": get_feat(events, f"{name}Eta"),
+                "M": get_feat(events, f"{name}{mstring}"),
             }
         )
 
     return vector.array(
         {
-            "pt": get_feat(events, f"{name}Pt", bb_mask)[mask],
-            "phi": get_feat(events, f"{name}Phi", bb_mask)[mask],
-            "eta": get_feat(events, f"{name}Eta", bb_mask)[mask],
-            "M": get_feat(events, f"{name}{mstring}", bb_mask)[mask],
+            "pt": get_feat(events, f"{name}Pt")[mask],
+            "phi": get_feat(events, f"{name}Phi")[mask],
+            "eta": get_feat(events, f"{name}Eta")[mask],
+            "M": get_feat(events, f"{name}{mstring}")[mask],
         }
     )
 
