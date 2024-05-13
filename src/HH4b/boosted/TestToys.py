@@ -472,11 +472,11 @@ if __name__ == "__main__":
         "--bdt-model-name",
         help="model name",
         type=str,
-        default="24Apr20_legacy_fix",
+        default="24Apr21_legacy_vbf_vars",
     )
     parser.add_argument(
         "--bdt-config",
-        default="24Apr20_legacy_fix",
+        default="24Apr21_legacy_vbf_vars",
         help="config name in case model name is different",
         type=str,
     )
