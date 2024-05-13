@@ -109,7 +109,7 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1]
+        args.nTF = [0, 1, 2]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
