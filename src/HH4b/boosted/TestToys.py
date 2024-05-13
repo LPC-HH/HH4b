@@ -26,7 +26,7 @@ plt.rcParams["figure.edgecolor"] = "none"
 
 mass_axis = hist.axis.Regular(20, 50, 250, name="mass")
 bdt_axis = hist.axis.Regular(60, 0, 1, name="bdt")
-diff_axis = hist.axis.Regular(100, -2, 2, name="diff")
+diff_axis = hist.axis.Regular(50, -2, 2, name="diff")
 cut_axis = hist.axis.StrCategory([], name="cut", growth=True)
 
 legacy_label = "Legacy"
@@ -206,12 +206,17 @@ def main(args):
     all_bdt_cuts = 0.01 * np.arange(80, 100)
     bdt_cuts = all_bdt_cuts
 
-    xbb_cuts = [0.8, 0.95]
+    # xbb_cuts = [0.8, 0.95, 0.975]
+    xbb_cuts = [0.95, 0.975]
 
     # define fail region for ABCD
     bdt_fail = 0.03
 
     h_pull = hist.Hist(diff_axis, cut_axis)
+    h_pull_s = hist.Hist(diff_axis, cut_axis)
+
+    h_diff = hist.Hist(diff_axis, cut_axis)
+    h_diff_s = hist.Hist(diff_axis, cut_axis)
 
     # fixed signal k-factor
     kfactor_signal = 80
@@ -229,6 +234,7 @@ def main(args):
     )
 
     expected_by_xbb = {}
+    gaus_fit = {}
     for xbb_cut in xbb_cuts:
         bdt_events_dict_xbb_cut = {}
         for key in bdt_events_dict:
@@ -251,6 +257,8 @@ def main(args):
         # Evaluate expected sensitivity for each BDT cut
         ################################################
         expected_soverb_by_bdt_cut = {}
+        expected_s_by_bdt_cut = {}
+
         cuts = []
         figure_of_merits = []
         for bdt_cut in bdt_cuts:
@@ -289,6 +297,7 @@ def main(args):
             nevents_sig_scaled = nevents_sig * kfactor_signal
             soversb = nevents_sig_scaled / np.sqrt(nevents_bkg + nevents_sig_scaled)
             expected_soverb_by_bdt_cut[bdt_cut] = soversb
+            expected_s_by_bdt_cut[bdt_cut] = nevents_sig_scaled
 
             if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
@@ -339,10 +348,15 @@ def main(args):
             # same thing but for mass distribution with inverted Xbb cut
             random_mass_invertedXbb = get_toy_from_hist(h_mass_invertedXbb)
 
-            max_soversb = 0
             cuts = []
-            figure_of_merits = []
+            figure_of_merit_toys = []
+            signal_toys = []
             for bdt_cut in bdt_cuts:
+
+                # number of events in data in signal mass window
+                cut_mass_toy = (mass_toy >= mass_window[0]) & (mass_toy <= mass_window[1])
+                nevents_toy_bdt_cut = np.sum(weight_toy[cut_mass_toy & (bdt_toy >= bdt_cut)])
+
                 if args.method == "sideband":
                     nevents_sig_bdt_cut, nevents_bkg_bdt_cut = sideband_fom(
                         mass_toy,
@@ -374,96 +388,195 @@ def main(args):
                         mass_window,
                     )
 
-                soversb = nevents_sig_bdt_cut / np.sqrt(nevents_bkg_bdt_cut + nevents_sig_bdt_cut)
+                # B_toy
+                b_from_toy = nevents_bkg_bdt_cut
+                # S_mc
+                # s_from_mc = nevents_sig_bdt_cut
+                # S_toy
+                s_from_toy = nevents_toy_bdt_cut - nevents_bkg_bdt_cut
+
+                # soversb = s_from_mc / np.sqrt(b_from_toy + s_from_mc)
+                soversb = s_from_toy / np.sqrt(s_from_toy + b_from_toy)
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
-                if nevents_sig_bdt_cut > 0.5 and nevents_bkg_bdt_cut >= 2 and soversb > max_soversb:
+                if nevents_sig_bdt_cut > 0.5 and nevents_bkg_bdt_cut >= 2:
                     cuts.append(bdt_cut)
-                    figure_of_merits.append(soversb)
+                    figure_of_merit_toys.append(soversb)
+                    signal_toys.append(s_from_toy)
 
             # choose "optimal" bdt cut, check if it gives the expected sensitivity
             optimal_bdt_cut = 0
             if len(cuts) > 0:
                 cuts = np.array(cuts)
-                figure_of_merits = np.array(figure_of_merits)
-                biggest = np.argmax(figure_of_merits)
+                figure_of_merit_toys = np.array(figure_of_merit_toys)
+                biggest = np.argmax(figure_of_merit_toys)
                 optimal_bdt_cut = cuts[biggest]
                 print(
-                    f"{xbb_cut:.3f} {optimal_bdt_cut:.2f} {biggest} {figure_of_merits[biggest]:.2f} {(figure_of_merits[biggest]-expected_soverb_by_bdt_cut[optimal_bdt_cut]):.2f} {expected_soverb_by_bdt_cut[optimal_bdt_cut]:.2f}"
+                    f"{xbb_cut:.3f} {optimal_bdt_cut:.2f} {biggest} {figure_of_merit_toys[biggest]:.2f} {(figure_of_merit_toys[biggest]-expected_soverb_by_bdt_cut[optimal_bdt_cut]):.2f} {expected_soverb_by_bdt_cut[optimal_bdt_cut]:.2f}"
                 )
-                h_pull.fill(
-                    figure_of_merits[biggest] - expected_soverb_by_bdt_cut[optimal_bdt_cut],
-                    cut=str(xbb_cut),
-                )
+                pull = (
+                    figure_of_merit_toys[biggest] - expected_soverb_by_bdt_cut[optimal_bdt_cut]
+                ) / expected_soverb_by_bdt_cut[optimal_bdt_cut]
+                pull_s = (
+                    signal_toys[biggest] - expected_s_by_bdt_cut[optimal_bdt_cut]
+                ) / expected_s_by_bdt_cut[optimal_bdt_cut]
+                diff = figure_of_merit_toys[biggest] - expected_soverb_by_bdt_cut[optimal_bdt_cut]
+                diff_s = signal_toys[biggest] - expected_s_by_bdt_cut[optimal_bdt_cut]
+
+                # fit
+                gaus_fit[xbb_cut] = {
+                    "pull": [np.mean(pull), np.std(pull)],  # norm.fit(pull),
+                    "pull_s": [np.mean(pull_s), np.std(pull_s)],
+                    "diff": [np.mean(diff), np.std(diff)],
+                    "diff_s": [np.mean(diff_s), np.std(diff_s)],
+                }
+
+                h_pull.fill(pull, str(xbb_cut))
+                h_pull_s.fill(pull_s, str(xbb_cut))
+                h_diff.fill(diff, str(xbb_cut))
+                h_diff_s.fill(diff_s, str(xbb_cut))
 
             # for this toy the BDT and Xbb cut are
             print("Xbb ", xbb_cut, "BDT ", optimal_bdt_cut)
 
-            # define regions with optimal cut
-            selection_regions = {
-                "pass_bin1": postprocessing.Region(
-                    cuts={
-                        "H2TXbb": [xbb_cut, CUT_MAX_VAL],
-                        "bdt_score": [optimal_bdt_cut, CUT_MAX_VAL],
-                    },
-                    label="Bin1",
-                ),
-                "fail": postprocessing.Region(
-                    cuts={
-                        "H2TXbb": [-CUT_MAX_VAL, xbb_cut],
-                    },
-                    label="Fail",
-                ),
-            }
+            save_templates = False
+            if save_templates:
 
-            # replace data distribution with toy!!
-            # + signal
-            inject_signal = True
-            bdt_events_for_templates = bdt_events_dict_xbb_cut.copy()
-            if inject_signal:
-                bdt_events_for_templates["data"] = pd.Dataframe(
-                    {
-                        "bdt_score": bdt_toy,
-                        "H2TXbb": xbb_toy,
-                        "H2PNetMass": mass_toy,
-                        "weight": weight_toy,
-                    }
+                # define regions with optimal cut
+                selection_regions = {
+                    "pass_bin1": postprocessing.Region(
+                        cuts={
+                            "H2TXbb": [xbb_cut, CUT_MAX_VAL],
+                            "bdt_score": [optimal_bdt_cut, CUT_MAX_VAL],
+                        },
+                        label="Bin1",
+                    ),
+                    "fail": postprocessing.Region(
+                        cuts={
+                            "H2TXbb": [-CUT_MAX_VAL, xbb_cut],
+                        },
+                        label="Fail",
+                    ),
+                }
+
+                # replace data distribution with toy!!
+                # + signal
+                inject_signal = True
+                bdt_events_for_templates = bdt_events_dict_xbb_cut.copy()
+                if inject_signal:
+                    bdt_events_for_templates["data"] = pd.DataFrame(
+                        {
+                            "bdt_score": bdt_toy,
+                            "H2TXbb": xbb_toy,
+                            "H2PNetMass": mass_toy,
+                            "weight": weight_toy,
+                        }
+                    )
+                else:
+                    bdt_events_for_templates["data"][mass_var] = random_mass
+
+                templates = postprocessing.get_templates(
+                    bdt_events_dict,
+                    year=year,
+                    sig_keys=["hh4b"],
+                    selection_regions=selection_regions,
+                    shape_vars=[fit_shape_var],
+                    systematics={},
+                    template_dir=templ_dir,
+                    bg_keys=bg_keys,
+                    plot_dir=f"{templ_dir}/{year}",
+                    weight_key="weight",
+                    show=False,
+                    energy=13.6,
                 )
-            else:
-                bdt_events_for_templates["data"][mass_var] = random_mass
 
-            templates = postprocessing.get_templates(
-                bdt_events_dict,
-                year=year,
-                sig_keys=["hh4b"],
-                selection_regions=selection_regions,
-                shape_vars=[fit_shape_var],
-                systematics={},
-                template_dir=templ_dir,
-                bg_keys=bg_keys,
-                plot_dir=f"{templ_dir}/{year}",
-                weight_key="weight",
-                show=False,
-                energy=13.6,
+                # save toys!
+                postprocessing.save_templates(
+                    templates, templ_dir / f"{year}_templates.pkl", fit_shape_var
+                )
+
+    # plot diff
+    colours = {
+        "darkblue": "#1f78b4",
+        "lightblue": "#a6cee3",
+        "lightred": "#FF502E",
+        "red": "#e31a1c",
+        "darkred": "#A21315",
+        "orange": "#ff7f00",
+        "green": "#7CB518",
+        "mantis": "#81C14B",
+        "forestgreen": "#2E933C",
+        "darkgreen": "#064635",
+        "purple": "#9381FF",
+        "slategray": "#63768D",
+        "deeppurple": "#36213E",
+        "ashgrey": "#ACBFA4",
+        "canary": "#FFE51F",
+        "arylideyellow": "#E3C567",
+        "earthyellow": "#D9AE61",
+        "satinsheengold": "#C8963E",
+        "flax": "#EDD382",
+        "vanilla": "#F2F3AE",
+        "dutchwhite": "#F5E5B8",
+    }
+    colors_by_xbb = {xbb_cut: list(colours.values())[i] for i, xbb_cut in enumerate(xbb_cuts)}
+    print(gaus_fit)
+
+    def plot_h(h_hist, xlabel, plot_name, xlim, gaus_label):
+        fig, ax = plt.subplots(1, 1, figsize=(14, 8))
+        for xbb_cut in xbb_cuts:
+            mu, sigma = gaus_fit[xbb_cut][gaus_label]
+            hep.histplot(
+                h_hist[{"cut": f"{xbb_cut}"}],
+                ax=ax,
+                label=f"Xbb > {xbb_cut}, Expected "
+                + r"S/$\sqrt{S+B}$:"
+                + f" {expected_by_xbb[xbb_cut]:.1f}, Mean: {mu:.2f}",
+                color=colors_by_xbb[xbb_cut],
             )
+            # n, bins = h_hist[{"cut": f"{xbb_cut}"}].to_numpy()
+            # print(bins)
+            # y = norm.pdf(bins, mu, sigma)
+            # print("y ", y)
+            # l = ax.plot(bins, y, linestyle='dashed', linewidth=2, color=colors_by_xbb[xbb_cut])
+        ax.set_xlabel(xlabel)
+        plot_title = r"Injected S, S $\times$ " + f"{kfactor_signal}, 2022EE"
+        legend_title = f"{ntoys} toys"
+        ax.set_title(plot_title)
+        ax.set_ylabel("Density")
+        ax.set_xlim(xlim)
+        ax.legend(title=legend_title)
+        fig.savefig(f"templates/toybyxbb_{args.method}_{args.tag}_{plot_name}.png")
 
-            # save toys!
-            postprocessing.save_templates(
-                templates, templ_dir / f"{year}_templates.pkl", fit_shape_var
-            )
+    plot_h(
+        h_diff,
+        r"(S$_{t}/\sqrt{S_{t}+B_{t}}$ - S/$\sqrt{S+B}$)",
+        "soverb_diff",
+        [-2, 2],
+        "diff",
+    )
+    plot_h(
+        h_diff_s,
+        r"S$_{t}$ - S",
+        "s_diff",
+        [-2, 2],
+        "diff_s",
+    )
 
-    # plot pull
-    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
-    for xbb_cut in xbb_cuts:
-        hep.histplot(
-            h_pull[{"cut": f"{xbb_cut}"}],
-            ax=ax,
-            label=f"Xbb > {xbb_cut}, Expected: {expected_by_xbb[xbb_cut]:.2f}",
-        )
-    ax.set_xlabel("Difference w.r.t expected " + r"S/$\sqrt{S+B}$")
-    ax.set_title(r"Injected S, S $\times$ " + f"{kfactor_signal}, 2022EE")
-    ax.legend(title=f"{ntoys} toys")
-    fig.savefig(f"toytest_{args.method}.png")
+    plot_h(
+        h_pull,
+        r"(S$_{t}/\sqrt{S_{t}+B_{t}}$ - S/$\sqrt{S+B}$) / S/$\sqrt{S+B}$",
+        "soverb",
+        [-1.5, 1.5],
+        "pull",
+    )
+    plot_h(
+        h_pull_s,
+        r"(S$_{t}$ - S)/S",
+        "s",
+        [-1.5, 1.5],
+        "pull_s",
+    )
 
 
 if __name__ == "__main__":
