@@ -27,21 +27,21 @@ python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v
 
 ### ANv2
 Apr 22
-```
+```bash
 python PostProcess.py --templates-tag 24Apr21_legacy_bdt_ggf --data-dir /ceph/cms/store/user/rkansal/bbbb/skimmer/ --tag 24Apr19LegacyFixes_v12_private_signal --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --legacy --no-fom-scan-bin1 --no-fom-scan --no-fom-scan-vbf --no-vbf
 ```
 Frozen for ANv2
-```
+```bash
 python3 PostProcess.py --templates-tag 24May9v2Msd40 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars  --bdt-model 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE --no-vbf
 ```
 
 To scan:
-```
+```bash
 python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --fom-scan --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-control-plots --no-bdt-roc --no-templates --no-fom-scan-vbf --years 2022EE --method sideband
 ```
 
 # Run-2
-```
+```bash
 python3 PostProcessRun2.py --template-dir 20210712_regression --tag 20210712_regression --years 2016,2017,2018
 python3 CreateDatacardRun2.py --templates-dir templates/20210712_regression --year all --model-name run2-bdt-20210712 --bin-name pass_bin1
 ./run_hh4b.sh --workspace --bfit --dfit --limits
