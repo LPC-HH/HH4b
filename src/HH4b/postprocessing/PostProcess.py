@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import pprint
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
@@ -853,6 +854,11 @@ def postprocess_run3(args):
     year = "2022-2023"
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
     (templ_dir / year).mkdir(parents=True, exist_ok=True)
+
+    # save args for posterity
+    with (templ_dir / "args.txt").open("w") as f:
+        pretty_printer = pprint.PrettyPrinter(stream=f, indent=4)
+        pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
