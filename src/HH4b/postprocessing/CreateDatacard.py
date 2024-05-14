@@ -78,7 +78,7 @@ parser.add_argument(
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
 )
 parser.add_argument(
     "--regions",
@@ -109,7 +109,7 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1]
+        args.nTF = [0, 1, 2]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
@@ -535,10 +535,7 @@ def alphabet_fit(
 
     fail_qcd_samples = {}
 
-    if unblinded:
-        blind_strs = [""]
-    else:
-        blind_strs = ["", MCB_LABEL]
+    blind_strs = [""] if unblinded else ["", MCB_LABEL]
     for blind_str in blind_strs:
         failChName = f"fail{blind_str}".replace("_", "")
         logging.info(f"Setting up fail region {failChName}")
@@ -622,10 +619,7 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
-    if args.unblinded:
-        blind_strs = [""]
-    else:
-        blind_strs = ["", MCB_LABEL]
+    blind_strs = [""] if args.unblinded else ["", MCB_LABEL]
 
     regions: list[str] = [
         f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in blind_strs

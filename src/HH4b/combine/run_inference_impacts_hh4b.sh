@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086,SC2034
 
 card_dir=/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/cards/run3-bdt-may9-msd40-v2
 datacards=$card_dir/combined_snapshot.root
@@ -12,6 +13,7 @@ law run PlotPullsAndImpacts \
     --datacards $datacards \
     --pois r \
     --mc-stats \
+    --parameter-values "$masks" \
     --parameter-ranges r=-20,20 \
     --PullsAndImpacts-workflow "htcondor" \
     --PullsAndImpacts-tasks-per-job 10 \
@@ -19,6 +21,6 @@ law run PlotPullsAndImpacts \
     --order-by-impact \
     --file-types "pdf,png" \
     --page 0 \
-    --campaign $campaign \
+    --campaign "$campaign" \
     --pull-range 1 \
-    --remove-output 2,a,y
+    --remove-output 0,a,y

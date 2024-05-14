@@ -416,14 +416,17 @@ def scan_fom(
     mass_window: list[float],
     plot_dir: str,
     plot_name: str,
+    bg_keys: list[str],
     sig_key: str = "hh4b",
     fom: str = "2sqrt(b)/s",
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
+    print(list(bdt_cuts) + [1.0])
+    print(list(xbb_cuts) + [1.0])
     h_sb = hist.Hist(
-        hist.axis.Variable(bdt_cuts, name="bdt_cut"),
-        hist.axis.Variable(xbb_cuts, name="xbb_cut"),
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
     )
 
     print(f"Scanning {fom} with {method}")
@@ -436,7 +439,7 @@ def scan_fom(
         for bdt_cut in bdt_cuts:
             if method == "abcd":
                 nevents_sig, nevents_bkg, _ = abcd(
-                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
+                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
                 )
                 # print("abcd ", nevents_sig, nevents_bkg)
             else:
@@ -483,7 +486,7 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa ARG001
+    def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
     # bin 1 with VBF region veto
@@ -621,7 +624,7 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
+def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key="hh4b"):
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     for key in [sig_key, "data"] + bg_keys:
@@ -658,7 +661,7 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh
     # print("bg0 ",bg_tots != 0)
     # print("bg_tots ",bg_tots[0])
 
-    background = bqcd + bg_tots[0] if len(bg_tots) > 0 else bqcd
+    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
     return s, background, dicts
 
 
@@ -672,7 +675,7 @@ def postprocess_run3(args):
     for year in samples_run3:
         if not args.templates and not args.bdt_roc and not args.control_plots:
             for key in bg_keys:
-                if key in samples_year:
+                if key in samples_run3[year]:
                     samples_run3[year].pop(key)
 
     if not args.templates and not args.bdt_roc and not args.control_plots:
@@ -747,6 +750,7 @@ def postprocess_run3(args):
             args.bdt_wps[0],
             args.mass,
             mass_window,
+            bg_keys,
             "hh4b",
         )
 
@@ -787,11 +791,12 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.8, 1, 0.01),
-                np.arange(0.8, 1, 0.01),
+                np.arange(0.9, 0.999, 0.01),
+                np.arange(0.9, 0.999, 0.01),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
+                bg_keys=bg_keys,
                 sig_key="vbfhh4b-k2v0",
                 mass=args.mass,
             )
@@ -808,11 +813,12 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
-                np.arange(0.95, 1, 0.005),
-                np.arange(0.8, 1, 0.01),
+                np.arange(0.95, 0.999, 0.005),
+                np.arange(0.9, 0.999, 0.01),
                 mass_window,
                 plot_dir,
                 "fom_bin1",
+                bg_keys=bg_keys,
                 mass=args.mass,
             )
 
@@ -832,6 +838,7 @@ def postprocess_run3(args):
                 mass_window,
                 plot_dir,
                 "fom_bin2",
+                bg_keys=bg_keys,
                 mass=args.mass,
             )
 

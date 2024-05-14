@@ -15,6 +15,7 @@ from hist import Hist
 from hist.intervals import ratio_uncertainty
 from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
+from tqdm import tqdm
 
 from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
 
@@ -897,7 +898,7 @@ def ratioHistPlot(
     if add_pull:
         # set title of 2nd panel empty
         rax.set_xlabel("")
-        
+
         # (data -bkg )/unc_bkg
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         tot_val = bg_tot.values()
@@ -912,7 +913,7 @@ def ratioHistPlot(
 
         yhist = (hists[data_key, :] - bg_tot) / dataerr
         # yerr is not used, can be nan
-        #yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
+        # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
         # if math.isinf(yhist[5]):
         # blind!
@@ -1176,13 +1177,15 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     """Plot FoM scan"""
 
     eff, bins_x, bins_y = h_sb.to_numpy()
-    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+    plt.rcParams.update({"font.size": 18})
+
     cbar = hep.hist2dplot(
         h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow="none"
     )
     cbar.cbar.set_label(r"Fig Of Merit", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
-    for i in range(len(bins_x) - 1):
+    for i in tqdm(range(len(bins_x) - 1)):
         for j in range(len(bins_y) - 1):
             if eff[i, j] > 0:
                 ax.text(
@@ -1197,8 +1200,8 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
 
     ax.set_xlabel("BDT Cut")
     ax.set_ylabel(r"$T_{Xbb}$ Cut")
-    ax.set_ylim([0.8, 1.0])
-    ax.set_xlim([0.8, 1.0])
+    ax.set_ylim(bins_y[0], bins_y[-1])
+    ax.set_xlim(bins_x[0], bins_x[-1])
     fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
