@@ -484,7 +484,7 @@ def evaluate_model(
             weights[key] = np.concatenate(weight)
             xbb_dict[key] = np.concatenate(xbb)
             msd_dict[key] = np.concatenate(msd)
-            xbb_dict[key] = np.concatenate(xbb)
+            mass_dict[key] = np.concatenate(mass)
 
         print("Making BDT shape plots")
 
@@ -650,7 +650,7 @@ def evaluate_model(
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
-        for key in training_keys:  # + ["vhtobb", "vjets", "ttlep"]:
+        for key in training_keys:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -1101,9 +1101,10 @@ def main(args):
 
     events_dict_years = {}
 
+    aux_keys = ["vhtobb", "tthtobb", "diboson", "vjets"]
     for year in years:
         for key in list(samples_run3[year].keys()):
-            if key not in training_keys:
+            if key not in training_keys + aux_keys:
                 samples_run3[year].pop(key)
 
     for year in years:
