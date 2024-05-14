@@ -8,7 +8,7 @@ import hist
 import numpy as np
 import uproot
 
-from HH4b import plotting
+from HH4b import plotting, run_utils
 from HH4b.utils import ShapeVar
 
 
@@ -27,10 +27,13 @@ def plot_fits(args):
             ("ttbar", "ttbar"),
             ("vhtobb", "VH_hbb"),
             ("tthtobb", "ttH_hbb"),
-            ("hh4b", "hh4b"),
             ("data", "data_obs"),
         ]
     )
+
+    sig_keys = ["hh4b"] if not args.vbf_signal else ["vbfhh4b-k2v0"]
+    for key in sig_keys:
+        hist_label_map_inverse[key] = key
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
     bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
@@ -64,12 +67,14 @@ def plot_fits(args):
     }
 
     selection_regions_labels = {
+        "passvbf": "Pass VBF",
         "passbin1": "Pass Bin 1",
         "passbin2": "Pass Bin 2",
         "passbin3": "Pass Bin 3",
         "fail": "Fail",
     }
     ylims = {
+        "passvbf": 10,
         "passbin1": 10,
         "passbin2": 40,
         "passbin3": 1500,
@@ -78,6 +83,8 @@ def plot_fits(args):
 
     if args.regions == "all":
         signal_regions = ["passbin1", "passbin2", "passbin3"]
+        if args.vbf_region:
+            signal_regions = ["passvbf"] + signal_regions
     else:
         signal_regions = [args.regions]
     bins = [*signal_regions, "fail"]
@@ -148,22 +155,22 @@ def plot_fits(args):
                 # print(hists[shape][region])
                 plot_params = {
                     "hists": hists[shape][region],
-                    "sig_keys": ["hh4b"],
-                    "sig_scale_dict": {"hh4b": signal_scale},
+                    "sig_keys": sig_keys,
+                    "sig_scale_dict": {key: signal_scale for key in sig_keys},
                     "bg_keys": bkg_keys,
                     "bg_err": bgerrs[shape][region],
                     "bg_err_mcstat": bg_err_mcstat[shape],
-                    "show": True,
                     "year": year,
                     "ylim": ylims[region],
                     "xlim": 220,
                     "xlim_low": 60,
                     "ratio_ylims": pass_ratio_ylims if pass_region else fail_ratio_ylims,
                     "title": f"{shape_label} {region_label} Region",
-                    "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}.pdf",
+                    "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}",
                     "bg_order": bkg_order,
                     "energy": 13.6,
                     "add_pull": add_pull[shape],
+                    "show": False,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
@@ -189,7 +196,7 @@ if __name__ == "__main__":
         default="all",
         type=str,
         help="regions to plot",
-        choices=["passbin1", "passbin2", "passbin3", "all"],
+        choices=["passbin1", "passbin2", "passbin3", "passvbf", "all"],
     )
     parser.add_argument(
         "--mass",
@@ -198,6 +205,12 @@ if __name__ == "__main__":
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
+
+    run_utils.add_bool_arg(parser, "vbf-region", default=False, help="Include VBF region")
+    run_utils.add_bool_arg(
+        parser, "vbf-signal", default=False, help="Plot VBF signal or ggF signal"
+    )
+
     args = parser.parse_args()
 
     plot_fits(args)

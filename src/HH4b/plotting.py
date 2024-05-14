@@ -961,7 +961,11 @@ def ratioHistPlot(
         )
 
     if axrax is None and len(name):
-        plt.savefig(name, bbox_inches="tight")
+        if not name.endswith((".pdf", ".png")):
+            plt.savefig(f"{name}.pdf", bbox_inches="tight")
+            plt.savefig(f"{name}.png")
+        else:
+            plt.savefig(name, bbox_inches="tight")
 
     if show:
         plt.show()
