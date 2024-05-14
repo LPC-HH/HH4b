@@ -100,6 +100,7 @@ add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
+add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 args = parser.parse_args()
 
 
@@ -201,6 +202,10 @@ nuisance_params = {
     # apply 2022 uncertainty to all MC (until 2023 rec.)
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
+
+rate_params = {}
+if args.ttbar_rate_param:
+    rate_params = {"ttbar": rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_rp_ttbar", 1.0, 0, 10)}
 
 # add temporary uncertainties
 if args.temp_uncs:
@@ -388,6 +393,11 @@ def fill_regions(
 
             stype = rl.Sample.SIGNAL if sample_name in sig_keys else rl.Sample.BACKGROUND
             sample = rl.TemplateSample(ch.name + "_" + card_name, stype, sample_template)
+
+            # ttbar rate_param
+            if sample_name in rate_params:
+                rate_param = rate_params[sample_name]
+                sample.setParamEffect(rate_param, 1 * rate_param)
 
             # # rate params per signal to freeze them for individual limits
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
