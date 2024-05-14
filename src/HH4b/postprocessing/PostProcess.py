@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import pprint
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
@@ -293,17 +294,41 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         else:
             # if no VBF region, set all events to "fail VBF"
             mask_vbf = np.zeros(len(bdt_events), dtype=bool)
-        bdt_events.loc[mask_vbf, "Category"] = 0
 
         mask_bin1 = (
             (bdt_events["H2TXbb"] > args.txbb_wps[0])
             & (bdt_events["bdt_score"] > args.bdt_wps[0])
-            & ~(mask_vbf)
+            # & ~(mask_vbf)
         )
+
+        if args.vbf_priority:
+            # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
+            mask_bin1 = mask_bin1 & ~(mask_vbf)
+        else:
+            # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+            mask_vbf = mask_vbf & ~(mask_bin1)
+
+        bdt_events.loc[mask_vbf, "Category"] = 0
+        cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
+        )
+        cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
+        cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
+        )
+
         bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
+        )
+
+        cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
+            bdt_events["weight"][
+                (bdt_events["H2TXbb"] > args.txbb_wps[0])
+                & (bdt_events["bdt_score"] > args.bdt_wps[0])
+                & mask_vbf
+            ].to_numpy()
         )
 
         mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
@@ -351,12 +376,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # blind!!
         if key == "data":
-            cutflow_dict[key][f"Bin 1 {mass_str}"] = 0
-            cutflow_dict[key][f"Bin 2 {mass_str}"] = 0
-            cutflow_dict[key][f"Bin 3 {mass_str}"] = 0
-
             # get sideband estimate instead
             print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
+                bdt_events, mask_vbf, args.mass, mass_window
+            )
+
             cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
                 bdt_events, mask_bin1, args.mass, mass_window
             )
@@ -666,20 +691,20 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
 
 
 def postprocess_run3(args):
-    global bg_keys  # noqa: PLW0603
+    global bg_keys  # noqa: PLW0602
 
-    # Removing all MC backgrounds for FOM scan only to save time
-    if not args.templates and not args.bdt_roc and not args.control_plots:
-        print("Not loading any backgrounds.")
+    # NOT Removing all MC backgrounds for FOM scan only to save time
+    # if not args.templates and not args.bdt_roc and not args.control_plots:
+    #     print("Not loading any backgrounds.")
 
-    for year in samples_run3:
-        if not args.templates and not args.bdt_roc and not args.control_plots:
-            for key in bg_keys:
-                if key in samples_run3[year]:
-                    samples_run3[year].pop(key)
+    # for year in samples_run3:
+    #     if not args.templates and not args.bdt_roc and not args.control_plots:
+    #         for key in bg_keys:
+    #             if key in samples_run3[year]:
+    #                 samples_run3[year].pop(key)
 
-    if not args.templates and not args.bdt_roc and not args.control_plots:
-        bg_keys = []
+    # if not args.templates and not args.bdt_roc and not args.control_plots:
+    #     bg_keys = []
 
     window_by_mass = {
         "H2Msd": [110, 140],
@@ -854,6 +879,11 @@ def postprocess_run3(args):
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
     (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
+    # save args for posterity
+    with (templ_dir / "args.txt").open("w") as f:
+        pretty_printer = pprint.PrettyPrinter(stream=f, indent=4)
+        pretty_printer.pprint(vars(args))
+
     for cyear in args.years:
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
 
@@ -977,6 +1007,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
     run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
+    run_utils.add_bool_arg(
+        parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
 
     args = parser.parse_args()
 

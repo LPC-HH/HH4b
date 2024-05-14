@@ -116,6 +116,8 @@ if args.nTF is None:
     else:
         args.nTF = [0]
 
+print("Transfer factors:", args.nTF)
+
 if args.regions == "all":
     signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
     if args.vbf_region:
