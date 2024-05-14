@@ -101,7 +101,6 @@ class ttSkimmer(SkimmerABC):
     ak8_jet_selection = {  # noqa: RUF012
         "jetId": "tight",
         "pt": 200.0,
-        "msd": [50, 250],
         "eta": 2.5,
         "delta_phi_muon": 2,
     }
@@ -408,8 +407,6 @@ class ttSkimmer(SkimmerABC):
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > self.ak8_jet_selection["pt"])
-            # * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
-            # * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
             * (np.abs(fatjets.eta) < self.ak8_jet_selection["eta"])
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
