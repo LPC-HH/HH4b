@@ -44,12 +44,12 @@
         #"VJets": {"subsamples": ["WtoLNu-4Jets", "DYto2L-2Jets_MLL-50"], "files_per_job": 10},
     },
     "2023BPix": {
-        # "Muon": {
-        #     "subsamples": [
-        #         "Muon_Run2023D",
-        #     ],
-        #     "files_per_job": 8,
-        # },
+        "Muon": {
+            "subsamples": [
+                "Muon_Run2023D",
+            ],
+            "files_per_job": 8,
+        },
         "TT": {"subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"], "files_per_job": 10},
         "Diboson": {"subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20},
         #"SingleTop": {"files_per_job": 20},
