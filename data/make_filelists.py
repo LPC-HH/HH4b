@@ -368,7 +368,7 @@ def get_v12_private():
                 "TBbarQ_t-channel_4FS": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TBbarQ_t-channel_4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/",
                 "TWminustoLNu2Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TWminustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/",
                 "TbarWplustoLNu2Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/",
-            }
+            },
         },
         "2022EE": {
             "HH": {
