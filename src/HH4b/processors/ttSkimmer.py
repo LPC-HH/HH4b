@@ -11,7 +11,6 @@ from collections import OrderedDict
 
 import awkward as ak
 import numpy as np
-import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
@@ -409,8 +408,8 @@ class ttSkimmer(SkimmerABC):
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > self.ak8_jet_selection["pt"])
-            * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
-            * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
+            # * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
+            # * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
             * (np.abs(fatjets.eta) < self.ak8_jet_selection["eta"])
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
@@ -582,42 +581,3 @@ class ttSkimmer(SkimmerABC):
         weights_dict["weight_noxsec"] = weights.weight()
 
         return weights_dict, totals_dict
-
-    def getFatDijetVars(
-        self, bbFatJetVars: dict, pt_shift: str | None = None, mass_shift: str | None = None
-    ):
-        """Calculates Dijet variables for given pt / mass JEC / JMS/R variation"""
-        dijetVars = {}
-
-        ptlabel = pt_shift if pt_shift is not None else ""
-        mlabel = mass_shift if mass_shift is not None else ""
-
-        jets = vector.array(
-            {
-                "pt": bbFatJetVars[f"bbFatJetPt{ptlabel}"],
-                "phi": bbFatJetVars["bbFatJetPhi"],
-                "eta": bbFatJetVars["bbFatJetEta"],
-                "M": bbFatJetVars[f"bbFatJetMsd{mlabel}"],
-                # "M": bbFatJetVars[f"ak8FatJetPNetMass{mlabel}"],
-            }
-        )
-
-        # get dijet with two first fatjets
-        jet0 = jets[:, 0]
-        jet1 = jets[:, 1]
-        Dijet = jet0 + jet1
-
-        shift = ptlabel + mlabel
-
-        dijetVars[f"DijetPt{shift}"] = Dijet.pt
-        dijetVars[f"DijetMass{shift}"] = Dijet.M
-        dijetVars[f"DijetEta{shift}"] = Dijet.eta
-        dijetVars[f"DijetPtJ2overPtJ1{shift}"] = jet1.pt / jet0.pt
-        dijetVars[f"DijetMJ2overMJ1{shift}"] = jet1.M / jet0.M
-
-        if shift == "":
-            dijetVars["DijetDeltaEta"] = abs(jet0.eta - jet1.eta)
-            dijetVars["DijetDeltaPhi"] = jet0.deltaRapidityPhi(jet1)
-            dijetVars["DijetDeltaR"] = jet0.deltaR(jet1)
-
-        return dijetVars

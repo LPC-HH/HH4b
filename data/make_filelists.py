@@ -312,7 +312,6 @@ def get_v12_private():
                 "Muon_Run2022C_single": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/SingleMuon/SingleMuon_Run2022C/",
                 "Muon_Run2022C": [
                     "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/Muon/Muon_Run2022C/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022/v2/Muon/Muon/Muon_Run2022C/",
                 ],
                 "Muon_Run2022D": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/Muon/Muon/Muon_Run2022D/",
             },
@@ -429,7 +428,6 @@ def get_v12_private():
                 "Muon_Run2022F": "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/Muon/Muon/Muon_Run2022F/",
                 "Muon_Run2022G": [
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/Muon/Muon/Muon_Run2022G/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2022EE/v2/Muon/Muon/Muon_Run2022G/",
                 ],
             },
             "EGamma": {
@@ -527,12 +525,12 @@ def get_v12_private():
                     "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma1/EGamma1_2023Cv2/",
                 ],
                 "EGamma_Run2023Cv3": [
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma0/EGamma0_Run2023Cv3/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma1/EGamma1_Run2023Cv3/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma0/EGamma0_2023v3/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma1/EGamma1_2023Cv3/",
                 ],
                 "EGamma_Run2023Cv4": [
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma0/EGamma0_Run2023Cv4/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma1/EGamma1_Run2023Cv4/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma0/EGamma0_2023Cv4/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12/sixie/2023-pre-Bpix/EGamma/EGamma1/EGamma1_2023Cv4/",
                 ],
             },
             "Hbb": {
@@ -1430,7 +1428,7 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12"]:
+for version in ["v12_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():
