@@ -171,6 +171,9 @@ unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*} --set
 
 # excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
 
+echo "cc args:"
+echo "$ccargs"
+
 echo "mask args:"
 echo "$maskblindedargs"
 
@@ -346,7 +349,7 @@ if [ "$bias" != -1 ]; then
     fi
 
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
+    -m 125 -n "bias${bias}_passbin${passbin}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
     ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
     --robustFit=1 -t "$numtoys" -s "$seed" \

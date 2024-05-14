@@ -54,6 +54,22 @@ def veto_electrons(electrons: ElectronArray):
     )
 
 
+def veto_taus(taus: TauArray):
+    # https://github.com/jeffkrupa/zprime-bamboo/blob/main/zprlegacy.py#L371
+    return (
+        (taus.pt > 20)
+        & (taus.decayMode >= 0)
+        & (taus.decayMode != 5)
+        & (taus.decayMode != 6)
+        & (taus.decayMode != 7)
+        & (abs(taus.eta) < 2.3)
+        & (abs(taus.dz) < 0.2)
+        & (taus.idDeepTau2017v2p1VSe >= 2)
+        & (taus.idDeepTau2017v2p1VSmu >= 8)
+        & (taus.idDeepTau2017v2p1VSjet >= 16)
+    )
+
+
 def good_muons(muons: MuonArray):
     sel = (
         (muons.pt >= 30)
@@ -199,6 +215,9 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["TXbb_legacy"] = fatjets.particleNetLegacy_Xbb / (
             fatjets.particleNetLegacy_Xbb + fatjets.particleNetLegacy_QCD
         )
+        fatjets["TXqq_legacy"] = fatjets.particleNetLegacy_Xqq / (
+            fatjets.particleNetLegacy_Xqq + fatjets.particleNetLegacy_QCD
+        )
         fatjets["PXbb_legacy"] = fatjets.particleNetLegacy_Xbb
         fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
         fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
@@ -264,3 +283,37 @@ def vbf_jets(
     )
 
     return jets[ak4_sel][:, :2]
+
+
+def ak4_jets_awayfromak8(
+    jets: JetArray,
+    fatjets: FatJetArray,
+    events,
+    pt: float,
+    id: str,  # noqa: ARG001
+    eta_max: float,
+    dr_fatjets: float,
+    dr_leptons: float,
+    electron_pt: float,
+    muon_pt: float,
+):
+    """Top 2 jets in b-tag away from AK8 fatjets"""
+    electrons = events.Electron
+    electrons = electrons[electrons.pt > electron_pt]
+
+    muons = events.Muon
+    muons = muons[muons.pt > muon_pt]
+
+    ak4_sel = (
+        jets.isTight
+        & (jets.pt >= pt)
+        & (np.abs(jets.eta) <= eta_max)
+        & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
+        & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
+        & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
+    )
+
+    # sort by btagPNetB
+    jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
+
+    return jets_pnetb[ak4_sel][:, :2]

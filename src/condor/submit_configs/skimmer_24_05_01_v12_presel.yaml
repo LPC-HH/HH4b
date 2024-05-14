@@ -1,0 +1,8 @@
+{"2022EE":
+   {
+    "VJets": {
+         "subsamples": ["Wto2Q-2Jets_PTQQ-100to200_1J"],
+         "files_per_job": 20
+     }
+   }
+}

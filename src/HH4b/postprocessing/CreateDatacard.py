@@ -78,7 +78,7 @@ parser.add_argument(
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
 )
 parser.add_argument(
     "--regions",
@@ -99,6 +99,8 @@ add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
+add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
+add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 args = parser.parse_args()
 
 
@@ -108,11 +110,13 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1]
+        args.nTF = [0, 1, 2]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
         args.nTF = [0]
+
+print("Transfer factors:", args.nTF)
 
 if args.regions == "all":
     signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
@@ -126,7 +130,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("others", "others"),
+        ("diboson", "diboson"),
+        ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
 )
@@ -197,6 +202,10 @@ nuisance_params = {
     # apply 2022 uncertainty to all MC (until 2023 rec.)
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
+
+rate_params = {}
+if args.ttbar_rate_param:
+    rate_params = {"ttbar": rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_rp_ttbar", 1.0, 0, 10)}
 
 # add temporary uncertainties
 if args.temp_uncs:
@@ -385,6 +394,11 @@ def fill_regions(
             stype = rl.Sample.SIGNAL if sample_name in sig_keys else rl.Sample.BACKGROUND
             sample = rl.TemplateSample(ch.name + "_" + card_name, stype, sample_template)
 
+            # ttbar rate_param
+            if sample_name in rate_params:
+                rate_param = rate_params[sample_name]
+                sample.setParamEffect(rate_param, 1 * rate_param)
+
             # # rate params per signal to freeze them for individual limits
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
             #     srate = rate_params[sample_name]
@@ -514,6 +528,7 @@ def alphabet_fit(
     templates_summed: dict,
     scale: float | None = None,
     min_qcd_val: float | None = None,
+    unblinded: bool = False,
 ):
     shape_var = shape_vars[0]
     m_obs = rl.Observable(shape_var.name, shape_var.bins)
@@ -532,7 +547,8 @@ def alphabet_fit(
 
     fail_qcd_samples = {}
 
-    for blind_str in ["", MCB_LABEL]:
+    blind_strs = [""] if unblinded else ["", MCB_LABEL]
+    for blind_str in blind_strs:
         failChName = f"fail{blind_str}".replace("_", "")
         logging.info(f"Setting up fail region {failChName}")
         failCh = model[failChName]
@@ -544,7 +560,9 @@ def alphabet_fit(
             # don't subtract signals (#TODO: do we want to subtract SM signal?)
             if sample.sampletype == rl.Sample.SIGNAL:
                 continue
-            logging.debug("subtracting %s from qcd" % sample._name)
+            logging.debug(
+                f"subtracting {sample._name}={sample.getExpectation(nominal=True)} from qcd"
+            )
             initial_qcd -= sample.getExpectation(nominal=True)
 
         if np.any(initial_qcd < 0.0):
@@ -597,7 +615,7 @@ def alphabet_fit(
         tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
         tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
 
-        for blind_str in ["", MCB_LABEL]:
+        for blind_str in blind_strs:
             passChName = f"{sr}{blind_str}".replace("_", "")
             passCh = model[passChName]
 
@@ -613,8 +631,10 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
+    blind_strs = [""] if args.unblinded else ["", MCB_LABEL]
+
     regions: list[str] = [
-        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in ["", MCB_LABEL]
+        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in blind_strs
     ]
 
     # build actual fit model now
@@ -641,6 +661,7 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         templates_summed,
         args.scale_templates,
         args.min_qcd_val,
+        args.unblinded,
     ]
 
     fill_regions(*fill_args)

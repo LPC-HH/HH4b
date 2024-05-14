@@ -11,7 +11,6 @@ from collections import OrderedDict
 
 import awkward as ak
 import numpy as np
-import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
@@ -21,11 +20,12 @@ from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
-    add_trig_weights,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
     get_ak8jets,
+    veto_electrons,
+    veto_taus,
 )
 from .SkimmerABC import SkimmerABC
 from .utils import P4, add_selection, pad_val
@@ -65,41 +65,24 @@ class ttSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
-            "Txbb": "PNetXbb",
-            "Txjj": "PNetXjj",
+            "Txbb": "PNetTXbb",
+            "Txjj": "PNetTXjj",
             "Tqcd": "PNetQCD",
-            # "TQCDb": "PNetQCD1HF",
-            # "TQCDbb": "PNetQCD2HF",
-            # "TQCDothers": "PNetQCD0HF",
+            "PQCDb": "PNetQCD1HF",
+            "PQCDbb": "PNetQCD2HF",
+            "PQCDothers": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
             "t21": "Tau2OverTau1",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
         },
-        # "GenHiggs": P4,
         "Event": {
             "run": "run",
             "event": "event",
             "luminosityBlock": "luminosityBlock",
         },
-        # "Pileup": {
-        #     "nPU",
-        # },
-        # "TriggerObject": {
-        #     "pt": "Pt",
-        #     "eta": "Eta",
-        #     "phi": "Phi",
-        #     "filterBits": "Bit",
-        # },
     }
-
-    # preselection = {
-    #     "fatjet_pt": 270,
-    #     "fatjet_msd": 60,
-    #     "fatjet_mreg": 60,
-    #     "Txbb0": 0.8,
-    # }
 
     muon_selection = {  # noqa: RUF012
         "Id": "tight",
@@ -158,6 +141,15 @@ class ttSkimmer(SkimmerABC):
                 "2022EE": [
                     "Mu50",
                 ],
+                "2022": [
+                    "Mu50",
+                ],
+                "2023": [
+                    "Mu50",
+                ],
+                "2023BPix": [
+                    "Mu50",
+                ],
             },
         }
 
@@ -175,14 +167,9 @@ class ttSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "ecalBadCalibFilter",
             "hfNoisyHitsFilt",
         ]
 
-        """
-        This skimmer didn't use the region attribute
-
-        """
         self._region = region
 
         self._accumulator = processor.dict_accumulator({})
@@ -251,7 +238,6 @@ class ttSkimmer(SkimmerABC):
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save
-        num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
@@ -265,14 +251,6 @@ class ttSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        # fatjets ordered by xbb
-        legacy = "particleNetLegacy_mass" in fatjets.fields
-
-        if not legacy:
-            # fatjets ordered by xbb
-            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
-        else:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
         print("Object definition", f"{time.time() - start:.2f}")
 
@@ -284,7 +262,7 @@ class ttSkimmer(SkimmerABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets_xbb, selection_args, P4)
+                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets, selection_args, P4)
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
@@ -308,7 +286,8 @@ class ttSkimmer(SkimmerABC):
         if self._nano_version == "v12_private":
             fatjet_skimvars = {
                 **fatjet_skimvars,
-                "Txbb_legacy": "PNetXbbLegacy",
+                "TXqq_legacy": "PNetTXqqLegacy",
+                "TXbb_legacy": "PNetTXbbLegacy",
                 "particleNet_mass_legacy": "PNetMassLegacy",
             }
 
@@ -316,7 +295,6 @@ class ttSkimmer(SkimmerABC):
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
-        # FatJet ordered by bb
 
         print("FatJet vars", f"{time.time() - start:.2f}")
 
@@ -385,6 +363,15 @@ class ttSkimmer(SkimmerABC):
 
         add_selection("muon", muon_selector, *selection_args)
 
+        # loose taus/electrons
+        veto_electron_sel = veto_electrons(events.Electron)
+        veto_tau_sel = veto_taus(events.Tau)
+        add_selection(
+            "no_other_leptons",
+            (ak.sum(veto_electron_sel, axis=1) == 0) & (ak.sum(veto_tau_sel, axis=1) == 0),
+            *selection_args,
+        )
+
         # MET
         met_selection = met.pt >= self.met_selection["pt"]
 
@@ -421,8 +408,8 @@ class ttSkimmer(SkimmerABC):
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > self.ak8_jet_selection["pt"])
-            * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
-            * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
+            # * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
+            # * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
             * (np.abs(fatjets.eta) < self.ak8_jet_selection["eta"])
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
@@ -478,7 +465,11 @@ class ttSkimmer(SkimmerABC):
             skimmed_events["weight"] = np.ones(n_events)
         else:
             weights_dict, totals_temp = self.add_weights(
-                events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+                events,
+                year,
+                dataset,
+                gen_weights,
+                gen_selected,
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
@@ -518,16 +509,18 @@ class ttSkimmer(SkimmerABC):
         return accumulator
 
     def add_weights(
-        self, events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+        self,
+        events,
+        year,
+        dataset,
+        gen_weights,
+        gen_selected,
     ) -> tuple[dict, dict]:
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
-
-        # TODO: update trigger weights with those derived by Armen
-        add_trig_weights(weights, fatjets, year, num_fatjets_cut)
 
         logger.debug("weights", extra=weights._weights.keys())
 
@@ -588,42 +581,3 @@ class ttSkimmer(SkimmerABC):
         weights_dict["weight_noxsec"] = weights.weight()
 
         return weights_dict, totals_dict
-
-    def getFatDijetVars(
-        self, bbFatJetVars: dict, pt_shift: str | None = None, mass_shift: str | None = None
-    ):
-        """Calculates Dijet variables for given pt / mass JEC / JMS/R variation"""
-        dijetVars = {}
-
-        ptlabel = pt_shift if pt_shift is not None else ""
-        mlabel = mass_shift if mass_shift is not None else ""
-
-        jets = vector.array(
-            {
-                "pt": bbFatJetVars[f"bbFatJetPt{ptlabel}"],
-                "phi": bbFatJetVars["bbFatJetPhi"],
-                "eta": bbFatJetVars["bbFatJetEta"],
-                "M": bbFatJetVars[f"bbFatJetMsd{mlabel}"],
-                # "M": bbFatJetVars[f"ak8FatJetPNetMass{mlabel}"],
-            }
-        )
-
-        # get dijet with two first fatjets
-        jet0 = jets[:, 0]
-        jet1 = jets[:, 1]
-        Dijet = jet0 + jet1
-
-        shift = ptlabel + mlabel
-
-        dijetVars[f"DijetPt{shift}"] = Dijet.pt
-        dijetVars[f"DijetMass{shift}"] = Dijet.M
-        dijetVars[f"DijetEta{shift}"] = Dijet.eta
-        dijetVars[f"DijetPtJ2overPtJ1{shift}"] = jet1.pt / jet0.pt
-        dijetVars[f"DijetMJ2overMJ1{shift}"] = jet1.M / jet0.M
-
-        if shift == "":
-            dijetVars["DijetDeltaEta"] = abs(jet0.eta - jet1.eta)
-            dijetVars["DijetDeltaPhi"] = jet0.deltaRapidityPhi(jet1)
-            dijetVars["DijetDeltaR"] = jet0.deltaR(jet1)
-
-        return dijetVars
