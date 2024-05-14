@@ -186,7 +186,13 @@ def combine_run3_samples(
     scaled_by = {}
     for key in processes:
         if key not in scale_processes:
-            combined = pd.concat([events_dict_years[year][key] for year in years_run3])
+            combined = pd.concat(
+                [
+                    events_dict_years[year][key]
+                    for year in years_run3
+                    if key in events_dict_years[year]
+                ]
+            )
         else:
             combined = pd.concat(
                 [
