@@ -15,6 +15,7 @@ from hist import Hist
 from hist.intervals import ratio_uncertainty
 from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
+from tqdm import tqdm
 
 from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
 
@@ -96,9 +97,10 @@ color_by_sample = {
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
     "vjetslnu": colours["orange"],
-    "top_matched": colours["darkblue"],
-    "W_matched": colours["orange"],
-    "unmatched": colours["canary"],
+    "top_matched": "cornflowerblue",
+    "W_matched": "royalblue",
+    "unmatched": "lightsteelblue",
+    "singletop": "cadetblue",
 }
 
 label_by_sample = {
@@ -124,9 +126,10 @@ label_by_sample = {
     "vjets": r"W/Z$(qq)$ + Jets",
     "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
     "data": "Data",
-    "top_matched": "top matched",
-    "W_matched": "W matched",
-    "unmatched": "unmatched",
+    "top_matched": "Top Matched",
+    "W_matched": "W Matched",
+    "unmatched": "Unmatched",
+    "singletop": "Single Top",
 }
 
 bg_order_default = [
@@ -566,7 +569,7 @@ def ratioHistPlot(
             3,
             1,
             figsize=(12, 18),
-            gridspec_kw={"height_ratios": [3, 1, 1], "hspace": 0},
+            gridspec_kw={"height_ratios": [3, 1, 1], "hspace": 0.15},
             sharex=True,
         )
     else:
@@ -640,12 +643,10 @@ def ratioHistPlot(
             )
 
     # plot background errors
-    print(bg_keys)
-    print("I am here")
-    if bg_err is None:
-        # get background error from variances
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err = np.sqrt(bg_tot.variances())
+    # if bg_err is None:
+    # get background error from variances
+    #    bg_tot = sum([hists[sample, :] for sample in bg_keys])
+    #    bg_err = np.sqrt(bg_tot.variances())
 
     if bg_err is not None:
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
@@ -661,7 +662,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                # label=bg_err_label,
+                label="Bkg. Unc.",
             )
         else:
             ax.stairs(
@@ -669,7 +670,7 @@ def ratioHistPlot(
                 hists.axes[1].edges,
                 color="black",
                 linewidth=3,
-                label="BG Total",
+                label="Bkg. Total",
                 baseline=bg_tot.values(),
             )
 
@@ -678,7 +679,7 @@ def ratioHistPlot(
                 hists.axes[1].edges,
                 color="red",
                 linewidth=3,
-                label="BG Down",
+                label="Bkg. Down",
                 baseline=bg_err[0],
             )
 
@@ -687,7 +688,7 @@ def ratioHistPlot(
                 hists.axes[1].edges,
                 color="#7F2CCB",
                 linewidth=3,
-                label="BG Up",
+                label="Bkg. Up",
                 baseline=bg_err[1],
             )
 
@@ -701,20 +702,18 @@ def ratioHistPlot(
     # print(hists.axes[1].widths)
 
     if bg_err_mcstat:
-        # if exclude_qcd_mcstat:
-        #     bg_err_label = "Stat. MC Uncertainty (excl. Multijet)"
-        #     # bg_tot = sum([hists[sample, :] for sample in bg_keys if sample != "qcd"])
-        # else:
-        #     bg_err_label = "Stat. MC Uncertainty"
-        #     bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        #  tot_bg_err = get_variances(bg_tot)
+        bg_err_label = (
+            "Stat. MC Uncertainty (excl. Multijet)"
+            if exclude_qcd_mcstat
+            else "Stat. MC Uncertainty"
+        )
 
-        # this is a stack
         plot_shaded = False
+
         mcstat_up = {}
         mcstat_dn = {}
         stack = None
-        for sample in bg_keys:
+        for isam, sample in enumerate(bg_keys):
             if exclude_qcd_mcstat and sample == "qcd":
                 continue
             bg_yield = hists[sample, :] * kfactor[sample]
@@ -729,30 +728,54 @@ def ratioHistPlot(
 
             mcstat_up[sample] = sample_bg_err[0].values()
             mcstat_dn[sample] = sample_bg_err[1].values()
+
             if not plot_shaded:
-                hep.histplot(
-                    stack,
-                    ax=ax,
-                    yerr=yerr,
-                    histtype="errorbar",
-                    markersize=0,
-                    color="gray",
-                )
+                if isam == 0:
+                    hep.histplot(
+                        stack,
+                        ax=ax,
+                        yerr=yerr,
+                        histtype="errorbar",
+                        markersize=0,
+                        color="gray",
+                        label=bg_err_label,
+                    )
+                else:
+                    hep.histplot(
+                        stack,
+                        ax=ax,
+                        yerr=yerr,
+                        histtype="errorbar",
+                        markersize=0,
+                        color="gray",
+                    )
 
         if plot_shaded:
-            for sample in bg_keys:
+            for isam, sample in enumerate(bg_keys):
                 if exclude_qcd_mcstat and sample == "qcd":
                     continue
 
-                ax.fill_between(
-                    np.repeat(hists.axes[1].edges, 2)[1:-1],
-                    np.repeat(mcstat_up[sample], 2),
-                    np.repeat(mcstat_dn[sample], 2),
-                    hatch="x",
-                    linewidth=0,
-                    edgecolor="k",
-                    facecolor="none",
-                )
+                if isam == 0:
+                    ax.fill_between(
+                        np.repeat(hists.axes[1].edges, 2)[1:-1],
+                        np.repeat(mcstat_up[sample], 2),
+                        np.repeat(mcstat_dn[sample], 2),
+                        hatch="x",
+                        linewidth=0,
+                        edgecolor="k",
+                        facecolor="none",
+                        label=bg_err_label,
+                    )
+                else:
+                    ax.fill_between(
+                        np.repeat(hists.axes[1].edges, 2)[1:-1],
+                        np.repeat(mcstat_up[sample], 2),
+                        np.repeat(mcstat_dn[sample], 2),
+                        hatch="x",
+                        linewidth=0,
+                        edgecolor="k",
+                        facecolor="none",
+                    )
 
     # plot data
     if plot_data:
@@ -776,7 +799,7 @@ def ratioHistPlot(
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
-    if kfactor["qcd"] != 1:
+    if "qcd" in kfactor and kfactor["qcd"] != 1:
         ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
     if xlim_low is not None:
@@ -873,6 +896,9 @@ def ratioHistPlot(
         sax.set_xlabel(hists.axes[1].label)
 
     if add_pull:
+        # set title of 2nd panel empty
+        rax.set_xlabel("")
+
         # (data -bkg )/unc_bkg
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
         tot_val = bg_tot.values()
@@ -881,18 +907,29 @@ def ratioHistPlot(
         data_val = hists[data_key, :].values()
         data_val[tot_val_zero_mask] = 1
 
-        yhist = (hists[data_key, :] - bg_tot) / data_err
-        yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, data_err, "poisson")
+        dataerr = np.sqrt(hists[data_key, :].variances())
+        # replace dataerr of 0 by 1
+        dataerr[dataerr == 0] = 1
+
+        yhist = (hists[data_key, :] - bg_tot) / dataerr
+        # yerr is not used, can be nan
+        # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
+
+        # if math.isinf(yhist[5]):
+        # blind!
+        yhist[5] = 0
+        yhist[6] = 0
+        yhist[7] = 0
 
         hep.histplot(
             yhist,
             ax=sax,
-            yerr=yerr,
-            histtype="errorbar",
-            markersize=20,
-            color="black",
+            # yerr=yerr,
+            histtype="fill",
+            facecolor="gray",
+            edgecolor="k",
         )
-        sax.set_ylim([-4, 4])
+        sax.set_ylim([-2, 2])
         sax.set_xlabel(hists.axes[1].label)
         sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
 
@@ -924,7 +961,11 @@ def ratioHistPlot(
         )
 
     if axrax is None and len(name):
-        plt.savefig(name, bbox_inches="tight")
+        if not name.endswith((".pdf", ".png")):
+            plt.savefig(f"{name}.pdf", bbox_inches="tight")
+            plt.savefig(f"{name}.png")
+        else:
+            plt.savefig(name, bbox_inches="tight")
 
     if show:
         plt.show()
@@ -1140,11 +1181,15 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     """Plot FoM scan"""
 
     eff, bins_x, bins_y = h_sb.to_numpy()
-    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
-    cbar = hep.hist2dplot(h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+    plt.rcParams.update({"font.size": 18})
+
+    cbar = hep.hist2dplot(
+        h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow="none"
+    )
     cbar.cbar.set_label(r"Fig Of Merit", size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
-    for i in range(len(bins_x) - 1):
+    for i in tqdm(range(len(bins_x) - 1)):
         for j in range(len(bins_y) - 1):
             if eff[i, j] > 0:
                 ax.text(
@@ -1159,7 +1204,8 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
 
     ax.set_xlabel("BDT Cut")
     ax.set_ylabel(r"$T_{Xbb}$ Cut")
-
+    ax.set_ylim(bins_y[0], bins_y[-1])
+    ax.set_xlim(bins_x[0], bins_x[-1])
     fig.tight_layout()
     plt.savefig(f"{plot_dir}/{name}.png")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
