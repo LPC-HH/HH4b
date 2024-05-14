@@ -11,7 +11,6 @@ from collections import OrderedDict
 
 import awkward as ak
 import numpy as np
-import vector
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
@@ -409,8 +408,8 @@ class ttSkimmer(SkimmerABC):
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > self.ak8_jet_selection["pt"])
-            #* (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
-            #* (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
+            # * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
+            # * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
             * (np.abs(fatjets.eta) < self.ak8_jet_selection["eta"])
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
