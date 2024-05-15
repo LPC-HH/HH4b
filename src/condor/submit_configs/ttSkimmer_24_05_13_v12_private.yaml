@@ -13,7 +13,7 @@
         "SingleTop": {"files_per_job": 20},
         "VJets": {"subsamples": ["WtoLNu-4Jets"], "files_per_job": 10},
         "QCD": {
-            "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600", 
+            "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600",
             "QCD_HT-2000", "QCD_HT-1500to2000", "QCD_HT-1200to1500", "QCD_HT-600to800", "QCD_HT-800to1000"],
             "files_per_job": 20},
    },
@@ -32,7 +32,7 @@
         # "SingleTop": {"files_per_job": 20},
         # "VJets": {"subsamples": ["WtoLNu-4Jets", "DYto2L-4Jets_MLL-50"], "files_per_job": 10},
         "QCD": {
-            "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600", 
+            "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600",
             "QCD_HT-2000", "QCD_HT-1500to2000", "QCD_HT-1200to1500", "QCD_HT-600to800", "QCD_HT-800to1000"],
             "files_per_job": 20},
     },
