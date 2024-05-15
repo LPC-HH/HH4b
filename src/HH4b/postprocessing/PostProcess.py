@@ -432,6 +432,70 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & ~cut_mass])
 
 
+def scan_fom_4d(
+    method: str,
+    events_combined: pd.DataFrame,
+    get_cut: Callable,
+    xbb_cuts: np.ArrayLike,
+    bdt_cuts: np.ArrayLike,
+    xbb_cuts_bin1: np.ArrayLike,
+    bdt_cuts_bin1: np.ArrayLike,
+    mass_window: list[float],
+    bg_keys: list[str],
+    sig_key: str = "hh4b",
+    fom: str = "2sqrt(b)/s",
+    mass: str = "H2Msd",
+):
+    import collections
+    import json
+
+    """Generic FoM scan for given region, defined in the ``get_cut`` function."""
+    print(list(bdt_cuts) + [1.0])
+    print(list(xbb_cuts) + [1.0])
+    print(list(bdt_cuts_bin1) + [1.0])
+    print(list(xbb_cuts_bin1) + [1.0])
+
+    results = collections.defaultdict(dict)
+
+    print(f"Scanning {fom} with {method}")
+    for xbb_cut in xbb_cuts:
+        for bdt_cut in bdt_cuts:
+            for xbb_cut_bin1 in xbb_cuts_bin1:
+                for bdt_cut_bin1 in bdt_cuts_bin1:
+                    if method == "abcd":
+                        nevents_sig, nevents_bkg, _ = abcd(
+                            events_combined,
+                            get_cut,
+                            (xbb_cut, xbb_cut_bin1),
+                            (bdt_cut, bdt_cut_bin1),
+                            mass,
+                            mass_window,
+                            bg_keys,
+                            sig_key,
+                        )
+                        # print("abcd ", nevents_sig, nevents_bkg)
+                    else:
+                        raise ValueError("Invalid Method")
+                        # print("sideband ",  nevents_sig, nevents_bkg)
+                        # print("\n")
+
+                    if fom == "s/sqrt(s+b)":
+                        figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
+                    elif fom == "2sqrt(b)/s":
+                        figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
+                    else:
+                        raise ValueError("Invalid FOM")
+
+                    if nevents_sig > 0.5 and nevents_bkg >= 2:
+                        results[(xbb_cut, bdt_cut, xbb_cut_bin1, bdt_cut_bin1)] = {
+                            "figure_of_merit": figure_of_merit,
+                            "nevents_sig": nevents_sig,
+                            "nevents_bkg": nevents_bkg,
+                        }
+    with Path.open("results_vbf_bin1.json", "w") as f:
+        json.dump(results, f, indent=4)
+
+
 def scan_fom(
     method: str,
     events_combined: pd.DataFrame,
@@ -509,7 +573,9 @@ def get_cuts(args, region: str):
     def get_cut_vbf(events, xbb_cut, bdt_cut):
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
-        return cut_xbb & cut_bdt
+
+        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        return cut_xbb & cut_bdt & ~(cut_bin1)
 
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
@@ -816,8 +882,10 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.9, 0.999, 0.01),
-                np.arange(0.9, 0.999, 0.01),
+                np.arange(0.94, 0.9999, 0.001),
+                np.arange(0.94, 0.9999, 0.001),
+                # np.arange(0.9, 0.999, 0.01),
+                # np.arange(0.9, 0.999, 0.01),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
@@ -864,6 +932,25 @@ def postprocess_run3(args):
                 plot_dir,
                 "fom_bin2",
                 bg_keys=bg_keys,
+                mass=args.mass,
+            )
+
+        if args.fom_scan_vbf_bin1:
+            print("Scanning VBF WPs and bin 1 as once")
+            scan_fom(
+                args.method,
+                events_combined,
+                get_cuts(args, "vbf"),
+                get_cuts(args, "bin1"),
+                np.arange(0.94, 0.9999, 0.001),
+                np.arange(0.94, 0.9999, 0.001),
+                # np.arange(0.9, 0.999, 0.01),
+                # np.arange(0.9, 0.999, 0.01),
+                mass_window,
+                plot_dir,
+                "fom_vbf",
+                bg_keys=bg_keys,
+                sig_key="vbfhh4b-k2v0",
                 mass=args.mass,
             )
 
@@ -1009,6 +1096,12 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-scan-vbf-bin1",
+        default=False,
+        help="FOM scan for bin 1 and VBF bin simultaneously",
     )
 
     args = parser.parse_args()
