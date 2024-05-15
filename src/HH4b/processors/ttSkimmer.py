@@ -110,7 +110,7 @@ class ttSkimmer(SkimmerABC):
         "pt": 25,  # from JME-18-002
         "eta": 2.4,
         "delta_phi_muon": 2,
-        "btagWP": 0.2605,  # 2022E 
+        "btagWP": 0.2605,  # 2022E
         "num": 1,
         # "closest_muon_dr": 0.4,
         # "closest_muon_ptrel": 25,
@@ -390,7 +390,7 @@ class ttSkimmer(SkimmerABC):
         # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
-        if year!="2022":
+        if year != "2022":
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
