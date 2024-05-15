@@ -101,7 +101,6 @@ class ttSkimmer(SkimmerABC):
     ak8_jet_selection = {  # noqa: RUF012
         "jetId": "tight",
         "pt": 200.0,
-        "msd": [50, 250],
         "eta": 2.5,
         "delta_phi_muon": 2,
     }
@@ -111,7 +110,7 @@ class ttSkimmer(SkimmerABC):
         "pt": 25,  # from JME-18-002
         "eta": 2.4,
         "delta_phi_muon": 2,
-        "btagWP": 0.2605,  # 2022E M
+        "btagWP": 0.2605,  # 2022E 
         "num": 1,
         # "closest_muon_dr": 0.4,
         # "closest_muon_ptrel": 25,
@@ -391,10 +390,16 @@ class ttSkimmer(SkimmerABC):
         # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
-        ak4_jet_selector_btag_muon = ak4_jet_selector * (
-            (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
-            * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
-        )
+        if year!="2022":
+            ak4_jet_selector_btag_muon = ak4_jet_selector * (
+                (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
+                * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
+            )
+        else:
+            ak4_jet_selector_btag_muon = ak4_jet_selector * (
+                (ak4_jets.btagDeepFlavB > 0.3086)
+                * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
+            )
 
         ak4_selection = (
             # at least 1 b-tagged jet close to the muon
@@ -408,8 +413,6 @@ class ttSkimmer(SkimmerABC):
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > self.ak8_jet_selection["pt"])
-            # * (fatjets.msoftdrop > self.ak8_jet_selection["msd"][0])
-            # * (fatjets.msoftdrop < self.ak8_jet_selection["msd"][1])
             * (np.abs(fatjets.eta) < self.ak8_jet_selection["eta"])
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
