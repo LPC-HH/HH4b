@@ -707,7 +707,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
-
+            
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:
@@ -826,7 +826,6 @@ class bbbbSkimmer(SkimmerABC):
         ##############################
 
         sel_all = selection.all(*selection.names)
-
         skimmed_events = {
             key: value.reshape(len(skimmed_events["weight"]), -1)[sel_all]
             for (key, value) in skimmed_events.items()
@@ -936,7 +935,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.weight()
-        weights_dict["trigger_sf"] = get_trig_weights(fatjets, year, num_fatjets_cut)
+        # weights_dict["trigger_sf"] = get_trig_weights(fatjets, year, num_fatjets_cut)
 
         return weights_dict, totals_dict
 

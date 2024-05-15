@@ -1,6 +1,12 @@
 {
-    # "2022":
-    #     {
+    "2022":
+        {
+            "HH": {
+                "subsamples": [
+                    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                    ],
+                    "files_per_job": 10,
+                    },
     #         "JetMET":
     #             {
     #                 "subsamples":
@@ -48,7 +54,7 @@
     #                     ],
     #                 "files_per_job": 10,
     #             },
-    #     },
+       },
     # "2022EE":
     #     {
     #         "JetMET":
@@ -109,8 +115,8 @@
     #                 "files_per_job": 10,
     #             },
     #     },
-    "2023":
-        {
+    #"2023":
+    #    {
     #         "JetMET":
     #             {
     #                 "subsamples":
@@ -135,10 +141,10 @@
     #             },
     #         "Hbb": { "files_per_job": 10 },
     #         "QCD": { "files_per_job": 10 },
-            "HH": { "files_per_job": 10 },
-    },
-    # "2023BPix":
-    #     {
+    #        "HH": { "files_per_job": 10 },
+    #},
+    "2023BPix":
+    {
     #         "JetMET": { "subsamples": ["JetMET_Run2023D"], "files_per_job": 8 },
     #         "TT":
     #             {
@@ -153,6 +159,11 @@
     #             },
     #         "Hbb": { "files_per_job": 10 },
     #         "QCD": { "files_per_job": 10 },
-    #         "HH": { "files_per_job": 10 },
-    #     },
+            "HH": { 
+                "subsamples": [
+                    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                ],
+                "files_per_job": 10 
+            },
+    },
 }
