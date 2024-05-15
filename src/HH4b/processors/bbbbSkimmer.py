@@ -27,7 +27,6 @@ from .corrections import (
     get_jmsr,
     get_pdf_weights,
     get_scale_weights,
-    get_trig_weights,
 )
 from .GenSelection import (
     gen_selection_Hbb,
@@ -707,7 +706,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
-            
+
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:
