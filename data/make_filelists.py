@@ -362,13 +362,15 @@ def get_v12_private():
                 "WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_0_C2V_1_0_C3_20_0_13p6TeV_TuneCP5_madgraph-pythia8/",
                 "WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/WHH_HHto4B_CV_1_5_C2V_1_0_C3_1_0_13p6TeV_TuneCP5_madgraph-pythia8/",
             },
-            "HH": {},
+            "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2022/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_LHEweights_TuneCP5_13p6TeV_powheg-pythia8/",
+            },
             "SingleTop": {
                 "TbarBQ_t-channel_4FS": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TbarBQ_t-channel_4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/",
                 "TBbarQ_t-channel_4FS": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TBbarQ_t-channel_4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/",
                 "TWminustoLNu2Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TWminustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/",
                 "TbarWplustoLNu2Q": "/store/user/lpcdihiggsboost/NanoAOD_v12/cmantill/2022/SingleTop/TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/",
-            }
+            },
         },
         "2022EE": {
             "HH": {
@@ -695,6 +697,7 @@ def get_v12_private():
                 "WtoLNu-4Jets": "/store/group/lpcdihiggsboost/NanoAOD_v12/cmantill/2023-Bpix/VJets/WtoLNu-4Jets_TuneCP5_13p6TeV_madgraphMLM-pythia8",
             },
             "HH": {
+                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_LHEweights_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/signal/GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_TSG": "/store/group/lpcdihiggsboost/NanoAOD_v12/sixie/2023-Bpix/signal/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/",
