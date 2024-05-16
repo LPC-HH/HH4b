@@ -766,7 +766,6 @@ def postprocess_run3(args):
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
-    processes = args.sig_keys
     bg_keys_combined = bg_keys.copy()
 
     if len(args.years) > 1:
