@@ -5,7 +5,7 @@ import pandas as pd
 import vector
 
 
-def bdt_dataframe(events, key_map = lambda x: x):
+def bdt_dataframe(events, key_map=lambda x: x):
     """
     Make dataframe with BDT inputs
     NOTE: this function should be saved along with the model for inference usage
@@ -72,7 +72,9 @@ def bdt_dataframe(events, key_map = lambda x: x):
             key_map("H1Xbb"): events[key_map("bbFatJetPNetPXbbLegacy")].to_numpy()[:, 0],
             key_map("H1QCDb"): events[key_map("bbFatJetPNetPQCDbLegacy")].to_numpy()[:, 0],
             key_map("H1QCDbb"): events[key_map("bbFatJetPNetPQCDbbLegacy")].to_numpy()[:, 0],
-            key_map("H1QCDothers"): events[key_map("bbFatJetPNetPQCDothersLegacy")].to_numpy()[:, 0],
+            key_map("H1QCDothers"): events[key_map("bbFatJetPNetPQCDothersLegacy")].to_numpy()[
+                :, 0
+            ],
             # ratios
             key_map("H1Pt_HHmass"): h1.pt / hh.mass,
             key_map("H2Pt_HHmass"): h2.pt / hh.mass,
