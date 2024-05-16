@@ -158,21 +158,29 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    samples_sig = {sample: samples_run3[year][sample] for sample in samples_run3[year].keys() if "hh4b" in sample}
-    samples_bg = {sample: samples_run3[year][sample] for sample in samples_run3[year].keys() if "hh4b" not in sample}
+    samples_sig = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year].keys()
+        if "hh4b" in sample
+    }
+    samples_bg = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year].keys()
+        if "hh4b" not in sample
+    }
 
-    # pre-selection    
+    # pre-selection
     events_dict = {
-#        **utils.load_samples(
-#            input_dir,
-#            samples_bg,
-#            year,
-#            filters=filters,
-#            columns=utils.format_columns(load_columns_year),
-#            reorder_txbb=reorder_txbb,
-#            txbb=txbb,
-#            variations=False,
-#        ),
+        #        **utils.load_samples(
+        #            input_dir,
+        #            samples_bg,
+        #            year,
+        #            filters=filters,
+        #            columns=utils.format_columns(load_columns_year),
+        #            reorder_txbb=reorder_txbb,
+        #            txbb=txbb,
+        #            variations=False,
+        #        ),
         **utils.load_samples(
             input_dir,
             samples_sig,

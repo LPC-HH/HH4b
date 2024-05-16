@@ -120,6 +120,7 @@ def get_key_map(jshift: str = ""):
             if variable in hh_vars.jec_vars:
                 return f"{variable}_{jshift}"
         return variable
+
     return key_map
 
 
@@ -223,7 +224,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     for key in events_dict:
         bdt_events = {}
         for jshift in jshifts:
-            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(events_dict[key], get_key_map(jshift))
+            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
+                events_dict[key], get_key_map(jshift)
+            )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts])
