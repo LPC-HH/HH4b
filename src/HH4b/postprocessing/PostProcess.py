@@ -257,17 +257,23 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         mask_presel = (
-            (bdt_events["H1Msd"] > 40)  # FIXME: replace by jet matched to trigger object
-            & (bdt_events["H1Pt"] > 300)
-            & (bdt_events["H2Pt"] > 300)
-            & (bdt_events["H1TXbb"] > 0.8)
+            (bdt_events["H1Msd"] >= 40)  # FIXME: replace by jet matched to trigger object
+            & (bdt_events["H1Pt"] >= 300)
+            & (bdt_events["H2Pt"] >= args.pt_second)
+            & (bdt_events["H1TXbb"] >= 0.8)
             & (bdt_events[args.mass] >= 60)
-            & (bdt_events[args.mass] <= 250)
+            & (bdt_events[args.mass] <= 220)
             & (bdt_events[args.mass.replace("H2", "H1")] >= 60)
-            & (bdt_events[args.mass.replace("H2", "H1")] <= 250)
+            & (bdt_events[args.mass.replace("H2", "H1")] <= 220)
         )
         bdt_events = bdt_events[mask_presel]
-        cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second}"] = np.sum(
+            bdt_events["weight"].to_numpy()
+        )
+
+        cutflow_dict[key]["BDT > min"] = np.sum(
+            bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+        )
 
         ###### FINISH pre-selection
         mass_window = [110, 140]
@@ -996,6 +1002,10 @@ if __name__ == "__main__":
         nargs="+",
         default=["hh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
+    )
+
+    parser.add_argument(
+        "--pt-second", type=float, default=300, help="pt threshold for subleading jet"
     )
 
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
