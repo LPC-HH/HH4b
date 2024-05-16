@@ -123,6 +123,17 @@ load_columns_v12 = load_columns + [
     ("bbFatJetPNetQCD2HF", 2),
 ]
 
+load_columns_syst = [
+    ("bbFatJetPt_JES_up", 2),
+    ("bbFatJetPt_JES_down", 2),
+    ("bbFatJetPt_JER_up", 2),
+    ("bbFatJetPt_JER_down", 2),
+    ("VBFJetPt_JES_up", 2),
+    ("VBFJetPt_JES_down", 2),
+    ("VBFJetPt_JER_up", 2),
+    ("VBFJetPt_JER_down", 2),
+]
+
 weight_shifts = {
     "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
@@ -147,18 +158,32 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    # pre-selection
-    events_dict = utils.load_samples(
-        input_dir,
-        samples_run3[year],
-        year,
-        filters=filters,
-        columns=utils.format_columns(load_columns_year),
-        reorder_txbb=reorder_txbb,
-        txbb=txbb,
-        variations=False,
-    )
+    samples_sig = {sample: samples_run3[year][sample] for sample in samples_run3[year].keys() if "hh4b" in sample}
+    samples_bg = {sample: samples_run3[year][sample] for sample in samples_run3[year].keys() if "hh4b" not in sample}
 
+    # pre-selection    
+    events_dict = {
+#        **utils.load_samples(
+#            input_dir,
+#            samples_bg,
+#            year,
+#            filters=filters,
+#            columns=utils.format_columns(load_columns_year),
+#            reorder_txbb=reorder_txbb,
+#            txbb=txbb,
+#            variations=False,
+#        ),
+        **utils.load_samples(
+            input_dir,
+            samples_sig,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year + load_columns_syst),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
+    }
     return events_dict
 
 

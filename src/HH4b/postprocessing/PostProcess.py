@@ -113,15 +113,30 @@ def get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
+def get_key_map(jshift: str = ""):
+
+    def key_map(variable: str):
+        if jshift in hh_vars.jec_shifts:
+            if variable in hh_vars.jec_vars:
+                return f"{variable}_{jshift}"
+        return variable
+    return key_map
+
+
+def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
+    if jshift != "":
+        jshift_under = "_" + jshift
+    else:
+        jshift_under = jshift
+
     if preds.shape[1] == 2:  # binary BDT only
-        events["bdt_score"] = preds[:, 1]
+        events[f"bdt_score{jshift_under}"] = preds[:, 1]
     elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
-        events["bdt_score"] = preds[:, 0]  # ggF HH
+        events[f"bdt_score{jshift_under}"] = preds[:, 0]  # ggF HH
     elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
         bg_tot = np.sum(preds[:, 2:], axis=1)
-        events["bdt_score"] = preds[:, 0] / (preds[:, 0] + bg_tot)
-        events["bdt_score_vbf"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+        events[f"bdt_score{jshift_under}"] = preds[:, 0] / (preds[:, 0] + bg_tot)
+        events[f"bdt_score_vbf{jshift_under}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
@@ -201,13 +216,19 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
+    jshifts = [""] + hh_vars.jec_shifts
+
     # inference and assign score
     events_dict_postprocess = {}
     for key in events_dict:
-        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
-        preds = bdt_model.predict_proba(bdt_events)
-        add_bdt_scores(bdt_events, preds)
-
+        bdt_events = {}
+        for jshift in jshifts:
+            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(events_dict[key], get_key_map(jshift))
+            preds = bdt_model.predict_proba(bdt_events[jshift])
+            add_bdt_scores(bdt_events[jshift], preds, jshift)
+        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts])
+        print(bdt_events)
+        print(bdt_events.columns)
         bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
         bdt_events["H2Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 1]
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
@@ -745,6 +766,7 @@ def postprocess_run3(args):
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
+    processes = args.sig_keys
     bg_keys_combined = bg_keys.copy()
 
     if len(args.years) > 1:
