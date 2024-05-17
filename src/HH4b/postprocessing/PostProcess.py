@@ -208,11 +208,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    jshifts = [""] + hh_vars.jec_shifts
-
     # inference and assign score
     events_dict_postprocess = {}
     for key in events_dict:
+        if "hh4b" in key:
+            jshifts = [""] + hh_vars.jec_shifts
+        else:
+            jshifts = [""]
+
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(

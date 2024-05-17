@@ -338,7 +338,7 @@ def load_samples(
                 warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-            # print(f"Loading {sample}")
+            print(f"Loading {sample}")
             events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
 
             # no events?

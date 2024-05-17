@@ -119,12 +119,12 @@ load_columns_v12 = load_columns + [
 load_columns_syst = [
     ("bbFatJetPt_JES_up", 2),
     ("bbFatJetPt_JES_down", 2),
-    ("bbFatJetPt_JER_up", 2),
-    ("bbFatJetPt_JER_down", 2),
+    # ("bbFatJetPt_JER_up", 2),
+    # ("bbFatJetPt_JER_down", 2),
     ("VBFJetPt_JES_up", 2),
     ("VBFJetPt_JES_down", 2),
-    ("VBFJetPt_JER_up", 2),
-    ("VBFJetPt_JER_down", 2),
+    # ("VBFJetPt_JER_up", 2),
+    # ("VBFJetPt_JER_down", 2),
 ]
 
 weight_shifts = {
@@ -164,16 +164,16 @@ def load_run3_samples(
 
     # pre-selection
     events_dict = {
-        #        **utils.load_samples(
-        #            input_dir,
-        #            samples_bg,
-        #            year,
-        #            filters=filters,
-        #            columns=utils.format_columns(load_columns_year),
-        #            reorder_txbb=reorder_txbb,
-        #            txbb=txbb,
-        #            variations=False,
-        #        ),
+        **utils.load_samples(
+            input_dir,
+            samples_bg,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
         **utils.load_samples(
             input_dir,
             samples_sig,

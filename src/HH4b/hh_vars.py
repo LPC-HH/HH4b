@@ -168,7 +168,7 @@ norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonS
 
 jecs = {
     "JES": "JES",
-    "JER": "JER",
+    # "JER": "JER",
     #####
     # including reduced sources
     #####
