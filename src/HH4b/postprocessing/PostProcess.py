@@ -229,7 +229,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts])
+        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
         print(bdt_events)
         print(bdt_events.columns)
         bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
