@@ -107,19 +107,17 @@ def get_bdt_training_keys(bdt_model: str):
 def get_key_map(jshift: str = ""):
 
     def key_map(variable: str):
-        if jshift in hh_vars.jec_shifts:
-            if variable in hh_vars.jec_vars:
-                return f"{variable}_{jshift}"
-        return variable
+        if jshift in hh_vars.jec_shifts and variable in hh_vars.jec_vars:
+            return f"{variable}_{jshift}"
+        elif jshift in hh_vars.jmsr_shfits and variable in hh_vars.jsmr_vars:
+            return f"{variable}_{jshift}"
+        return variable        
 
     return key_map
 
 
 def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
-    if jshift != "":
-        jshift_under = "_" + jshift
-    else:
-        jshift_under = jshift
+    jshift_under = "_" + jshift if jshift != "" else ""
 
     if preds.shape[1] == 2:  # binary BDT only
         events[f"bdt_score{jshift_under}"] = preds[:, 1]

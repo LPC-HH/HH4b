@@ -237,3 +237,6 @@ jec_vars = [
     "VBFjjMass",
     "VBFjjDeltaEta",
 ]
+
+# variables affected by JMS/JMR
+jmsr_vars = []  # TODO

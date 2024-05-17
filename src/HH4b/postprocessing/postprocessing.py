@@ -154,12 +154,12 @@ def load_run3_samples(
 
     samples_syst = {
         sample: samples_run3[year][sample]
-        for sample in samples_run3[year].keys()
+        for sample in samples_run3[year]
         if sample in syst_keys
     }
     samples_nosyst = {
         sample: samples_run3[year][sample]
-        for sample in samples_run3[year].keys()
+        for sample in samples_run3[year]
         if sample in ["qcd", "data"] # just look at qcd, data for testing
         # if sample not in syst_keys
     }
