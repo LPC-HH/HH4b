@@ -32,19 +32,10 @@ class Region:
 
 
 mass_key = "bbFatJetPNetMassLegacy"
-# both jets pT > 300, both jets mass [50, 250]
 filters_legacy = [
     [
-        ("('bbFatJetPt', '0')", ">=", 300),
-        ("('bbFatJetPt', '1')", ">=", 300),
-        (f"('{mass_key}', '0')", "<=", 250),
-        (f"('{mass_key}', '1')", "<=", 250),
-        (f"('{mass_key}', '0')", ">=", 60),
-        (f"('{mass_key}', '1')", ">=", 60),
-    ],
-    [
-        ("('bbFatJetPt', '0')", ">=", 300),
-        ("('bbFatJetPt', '1')", ">=", 300),
+        ("('bbFatJetPt', '0')", ">=", 250),
+        ("('bbFatJetPt', '1')", ">=", 250),
         (f"('{mass_key}', '0')", "<=", 250),
         (f"('{mass_key}', '1')", "<=", 250),
         (f"('{mass_key}', '0')", ">=", 60),
@@ -67,20 +58,22 @@ filters_v12 = [
 HLTs = {
     "2022": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-        #  'AK8PFJet425_SoftDropMass40',
+        "AK8PFJet425_SoftDropMass40",
     ],
     "2022EE": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
-        # 'AK8PFJet425_SoftDropMass40',
+        "AK8PFJet425_SoftDropMass40",
     ],
     "2023": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        # 'AK8PFJet425_SoftDropMass40',
+        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet425_SoftDropMass40",
     ],
     "2023BPix": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        #  'AK8PFJet425_SoftDropMass40',
+        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet425_SoftDropMass40",
     ],
 }
 
@@ -410,6 +403,7 @@ def get_templates(
 
         if template_dir != "":
             cf = cf.round(2)
+            print("cutflow ", rname, cf)
             cf.to_csv(f"{template_dir}/cutflows/{year}/{rname}_cutflow{jlabel}.csv")
 
         # # TODO: trigger uncertainties
