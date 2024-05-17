@@ -107,7 +107,7 @@ def get_bdt_training_keys(bdt_model: str):
 def get_key_map(jshift: str = ""):
 
     def key_map(variable: str):
-        if jshift in hh_vars.jec_shifts and variable in hh_vars.jec_vars or jshift in hh_vars.jmsr_shfits and variable in hh_vars.jsmr_vars:
+        if jshift in hh_vars.jec_shifts and variable in hh_vars.jec_vars or jshift in hh_vars.jmsr_shfits and variable in hh_vars.jmsr_vars:
             return f"{variable}_{jshift}"
         return variable
 
@@ -918,23 +918,25 @@ def postprocess_run3(args):
         selection_regions.pop("pass_vbf")
 
     # individual templates per year
-    templates = postprocessing.get_templates(
-        events_combined,
-        year=year,
-        sig_keys=args.sig_keys,
-        selection_regions=selection_regions,
-        shape_vars=[fit_shape_var],
-        systematics={},
-        template_dir=templ_dir,
-        bg_keys=bg_keys_combined,
-        plot_dir=f"{templ_dir}/{year}",
-        weight_key="weight",
-        show=False,
-        energy=13.6,
-    )
-
-    # save templates per year
-    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
+    for jshift in [""] + jec_shifts:
+        templates = postprocessing.get_templates(
+            events_combined,
+            year=year,
+            sig_keys=args.sig_keys,
+            selection_regions=selection_regions,
+            shape_vars=[fit_shape_var],
+            systematics={},
+            template_dir=templ_dir,
+            bg_keys=bg_keys_combined,
+            plot_dir=f"{templ_dir}/{year}",
+            weight_key="weight",
+            show=False,
+            energy=13.6,
+            jshift=jshift
+        )
+        
+        # save templates per year
+        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
