@@ -107,11 +107,9 @@ def get_bdt_training_keys(bdt_model: str):
 def get_key_map(jshift: str = ""):
 
     def key_map(variable: str):
-        if jshift in hh_vars.jec_shifts and variable in hh_vars.jec_vars:
+        if jshift in hh_vars.jec_shifts and variable in hh_vars.jec_vars or jshift in hh_vars.jmsr_shfits and variable in hh_vars.jsmr_vars:
             return f"{variable}_{jshift}"
-        elif jshift in hh_vars.jmsr_shfits and variable in hh_vars.jsmr_vars:
-            return f"{variable}_{jshift}"
-        return variable        
+        return variable
 
     return key_map
 
