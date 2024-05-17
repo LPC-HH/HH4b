@@ -110,7 +110,7 @@ def get_key_map(jshift: str = ""):
         if (
             jshift in hh_vars.jec_shifts
             and variable in hh_vars.jec_vars
-            or jshift in hh_vars.jmsr_shfits
+            or jshift in hh_vars.jmsr_shifts
             and variable in hh_vars.jmsr_vars
         ):
             return f"{variable}_{jshift}"
