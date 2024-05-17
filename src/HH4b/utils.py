@@ -28,6 +28,8 @@ from .hh_vars import (
     data_key,
     jec_shifts,
     jmsr_shifts,
+    jec_vars,
+    jmsr_vars,
     norm_preserving_weights,
     years,
 )

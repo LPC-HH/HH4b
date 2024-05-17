@@ -24,7 +24,7 @@ from HH4b.postprocessing import (
     combine_run3_samples,
     load_run3_samples,
 )
-from HH4b.utils import ShapeVar, singleVarHist
+from HH4b.utils import ShapeVar, singleVarHist, check_get_jec_var
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -104,32 +104,17 @@ def get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def get_key_map(jshift: str = ""):
-
-    def key_map(variable: str):
-        if (
-            jshift in hh_vars.jec_shifts
-            and variable in hh_vars.jec_vars
-            or jshift in hh_vars.jmsr_shifts
-            and variable in hh_vars.jmsr_vars
-        ):
-            return f"{variable}_{jshift}"
-        return variable
-
-    return key_map
-
-
 def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
-    jshift_under = "_" + jshift if jshift != "" else ""
+    jlabel = "" if jshift == "" else "_" + jshift
 
     if preds.shape[1] == 2:  # binary BDT only
-        events[f"bdt_score{jshift_under}"] = preds[:, 1]
+        events[f"bdt_score{jlabel}"] = preds[:, 1]
     elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
-        events[f"bdt_score{jshift_under}"] = preds[:, 0]  # ggF HH
+        events[f"bdt_score{jlabel}"] = preds[:, 0]  # ggF HH
     elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
         bg_tot = np.sum(preds[:, 2:], axis=1)
-        events[f"bdt_score{jshift_under}"] = preds[:, 0] / (preds[:, 0] + bg_tot)
-        events[f"bdt_score_vbf{jshift_under}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+        events[f"bdt_score{jlabel}"] = preds[:, 0] / (preds[:, 0] + bg_tot)
+        events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
@@ -218,7 +203,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict[key], get_key_map(jshift)
+                events_dict[key], lambda x: check_get_jec_var(x, jshift)
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
@@ -923,8 +908,9 @@ def postprocess_run3(args):
         selection_regions.pop("pass_vbf")
 
     # individual templates per year
-    for jshift in [""] + jec_shifts:
-        templates = postprocessing.get_templates(
+    templates = {}
+    for jshift in [""] + hh_vars.jec_shifts:
+        ttemps = postprocessing.get_templates(
             events_combined,
             year=year,
             sig_keys=args.sig_keys,
@@ -939,9 +925,10 @@ def postprocess_run3(args):
             energy=13.6,
             jshift=jshift
         )
-        
-        # save templates per year
-        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
+    
+        templates = {**templates, **ttemps}
+    # save templates per year
+    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
