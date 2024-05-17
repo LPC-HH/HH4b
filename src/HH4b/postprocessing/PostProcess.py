@@ -207,10 +207,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     # inference and assign score
     events_dict_postprocess = {}
     for key in events_dict:
-        if "hh4b" in key:
-            jshifts = [""] + hh_vars.jec_shifts
-        else:
-            jshifts = [""]
+
+        jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
 
         bdt_events = {}
         for jshift in jshifts:
