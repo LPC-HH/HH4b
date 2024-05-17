@@ -27,8 +27,8 @@ from .hh_vars import (
     LUMI,
     data_key,
     jec_shifts,
-    jmsr_shifts,
     jec_vars,
+    jmsr_shifts,
     jmsr_vars,
     norm_preserving_weights,
     years,
@@ -717,10 +717,10 @@ def add_selection(name, sel, selection, cutflow, events, weight_key):
 def check_get_jec_var(var, jshift):
     """Checks if var is affected by the JEC / JMSR and if so, returns the shifted var name"""
 
-    if jshift in jec_shifts and var in jec_vars:  # noqa: F821
+    if jshift in jec_shifts and var in jec_vars:
         return var + "_" + jshift
 
-    if jshift in jmsr_shifts and var in jmsr_vars:  # noqa: F821
+    if jshift in jmsr_shifts and var in jmsr_vars:
         return var + "_" + jshift
 
     return var

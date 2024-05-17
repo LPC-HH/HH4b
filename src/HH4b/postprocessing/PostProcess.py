@@ -24,7 +24,7 @@ from HH4b.postprocessing import (
     combine_run3_samples,
     load_run3_samples,
 )
-from HH4b.utils import ShapeVar, singleVarHist, check_get_jec_var
+from HH4b.utils import ShapeVar, check_get_jec_var, singleVarHist
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -924,7 +924,7 @@ def postprocess_run3(args):
             show=False,
             energy=13.6,
             jshift=jshift,
-        )    
+        )
         templates = {**templates, **ttemps}
 
     # save templates per year
