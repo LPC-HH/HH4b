@@ -923,10 +923,10 @@ def postprocess_run3(args):
             weight_key="weight",
             show=False,
             energy=13.6,
-            jshift=jshift
-        )
-    
+            jshift=jshift,
+        )    
         templates = {**templates, **ttemps}
+
     # save templates per year
     postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
