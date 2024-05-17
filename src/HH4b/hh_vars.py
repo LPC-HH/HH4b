@@ -158,11 +158,15 @@ qcd_key = "qcd"
 
 bg_keys = list(common_samples_bg.keys())
 bg_keys.remove("data")
+bg_keys = ["qcd"]  # for testing just use qcd
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
+
+# keys that require running up/down systematics
+syst_keys = sig_keys
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 

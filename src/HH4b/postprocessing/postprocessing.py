@@ -18,6 +18,7 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     sig_keys,
+    syst_keys,
     years,
 )
 
@@ -151,32 +152,33 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    samples_sig = {
+    samples_syst = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year].keys()
-        if "hh4b" in sample
+        if sample in syst_keys
     }
-    samples_bg = {
+    samples_nosyst = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year].keys()
-        if "hh4b" not in sample
+        if sample in ["qcd", "data"] # just look at qcd, data for testing
+        # if sample not in syst_keys
     }
 
     # pre-selection
     events_dict = {
+         **utils.load_samples(
+             input_dir,
+             samples_nosyst,
+             year,
+             filters=filters,
+             columns=utils.format_columns(load_columns_year),
+             reorder_txbb=reorder_txbb,
+             txbb=txbb,
+             variations=False,
+         ),
         **utils.load_samples(
             input_dir,
-            samples_bg,
-            year,
-            filters=filters,
-            columns=utils.format_columns(load_columns_year),
-            reorder_txbb=reorder_txbb,
-            txbb=txbb,
-            variations=False,
-        ),
-        **utils.load_samples(
-            input_dir,
-            samples_sig,
+            samples_syst,
             year,
             filters=filters,
             columns=utils.format_columns(load_columns_year + load_columns_syst),
@@ -212,6 +214,7 @@ def combine_run3_samples(
     scaled_by = {}
     for key in processes:
         if key not in scale_processes:
+            print(key)        
             combined = pd.concat(
                 [
                     events_dict_years[year][key]
