@@ -207,7 +207,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)        
+        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
         if key in hh_vars.syst_keys:
             print(bdt_events.columns)
             print(bdt_events[["bdt_score", "bdt_score_JES_up", "bdt_score_JES_down"]])

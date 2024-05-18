@@ -548,7 +548,7 @@ def ratioHistPlot(
         ylim (optional): y-limit on plot
         show (bool): show plots or not
         syst (Tuple): Tuple of (wshift: name of systematic e.g. pileup,  wsamples: list of samples which are affected by this),
-          to plot variations of this systematic.        
+          to plot variations of this systematic.
         variation (str): options:
           "up" or "down", to plot only one wshift variation (if syst is not None).
           Defaults to None i.e. plotting both variations.
