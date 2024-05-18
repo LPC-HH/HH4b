@@ -158,24 +158,40 @@ for key, value in hh.items():
 # From F. Monti: VBF HH SM: 1.873758517 fb
 #  scale uncertainty: +0.048%/-0.032%
 #  pdf+alphaS uncertainty: +/- 2.719%
-vbfhh_sm = 1.873758517/1000
+vbfhh_sm = 1.873758517 / 1000
 # k-factor from 13.6 / 13
-vbfhh_sm_prev = 1.726/1000
-vbfhh_kfactor = vbfhh_sm/vbfhh_sm_prev
+vbfhh_sm_prev = 1.726 / 1000
+vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev
 xsecs["VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = vbfhh_sm * BR_HBB * BR_HBB
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = vbfhh_sm * BR_HBB * BR_HBB
 
-xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = 27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-1_C2V-0_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = 27.0e-3 *	vbfhh_kfactor *	BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-1_C2V-0_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
 
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8"] = 1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = 1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
 
-xsecs["VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = 14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = 14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
 
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-0_TuneCP5_13p6TeV_madgraph-pythia8"] = 4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = 4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV-1_C2V-1_C3-0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
+)
 
 
 # V+Jets

@@ -311,11 +311,17 @@ class bbbbSkimmer(SkimmerABC):
 
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
-        
+
         # datasets for saving jec variations
-        isJECs = "HHto4B" in dataset or "TT" in dataset or "Wto2Q" in dataset or "Zto2Q" in dataset or "Hto2B" in dataset
-        
-        #if isSignal:
+        isJECs = (
+            "HHto4B" in dataset
+            or "TT" in dataset
+            or "Wto2Q" in dataset
+            or "Zto2Q" in dataset
+            or "Hto2B" in dataset
+        )
+
+        # if isSignal:
         # take only signs of gen-weights for HH samples
         # TODO: cross check when new samples arrive
         #    gen_weights = np.sign(events["genWeight"])
@@ -717,7 +723,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
-            
+
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:
@@ -742,10 +748,7 @@ class bbbbSkimmer(SkimmerABC):
                 )
             else:
                 # using an OR of legacy and v12 TXbb
-                cut_txbb = (
-                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1)
-                    >= 1
-                ) | (
+                cut_txbb = (np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1) >= 1) | (
                     np.sum(
                         bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"], axis=1
                     )
