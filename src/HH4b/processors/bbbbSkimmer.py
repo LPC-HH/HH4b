@@ -27,7 +27,6 @@ from .corrections import (
     get_jmsr,
     get_pdf_weights,
     get_scale_weights,
-    get_trig_weights,
 )
 from .GenSelection import (
     gen_selection_Hbb,
@@ -185,6 +184,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
@@ -193,6 +193,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
@@ -229,10 +230,12 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
                 "2023BPix": [
                     "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
@@ -308,11 +311,17 @@ class bbbbSkimmer(SkimmerABC):
 
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
-        
+
         # datasets for saving jec variations
-        isJECs = "HHto4B" in dataset or "TT" in dataset or "Wto2Q" in dataset or "Zto2Q" in dataset or "Hto2B" in dataset
-        
-        #if isSignal:
+        isJECs = (
+            "HHto4B" in dataset
+            or "TT" in dataset
+            or "Wto2Q" in dataset
+            or "Zto2Q" in dataset
+            or "Hto2B" in dataset
+        )
+
+        # if isSignal:
         # take only signs of gen-weights for HH samples
         # TODO: cross check when new samples arrive
         #    gen_weights = np.sign(events["genWeight"])
@@ -714,7 +723,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
-            
+
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:
@@ -739,10 +748,7 @@ class bbbbSkimmer(SkimmerABC):
                 )
             else:
                 # using an OR of legacy and v12 TXbb
-                cut_txbb = (
-                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1)
-                    >= 1
-                ) | (
+                cut_txbb = (np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1) >= 1) | (
                     np.sum(
                         bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"], axis=1
                     )
@@ -862,7 +868,12 @@ class bbbbSkimmer(SkimmerABC):
         return accumulator
 
     def add_weights(
-        self, events, year, dataset, gen_weights, gen_selected, fatjets, num_fatjets_cut
+        self,
+        events,
+        year,
+        dataset,
+        gen_weights,
+        gen_selected,  # fatjets, num_fatjets_cut
     ) -> tuple[dict, dict]:
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights = Weights(len(events), storeIndividual=True)
@@ -938,6 +949,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.weight()
+
         # weights_dict["trigger_sf"] = get_trig_weights(fatjets, year, num_fatjets_cut)
 
         return weights_dict, totals_dict

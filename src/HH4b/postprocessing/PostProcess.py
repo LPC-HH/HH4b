@@ -91,15 +91,6 @@ label_by_mass = {
     "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
 }
 
-"""
-Test suggested by Marko
-- Fill data mass and BDT histogram before BDT (unblinded)
-- For one toy
-  - Sample mass histogram (TH1->GetRandom()) -> New mass histogram
-  - (LATER): Inject 3sigma HH4b
-  - Optimize for FOM using sideband
-"""
-
 
 def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
@@ -266,17 +257,23 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         mask_presel = (
-            (bdt_events["H1Msd"] > 40)  # FIXME: replace by jet matched to trigger object
-            & (bdt_events["H1Pt"] > 300)
-            & (bdt_events["H2Pt"] > 300)
-            & (bdt_events["H1TXbb"] > 0.8)
+            (bdt_events["H1Msd"] >= 40)  # FIXME: replace by jet matched to trigger object
+            & (bdt_events["H1Pt"] >= 300)
+            & (bdt_events["H2Pt"] >= args.pt_second)
+            & (bdt_events["H1TXbb"] >= 0.8)
             & (bdt_events[args.mass] >= 60)
-            & (bdt_events[args.mass] <= 250)
+            & (bdt_events[args.mass] <= 220)
             & (bdt_events[args.mass.replace("H2", "H1")] >= 60)
-            & (bdt_events[args.mass.replace("H2", "H1")] <= 250)
+            & (bdt_events[args.mass.replace("H2", "H1")] <= 220)
         )
         bdt_events = bdt_events[mask_presel]
-        cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second}"] = np.sum(
+            bdt_events["weight"].to_numpy()
+        )
+
+        cutflow_dict[key]["BDT > min"] = np.sum(
+            bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+        )
 
         ###### FINISH pre-selection
         mass_window = [110, 140]
@@ -348,7 +345,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
 
         mask_bin3 = (
-            ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2]) & ~(mask_vbf)
+            (bdt_events["H2TXbb"] > args.txbb_wps[1])
+            & (bdt_events["bdt_score"] > args.bdt_wps[2])
+            & ~(mask_bin1)
+            & ~(mask_bin2)
+            & ~(mask_vbf)
         )
         bdt_events.loc[mask_bin3, "Category"] = 3
         cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
@@ -753,7 +754,7 @@ def postprocess_run3(args):
             processes,
             bg_keys=bg_keys_combined,
             scale_processes={
-                "hh4b": ["2022EE", "2023", "2023BPix"],
+                # "hh4b": ["2022EE", "2023", "2023BPix"], # FIXED
                 "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
             years_run3=args.years,
@@ -764,6 +765,7 @@ def postprocess_run3(args):
         scaled_by = {}
 
     # combined cutflow
+    cutflow_combined = None
     if len(args.years) > 0:
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
@@ -871,9 +873,6 @@ def postprocess_run3(args):
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
 
-    if not args.templates:
-        return
-
     templ_dir = Path("templates") / args.templates_tag
     year = "2022-2023"
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
@@ -885,7 +884,14 @@ def postprocess_run3(args):
         pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
+        cutflows[cyear] = cutflows[cyear].round(2)
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
+    if cutflow_combined is not None:
+        cutflow_combined = cutflow_combined.round(2)
+        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
+
+    if not args.templates:
+        return
 
     if not args.vbf:
         selection_regions.pop("pass_vbf")
@@ -996,6 +1002,10 @@ if __name__ == "__main__":
         nargs="+",
         default=["hh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
+    )
+
+    parser.add_argument(
+        "--pt-second", type=float, default=300, help="pt threshold for subleading jet"
     )
 
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
