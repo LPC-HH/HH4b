@@ -310,7 +310,7 @@ class bbbbSkimmer(SkimmerABC):
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
-        isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
+        # isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
 
         # datasets for saving jec variations
         isJECs = (
@@ -325,10 +325,7 @@ class bbbbSkimmer(SkimmerABC):
         # take only signs of gen-weights for HH samples
         # TODO: cross check when new samples arrive
         #    gen_weights = np.sign(events["genWeight"])
-        if not isData:
-            gen_weights = events["genWeight"].to_numpy()
-        else:
-            gen_weights = None
+        gen_weights = events["genWeight"].to_numpy() if not isData else None
 
         n_events = len(events) if isData else np.sum(gen_weights)
         selection = PackedSelection()
