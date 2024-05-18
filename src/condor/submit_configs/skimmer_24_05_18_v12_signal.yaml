@@ -1,0 +1,173 @@
+{
+    "2022":
+        {
+            "HH": {
+                "subsamples": [
+                    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                    ],
+                    "files_per_job": 10,
+                    },
+            "JetMET":
+                {
+                    "subsamples":
+                        [
+                            "JetMET_Run2022C_single",
+                            "JetMET_Run2022C",
+                            "JetMET_Run2022D",
+                        ],
+                    "files_per_job": 8,
+                },
+            "TT":
+                {
+                    "subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"],
+                    "files_per_job": 10,
+                },
+            "SingleTop": {"files_per_job": 10,},
+            "Diboson":
+                { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+            "VBFHH":
+                {
+                    "subsamples":
+                        [
+                            "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                        ],
+                    "files_per_job": 10,
+                },
+            "Hbb": { "files_per_job": 10 },
+            "VJets":
+                {
+                    "files_per_job": 6,
+                },
+            "QCD":
+                {
+                    "subsamples":
+                        [
+                            "QCD_HT-100to200",
+                            "QCD_HT-200to400",
+                            "QCD_HT-400to600",
+                            "QCD_HT-600to800",
+                            "QCD_HT-800to1000",
+                            "QCD_HT-1000to1200",
+                            "QCD_HT-1200to1500",
+                            "QCD_HT-1500to2000",
+                            "QCD_HT-2000",
+                        ],
+                    "files_per_job": 10,
+                },
+       },
+    "2022EE":
+        {
+            "JetMET":
+                {
+                    "subsamples":
+                        [
+                            "JetMET_Run2022E",
+                            "JetMET_Run2022F",
+                            "JetMET_Run2022G",
+                        ],
+                    "files_per_job": 8,
+                },
+            "TT":
+                {
+                    "subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"],
+                    "files_per_job": 10,
+                },
+            "SingleTop": {"files_per_job": 10,},
+            "Diboson":
+                { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+            "HH":
+                {
+                    "subsamples":
+                        [
+                            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                            "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                            "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                        ],
+                    "files_per_job": 10,
+                },
+            "VBFHH":
+                {
+                    "subsamples":
+                        [
+                            "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                        ],
+                    "files_per_job": 10,
+                },
+            "Hbb": { "files_per_job": 10 },
+            "VJets":
+                {
+                    "files_per_job": 6,
+                },
+            "QCD":
+                {
+                    "subsamples":
+                        [
+                            "QCD_HT-100to200",
+                            "QCD_HT-200to400",
+                            "QCD_HT-400to600",
+                            "QCD_HT-600to800",
+                            "QCD_HT-800to1000",
+                            "QCD_HT-1000to1200",
+                            "QCD_HT-1200to1500",
+                            "QCD_HT-1500to2000",
+                            "QCD_HT-2000",
+                        ],
+                    "files_per_job": 10,
+                },
+        },
+    "2023":
+       {
+            "JetMET":
+                {
+                    "subsamples":
+                        [
+                            "JetMET_Run2023Cv1",
+                            "JetMET_Run2023Cv2",
+                            "JetMET_Run2023Cv3",
+                            "JetMET_Run2023Cv4",
+                        ],
+                    "files_per_job": 8,
+                },
+            "TT":
+                {
+                    "subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"],
+                    "files_per_job": 10,
+                },
+            "SingleTop": {"files_per_job": 10,},
+            "Diboson":
+                { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+            "VJets":
+                {
+                    "files_per_job": 6,
+                },
+            "Hbb": { "files_per_job": 10 },
+            "QCD": { "files_per_job": 10 },
+           "HH": { "files_per_job": 10 },
+    },
+    "2023BPix":
+    {
+            "JetMET": { "subsamples": ["JetMET_Run2023D"], "files_per_job": 8 },
+            "TT":
+                {
+                    "subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"],
+                    "files_per_job": 10,
+                },
+            "SingleTop": {"files_per_job": 10,},
+            "Diboson":
+                { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+            "VJets":
+                {
+                    "files_per_job": 6,
+                },
+            "Hbb": { "files_per_job": 10 },
+            "QCD": { "files_per_job": 10 },
+            "HH": { 
+                "subsamples": [
+                    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
+                ],
+                "files_per_job": 10 
+            },
+    },
+}
