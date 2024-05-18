@@ -7,6 +7,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
+import corrections
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -166,61 +167,73 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
 
-    events_dict = load_run3_samples(
-        f"{args.data_dir}/{args.tag}",
-        year,
-        args.legacy,
-        samples_run3,
-        reorder_txbb=True,
-        txbb=f"bbFatJetPNetTXbb{legacy_label}",
-    )
-
-    cutflow = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_print = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_dict = {
-        key: OrderedDict(
-            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
-        )
-        for key in events_dict
-    }
-
     # define BDT model
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+
     # get function
     make_bdt_dataframe = importlib.import_module(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    # inference and assign score
+    # make histograms to validate weights
+    h_weights = hist.Hist(
+        hist.axis.StrCategory([], name="samp", growth=True),
+        hist.axis.Regular(30, 0, 1.5, name="evweight", label="evweight"),
+    )
+    h_mass = hist.Hist(
+        hist.axis.StrCategory([], name="samp", growth=True),
+        hist.axis.Regular(16, 60, 220, name="h2mass", label="Jet 2 mass (GeV)"),
+    )
+
+    # define cutflows
+    samples_year = list(samples_run3[year].keys())
+    cutflow = pd.DataFrame(index=samples_year)
+    cutflow_dict = {}
+
+    # region in which QCD trigger weights were extracted
+    trigger_region = "QCD"
+
     events_dict_postprocess = {}
-    for key in events_dict:
-        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
+    for key in samples_year:
+        samples_to_process = {year: {key: samples_run3[year][key]}}
+
+        events_dict = load_run3_samples(
+            f"{args.data_dir}/{args.tag}",
+            year,
+            args.legacy,
+            samples_to_process,
+            reorder_txbb=True,
+            txbb=f"bbFatJetPNetTXbb{legacy_label}",
+        )[key]
+
+        cutflow_dict[key] = OrderedDict(
+            [("Skimmer Preselection", np.sum(events_dict["finalWeight"].to_numpy()))]
+        )
+
+        # inference and assign score
+        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict)
         preds = bdt_model.predict_proba(bdt_events)
         add_bdt_scores(bdt_events, preds)
 
-        bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
-        bdt_events["H2Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 1]
-        bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
-        bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
-        bdt_events["H1TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 0]
-        bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
-        bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
-            :, 0
-        ]
-        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
-            :, 1
-        ]
-        bdt_events["H1TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 0]
-        bdt_events["H2TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 1]
+        bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
+        bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
+        bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
+        bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
+        bdt_events["H1TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][0]
+        bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
+        bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
+        bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
+        bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
+        bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
 
         # add HLTs
         bdt_events["hlt"] = np.any(
             np.array(
                 [
-                    events_dict[key][trigger].to_numpy()[:, 0]
+                    events_dict[trigger].to_numpy()[:, 0]
                     for trigger in postprocessing.HLTs[year]
-                    if trigger in events_dict[key]
+                    if trigger in events_dict
                 ]
             ),
             axis=0,
@@ -228,15 +241,40 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # weights
         # finalWeight: includes genWeight, puWeight
+        nominal_weight = events_dict["finalWeight"].to_numpy()
+
+        trigger_weight = np.ones(len(events_dict["bbFatJetPt"][0]))
+        if key != "data":
+            trigger_weight, trigger_weight_up, trigger_weight_dn = corrections.trigger_SF(
+                year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
+            )
+            h_weights.fill(f"{key}_trigger", trigger_weight)
+            h_weights.fill(f"{key}_trigger_up", trigger_weight_up)
+            h_weights.fill(f"{key}_trigger_down", trigger_weight_dn)
+
+            h_mass.fill(
+                f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+            h_mass.fill(
+                f"{key}_trigger_up",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_up,
+            )
+            h_mass.fill(
+                f"{key}_trigger_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_dn,
+            )
+
         # FIXME: genWeight taken only as sign for HH sample...
-        bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+        bdt_events["weight"] = nominal_weight * trigger_weight
 
         ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
         # if key == "ttbar" and not args.legacy:
         #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
 
         # add selection to testing events
-        bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
+        bdt_events["event"] = events_dict["event"][0]
         if (
             args.training_years is not None
             and year in args.training_years
@@ -256,6 +294,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
+        # pre-selection
         mask_presel = (
             (bdt_events["H1Msd"] >= 40)  # FIXME: replace by jet matched to trigger object
             & (bdt_events["H1Pt"] >= 300)
@@ -398,12 +437,33 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns]
 
+    # make plots of weights for signal sample
+    plotting.sigErrRatioPlot(
+        h_weights,
+        year,
+        "hh4b",
+        "trigger",
+        plot_dir=plot_dir,
+        name=f"{year}_sig_trigger{trigger_region}",
+        show=False,
+        ylim=[0, 2],
+    )
+    plotting.sigErrRatioPlot(
+        h_mass,
+        year,
+        "hh4b",
+        "trigger",
+        plot_dir=plot_dir,
+        name=f"mass_{year}_sig_trigger{trigger_region}",
+        show=False,
+        ylim=[0.9, 1.1],
+    )
+
     for cut in cutflow_dict[key]:
-        cutflow[cut] = [cutflow_dict[key][cut] for key in events_dict]
-        cutflow_print[cut] = [f"{cutflow_dict[key][cut]:.2f}" for key in events_dict]
+        cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
 
     print("\nCutflow")
-    print(cutflow_print)
+    print(cutflow)
     return events_dict_postprocess, cutflow
 
 
