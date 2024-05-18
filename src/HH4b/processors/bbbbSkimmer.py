@@ -52,6 +52,7 @@ from .utils import P4, PAD_VAL, add_selection, pad_val
 gen_selection_dict = {
     "HHto4B": gen_selection_HHbbbb,
     "HToBB": gen_selection_Hbb,
+    "Hto2B": gen_selection_Hbb,
     "TTto4Q": gen_selection_Top,
     "Wto2Q-": gen_selection_V,
     "Zto2Q-": gen_selection_V,
@@ -185,6 +186,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
                 "2023BPix": [
@@ -192,6 +194,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                     "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
             },
@@ -305,12 +308,15 @@ class bbbbSkimmer(SkimmerABC):
 
         isData = not hasattr(events, "genWeight")
         isSignal = "HHTobbbb" in dataset or "HHto4B" in dataset
-
-        if isSignal:
-            # take only signs of gen-weights for HH samples
-            # TODO: cross check when new samples arrive
-            gen_weights = np.sign(events["genWeight"])
-        elif not isData:
+        
+        # datasets for saving jec variations
+        isJECs = "HHto4B" in dataset or "TT" in dataset or "Wto2Q" in dataset or "Zto2Q" in dataset or "Hto2B" in dataset
+        
+        #if isSignal:
+        # take only signs of gen-weights for HH samples
+        # TODO: cross check when new samples arrive
+        #    gen_weights = np.sign(events["genWeight"])
+        if not isData:
             gen_weights = events["genWeight"].to_numpy()
         else:
             gen_weights = None
@@ -401,9 +407,9 @@ class bbbbSkimmer(SkimmerABC):
         else:
             fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
 
-        # variations for bb fatjets (TODO: not only for signal)
+        # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
-        if self._region == "signal" and isSignal:
+        if self._region == "signal" and isJECs:
             for jec_var in ["pt"]:
                 tdict = {"": fatjets_xbb[jec_var]}
                 for key, shift in self.jecs.items():
@@ -421,7 +427,7 @@ class bbbbSkimmer(SkimmerABC):
             **self.vbf_veto_lepton_selection,
         )
 
-        # AK4 objects away from fatjets
+        # AK4 objects away from first two fatjets
         ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
             jets,
             fatjets_xbb[:, :2],
@@ -463,7 +469,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # Jet variables
         jet_skimvars = self.skim_vars["Jet"]
-        if self._nano_version == "v12":
+        if "v12" in self._nano_version:
             jet_skimvars = {
                 **jet_skimvars,
                 "btagDeepFlavB": "btagDeepFlavB",
@@ -471,7 +477,7 @@ class bbbbSkimmer(SkimmerABC):
                 "btagPNetCvB": "btagPNetCvB",
                 "btagPNetCvL": "btagPNetCvL",
                 "btagPNetQvG": "btagPNetQvG",
-                "btagRobustParTAK4B": "btagRobustParTAK4B",
+                # "btagRobustParTAK4B": "btagRobustParTAK4B",
             }
         if not isData:
             jet_skimvars = {
@@ -520,8 +526,8 @@ class bbbbSkimmer(SkimmerABC):
         }
         print("Jet vars", f"{time.time() - start:.2f}")
 
-        # JEC and JMSR  (TODO: for signal only for now, add others)
-        if self._region == "signal" and isSignal:
+        # JEC and JMSR
+        if self._region == "signal" and isJECs:
             # Jet JEC variables
             for var in ["pt"]:
                 key = self.skim_vars["Jet"][var]
@@ -576,6 +582,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet275_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40",
                     "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
                     "AK8DiPFJet250_250_MassSD50",
                     "AK8DiPFJet260_260_MassSD30",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
@@ -631,7 +638,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if self._region == "signal":
             # TODO: add shifts from JECs and JSMR
-            bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
+            # bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
 
             # VBF Jets
             vbfJetVars = {
@@ -639,8 +646,8 @@ class bbbbSkimmer(SkimmerABC):
                 for (var, key) in self.skim_vars["Jet"].items()
             }
 
-            # JEC variations for VBF Jets (for signal only for now)
-            if self._region == "signal" and isSignal:
+            # JEC variations for VBF Jets
+            if self._region == "signal" and isJECs:
                 for var in ["pt"]:
                     key = self.skim_vars["Jet"][var]
                     for label, shift in self.jecs.items():
@@ -653,7 +660,7 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events = {
                 **skimmed_events,
                 **vbfJetVars,
-                **bbFatDijetVars,
+                # **bbFatDijetVars,
                 **trigObjFatJetVars,
             }
         else:
@@ -733,7 +740,7 @@ class bbbbSkimmer(SkimmerABC):
             else:
                 # using an OR of legacy and v12 TXbb
                 cut_txbb = (
-                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1)
+                    np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1)
                     >= 1
                 ) | (
                     np.sum(
@@ -897,16 +904,12 @@ class bbbbSkimmer(SkimmerABC):
                     else:
                         var_weight = var_weight * weights._modifiers[systematic]
 
-                    # var_weight = weights.partial_weight(
-                    #    include=norm_preserving_weights, modifier=systematic
-                    # )
-
                     # need to save total # events for each variation for normalization in post-processing
                     totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
 
-            # TEMP: save each individual weight TODO: remove
-            for key in weights._weights:
-                weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
+        # TEMP: save each individual weight TODO: remove
+        for key in weights._weights:
+            weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
         if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
