@@ -164,7 +164,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
+def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weight_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
@@ -243,7 +243,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # finalWeight: includes genWeight, puWeight
         nominal_weight = events_dict["finalWeight"].to_numpy()
 
-        trigger_weight = np.ones(len(events_dict["bbFatJetPt"][0]))
+        nevents = len(events_dict["bbFatJetPt"][0])
+        trigger_weight = np.ones(nevents)
         if key != "data":
             trigger_weight, trigger_weight_up, trigger_weight_dn = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
@@ -266,12 +267,51 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 weight=nominal_weight * trigger_weight_dn,
             )
 
-        # FIXME: genWeight taken only as sign for HH sample...
-        bdt_events["weight"] = nominal_weight * trigger_weight
+        # tt corrections
+        ttbar_weight = np.ones(nevents)
+        if key == "ttbar":
+            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+            tau32sf = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H1T32"
+            ) * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")
+            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb") * corrections.ttbar_SF(
+                year, bdt_events, "Xbb", "H2TXbb"
+            )
 
-        ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
-        # if key == "ttbar" and not args.legacy:
-        #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
+            ttbar_weight = ptjjsf * txbbsf * tau32sf
+            # ttbar_weight = ptjjsf * txbbsf
+
+            h_weights.fill(f"{key}_ptjj", ptjjsf)
+            h_weights.fill(f"{key}_tau32", tau32sf)
+            h_weights.fill(f"{key}_txbb", txbbsf)
+            # h_mass.fill(f"{key}_ptjj",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * ptjjsf)
+            # h_mass.fill(f"{key}_tau32",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * tau32sf)
+            # h_mass.fill(f"{key}_txbb",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * txbbsf)
+            h_mass.fill(
+                f"{key}_ttsf",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf,
+            )
+            h_mass.fill(
+                f"{key}_ttsf_down", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+
+            h_mass.fill(
+                f"{key}_ttsftau32",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf * tau32sf,
+            )
+            h_mass.fill(
+                f"{key}_ttsftau32_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight,
+            )
+
+        bdt_events["ttweight"] = ttbar_weight
+
+        # FIXME: genWeight taken only as sign for HH sample...
+        bdt_events["weight_nott"] = nominal_weight * trigger_weight
+        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
 
         # add selection to testing events
         bdt_events["event"] = events_dict["event"][0]
@@ -359,6 +399,18 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
         )
 
+        if key == "ttbar":
+            h_mass.fill(
+                f"{key}_ttsftau32bin1",
+                bdt_events[args.mass][mask_bin1],
+                weight=(bdt_events["ttweight"] * bdt_events["weight_nott"])[mask_bin1],
+            )
+            h_mass.fill(
+                f"{key}_ttsftau32bin1_down",
+                bdt_events[args.mass][mask_bin1],
+                weight=bdt_events["weight_nott"][mask_bin1],
+            )
+
         cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
             bdt_events["weight"][
                 (bdt_events["H2TXbb"] > args.txbb_wps[0])
@@ -437,29 +489,52 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns]
 
-    # make plots of weights for signal sample
-    plotting.sigErrRatioPlot(
-        h_weights,
-        year,
-        "hh4b",
-        "trigger",
-        plot_dir=plot_dir,
-        name=f"{year}_sig_trigger{trigger_region}",
-        show=False,
-        ylim=[0, 2],
-    )
-    plotting.sigErrRatioPlot(
-        h_mass,
-        year,
-        "hh4b",
-        "trigger",
-        plot_dir=plot_dir,
-        name=f"mass_{year}_sig_trigger{trigger_region}",
-        show=False,
-        ylim=[0.9, 1.1],
-    )
+    # make plots of weights
+    if weight_plots:
+        plotting.sigErrRatioPlot(
+            h_weights,
+            "hh4b",
+            "trigger",
+            "Event weight",
+            plot_dir=plot_dir,
+            name=f"{year}_sig_trigger{trigger_region}",
+            show=False,
+            ylim=[0, 2],
+        )
+        plotting.sigErrRatioPlot(
+            h_mass,
+            "hh4b",
+            "trigger",
+            "Jet 2 Mass (GeV)",
+            plot_dir=plot_dir,
+            name=f"mass_{year}_sig_trigger{trigger_region}",
+            show=False,
+            ylim=[0.9, 1.1],
+        )
+        for key in ["ptjj", "tau32", "txbb"]:
+            plotting.sigErrRatioPlot(
+                h_weights,
+                "ttbar",
+                key,
+                "Event weight",
+                plot_dir=plot_dir,
+                name=f"{year}_ttbar_{key}",
+                show=False,
+                ylim=[0, 2],
+            )
+        for key in ["ttsf", "ttsftau32", "ttsftau32bin1"]:
+            plotting.sigErrRatioPlot(
+                h_mass,
+                "ttbar",
+                key,
+                "Jet 2 Mass (GeV)",
+                plot_dir=plot_dir,
+                name=f"mass_{year}_ttbar_{key}",
+                show=False,
+                ylim=[0.5, 1.5],
+            )
 
-    for cut in cutflow_dict[key]:
+    for cut in cutflow_dict["hh4b"]:
         cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
 
     print("\nCutflow")
@@ -800,6 +875,7 @@ def postprocess_run3(args):
             year,
             bdt_training_keys,
             args.control_plots,
+            args.weight_plots,
             plot_dir,
         )
 
@@ -1070,6 +1146,7 @@ if __name__ == "__main__":
 
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
+    run_utils.add_bool_arg(parser, "weight-plots", default=False, help="make weight plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")

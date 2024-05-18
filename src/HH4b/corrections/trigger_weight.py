@@ -5,9 +5,9 @@ Convert ROOT files with trigger SFs derived by Armen to correctionlib
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 import numpy as np
-import Path
 import uproot
 from correctionlib import schemav2
 
@@ -198,7 +198,8 @@ def main(args):
             corrs[key] = corr
 
         cset = schemav2.CorrectionSet(schema_version=2, corrections=[corrs["mc"], corrs["data"]])
-        with Path.open(f"data/fatjet_triggereff_{year}_ptmsd_{region}.json", "w") as fout:
+        path = Path(f"data/fatjet_triggereff_{year}_ptmsd_{region}.json")
+        with path.open("w") as fout:
             fout.write(cset.json(exclude_unset=True))
 
     for year, corr_items in corr_txbb.items():
@@ -220,7 +221,8 @@ def main(args):
             corrs[key] = corr
 
         cset = schemav2.CorrectionSet(schema_version=2, corrections=[corrs["mc"], corrs["data"]])
-        with Path.open(f"data/fatjet_triggereff_{year}_txbb_{region}.json", "w") as fout:
+        path = Path(f"data/fatjet_triggereff_{year}_txbb_{region}.json")
+        with path.open("w") as fout:
             fout.write(cset.json(exclude_unset=True))
 
     for year, corr_items in corr_txbb_v11.items():
@@ -242,7 +244,8 @@ def main(args):
             corrs[key] = corr
 
         cset = schemav2.CorrectionSet(schema_version=2, corrections=[corrs["mc"], corrs["data"]])
-        with Path.open(f"data/fatjet_triggereff_{year}_txbbv11_{region}.json", "w") as fout:
+        path = Path(f"data/fatjet_triggereff_{year}_txbbv11_{region}.json")
+        with path.open("w") as fout:
             fout.write(cset.json(exclude_unset=True))
 
 

@@ -148,6 +148,7 @@ def sigErrRatioPlot(
     h: Hist,
     sig_key: str,
     wshift: str,
+    xlabel: str,
     title: str = None,
     plot_dir: str = None,
     name: str = None,
@@ -164,7 +165,7 @@ def sigErrRatioPlot(
         histtype="step",
         label=sig_key,
         yerr=False,
-        color=color_by_sample[sig_key],
+        color="k",
         ax=ax,
         linewidth=2,
     )
@@ -200,7 +201,7 @@ def sigErrRatioPlot(
     rax.set_ylim([0, 2])
     if ylim is not None:
         rax.set_ylim(ylim)
-    rax.set_xlabel(r"Event Weight")
+    rax.set_xlabel(xlabel)
     rax.legend()
     rax.set_ylabel("Variation / Nominal")
     rax.grid(axis="y")
