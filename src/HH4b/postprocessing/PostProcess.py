@@ -393,7 +393,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 check_get_jec_var("bdt_score", jshift),
                 check_get_jec_var("H2Msd", jshift),
                 check_get_jec_var("H2PNetMass", jshift),
-                ]
+            ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         columns = list(set(columns))
