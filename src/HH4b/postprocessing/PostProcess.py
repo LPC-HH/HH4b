@@ -24,7 +24,7 @@ from HH4b.postprocessing import (
     combine_run3_samples,
     load_run3_samples,
 )
-from HH4b.utils import ShapeVar, check_get_jec_var, singleVarHist
+from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -203,7 +203,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict[key], lambda x: check_get_jec_var(x, jshift)
+                events_dict[key], get_var_mapping(jshift)
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)

@@ -726,6 +726,11 @@ def check_get_jec_var(var, jshift):
 
     return var
 
+def get_var_mapping(jshift):
+    """Returns function that maps var to shifted var for a given systematic shift [JES|JER|JMS|JMR]_[up|down]"""
+    def var_mapping(var):
+        return check_get_jec_var(var, jshift)
+    return var_mapping
 
 def _var_selection(
     events: pd.DataFrame,
