@@ -307,7 +307,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             mask_bin1 = (
                 (bdt_events["H2TXbb"] > args.txbb_wps[0])
                 & (bdt_events[bdt_score] > args.bdt_wps[0])
-                # & ~(mask_vbf)
             )
 
             if args.vbf_priority:

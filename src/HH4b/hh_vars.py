@@ -158,7 +158,6 @@ qcd_key = "qcd"
 
 bg_keys = list(common_samples_bg.keys())
 bg_keys.remove("data")
-bg_keys = ["qcd"]  # for testing just use qcd
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
