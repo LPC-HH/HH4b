@@ -11,7 +11,6 @@ def bdt_dataframe(events, key_map=lambda x: x):
     NOTE: this function should be saved along with the model for inference usage
     """
 
-    print(key_map("bbFatJetPt"))
     h1 = vector.array(
         {
             "pt": events[key_map("bbFatJetPt")].to_numpy()[:, 0],
