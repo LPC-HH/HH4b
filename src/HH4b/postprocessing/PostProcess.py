@@ -208,9 +208,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-        if key in hh_vars.syst_keys:
-            print(bdt_events.columns)
-            print(bdt_events[["bdt_score", "bdt_score_JES_up", "bdt_score_JES_down"]])
         bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
         bdt_events["H2Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 1]
         bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
@@ -268,17 +265,89 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        mask_presel = (
-            (bdt_events["H1Msd"] >= 40)  # FIXME: replace by jet matched to trigger object
-            & (bdt_events["H1Pt"] >= 300)
-            & (bdt_events["H2Pt"] >= args.pt_second)
-            & (bdt_events["H1TXbb"] >= 0.8)
-            & (bdt_events[args.mass] >= 60)
-            & (bdt_events[args.mass] <= 220)
-            & (bdt_events[args.mass.replace("H2", "H1")] >= 60)
-            & (bdt_events[args.mass.replace("H2", "H1")] <= 220)
-        )
-        bdt_events = bdt_events[mask_presel]
+        for jshift in jshifts:
+            h1pt = check_get_jec_var("H1Pt", jshift)
+            h2pt = check_get_jec_var("H2Pt", jshift)
+            h1msd = check_get_jec_var("H1Msd", jshift)
+            h1mass = check_get_jec_var(args.mass.replace("H2", "H1"), jshift)
+            h2mass = check_get_jec_var(args.mass, jshift)
+            category = check_get_jec_var("Category", jshift)
+            bdt_score = check_get_jec_var("bdt_score", jshift)
+
+            mask_presel = (
+                (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
+                & (bdt_events[h1pt] >= 300)
+                & (bdt_events[h2pt] >= args.pt_second)
+                & (bdt_events["H1TXbb"] >= 0.8)
+                & (bdt_events[h2mass] >= 60)
+                & (bdt_events[h2mass] <= 220)
+                & (bdt_events[h1mass] >= 60)
+                & (bdt_events[h1mass] <= 220)
+            )
+            bdt_events = bdt_events[mask_presel]
+
+            ###### FINISH pre-selection
+            mass_window = [110, 140]
+            mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
+            mask_mass = (bdt_events[h2mass] >= mass_window[0]) & (
+                bdt_events[h2mass] <= mass_window[1]
+            )
+
+            # define category
+            bdt_events[category] = 5  # all events
+            if args.vbf:
+                bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
+                mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
+                    bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                )
+            else:
+                # if no VBF region, set all events to "fail VBF"
+                mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
+            mask_bin1 = (
+                (bdt_events["H2TXbb"] > args.txbb_wps[0])
+                & (bdt_events[bdt_score] > args.bdt_wps[0])
+                # & ~(mask_vbf)
+            )
+
+            if args.vbf_priority:
+                # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
+                mask_bin1 = mask_bin1 & ~(mask_vbf)
+            else:
+                # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+                mask_vbf = mask_vbf & ~(mask_bin1)
+
+            bdt_events.loc[mask_vbf, category] = 0
+
+            bdt_events.loc[mask_bin1, category] = 1
+           
+            mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
+                bdt_events[bdt_score] < args.bdt_wps[0]
+            )
+            mask_bin2 = (
+                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                & (bdt_events[bdt_score] > args.bdt_wps[1])
+                & ~(mask_bin1)
+                & ~(mask_corner)
+                & ~(mask_vbf)
+            )
+            bdt_events.loc[mask_bin2, category] = 2
+
+            mask_bin3 = (
+                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                & (bdt_events[bdt_score] > args.bdt_wps[2])
+                & ~(mask_bin1)
+                & ~(mask_bin2)
+                & ~(mask_vbf)
+            )
+            bdt_events.loc[mask_bin3, category] = 3
+            
+            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
+                bdt_events[bdt_score] > args.bdt_wps[2]
+            )
+            bdt_events.loc[mask_fail, category] = 4
+
+        # save cutflows for nominal variables
         cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second}"] = np.sum(
             bdt_events["weight"].to_numpy()
         )
@@ -287,37 +356,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
         )
 
-        ###### FINISH pre-selection
-        mass_window = [110, 140]
-        mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
-        mask_mass = (bdt_events[args.mass] >= mass_window[0]) & (
-            bdt_events[args.mass] <= mass_window[1]
-        )
-
-        # define category
-        bdt_events["Category"] = 5  # all events
-        if args.vbf:
-            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
-                bdt_events["H2TXbb"] > args.vbf_txbb_wp
-            )
-        else:
-            # if no VBF region, set all events to "fail VBF"
-            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
-
-        mask_bin1 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[0])
-            & (bdt_events["bdt_score"] > args.bdt_wps[0])
-            # & ~(mask_vbf)
-        )
-
-        if args.vbf_priority:
-            # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
-            mask_bin1 = mask_bin1 & ~(mask_vbf)
-        else:
-            # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
-            mask_vbf = mask_vbf & ~(mask_bin1)
-
-        bdt_events.loc[mask_vbf, "Category"] = 0
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
@@ -326,7 +364,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
 
-        bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
@@ -340,44 +377,25 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ].to_numpy()
         )
 
-        mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
-            bdt_events["bdt_score"] < args.bdt_wps[0]
-        )
-        mask_bin2 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[1])
-            & (bdt_events["bdt_score"] > args.bdt_wps[1])
-            & ~(mask_bin1)
-            & ~(mask_corner)
-            & ~(mask_vbf)
-        )
-        bdt_events.loc[mask_bin2, "Category"] = 2
         cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
         cutflow_dict[key][f"Bin 2 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
         )
 
-        mask_bin3 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[1])
-            & (bdt_events["bdt_score"] > args.bdt_wps[2])
-            & ~(mask_bin1)
-            & ~(mask_bin2)
-            & ~(mask_vbf)
-        )
-        bdt_events.loc[mask_bin3, "Category"] = 3
         cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
         cutflow_dict[key][f"Bin 3 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
 
-        mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
-            bdt_events["bdt_score"] > args.bdt_wps[2]
-        )
-        bdt_events.loc[mask_fail, "Category"] = 4
-
         # keep some (or all) columns
-        columns = ["Category", "H2Msd", "bdt_score", "H2TXbb", "H2PNetMass", "weight"]
+        columns = ["H2TXbb", "weight"]
         if "bdt_score_vbf" in bdt_events:
-            columns += ["bdt_score_vbf"]
+            columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        columns += [check_get_jec_var("Category", jshift) for jshift in jshifts]
+        columns += [check_get_jec_var("bdt_score", jshift) for jshift in jshifts]
+        columns += [check_get_jec_var("H2Msd", jshift) for jshift in jshifts]
+        columns += [check_get_jec_var("H2PNetMass", jshift) for jshift in jshifts]
+        columns = list(set(columns))
 
         if control_plots:
             bdt_events["H1T32top"] = bdt_events["H1T32"]

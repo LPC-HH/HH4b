@@ -212,7 +212,6 @@ def combine_run3_samples(
     scaled_by = {}
     for key in processes:
         if key not in scale_processes:
-            print(key)
             combined = pd.concat(
                 [
                     events_dict_years[year][key]
@@ -462,7 +461,6 @@ def get_templates(
                 # add weight variations
                 for wshift, wsyst in weight_shifts.items():
                     if sample in wsyst.samples and year in wsyst.years:
-                        # print(wshift)
                         for skey, shift in [("Down", "down"), ("Up", "up")]:
                             # reweight based on diff between up/down and nominal weights
                             h.fill(

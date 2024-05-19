@@ -236,6 +236,7 @@ jec_vars = [
     "H1Pt/H2Pt",
     "VBFjjMass",
     "VBFjjDeltaEta",
+    "Category",
 ]
 
 # variables affected by JMS/JMR
