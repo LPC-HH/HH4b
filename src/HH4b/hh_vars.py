@@ -165,13 +165,13 @@ sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 # keys that require running up/down systematics
-syst_keys = sig_keys
+syst_keys = sig_keys  # TODO: add for all MC backgrounds in fit
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
     "JES": "JES",
-    # "JER": "JER",
+    # "JER": "JER",  # TODO
     #####
     # including reduced sources
     #####
