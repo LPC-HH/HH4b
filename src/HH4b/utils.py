@@ -27,8 +27,11 @@ from .hh_vars import (
     LUMI,
     data_key,
     jec_shifts,
+    jec_vars,
     jmsr_shifts,
+    jmsr_vars,
     norm_preserving_weights,
+    syst_keys,
     years,
 )
 
@@ -338,7 +341,7 @@ def load_samples(
                 warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-            # print(f"Loading {sample}")
+            print(f"Loading {sample}")
             events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
 
             # no events?
@@ -715,13 +718,22 @@ def add_selection(name, sel, selection, cutflow, events, weight_key):
 def check_get_jec_var(var, jshift):
     """Checks if var is affected by the JEC / JMSR and if so, returns the shifted var name"""
 
-    if jshift in jec_shifts and var in jec_vars:  # noqa: F821
+    if jshift in jec_shifts and var in jec_vars:
         return var + "_" + jshift
 
-    if jshift in jmsr_shifts and var in jmsr_vars:  # noqa: F821
+    if jshift in jmsr_shifts and var in jmsr_vars:
         return var + "_" + jshift
 
     return var
+
+
+def get_var_mapping(jshift):
+    """Returns function that maps var to shifted var for a given systematic shift [JES|JER|JMS|JMR]_[up|down]"""
+
+    def var_mapping(var):
+        return check_get_jec_var(var, jshift)
+
+    return var_mapping
 
 
 def _var_selection(
@@ -741,7 +753,7 @@ def _var_selection(
 
     # OR the different vars
     for cutvar in cut_vars:
-        if jshift != "" and sample != data_key:
+        if jshift != "" and sample in syst_keys:
             var = check_get_jec_var(cutvar, jshift)
         else:
             var = cutvar

@@ -18,6 +18,7 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     sig_keys,
+    syst_keys,
     years,
 )
 
@@ -116,6 +117,25 @@ load_columns_v12 = load_columns + [
     ("bbFatJetPNetQCD2HF", 2),
 ]
 
+load_columns_syst = [
+    ("bbFatJetPt_JES_up", 2),
+    ("bbFatJetPt_JES_down", 2),
+    ("VBFJetPt_JES_up", 2),
+    ("VBFJetPt_JES_down", 2),
+    # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
+    # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
+    # ("VBFJetPt_JER_up", 2),  # TODO: load once present
+    # ("VBFJetPt_JER_down", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMR_up", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMR_down", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
+]
+
 weight_shifts = {
     "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
@@ -140,18 +160,38 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    # pre-selection
-    events_dict = utils.load_samples(
-        input_dir,
-        samples_run3[year],
-        year,
-        filters=filters,
-        columns=utils.format_columns(load_columns_year),
-        reorder_txbb=reorder_txbb,
-        txbb=txbb,
-        variations=False,
-    )
+    samples_syst = {
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in syst_keys
+    }
+    samples_nosyst = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if sample not in syst_keys
+    }
 
+    # pre-selection
+    events_dict = {
+        **utils.load_samples(
+            input_dir,
+            samples_nosyst,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
+        **utils.load_samples(
+            input_dir,
+            samples_syst,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year + load_columns_syst),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
+    }
     return events_dict
 
 
@@ -428,7 +468,6 @@ def get_templates(
                 # add weight variations
                 for wshift, wsyst in weight_shifts.items():
                     if sample in wsyst.samples and year in wsyst.years:
-                        # print(wshift)
                         for skey, shift in [("Down", "down"), ("Up", "up")]:
                             # reweight based on diff between up/down and nominal weights
                             h.fill(
