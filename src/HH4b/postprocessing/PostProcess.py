@@ -320,7 +320,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events.loc[mask_vbf, category] = 0
 
             bdt_events.loc[mask_bin1, category] = 1
-           
+
             mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
                 bdt_events[bdt_score] < args.bdt_wps[0]
             )
@@ -341,7 +341,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 & ~(mask_vbf)
             )
             bdt_events.loc[mask_bin3, category] = 3
-            
+
             mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
                 bdt_events[bdt_score] > args.bdt_wps[2]
             )
