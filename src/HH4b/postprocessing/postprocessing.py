@@ -137,8 +137,8 @@ load_columns_syst = [
 ]
 
 weight_shifts = {
-    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years+["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years+["2022-2023"]),
+    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years + ["2022-2023"]),
+    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
