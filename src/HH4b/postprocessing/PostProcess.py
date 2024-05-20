@@ -219,7 +219,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict[key], get_var_mapping(jshift)
+                events_dict, get_var_mapping(jshift)
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
