@@ -137,8 +137,8 @@ load_columns_syst = [
 ]
 
 weight_shifts = {
-    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF"),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger"),
+    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years+["2022-2023"]),
+    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years+["2022-2023"]),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
@@ -471,7 +471,6 @@ def get_templates(
                     if sample in wsyst.samples and year in wsyst.years:
                         for skey, shift in [("Down", "down"), ("Up", "up")]:
                             # reweight based on diff between up/down and nominal weights
-                            print(f"CHECK: {sample}_{wshift}_{shift}")
                             h.fill(
                                 Sample=f"{sample}_{wshift}_{shift}",
                                 **fill_data,
