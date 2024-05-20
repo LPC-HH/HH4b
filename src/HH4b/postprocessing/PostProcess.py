@@ -24,6 +24,7 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     load_run3_samples,
+    weight_shifts
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -287,7 +288,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             )
 
             ttbar_weight = ptjjsf * txbbsf * tau32sf
-            # ttbar_weight = ptjjsf * txbbsf
 
             h_weights.fill(f"{key}_ptjj", ptjjsf)
             h_weights.fill(f"{key}_tau32", tau32sf)
@@ -315,11 +315,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
                 weight=nominal_weight * trigger_weight,
             )
 
-        bdt_events["ttweight"] = ttbar_weight
+        bdt_events["weight_ttbar"] = ttbar_weight
 
         # FIXME: genWeight taken only as sign for HH sample...
-        bdt_events["weight_nott"] = nominal_weight * trigger_weight
+        bdt_events["weight_nottbar"] = nominal_weight * trigger_weight
         bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
+        if key != "data":
+            bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
+            bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
+        if key == "ttbar":
+            bdt_events["weight_ttbarSFUp"] = nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
+            bdt_events["weight_ttbarSFDown"] = nominal_weight * trigger_weight
 
         # add selection to testing events
         bdt_events["event"] = events_dict["event"][0]
@@ -448,12 +454,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             h_mass.fill(
                 f"{key}_ttsftau32bin1",
                 bdt_events[args.mass][mask_bin1],
-                weight=(bdt_events["ttweight"] * bdt_events["weight_nott"])[mask_bin1],
+                weight=(bdt_events["weight_ttbar"] * bdt_events["weight_nottbar"])[mask_bin1],
             )
             h_mass.fill(
                 f"{key}_ttsftau32bin1_down",
                 bdt_events[args.mass][mask_bin1],
-                weight=bdt_events["weight_nott"][mask_bin1],
+                weight=bdt_events["weight_nottbar"][mask_bin1],
             )
 
         cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
@@ -485,6 +491,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        if key == "ttbar":
+            columns += ["weight_ttbarSFUp", "weight_ttbarSFDown"]
+        if key != "data":
+            columns += ["weight_triggerUp", "weight_triggerDown"]
         columns = list(set(columns))
 
         if control_plots:
@@ -1073,8 +1083,10 @@ def postprocess_run3(args):
             systematics={},
             template_dir=templ_dir,
             bg_keys=bg_keys_combined,
-            plot_dir=f"{templ_dir}/{year}",
+            plot_dir=Path(f"{templ_dir}/{year}"),
             weight_key="weight",
+            weight_shifts=weight_shifts,
+            plot_shifts=True,
             show=False,
             energy=13.6,
             jshift=jshift,
