@@ -24,7 +24,7 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     load_run3_samples,
-    weight_shifts
+    weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -324,7 +324,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
             bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
         if key == "ttbar":
-            bdt_events["weight_ttbarSFUp"] = nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
+            bdt_events["weight_ttbarSFUp"] = (
+                nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
+            )
             bdt_events["weight_ttbarSFDown"] = nominal_weight * trigger_weight
 
         # add selection to testing events
