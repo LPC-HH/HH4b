@@ -18,6 +18,7 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     sig_keys,
+    syst_keys,
     years,
 )
 
@@ -116,13 +117,33 @@ load_columns_v12 = load_columns + [
     ("bbFatJetPNetQCD2HF", 2),
 ]
 
+load_columns_syst = [
+    ("bbFatJetPt_JES_up", 2),
+    ("bbFatJetPt_JES_down", 2),
+    ("VBFJetPt_JES_up", 2),
+    ("VBFJetPt_JES_down", 2),
+    # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
+    # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
+    # ("VBFJetPt_JER_up", 2),  # TODO: load once present
+    # ("VBFJetPt_JER_down", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMR_up", 2),  # TODO: load once present
+    # ("bbFatJetMsd_JMR_down", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
+    # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
+]
+
 weight_shifts = {
-    "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
+    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years + ["2022-2023"]),
+    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
     # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
-    # "top_pt": ["ttbar"],
 }
 
 
@@ -140,18 +161,38 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    # pre-selection
-    events_dict = utils.load_samples(
-        input_dir,
-        samples_run3[year],
-        year,
-        filters=filters,
-        columns=utils.format_columns(load_columns_year),
-        reorder_txbb=reorder_txbb,
-        txbb=txbb,
-        variations=False,
-    )
+    samples_syst = {
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in syst_keys
+    }
+    samples_nosyst = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if sample not in syst_keys
+    }
 
+    # pre-selection
+    events_dict = {
+        **utils.load_samples(
+            input_dir,
+            samples_nosyst,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
+        **utils.load_samples(
+            input_dir,
+            samples_syst,
+            year,
+            filters=filters,
+            columns=utils.format_columns(load_columns_year + load_columns_syst),
+            reorder_txbb=reorder_txbb,
+            txbb=txbb,
+            variations=False,
+        ),
+    }
     return events_dict
 
 
@@ -316,7 +357,7 @@ def get_templates(
     systematics: dict,  # noqa: ARG001
     template_dir: str = "",
     bg_keys: list[str] = bg_keys,
-    plot_dir: str = "",
+    plot_dir: Path = "",
     prev_cutflow: pd.DataFrame | None = None,
     weight_key: str = "weight",
     plot_sig_keys: list[str] | None = None,
@@ -428,7 +469,6 @@ def get_templates(
                 # add weight variations
                 for wshift, wsyst in weight_shifts.items():
                     if sample in wsyst.samples and year in wsyst.years:
-                        # print(wshift)
                         for skey, shift in [("Down", "down"), ("Up", "up")]:
                             # reweight based on diff between up/down and nominal weights
                             h.fill(
@@ -482,12 +522,12 @@ def get_templates(
                     "bg_err_mcstat": True,
                     "reweight_qcd": False,
                 }
-
-                plot_name = (
-                    f"{plot_dir}/"
-                    f"{'jshifts/' if do_jshift else ''}"
-                    f"{rname}_region_{shape_var.var}"
-                )
+                if do_jshift:
+                    plot_dir_jshifts = plot_dir / "jshifts"
+                    plot_dir_jshifts.mkdir(exist_ok=True, parents=True)
+                    plot_name = plot_dir_jshifts / f"{rname}_region_{shape_var.var}"
+                else:
+                    plot_name = plot_dir / f"{rname}_region_{shape_var.var}"
 
                 plotting.ratioHistPlot(
                     **plot_params,
@@ -497,7 +537,10 @@ def get_templates(
                 )
 
             if not do_jshift and plot_shifts:
-                plot_name = f"{plot_dir}/wshifts/" f"{rname}_region_{shape_var.var}"
+                plot_dir_wshifts = plot_dir / "wshifts"
+                plot_dir_wshifts.mkdir(exist_ok=True, parents=True)
+
+                plot_name = plot_dir_wshifts / f"{rname}_region_{shape_var.var}"
 
                 for wshift, wsyst in weight_shifts.items():
                     if wsyst.samples == [sig_key]:
