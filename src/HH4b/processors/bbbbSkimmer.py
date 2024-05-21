@@ -389,7 +389,7 @@ class bbbbSkimmer(SkimmerABC):
         print("ak4", f"{time.time() - start:.2f}")
 
         num_fatjets = 3  # number to save
-        num_fatjets_cut = 2  # number to consider for selection
+        # num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)  # this adds all our extra variables e.g. TXbb
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
