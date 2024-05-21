@@ -296,6 +296,7 @@ def ak4_jets_awayfromak8(
     dr_leptons: float,
     electron_pt: float,
     muon_pt: float,
+    sort_by: str = "btag",
 ):
     """Top 2 jets in b-tag away from AK8 fatjets"""
     electrons = events.Electron
@@ -314,6 +315,12 @@ def ak4_jets_awayfromak8(
     )
 
     # sort by btagPNetB
-    jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
-
-    return jets_pnetb[ak4_sel][:, :2]
+    if sort_by == "btag":
+        jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
+        return jets_pnetb[ak4_sel][:, :2]
+    elif sort_by == "nearest":
+        jet_near_fatjet0 = jets[ak.argsort(jets.delta_r(fatjet[:, 0], asending=True)][:, :1]
+        jet_near_fatjet1 = jets[ak.argsort(jets.delta_r(fatjet[:, 1], asending=True)][:, :1]
+        return ak.concatenate([jet_near_fatjet0, jet_near_fatjet1], axis=1)
+    else:
+        return jets[ak4_sel]
