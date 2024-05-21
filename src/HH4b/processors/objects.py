@@ -298,7 +298,7 @@ def ak4_jets_awayfromak8(
     muon_pt: float,
     sort_by: str = "btag",
 ):
-    """Top 2 jets in b-tag away from AK8 fatjets"""
+    """AK4 jets nonoverlapping with AK8 fatjets"""
     electrons = events.Electron
     electrons = electrons[electrons.pt > electron_pt]
 
@@ -314,13 +314,15 @@ def ak4_jets_awayfromak8(
         & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
     )
 
-    # sort by btagPNetB
+    # return top 2 jets sorted by btagPNetB
     if sort_by == "btag":
         jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
         return jets_pnetb[ak4_sel][:, :2]
+    # return 2 jets closet to fatjet0 and fatjet1, respectively
     elif sort_by == "nearest":
-        jet_near_fatjet0 = jets[ak.argsort(jets.delta_r(fatjet[:, 0], asending=True)][:, :1]
-        jet_near_fatjet1 = jets[ak.argsort(jets.delta_r(fatjet[:, 1], asending=True)][:, :1]
+        jet_near_fatjet0 = jets[ak.argsort(jets.delta_r(fatjets[:, 0], asending=True)][:, :1]
+        jet_near_fatjet1 = jets[ak.argsort(jets.delta_r(fatjets[:, 1], asending=True)][:, :1]
         return ak.concatenate([jet_near_fatjet0, jet_near_fatjet1], axis=1)
+    # return all nonoverlapping jets, no sorting
     else:
         return jets[ak4_sel]
