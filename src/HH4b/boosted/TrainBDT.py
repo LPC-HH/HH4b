@@ -1161,8 +1161,8 @@ def main(args):
     weights_test_combined = get_combined(weights_test)
 
     classifier_params = {
-        "max_depth": 3,
-        "learning_rate": 0.1,
+        "max_depth": args.max_depth,
+        "learning_rate": args.learning_rate,
         "n_estimators": 1000,
         "verbosity": 2,
         "reg_lambda": 1.0,
@@ -1312,6 +1312,18 @@ if __name__ == "__main__":
         choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"],
         help="xbb pnet mass",
         required=True,
+    )
+    parser.add_argument(
+        "--learning-rate",
+        default=0.1,
+        help="BDT's learning rate",
+        type=float,
+    )
+    parser.add_argument(
+        "--max-depth",
+        default=3,
+        help="BDT's maximum depth",
+        type=int,
     )
 
     add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
