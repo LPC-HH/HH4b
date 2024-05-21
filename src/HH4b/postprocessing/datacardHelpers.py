@@ -34,6 +34,7 @@ class Syst:
     # in case of uncorrelated unc., which years to split into
     uncorr_years: list[str] = field(default_factory=lambda: all_years)
     pass_only: bool = False  # is it applied only in the pass regions
+    convert_shape_to_lnN: bool = False # take shape uncertainty and conert to lnN
 
     def __post_init__(self):
         if isinstance(self.value, dict) and not (self.diff_regions or self.diff_samples):
@@ -180,7 +181,14 @@ def _shape_checks(values_up, values_down, values_nominal, effect_up, effect_down
         logger.warning("Up and Down vary norm in the same direction")
 
 
-def get_effect_updown(values_nominal, values_up, values_down, mask, logger, epsilon):
+def get_effect_updown(values_nominal, values_up, values_down, mask, logger, epsilon, convert_shape_to_lnN=False):
+    if convert_shape_to_lnN:
+        effect_up = np.sum(values_up) / np.sum(values_nominal)
+        effect_down = np.sum(values_down) / np.sum(values_nominal)
+        logging.debug(f"effect_up  : {effect_up}")
+        logging.debug(f"effect_down: {effect_down}")
+        return effect_up, effect_down
+
     effect_up = np.ones_like(values_nominal)
     effect_down = np.ones_like(values_nominal)
 
