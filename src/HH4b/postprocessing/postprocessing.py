@@ -137,12 +137,13 @@ load_columns_syst = [
 ]
 
 weight_shifts = {
-    "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
+    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years + ["2022-2023"]),
+    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
     # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
-    # "top_pt": ["ttbar"],
 }
 
 
@@ -356,7 +357,7 @@ def get_templates(
     systematics: dict,  # noqa: ARG001
     template_dir: str = "",
     bg_keys: list[str] = bg_keys,
-    plot_dir: str = "",
+    plot_dir: Path = "",
     prev_cutflow: pd.DataFrame | None = None,
     weight_key: str = "weight",
     plot_sig_keys: list[str] | None = None,
@@ -521,12 +522,12 @@ def get_templates(
                     "bg_err_mcstat": True,
                     "reweight_qcd": False,
                 }
-
-                plot_name = (
-                    f"{plot_dir}/"
-                    f"{'jshifts/' if do_jshift else ''}"
-                    f"{rname}_region_{shape_var.var}"
-                )
+                if do_jshift:
+                    plot_dir_jshifts = plot_dir / "jshifts"
+                    plot_dir_jshifts.mkdir(exist_ok=True, parents=True)
+                    plot_name = plot_dir_jshifts / f"{rname}_region_{shape_var.var}"
+                else:
+                    plot_name = plot_dir / f"{rname}_region_{shape_var.var}"
 
                 plotting.ratioHistPlot(
                     **plot_params,
@@ -536,7 +537,10 @@ def get_templates(
                 )
 
             if not do_jshift and plot_shifts:
-                plot_name = f"{plot_dir}/wshifts/" f"{rname}_region_{shape_var.var}"
+                plot_dir_wshifts = plot_dir / "wshifts"
+                plot_dir_wshifts.mkdir(exist_ok=True, parents=True)
+
+                plot_name = plot_dir_wshifts / f"{rname}_region_{shape_var.var}"
 
                 for wshift, wsyst in weight_shifts.items():
                     if wsyst.samples == [sig_key]:

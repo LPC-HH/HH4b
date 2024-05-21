@@ -5,7 +5,6 @@ from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
 
-import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -17,7 +16,7 @@ from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
 from tqdm import tqdm
 
-from .hh_vars import LUMI, data_key, hbb_bg_keys, sig_keys
+from .hh_vars import LUMI, data_key
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -145,282 +144,73 @@ bg_order_default = [
 ]
 
 
-def plot_hists(
-    hists,
-    vars_to_plot,
-    luminosity=None,  # float (fb)
-    add_data=True,
-    add_data_over_mc=True,
-    mult_factor=1,  # multiplicative factor for signal
-    logy=True,
-    density=False,
-    stack=True,
-    show=False,
-    bbox_to_anchor=(1.05, 1),
-    energy=13.6,
+def sigErrRatioPlot(
+    h: Hist,
+    sig_key: str,
+    wshift: str,
+    xlabel: str,
+    title: str = None,
+    plot_dir: str = None,
+    name: str = None,
+    show: bool = False,
+    ylim: list = None,
 ):
-    if add_data_over_mc and not add_data:
-        add_data_over_mc = False
-    if density:
-        add_data_over_mc = False
-
-    for var in vars_to_plot:
-        if var not in hists:
-            print(f"{var} not stored in hists")
-            continue
-
-        print(f"Will plot {var} histogram")
-        h = hists[var]
-
-        samples = [h.axes[0].value(i) for i in range(len(h.axes[0].edges))]
-
-        signal_labels = [label for label in samples if label in sig_keys]
-        signal = [h[{"Sample": label}] for label in signal_labels]
-        signal_mult = [s * mult_factor for s in signal]
-
-        bkg_labels = [
-            label
-            for label in samples
-            if (label and label not in signal_labels and (label not in ["data"]))
-        ]
-        bkg = [h[{"Sample": label}] for label in bkg_labels]
-
-        if add_data_over_mc:
-            fig, (ax, rax) = plt.subplots(
-                nrows=2,
-                ncols=1,
-                figsize=(8, 8),
-                gridspec_kw={"height_ratios": (4, 1), "hspace": 0.07},
-                sharex=True,
-            )
-        else:
-            fig, ax = plt.subplots(figsize=(8, 8))
-            rax = None
-        plt.subplots_adjust(hspace=0)
-
-        # plot data
-        if add_data:
-            data = h[{"Sample": "data"}]
-            hep.histplot(
-                data,
-                ax=ax,
-                histtype="errorbar",
-                color="k",
-                capsize=4,
-                yerr=True,
-                label="Data",
-                **data_err_opts,
-            )
-
-        # plot bkg
-        # accumulate values and bins (little trick to avoid having error bars at the end)
-        bkg_hists = []
-        bkg_bins = []
-        for h in bkg:
-            hist_values, bins = h.to_numpy()
-            bkg_hists.append(hist_values)
-            bkg_bins.append(bins)
-
-        if stack:
-            bkg_args = {
-                "histtype": "fill",
-                "edgecolor": "black",
-            }
-        else:
-            bkg_args = {
-                "histtype": "step",
-            }
-
-        hep.histplot(
-            bkg,
-            ax=ax,
-            stack=stack,
-            edges=True,
-            sort="yield",
-            w2method=None,
-            linewidth=1,
-            density=density,
-            label=[label_by_sample[bkg_label] for bkg_label in bkg_labels],
-            color=[color_by_sample[bkg_label] for bkg_label in bkg_labels],
-            **bkg_args,
-        )
-
-        # sum all the background
-        tot = bkg[0].copy()
-        for i, b in enumerate(bkg):
-            if i > 0:
-                tot = tot + b
-
-        tot_val = tot.values()
-        tot_val_zero_mask = tot_val == 0
-        tot_val[tot_val_zero_mask] = 1
-
-        tot_err = np.sqrt(tot_val)
-        tot_err[tot_val_zero_mask] = 0
-
-        # plot bkg uncertainty
-        # print(tot.values().shape)
-        # print(tot.axes[0].edges.shape)
-        if not density:
-            ax.stairs(
-                values=tot.values() + tot_err,
-                baseline=tot.values() - tot_err,
-                edges=tot.axes[0].edges,
-                **ps,
-                label="Stat. unc.",
-            )
-
-        # plot signal
-        if len(signal) > 0:
-            # tot_signal = None
-
-            for i, sig in enumerate(signal_mult):
-                lab_sig_mult = f"{mult_factor} * {label_by_sample[signal_labels[i]]}"
-                if mult_factor == 1:
-                    lab_sig_mult = f"{label_by_sample[signal_labels[i]]}"
-                # print(lab_sig_mult)
-                hep.histplot(
-                    sig,
-                    ax=ax,
-                    label=lab_sig_mult,
-                    linewidth=1,
-                    density=density,
-                    color=color_by_sample[signal_labels[i]],
-                )
-
-                # if tot_signal is None:
-                #     tot_signal = signal[i].copy()
-                # else:
-                #     tot_signal = tot_signal + signal[i]
-
-            # plot the total signal (w/o scaling)
-            # hep.histplot(tot_signal, ax=ax, label="Total signal", linewidth=3, color="tab:red")
-
-            # add MC stat errors for total signal
-            # ax.stairs(
-            #    values=tot_signal.values() + np.sqrt(tot_signal.values()),
-            #     baseline=tot_signal.values() - np.sqrt(tot_signal.values()),
-            #    edges=sig.axes[0].edges,
-            #   **errps,
-            # )
-
-        # plot data/mc ratio
-        if add_data_over_mc:
-            data_val = data.values()
-            data_val[tot_val_zero_mask] = 1
-            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
-
-            hep.histplot(
-                data_val / tot_val,
-                tot.axes[0].edges,
-                yerr=yerr,
-                ax=rax,
-                histtype="errorbar",
-                color="k",
-                capsize=4,
-            )
-            rax.grid()
-
-        ax.set_ylabel("Events")
-        ax.set_xlabel("")
-
-        if rax is not None:
-            rax.set_xlabel(
-                f"{h.axes[-1].label}"
-            )  # assumes the variable to be plotted is at the last axis
-            rax.set_ylabel("Data/MC", fontsize=20)
-        else:
-            ax.set_xlabel(f"{h.axes[-1].label}")
-
-        if luminosity:
-            hep.cms.lumitext(
-                "%.1f " % luminosity + r"fb$^{-1}$" + f"({energy} TeV)", ax=ax, fontsize=20
-            )
-            hep.cms.text("Internal", ax=ax, fontsize=15)
-
-        # add legend
-        handles, labels = ax.get_legend_handles_labels()
-
-        # get total yield of backgrounds per label
-        first_key = next(iter(hists.keys()))
-        # (sort by yield after pre-sel)
-        order_dic = {}
-        for bkg_label in bkg_labels:
-            bkg_yield = hists[first_key][{"Sample": bkg_label}].sum().value
-            order_dic[label_by_sample[bkg_label]] = bkg_yield
-
-        summ = [order_dic[label] for label in labels[: len(bkg_labels)]]
-
-        # get indices of labels arranged by yield
-        order = []
-        for _ in range(len(summ)):
-            order.append(np.argmax(np.array(summ)))
-            summ[np.argmax(np.array(summ))] = -100
-
-        # print(labels)
-        # print(labels[-1])
-        if add_data:
-            legend_handles = [handles[-1]] + [handles[i] for i in order] + handles[len(bkg) : -1]
-            legend_labels = [labels[-1]] + [labels[i] for i in order] + labels[len(bkg) : -1]
-            loc = "upper left"
-        else:
-            legend_handles = [handles[i] for i in order] + handles[len(bkg) :]
-            legend_labels = [labels[i] for i in order] + labels[len(bkg) :]
-            loc = "best"
-
-        ax.legend(
-            [legend_handles[idx] for idx in range(len(legend_handles))],
-            [legend_labels[idx] for idx in range(len(legend_labels))],
-            bbox_to_anchor=bbox_to_anchor,
-            loc=loc,
-        )
-
-        if logy:
-            ax.set_yscale("log")
-            ax.set_ylim(1e-1)
-
-        outpath = Path("plots")
-        if not outpath.exists():
-            outpath.mkdir(parents=True)
-
-        if show:
-            plt.show()
-        else:
-            plt.close()
-
-        plt.savefig(f"{outpath}/{var}.pdf", bbox_inches="tight")
-
-
-def _combine_hbb_bgs(hists, bg_keys):
-    # skip this if no hbb bg keys specified
-    if len(set(bg_keys) & set(hbb_bg_keys)) == 0:
-        return hists, bg_keys
-
-    # combine all hbb backgrounds into a single "Hbb" background for plotting
-    hbb_hists = []
-    for key in hbb_bg_keys:
-        if key in bg_keys:
-            hbb_hists.append(hists[key, ...])
-            bg_keys.remove(key)
-
-    if "Hbb" not in bg_keys:
-        bg_keys.append("Hbb")
-
-    hbb_hist = sum(hbb_hists)
-
-    # have to recreate hist with "Hbb" sample included
-    h = Hist(
-        hist.axis.StrCategory(list(hists.axes[0]) + ["Hbb"], name="Sample"),
-        *hists.axes[1:],
-        storage="weight",
+    fig, (ax, rax) = plt.subplots(
+        2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
     )
 
-    for i, sample in enumerate(hists.axes[0]):
-        h.view()[i] = hists[sample, ...].view()
+    nom = h[f"{sig_key}_{wshift}", :].values()
+    hep.histplot(
+        h[f"{sig_key}_{wshift}", :],
+        histtype="step",
+        label=sig_key,
+        yerr=False,
+        color="k",
+        ax=ax,
+        linewidth=2,
+    )
 
-    h.view()[-1] = hbb_hist
+    for skey, shift in [("Up", "up"), ("Down", "down")]:
+        if f"{sig_key}_{wshift}_{shift}" not in h.axes[0]:
+            continue
 
-    return h, bg_keys
+        colour = {"up": "#81C14B", "down": "#1f78b4"}[shift]
+        hep.histplot(
+            h[f"{sig_key}_{wshift}_{shift}", :],
+            histtype="step",
+            yerr=False,
+            label=f"{sig_key} {skey}",
+            color=colour,
+            ax=ax,
+            linewidth=2,
+        )
+
+        hep.histplot(
+            h[f"{sig_key}_{wshift}_{shift}", :] / nom,
+            histtype="step",
+            label=f"{sig_key} {skey}",
+            color=colour,
+            ax=rax,
+        )
+
+    ax.legend()
+    ax.set_ylim(0)
+    ax.set_ylabel("Events")
+    ax.set_title(title, y=1.08)
+
+    rax.set_ylim([0, 2])
+    if ylim is not None:
+        rax.set_ylim(ylim)
+    rax.set_xlabel(xlabel)
+    rax.legend()
+    rax.set_ylabel("Variation / Nominal")
+    rax.grid(axis="y")
+
+    plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def sigErrRatioPlot(
@@ -631,7 +421,6 @@ def ratioHistPlot(
 
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
-    # hists, bg_keys = _combine_hbb_bgs(hists, bg_keys)
 
     if bg_order is None:
         bg_order = bg_order_default
