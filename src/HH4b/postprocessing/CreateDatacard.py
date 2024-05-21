@@ -233,7 +233,9 @@ corr_year_shape_systs = {
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
     # TODO: separate into individual
-    "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    "ttbarSF": Syst(name=f"{CMS_PARAMS_LABEL}_ttbar_sf", prior="shape", samples=["ttbar"]),
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -252,6 +254,11 @@ uncorr_year_shape_systs = {
 
 if not args.do_jshifts:
     del corr_year_shape_systs["JES"]
+    del uncorr_year_shape_systs["JER"]
+    del uncorr_year_shape_systs["JMS"]
+    del uncorr_year_shape_systs["JMR"]
+else:
+    # TODO: implement others; currently only JES
     del uncorr_year_shape_systs["JER"]
     del uncorr_year_shape_systs["JMS"]
     del uncorr_year_shape_systs["JMR"]
