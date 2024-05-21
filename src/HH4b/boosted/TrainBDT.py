@@ -577,6 +577,14 @@ def evaluate_model(
                     fpr, tpr, thresholds = roc_curve(
                         scores_true, scores_roc, sample_weight=scores_weights
                     )
+                    # save background roc curves
+                    roc_info_bg = {
+                        "fpr": fpr,
+                        "tpr": tpr,
+                        "thresholds": thresholds,
+                    }
+                    with (plot_dir / sig_key / f"roc_dict_{bkg}.pkl").open("wb") as f:
+                        pickle.dump(roc_info_bg, f)
 
                 ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
 
