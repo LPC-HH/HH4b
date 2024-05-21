@@ -71,7 +71,7 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
-parser.add_argument("--sig-samples", default="hh4b", nargs='*', type=str, help="specify signals")
+parser.add_argument("--sig-samples", default="hh4b", nargs="*", type=str, help="specify signals")
 
 parser.add_argument(
     "--nTF",
@@ -234,7 +234,12 @@ corr_year_shape_systs = {
     # ),
     # TODO: separate into individual
     "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
-    "ttbarSF": Syst(name=f"{CMS_PARAMS_LABEL}_ttbar_sf", prior="shape", samples=["ttbar"], convert_shape_to_lnN=True),
+    "ttbarSF": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
@@ -484,7 +489,13 @@ def fill_regions(
                 logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                 effect_up, effect_down = get_effect_updown(
-                    values_nominal, values_up, values_down, mask, logger, args.epsilon, syst.convert_shape_to_lnN
+                    values_nominal,
+                    values_up,
+                    values_down,
+                    mask,
+                    logger,
+                    args.epsilon,
+                    syst.convert_shape_to_lnN,
                 )
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
