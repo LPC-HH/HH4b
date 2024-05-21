@@ -826,7 +826,11 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events["weight"] = np.ones(n_events)
         else:
             weights_dict, totals_temp = self.add_weights(
-                events, year, dataset, gen_weights, gen_selected, #fatjets, num_fatjets_cut
+                events,
+                year,
+                dataset,
+                gen_weights,
+                gen_selected,  # fatjets, num_fatjets_cut
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
