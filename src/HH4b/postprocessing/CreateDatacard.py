@@ -234,6 +234,8 @@ corr_year_shape_systs = {
     # ),
     # TODO: separate into individual
     "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    "ttbarSF": Syst(name=f"{CMS_PARAMS_LABEL}_ttbar_sf", prior="shape", samples=["ttbar"]),
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
