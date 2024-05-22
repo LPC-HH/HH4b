@@ -150,8 +150,11 @@ def preprocess_data(
     training_keys = train_keys.copy()
     print("Training keys ", training_keys)
 
+    print("events dict ", events_dict.keys())
+
     for key in training_keys:
         if key not in events_dict:
+            print(f"removing {key}")
             training_keys.remove(key)
 
     print("Train keys ", training_keys)
@@ -1090,6 +1093,8 @@ def main(args):
     else:
         years = args.year
 
+    print(years)
+
     X_train = OrderedDict()
     X_test = OrderedDict()
     y_train = OrderedDict()
@@ -1108,6 +1113,7 @@ def main(args):
                 samples_run3[year].pop(key)
 
     for year in years:
+        print("loading ", year)
         events_dict_years[year] = load_run3_samples(
             args.data_path,
             year,
