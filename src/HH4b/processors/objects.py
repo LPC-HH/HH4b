@@ -320,8 +320,13 @@ def ak4_jets_awayfromak8(
         return jets_pnetb[ak4_sel][:, :2]
     # return 2 jets closet to fatjet0 and fatjet1, respectively
     elif sort_by == "nearest":
-        jet_near_fatjet0 = jets[ak.argsort(jets.delta_r(fatjets[:, 0], asending=True))][:, :1]
-        jet_near_fatjet1 = jets[ak.argsort(jets.delta_r(fatjets[:, 1], asending=True))][:, :1]
+        jets_away = jets[ak4_sel]
+        
+        FirstFatjet = ak.firsts(fatjets[:, 0:1])
+        SecondFatjet = ak.firsts(fatjets[:, 1:2])
+        jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][:, :1]
+        jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][:, :1]
+
         return ak.concatenate([jet_near_fatjet0, jet_near_fatjet1], axis=1)
     # return all nonoverlapping jets, no sorting
     else:
