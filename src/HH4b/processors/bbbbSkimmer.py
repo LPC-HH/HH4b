@@ -440,6 +440,7 @@ class bbbbSkimmer(SkimmerABC):
             events,
             **self.ak4_bjet_selection,
             **self.ak4_bjet_lepton_selection,
+            sort_by="nearest",
         )
 
         # JMSR
