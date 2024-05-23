@@ -916,7 +916,6 @@ def subtractedHistPlot(
         plot_significance (bool): plot Asimov significance below ratio plot
     """
 
-
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
 
@@ -959,8 +958,10 @@ def subtractedHistPlot(
     if bg_err is not None:
         bg_tot = hists["qcd", :] / hists_fail["qcd", :]
         if len(np.array(bg_err).shape) == 1:
-            bg_errs = [bg_tot - bg_err / hists_fail["qcd", :], 
-                       bg_tot + bg_err / hists_fail["qcd", :]]
+            bg_errs = [
+                bg_tot - bg_err / hists_fail["qcd", :],
+                bg_tot + bg_err / hists_fail["qcd", :],
+            ]
 
         if bg_err_type == "shaded":
             ax.fill_between(
