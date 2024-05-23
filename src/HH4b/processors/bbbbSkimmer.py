@@ -497,10 +497,16 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
-        ak4JetAwayVars = {
-            f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
-            for (var, key) in jet_skimvars.items()
-        }
+        if len(ak4_jets_awayfromak8)==2:
+            ak4JetAwayVars = {
+                f"AK4JetAway{key}": pad_val(ak.concatenate([ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1), 2, axis=1)
+                for (var, key) in jet_skimvars.items()
+            }
+        else:
+            ak4JetAwayVars = {
+                f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+                for (var, key) in jet_skimvars.items()
+            }
 
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
@@ -797,6 +803,7 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         elif self._region == "had-tt":
+            print("here ")
             # == 2 AK8 jets with pT>300 and mSD>40
             cut_pt_msd = (
                 np.sum(

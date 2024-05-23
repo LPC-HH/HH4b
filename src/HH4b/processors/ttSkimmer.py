@@ -110,11 +110,7 @@ class ttSkimmer(SkimmerABC):
         "pt": 25,  # from JME-18-002
         "eta": 2.4,
         "delta_phi_muon": 2,
-<<<<<<< HEAD
         "btagWP": 0.2605,  # 2022E 
-=======
-        "btagWP": 0.2605,  # 2022E
->>>>>>> afc401da9ceee1329ce6a9ae74817d0f60db65da
         "num": 1,
         # "closest_muon_dr": 0.4,
         # "closest_muon_ptrel": 25,
@@ -237,7 +233,8 @@ class ttSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
-
+        print(ak.fields(ak4_jets))
+        
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save
@@ -394,18 +391,14 @@ class ttSkimmer(SkimmerABC):
         # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
-<<<<<<< HEAD
-        if year!="2022":
-=======
-        if year != "2022":
->>>>>>> afc401da9ceee1329ce6a9ae74817d0f60db65da
-            ak4_jet_selector_btag_muon = ak4_jet_selector * (
-                (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
-                * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
-            )
-        else:
+        if year == "2022" and self._nano_version == "v12_private":
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > 0.3086)
+                * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
+	    )
+        else:
+            ak4_jet_selector_btag_muon = ak4_jet_selector * (
+                (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
             )
 
