@@ -55,73 +55,74 @@ jet_factory = {
             "Summer22EE22Sep2023_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz",
         ]
     ),
-    "2023mcnoJER": jet_factory_factory(
+    "2023mc": jet_factory_factory(
         files=[
             "Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz",
             "Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz",
+            "Summer23Prompt23RunCv1234_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz",
+            "Summer23Prompt23RunCv1234_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz",
         ],
     ),
-    "2023BPixmcnoJER": jet_factory_factory(
+    "2023BPixmc": jet_factory_factory(
         files=[
             "Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz",
             "Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz",
+            "Summer23BPixPrompt23RunD_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz",
+            "Summer23BPixPrompt23RunD_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz",
         ],
     ),
     # data
-    # missing JER...
     "2022_runCD": jet_factory_factory(
         files=[
-            "Summer2222Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            # "Summer2222Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer2222Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer2222Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
-            # "Summer2222Sep2023_JRV1_DATA_PtResolution_AK4PFPuppi.jr.txt.gz",
-            # "Summer2222Sep2023_JRV1_DATA_SF_AK4PFPuppi.jersf.txt.gz",
         ],
     ),
     "2022EE_runE": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EE_runF": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EE_runG": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2023_runCv123": jet_factory_factory(
         files=[
-            "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
-            "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
-            "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            # "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            "Summer23Prompt23RunCv123_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
+            "Summer23Prompt23RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2023_runCv4": jet_factory_factory(
         files=[
-            "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            # "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
             "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
             "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
     "2023BPix_runD": jet_factory_factory(
         files=[
-            "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
-            "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
-            "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
+            # "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.jec.txt.gz",
+            "Summer23BPixPrompt23RunD_V1_DATA_L2Relative_AK4PFPuppi.jec.txt.gz",
+            "Summer23BPixPrompt23RunD_V1_DATA_L2L3Residual_AK4PFPuppi.jec.txt.gz",
         ],
     ),
 }
@@ -147,69 +148,73 @@ fatjet_factory = {
             "Summer22EE22Sep2023_JRV1_MC_SF_AK8PFPuppi.jersf.txt.gz",
         ]
     ),
-    "2023mcnoJER": jet_factory_factory(
+    "2023mc": jet_factory_factory(
         files=[
             "Summer23Prompt23_V1_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer23Prompt23_V1_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer23Prompt23_V1_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz",
             "Summer23Prompt23_V1_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
+            "Summer23Prompt23RunCv1234_JRV1_MC_PtResolution_AK8PFPuppi.jr.txt.gz",
+            "Summer23Prompt23RunCv1234_JRV1_MC_SF_AK8PFPuppi.jersf.txt.gz",
         ],
     ),
-    "2023BPixmcnoJER": jet_factory_factory(
+    "2023BPixmc": jet_factory_factory(
         files=[
             "Summer23BPixPrompt23_V1_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer23BPixPrompt23_V1_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer23BPixPrompt23_V1_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz",
             "Summer23BPixPrompt23_V1_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
+            "Summer23BPixPrompt23RunD_JRV1_MC_PtResolution_AK8PFPuppi.jr.txt.gz",
+            "Summer23BPixPrompt23RunD_JRV1_MC_SF_AK8PFPuppi.jersf.txt.gz",
         ],
     ),
     "2022_runCD": jet_factory_factory(
         files=[
-            "Summer2222Sep2023_RunCD_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            # "Summer2222Sep2023_RunCD_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer2222Sep2023_RunCD_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer2222Sep2023_RunCD_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EE_runE": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunE_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunE_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunE_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunE_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EE_runF": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunF_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunF_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunF_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunF_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2022EE_runG": jet_factory_factory(
         files=[
-            "Summer22EE22Sep2023_RunG_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            # "Summer22EE22Sep2023_RunG_V2_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunG_V2_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer22EE22Sep2023_RunG_V2_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2023_runCv123": jet_factory_factory(
         files=[
-            "Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
-            "Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
-            "Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            # "Summer23Prompt23RunCv123_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            "Summer23Prompt23RunCv123_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
+            "Summer23Prompt23RunCv123_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2023_runCv4": jet_factory_factory(
         files=[
-            "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            # "Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
             "Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
     "2023BPix_runD": jet_factory_factory(
         files=[
-            "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
-            "Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
-            "Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
+            # "Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            "Summer23BPixPrompt23RunD_V1_DATA_L2Relative_AK8PFPuppi.jec.txt.gz",
+            "Summer23BPixPrompt23RunD_V1_DATA_L2L3Residual_AK8PFPuppi.jec.txt.gz",
         ],
     ),
 }

@@ -54,6 +54,22 @@ def veto_electrons(electrons: ElectronArray):
     )
 
 
+def veto_taus(taus: TauArray):
+    # https://github.com/jeffkrupa/zprime-bamboo/blob/main/zprlegacy.py#L371
+    return (
+        (taus.pt > 20)
+        & (taus.decayMode >= 0)
+        & (taus.decayMode != 5)
+        & (taus.decayMode != 6)
+        & (taus.decayMode != 7)
+        & (abs(taus.eta) < 2.3)
+        & (abs(taus.dz) < 0.2)
+        & (taus.idDeepTau2017v2p1VSe >= 2)
+        & (taus.idDeepTau2017v2p1VSmu >= 8)
+        & (taus.idDeepTau2017v2p1VSjet >= 16)
+    )
+
+
 def good_muons(muons: MuonArray):
     sel = (
         (muons.pt >= 30)
@@ -199,6 +215,9 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["TXbb_legacy"] = fatjets.particleNetLegacy_Xbb / (
             fatjets.particleNetLegacy_Xbb + fatjets.particleNetLegacy_QCD
         )
+        fatjets["TXqq_legacy"] = fatjets.particleNetLegacy_Xqq / (
+            fatjets.particleNetLegacy_Xqq + fatjets.particleNetLegacy_QCD
+        )
         fatjets["PXbb_legacy"] = fatjets.particleNetLegacy_Xbb
         fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
         fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
@@ -277,8 +296,9 @@ def ak4_jets_awayfromak8(
     dr_leptons: float,
     electron_pt: float,
     muon_pt: float,
+    sort_by: str = "btag",
 ):
-    """Top 2 jets in b-tag away from AK8 fatjets"""
+    """AK4 jets nonoverlapping with AK8 fatjets"""
     electrons = events.Electron
     electrons = electrons[electrons.pt > electron_pt]
 
@@ -294,7 +314,24 @@ def ak4_jets_awayfromak8(
         & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
     )
 
-    # sort by btagPNetB
-    jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
+    # return top 2 jets sorted by btagPNetB
+    if sort_by == "btag":
+        jets_pnetb = jets[ak.argsort(jets.btagPNetB, ascending=False)]
+        return jets_pnetb[ak4_sel][:, :2]
+    # return 2 jets closet to fatjet0 and fatjet1, respectively
+    elif sort_by == "nearest":
+        jets_away = jets[ak4_sel]
 
-    return jets_pnetb[ak4_sel][:, :2]
+        FirstFatjet = ak.firsts(fatjets[:, 0:1])
+        SecondFatjet = ak.firsts(fatjets[:, 1:2])
+        jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][
+            :, :1
+        ]
+        jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][
+            :, :1
+        ]
+
+        return ak.concatenate([jet_near_fatjet0, jet_near_fatjet1], axis=1)
+    # return all nonoverlapping jets, no sorting
+    else:
+        return jets[ak4_sel]

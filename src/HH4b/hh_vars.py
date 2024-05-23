@@ -29,21 +29,20 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 # sample key -> list of samples or selectors
 common_samples_bg = {
     "qcd": ["QCD_HT"],
-    # "qcd": ["QCD_PT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-    # "ttlep": ["TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
+    # TODO: Add single top!
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
-        # "WplusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
+        # "WplusH_Hto2B_WtoLNu_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",
-        # "WminusH_Hto2B_WtoLNu_M-125",  # TODO: doesn't have xsec!
+        # "WminusH_Hto2B_WtoLNu_M-125",
         "ZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2Q_M-125",
-        "ggZH_Hto2B_Zto2L_M-125",
-        "ggZH_Hto2B_Zto2Nu_M-125",
+        # "ggZH_Hto2B_Zto2L_M-125",
+        # "ggZH_Hto2B_Zto2Nu_M-125",
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
@@ -54,26 +53,40 @@ common_samples_bg = {
 
 common_samples_sig = {}  # TODO: none yet
 
-samples_run3 = {
+samples_run3_sig = {
     "2022": {
-        **common_samples_bg,
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2022EE": {
-        **common_samples_bg,
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2023": {
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+    },
+    "2023BPix": {
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        # "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+    },
+}
+
+samples_run3 = {
+    "2022": {
         **common_samples_bg,
-        "hh4b": [
-            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
-            "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG",
-        ],
+        **samples_run3_sig["2022"],
+    },
+    "2022EE": {
+        **common_samples_bg,
+        **samples_run3_sig["2022EE"],
+    },
+    "2023": {
+        **common_samples_bg,
+        **samples_run3_sig["2023"],
     },
     "2023BPix": {
         **common_samples_bg,
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+        **samples_run3_sig["2023BPix"],
     },
 }
 
@@ -151,11 +164,14 @@ sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
+# keys that require running up/down systematics
+syst_keys = sig_keys  # TODO: add for all MC backgrounds in fit
+
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    "JES": "JES_jes",
-    "JER": "JER",
+    "JES": "JES",
+    # "JER": "JER",  # TODO
     #####
     # including reduced sources
     #####
@@ -202,3 +218,25 @@ jmsr_shifts = []
 for key in jmsr:
     for shift in ["up", "down"]:
         jmsr_shifts.append(f"{key}_{shift}")
+
+# variables affected by JECs
+jec_vars = [
+    "bbFatJetPt",
+    "VBFJetPt",
+    "bdt_score",
+    "bdt_score_vbf",
+    "HHPt",
+    "HHeta",
+    "HHmass",
+    "H1Pt",
+    "H2Pt",
+    "H1Pt_HHmass",
+    "H2Pt_HHmass",
+    "H1Pt/H2Pt",
+    "VBFjjMass",
+    "VBFjjDeltaEta",
+    "Category",
+]
+
+# variables affected by JMS/JMR
+jmsr_vars = []  # TODO

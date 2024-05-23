@@ -52,7 +52,7 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "sig-separate", "separate templates for signals and bgs", default=False)
-add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=False)
+add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=True)
 
 parser.add_argument("--cards-dir", default="cards", type=str, help="output card directory")
 
@@ -71,14 +71,14 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
-parser.add_argument("--sig-sample", default="hh4b", type=str, help="specify signal")
+parser.add_argument("--sig-samples", default="hh4b", nargs="*", type=str, help="specify signals")
 
 parser.add_argument(
     "--nTF",
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 0, 1]",
+    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
 )
 parser.add_argument(
     "--regions",
@@ -99,6 +99,8 @@ add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
+add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
+add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 args = parser.parse_args()
 
 
@@ -108,11 +110,13 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1]
+        args.nTF = [0, 1, 2]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
         args.nTF = [0]
+
+print("Transfer factors:", args.nTF)
 
 if args.regions == "all":
     signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
@@ -126,7 +130,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("others", "others"),
+        ("diboson", "diboson"),
+        ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
 )
@@ -142,7 +147,7 @@ hist_names = {}  # names of hist files for the samples
 
 for key in all_sig_keys:
     # check in case single sig sample is specified
-    if args.sig_sample is None or key == args.sig_sample:
+    if args.sig_samples is None or key in args.sig_samples:
         # TODO: change names to match HH combination convention
         mc_samples[key] = key
         sig_keys.append(key)
@@ -198,6 +203,10 @@ nuisance_params = {
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
 
+rate_params = {}
+if args.ttbar_rate_param:
+    rate_params = {"ttbar": rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_rp_ttbar", 1.0, 0, 10)}
+
 # add temporary uncertainties
 if args.temp_uncs:
     temp_nps = {
@@ -224,7 +233,14 @@ corr_year_shape_systs = {
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
     # TODO: separate into individual
-    "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    "ttbarSF": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -246,11 +262,19 @@ if not args.do_jshifts:
     del uncorr_year_shape_systs["JER"]
     del uncorr_year_shape_systs["JMS"]
     del uncorr_year_shape_systs["JMR"]
+else:
+    # TODO: implement others; currently only JES
+    del uncorr_year_shape_systs["JER"]
+    del uncorr_year_shape_systs["JMS"]
+    del uncorr_year_shape_systs["JMR"]
 
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "shape")
+    if syst.convert_shape_to_lnN:
+        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "lnN")
+    else:
+        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "shape")
 for skey, syst in uncorr_year_shape_systs.items():
     for year in years:
         if year in syst.uncorr_years:
@@ -385,6 +409,11 @@ def fill_regions(
             stype = rl.Sample.SIGNAL if sample_name in sig_keys else rl.Sample.BACKGROUND
             sample = rl.TemplateSample(ch.name + "_" + card_name, stype, sample_template)
 
+            # ttbar rate_param
+            if sample_name in rate_params:
+                rate_param = rate_params[sample_name]
+                sample.setParamEffect(rate_param, 1 * rate_param)
+
             # # rate params per signal to freeze them for individual limits
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
             #     srate = rate_params[sample_name]
@@ -460,7 +489,13 @@ def fill_regions(
                 logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                 effect_up, effect_down = get_effect_updown(
-                    values_nominal, values_up, values_down, mask, logger, args.epsilon
+                    values_nominal,
+                    values_up,
+                    values_down,
+                    mask,
+                    logger,
+                    args.epsilon,
+                    syst.convert_shape_to_lnN,
                 )
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
@@ -514,6 +549,7 @@ def alphabet_fit(
     templates_summed: dict,
     scale: float | None = None,
     min_qcd_val: float | None = None,
+    unblinded: bool = False,
 ):
     shape_var = shape_vars[0]
     m_obs = rl.Observable(shape_var.name, shape_var.bins)
@@ -532,7 +568,8 @@ def alphabet_fit(
 
     fail_qcd_samples = {}
 
-    for blind_str in ["", MCB_LABEL]:
+    blind_strs = [""] if unblinded else ["", MCB_LABEL]
+    for blind_str in blind_strs:
         failChName = f"fail{blind_str}".replace("_", "")
         logging.info(f"Setting up fail region {failChName}")
         failCh = model[failChName]
@@ -544,7 +581,9 @@ def alphabet_fit(
             # don't subtract signals (#TODO: do we want to subtract SM signal?)
             if sample.sampletype == rl.Sample.SIGNAL:
                 continue
-            logging.debug("subtracting %s from qcd" % sample._name)
+            logging.debug(
+                f"subtracting {sample._name}={sample.getExpectation(nominal=True)} from qcd"
+            )
             initial_qcd -= sample.getExpectation(nominal=True)
 
         if np.any(initial_qcd < 0.0):
@@ -597,7 +636,7 @@ def alphabet_fit(
         tf_dataResidual_params = tf_dataResidual(shape_var.scaled)
         tf_params_pass = qcd_eff * tf_dataResidual_params  # scale params initially by qcd eff
 
-        for blind_str in ["", MCB_LABEL]:
+        for blind_str in blind_strs:
             passChName = f"{sr}{blind_str}".replace("_", "")
             passCh = model[passChName]
 
@@ -613,8 +652,10 @@ def alphabet_fit(
 
 def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     # (pass, fail) x (unblinded, blinded)
+    blind_strs = [""] if args.unblinded else ["", MCB_LABEL]
+
     regions: list[str] = [
-        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in ["", MCB_LABEL]
+        f"{pf}{blind_str}" for pf in [*signal_regions, "fail"] for blind_str in blind_strs
     ]
 
     # build actual fit model now
@@ -641,6 +682,7 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         templates_summed,
         args.scale_templates,
         args.min_qcd_val,
+        args.unblinded,
     ]
 
     fill_regions(*fill_args)

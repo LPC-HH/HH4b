@@ -143,8 +143,13 @@ if [ $passbin = 0 ]; then
         maskunblindedargs+=",mask_passvbf=1,mask_passvbfMCBlinded=0"
         maskblindedargs+=",mask_passvbf=0,mask_passvbfMCBlinded=1"
     fi
+elif [ "$passbin" == "vbf" ]; then
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt pass${passbin}=${cards_dir}/pass${\
+passbin}.txt pass${passbin}MCBlinded=${cards_dir}/pass${passbin}MCBlinded.txt"
+    maskunblindedargs="mask_pass${passbin}=1,mask_fail=1,mask_pass${passbin}MCBlinded=0,mask_failMCBlinded=0"
+    maskblindedargs="mask_pass${passbin}=0,mask_fail=0,mask_pass${passbin}MCBlinded=1,mask_failMCBlinded=1"
 else
-    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin${passbin}=${cards_dir}/passbin${passbin}.txt passbin1MCBlinded=${cards_dir}/passbin${passbin}MCBlinded.txt"
+    ccargs="fail=${cards_dir}/fail.txt failMCBlinded=${cards_dir}/failMCBlinded.txt passbin${passbin}=${cards_dir}/passbin${passbin}.txt passbin${passbin}MCBlinded=${cards_dir}/passbin${passbin}MCBlinded.txt"
     maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
     maskblindedargs="mask_passbin${passbin}=0,mask_fail=0,mask_passbin${passbin}MCBlinded=1,mask_failMCBlinded=1"
 fi
@@ -170,6 +175,9 @@ freezeparamsblinded="${freezeparamsblinded%,}"
 unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*} --setParameters $maskblindedargs"
 
 # excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
+
+echo "cc args:"
+echo "$ccargs"
 
 echo "mask args:"
 echo "$maskblindedargs"
@@ -346,7 +354,7 @@ if [ "$bias" != -1 ]; then
     fi
 
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
-    -m 125 -n "bias${bias}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
+    -m 125 -n "bias${bias}_passbin${passbin}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
     ${unblindedparams},r=$bias --floatParameters ${freezeparamsblinded} \
     --robustFit=1 -t "$numtoys" -s "$seed" \

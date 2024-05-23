@@ -150,8 +150,11 @@ def preprocess_data(
     training_keys = train_keys.copy()
     print("Training keys ", training_keys)
 
+    print("events dict ", events_dict.keys())
+
     for key in training_keys:
         if key not in events_dict:
+            print(f"removing {key}")
             training_keys.remove(key)
 
     print("Train keys ", training_keys)
@@ -484,7 +487,7 @@ def evaluate_model(
             weights[key] = np.concatenate(weight)
             xbb_dict[key] = np.concatenate(xbb)
             msd_dict[key] = np.concatenate(msd)
-            xbb_dict[key] = np.concatenate(xbb)
+            mass_dict[key] = np.concatenate(mass)
 
         print("Making BDT shape plots")
 
@@ -650,7 +653,7 @@ def evaluate_model(
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
-        for key in training_keys:  # + ["vhtobb", "vjets", "ttlep"]:
+        for key in training_keys:
             hists = {
                 "msd": hist_h2_msd,
                 "mreg": hist_h2,
@@ -1090,6 +1093,8 @@ def main(args):
     else:
         years = args.year
 
+    print(years)
+
     X_train = OrderedDict()
     X_test = OrderedDict()
     y_train = OrderedDict()
@@ -1101,12 +1106,14 @@ def main(args):
 
     events_dict_years = {}
 
+    aux_keys = ["vhtobb", "tthtobb", "diboson", "vjets"]
     for year in years:
         for key in list(samples_run3[year].keys()):
-            if key not in training_keys:
+            if key not in training_keys + aux_keys:
                 samples_run3[year].pop(key)
 
     for year in years:
+        print("loading ", year)
         events_dict_years[year] = load_run3_samples(
             args.data_path,
             year,
@@ -1210,7 +1217,7 @@ def main(args):
         )
 
     # no combination for now
-    # events_dict = combine_run3_samples(events_dict_years, training_keys, scale_processes = {"hh4b": ["2022EE", "2023"]}, years_run3=years)
+    # events_dict, _ = combine_run3_samples(events_dict_years, training_keys, scale_processes = {"hh4b": ["2022EE", "2023"]}, years_run3=years)
 
     evaluate_model(
         args.config_name,
