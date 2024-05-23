@@ -407,7 +407,7 @@ class ttSkimmer(SkimmerABC):
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > self.btag_medium_deepJet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
-	    )
+            )
         else:
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagPNetB > self.btag_medium_pNet[year])
