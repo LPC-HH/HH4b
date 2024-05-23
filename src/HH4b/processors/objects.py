@@ -323,8 +323,12 @@ def ak4_jets_awayfromak8(
         jets_away = jets[ak4_sel]
         FirstFatjet = ak.firsts(fatjets[:, 0:1])
         SecondFatjet = ak.firsts(fatjets[:, 1:2])
-        jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][:, 0:1]
-        jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][:, 0:1]
+        jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][
+            :, 0:1
+        ]
+        jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][
+            :, 0:1
+        ]
         return [jet_near_fatjet0, jet_near_fatjet1]
     # return all nonoverlapping jets, no sorting
     else:

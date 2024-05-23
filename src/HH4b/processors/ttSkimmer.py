@@ -110,7 +110,7 @@ class ttSkimmer(SkimmerABC):
         "pt": 25,  # from JME-18-002
         "eta": 2.4,
         "delta_phi_muon": 2,
-        "btagWP": 0.2605,  # 2022E 
+        "btagWP": 0.2605,  # 2022E
         "num": 1,
         # "closest_muon_dr": 0.4,
         # "closest_muon_ptrel": 25,
@@ -234,7 +234,7 @@ class ttSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
         print(ak.fields(ak4_jets))
-        
+
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save
