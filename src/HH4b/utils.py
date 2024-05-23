@@ -181,7 +181,10 @@ def check_selector(sample: str, selector: str | list[str]):
         selector = [selector]
 
     for s in selector:
-        if s.startswith("*"):
+        if s.endswith("?"):
+            if s[:-1] == sample:
+                return True
+        elif s.startswith("*"):
             if s[1:] in sample:
                 return True
         else:
