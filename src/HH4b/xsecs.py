@@ -68,9 +68,8 @@ xsecs["QCD_PT-800to1000_MuEnrichedPt5"] = 3.913
 xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
 
 # Top
-# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
-# cross check these?
-# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
+# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO: 923.6
+# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012: 887
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
 xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
 xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
@@ -103,15 +102,16 @@ xsecs["TbarWplusto2L2Nu"] = 2.62
 xsecs["TWminusto2L2Nu"] = 2.62
 
 # Higgs
-# SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
-xsecs["GluGluHto2B_M-125"] = 30.2 * BR_HBB
+xsecs["GluGluHto2B_M-125"] = 51.53 * BR_HBB # 29.93
+# SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV 
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
-xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB
-xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB
-xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB
-xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB
-xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB
+xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.023 * BR_HBB # 2.34
+xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB # 0.349
+xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB # 0.167
+xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB # 0.222
+xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB # 0.106
+xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB  
 xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.8079 * BR_ZQQ * BR_HBB
 xsecs["ggZH_Hto2B_Zto2L_M-125"] = 0.1360 * BR_ZLL * BR_HBB
 xsecs["ggZH_Hto2B_Zto2Nu_M-125"] = 0.1360 * BR_ZLNU * BR_HBB
