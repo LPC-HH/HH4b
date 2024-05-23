@@ -246,7 +246,7 @@ class ttSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
         print(ak.fields(ak4_jets))
-        
+
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
         num_fatjets = 3  # number to save

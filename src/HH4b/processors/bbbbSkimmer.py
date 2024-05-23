@@ -495,9 +495,15 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
-        if len(ak4_jets_awayfromak8)==2:
+        if len(ak4_jets_awayfromak8) == 2:
             ak4JetAwayVars = {
-                f"AK4JetAway{key}": pad_val(ak.concatenate([ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1), 2, axis=1)
+                f"AK4JetAway{key}": pad_val(
+                    ak.concatenate(
+                        [ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1
+                    ),
+                    2,
+                    axis=1,
+                )
                 for (var, key) in jet_skimvars.items()
             }
         else:
