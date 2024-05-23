@@ -542,7 +542,7 @@ def fill_regions(
 
         # data observed
         if args.mc_closure:
-            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"])
+            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"]])
             ch.setObservation(all_bg)
         else:
            ch.setObservation(region_templates[data_key, :])
