@@ -235,15 +235,17 @@ corr_year_shape_systs = {
     # TODO: separate into individual
     "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
     "ttbarSF_pTjj": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     "ttbarSF_tau32": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_tau32",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_tau32",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
@@ -260,25 +262,29 @@ uncorr_year_shape_systs = {
     "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
     "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     "ttbarSF_Xbb_bin_0.8_0.94": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     "ttbarSF_Xbb_bin_0.94_0.99": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     "ttbarSF_Xbb_bin_0.99_1": Syst(
-    name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
-    prior="shape",
-    samples=["ttbar"],
-    convert_shape_to_lnN=True),
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
 }
 
 if not args.do_jshifts:
