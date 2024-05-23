@@ -391,16 +391,28 @@ class ttSkimmer(SkimmerABC):
         # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
+<<<<<<< HEAD
         if year == "2022" and self._nano_version == "v12_private":
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > 0.3086)
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
 	    )
         else:
+=======
+        if year != "2022":
+>>>>>>> origin/main
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagPNetB > self.ak4_jet_selection["btagWP"])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
             )
+<<<<<<< HEAD
+=======
+        else:
+            ak4_jet_selector_btag_muon = ak4_jet_selector * (
+                (ak4_jets.btagDeepFlavB > 0.3086)
+                * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
+            )
+>>>>>>> origin/main
 
         ak4_selection = (
             # at least 1 b-tagged jet close to the muon
