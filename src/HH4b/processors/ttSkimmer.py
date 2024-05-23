@@ -121,13 +121,8 @@ class ttSkimmer(SkimmerABC):
         "2023": 0.2431,
         "2023BPix": 0.2435,
     }
-    btag_medium_pNet = {
-        "2022": 0.245,
-        "2022EE": 0.2605,
-        "2023": 0.1917,
-        "2023BPix": 0.1919
-    }
-    
+    btag_medium_pNet = {"2022": 0.245, "2022EE": 0.2605, "2023": 0.1917, "2023BPix": 0.1919}
+
     met_selection = {"pt": 50}  # noqa: RUF012
 
     lepW_selection = {"pt": 100}  # noqa: RUF012
@@ -407,7 +402,7 @@ class ttSkimmer(SkimmerABC):
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > self.btag_medium_deepJet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
-	    )
+            )
         else:
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagPNetB > self.btag_medium_pNet[year])
