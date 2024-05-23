@@ -6,10 +6,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import correctionlib.convert
+import numpy as np
 import uproot
 from correctionlib import schemav2
-import numpy as np
+
 
 def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
     def singlebinning(eff):
@@ -37,9 +37,7 @@ def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
                 description="Systematic variation",
             ),
         ],
-        output=schemav2.Variable(
-            name="weight", type="real", description=f"ttbar efficiency"
-        ),
+        output=schemav2.Variable(name="weight", type="real", description="ttbar efficiency"),
         data=schemav2.Category(
             nodetype="category",
             input="systematic",
@@ -51,6 +49,7 @@ def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
         ),
     )
     return corr
+
 
 def main():
 
@@ -65,7 +64,7 @@ def main():
             edges = sfhist.axes.edges[0]
             # corr = correctionlib.convert.from_histogram(sfhist)
             corr = get_corr(
-                corr_key, 
+                corr_key,
                 sfhist.values(),
                 np.sqrt(sfhist.variances()),
                 np.sqrt(sfhist.variances()),

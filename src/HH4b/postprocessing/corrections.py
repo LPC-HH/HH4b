@@ -6,7 +6,13 @@ import pandas as pd
 from numpy.typing import ArrayLike
 
 
-def ttbar_SF(year: str, events_dict: dict[str, pd.DataFrame], corr: str, branch: str, input_range: ArrayLike | None = None):
+def ttbar_SF(
+    year: str,
+    events_dict: dict[str, pd.DataFrame],
+    corr: str,
+    branch: str,
+    input_range: ArrayLike | None = None,
+):
     # corr: PTJJ, Tau3OverTau2, Xbb
     # branch: HHPt, H1T32, H2T32, H1TXbb, H2TXbb
     # if input is outside of input_range, set correction to 1
@@ -25,9 +31,9 @@ def ttbar_SF(year: str, events_dict: dict[str, pd.DataFrame], corr: str, branch:
     for syst in ["nominal", "stat_up", "stat_dn"]:
         sfs[syst] = tt_sf.evaluate(input_var, "nominal")
         if syst == "stat_up":
-           sfs[syst] += tt_sf.evaluate(input_var, syst)
+            sfs[syst] += tt_sf.evaluate(input_var, syst)
         elif syst == "stat_dn":
-           sfs[syst] -= tt_sf.evaluate(input_var, syst)
+            sfs[syst] -= tt_sf.evaluate(input_var, syst)
         # replace zeros or negatives with 1
         sfs[syst][sfs[syst] <= 0] = 1.0
         # if input is outside of (defined) input_range, set to 1
