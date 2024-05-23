@@ -115,13 +115,13 @@ class ttSkimmer(SkimmerABC):
         # "closest_muon_ptrel": 25,
     }
 
-    btag_medium_deepJet = {
+    btag_medium_deepJet = { # noqa: RUF012
         "2022": 0.3086,
         "2022EE": 0.3196,
         "2023": 0.2431,
         "2023BPix": 0.2435,
     }
-    btag_medium_pNet = {
+    btag_medium_pNet = { # noqa: RUF012
         "2022": 0.245,
         "2022EE": 0.2605,
         "2023": 0.1917,
