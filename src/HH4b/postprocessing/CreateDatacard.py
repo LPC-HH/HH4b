@@ -101,6 +101,7 @@ add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", de
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
+add_bool_arg(parser, "mc-closure", "Perform MC closure test (fill data_obs with sum of MC bkg.", default=False)
 args = parser.parse_args()
 
 
@@ -540,7 +541,11 @@ def fill_regions(
             )
 
         # data observed
-        ch.setObservation(region_templates[data_key, :])
+        if args.mc_closure:
+            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"])
+            ch.setObservation(all_bg)
+        else:
+           ch.setObservation(region_templates[data_key, :])
 
 
 def alphabet_fit(
