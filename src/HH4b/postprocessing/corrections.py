@@ -23,7 +23,7 @@ def ttbar_SF(
     elif "2023" in year:
         year_ = "2023"
     tt_sf = correctionlib.CorrectionSet.from_file(f"../corrections/data/ttbarcorr_{year_}.json")[
-        f"ttbar_corr_{corr}_{year}"
+        f"ttbar_corr_{corr}_{year_}"
     ]
     input_var = events_dict[branch]
 
