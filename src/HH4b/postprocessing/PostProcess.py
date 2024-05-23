@@ -7,6 +7,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
+import corrections
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -23,8 +24,9 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     load_run3_samples,
+    weight_shifts,
 )
-from HH4b.utils import ShapeVar, singleVarHist
+from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -91,15 +93,6 @@ label_by_mass = {
     "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
 }
 
-"""
-Test suggested by Marko
-- Fill data mass and BDT histogram before BDT (unblinded)
-- For one toy
-  - Sample mass histogram (TH1->GetRandom()) -> New mass histogram
-  - (LATER): Inject 3sigma HH4b
-  - Optimize for FOM using sideband
-"""
-
 
 def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
@@ -113,15 +106,17 @@ def get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike):
+def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
+    jlabel = "" if jshift == "" else "_" + jshift
+
     if preds.shape[1] == 2:  # binary BDT only
-        events["bdt_score"] = preds[:, 1]
+        events[f"bdt_score{jlabel}"] = preds[:, 1]
     elif preds.shape[1] == 3:  # multi-class BDT with ggF HH, QCD, ttbar classes
-        events["bdt_score"] = preds[:, 0]  # ggF HH
+        events[f"bdt_score{jlabel}"] = preds[:, 0]  # ggF HH
     elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
         bg_tot = np.sum(preds[:, 2:], axis=1)
-        events["bdt_score"] = preds[:, 0] / (preds[:, 0] + bg_tot)
-        events["bdt_score_vbf"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+        events[f"bdt_score{jlabel}"] = preds[:, 0] / (preds[:, 0] + bg_tot)
+        events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
@@ -172,64 +167,82 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
+def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weight_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
-
-    events_dict = load_run3_samples(
-        f"{args.data_dir}/{args.tag}",
-        year,
-        args.legacy,
-        samples_run3,
-        reorder_txbb=True,
-        txbb=f"bbFatJetPNetTXbb{legacy_label}",
-    )
-
-    cutflow = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_print = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_dict = {
-        key: OrderedDict(
-            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
-        )
-        for key in events_dict
-    }
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+
     # get function
     make_bdt_dataframe = importlib.import_module(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    # inference and assign score
-    events_dict_postprocess = {}
-    for key in events_dict:
-        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict[key])
-        preds = bdt_model.predict_proba(bdt_events)
-        add_bdt_scores(bdt_events, preds)
+    # make histograms to validate weights
+    h_weights = hist.Hist(
+        hist.axis.StrCategory([], name="samp", growth=True),
+        hist.axis.Regular(30, 0, 1.5, name="evweight", label="evweight"),
+    )
+    h_mass = hist.Hist(
+        hist.axis.StrCategory([], name="samp", growth=True),
+        hist.axis.Regular(16, 60, 220, name="h2mass", label="Jet 2 mass (GeV)"),
+    )
 
-        bdt_events["H1Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 0]
-        bdt_events["H2Pt"] = events_dict[key]["bbFatJetPt"].to_numpy()[:, 1]
-        bdt_events["H1Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 0]
-        bdt_events["H2Msd"] = events_dict[key]["bbFatJetMsd"].to_numpy()[:, 1]
-        bdt_events["H1TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 0]
-        bdt_events["H2TXbb"] = events_dict[key][f"bbFatJetPNetTXbb{legacy_label}"].to_numpy()[:, 1]
-        bdt_events["H1PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
-            :, 0
-        ]
-        bdt_events["H2PNetMass"] = events_dict[key][f"bbFatJetPNetMass{legacy_label}"].to_numpy()[
-            :, 1
-        ]
-        bdt_events["H1TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 0]
-        bdt_events["H2TXbbNoLeg"] = events_dict[key]["bbFatJetPNetTXbb"].to_numpy()[:, 1]
+    # define cutflows
+    samples_year = list(samples_run3[year].keys())
+    cutflow = pd.DataFrame(index=samples_year)
+    cutflow_dict = {}
+
+    # region in which QCD trigger weights were extracted
+    trigger_region = "QCD"
+
+    events_dict_postprocess = {}
+    for key in samples_year:
+        samples_to_process = {year: {key: samples_run3[year][key]}}
+
+        events_dict = load_run3_samples(
+            f"{args.data_dir}/{args.tag}",
+            year,
+            args.legacy,
+            samples_to_process,
+            reorder_txbb=True,
+            txbb=f"bbFatJetPNetTXbb{legacy_label}",
+        )[key]
+
+        cutflow_dict[key] = OrderedDict(
+            [("Skimmer Preselection", np.sum(events_dict["finalWeight"].to_numpy()))]
+        )
+
+        # inference and assign score
+        jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
+
+        bdt_events = {}
+        for jshift in jshifts:
+            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
+                events_dict, get_var_mapping(jshift)
+            )
+            preds = bdt_model.predict_proba(bdt_events[jshift])
+            add_bdt_scores(bdt_events[jshift], preds, jshift)
+        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+        bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
+        bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
+        bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
+        bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
+        bdt_events["H1TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][0]
+        bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
+        bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
+        bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
+        bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
+        bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
 
         # add HLTs
         bdt_events["hlt"] = np.any(
             np.array(
                 [
-                    events_dict[key][trigger].to_numpy()[:, 0]
+                    events_dict[trigger].to_numpy()[:, 0]
                     for trigger in postprocessing.HLTs[year]
-                    if trigger in events_dict[key]
+                    if trigger in events_dict
                 ]
             ),
             axis=0,
@@ -237,15 +250,87 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # weights
         # finalWeight: includes genWeight, puWeight
-        # FIXME: genWeight taken only as sign for HH sample...
-        bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+        nominal_weight = events_dict["finalWeight"].to_numpy()
 
-        ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
-        # if key == "ttbar" and not args.legacy:
-        #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
+        nevents = len(events_dict["bbFatJetPt"][0])
+        trigger_weight = np.ones(nevents)
+        if key != "data":
+            trigger_weight, trigger_weight_up, trigger_weight_dn = corrections.trigger_SF(
+                year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
+            )
+            h_weights.fill(f"{key}_trigger", trigger_weight)
+            h_weights.fill(f"{key}_trigger_up", trigger_weight_up)
+            h_weights.fill(f"{key}_trigger_down", trigger_weight_dn)
+
+            h_mass.fill(
+                f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+            h_mass.fill(
+                f"{key}_trigger_up",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_up,
+            )
+            h_mass.fill(
+                f"{key}_trigger_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_dn,
+            )
+
+        # tt corrections
+        ttbar_weight = np.ones(nevents)
+        if key == "ttbar":
+            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+            tau32sf = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H1T32"
+            ) * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")
+            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb") * corrections.ttbar_SF(
+                year, bdt_events, "Xbb", "H2TXbb"
+            )
+
+            ttbar_weight = ptjjsf * txbbsf * tau32sf
+
+            h_weights.fill(f"{key}_ptjj", ptjjsf)
+            h_weights.fill(f"{key}_tau32", tau32sf)
+            h_weights.fill(f"{key}_txbb", txbbsf)
+            # h_mass.fill(f"{key}_ptjj",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * ptjjsf)
+            # h_mass.fill(f"{key}_tau32",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * tau32sf)
+            # h_mass.fill(f"{key}_txbb",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * txbbsf)
+            h_mass.fill(
+                f"{key}_ttsf",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf,
+            )
+            h_mass.fill(
+                f"{key}_ttsf_down", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+
+            h_mass.fill(
+                f"{key}_ttsftau32",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf * tau32sf,
+            )
+            h_mass.fill(
+                f"{key}_ttsftau32_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight,
+            )
+
+        bdt_events["weight_ttbar"] = ttbar_weight
+
+        # FIXME: genWeight taken only as sign for HH sample...
+        bdt_events["weight_nottbar"] = nominal_weight * trigger_weight
+        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
+        if key != "data":
+            bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
+            bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
+        if key == "ttbar":
+            bdt_events["weight_ttbarSFUp"] = (
+                nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
+            )
+            bdt_events["weight_ttbarSFDown"] = nominal_weight * trigger_weight
 
         # add selection to testing events
-        bdt_events["event"] = events_dict[key]["event"].to_numpy()[:, 0]
+        bdt_events["event"] = events_dict["event"][0]
         if (
             args.training_years is not None
             and year in args.training_years
@@ -265,50 +350,95 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        mask_presel = (
-            (bdt_events["H1Msd"] > 40)  # FIXME: replace by jet matched to trigger object
-            & (bdt_events["H1Pt"] > 300)
-            & (bdt_events["H2Pt"] > 300)
-            & (bdt_events["H1TXbb"] > 0.8)
-            & (bdt_events[args.mass] >= 60)
-            & (bdt_events[args.mass] <= 250)
-            & (bdt_events[args.mass.replace("H2", "H1")] >= 60)
-            & (bdt_events[args.mass.replace("H2", "H1")] <= 250)
-        )
-        bdt_events = bdt_events[mask_presel]
-        cutflow_dict[key]["H1Msd > 40 & Pt > 300"] = np.sum(bdt_events["weight"].to_numpy())
+        for jshift in jshifts:
+            h1pt = check_get_jec_var("H1Pt", jshift)
+            h2pt = check_get_jec_var("H2Pt", jshift)
+            h1msd = check_get_jec_var("H1Msd", jshift)
+            h1mass = check_get_jec_var(args.mass.replace("H2", "H1"), jshift)
+            h2mass = check_get_jec_var(args.mass, jshift)
+            category = check_get_jec_var("Category", jshift)
+            bdt_score = check_get_jec_var("bdt_score", jshift)
 
-        ###### FINISH pre-selection
-        mass_window = [110, 140]
-        mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
-        mask_mass = (bdt_events[args.mass] >= mass_window[0]) & (
-            bdt_events[args.mass] <= mass_window[1]
-        )
-
-        # define category
-        bdt_events["Category"] = 5  # all events
-        if args.vbf:
-            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
-                bdt_events["H2TXbb"] > args.vbf_txbb_wp
+            mask_presel = (
+                (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
+                & (bdt_events[h1pt] >= 300)
+                & (bdt_events[h2pt] >= args.pt_second)
+                & (bdt_events["H1TXbb"] >= 0.8)
+                & (bdt_events[h2mass] >= 60)
+                & (bdt_events[h2mass] <= 220)
+                & (bdt_events[h1mass] >= 60)
+                & (bdt_events[h1mass] <= 220)
             )
-        else:
-            # if no VBF region, set all events to "fail VBF"
-            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+            bdt_events = bdt_events[mask_presel]
 
-        mask_bin1 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[0])
-            & (bdt_events["bdt_score"] > args.bdt_wps[0])
-            # & ~(mask_vbf)
+            ###### FINISH pre-selection
+            mass_window = [110, 140]
+            mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
+            mask_mass = (bdt_events[h2mass] >= mass_window[0]) & (
+                bdt_events[h2mass] <= mass_window[1]
+            )
+
+            # define category
+            bdt_events[category] = 5  # all events
+            if args.vbf:
+                bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
+                mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
+                    bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                )
+            else:
+                # if no VBF region, set all events to "fail VBF"
+                mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
+            mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
+                bdt_events[bdt_score] > args.bdt_wps[0]
+            )
+
+            if args.vbf_priority:
+                # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
+                mask_bin1 = mask_bin1 & ~(mask_vbf)
+            else:
+                # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+                mask_vbf = mask_vbf & ~(mask_bin1)
+
+            bdt_events.loc[mask_vbf, category] = 0
+
+            bdt_events.loc[mask_bin1, category] = 1
+
+            mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
+                bdt_events[bdt_score] < args.bdt_wps[0]
+            )
+            mask_bin2 = (
+                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                & (bdt_events[bdt_score] > args.bdt_wps[1])
+                & ~(mask_bin1)
+                & ~(mask_corner)
+                & ~(mask_vbf)
+            )
+            bdt_events.loc[mask_bin2, category] = 2
+
+            mask_bin3 = (
+                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                & (bdt_events[bdt_score] > args.bdt_wps[2])
+                & ~(mask_bin1)
+                & ~(mask_bin2)
+                & ~(mask_vbf)
+            )
+            bdt_events.loc[mask_bin3, category] = 3
+
+            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
+                bdt_events[bdt_score] > args.bdt_wps[2]
+            )
+            bdt_events.loc[mask_fail, category] = 4
+
+        # save cutflows for nominal variables
+        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second}"] = np.sum(
+            bdt_events["weight"].to_numpy()
         )
 
-        if args.vbf_priority:
-            # prioritize VBF region i.e. veto events in bin1 that pass the VBF selection
-            mask_bin1 = mask_bin1 & ~(mask_vbf)
-        else:
-            # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
-            mask_vbf = mask_vbf & ~(mask_bin1)
+        cutflow_dict[key]["BDT > min"] = np.sum(
+            bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+        )
 
-        bdt_events.loc[mask_vbf, "Category"] = 0
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
@@ -317,11 +447,22 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
 
-        bdt_events.loc[mask_bin1, "Category"] = 1
         cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
         )
+
+        if key == "ttbar":
+            h_mass.fill(
+                f"{key}_ttsftau32bin1",
+                bdt_events[args.mass][mask_bin1],
+                weight=(bdt_events["weight_ttbar"] * bdt_events["weight_nottbar"])[mask_bin1],
+            )
+            h_mass.fill(
+                f"{key}_ttsftau32bin1_down",
+                bdt_events[args.mass][mask_bin1],
+                weight=bdt_events["weight_nottbar"][mask_bin1],
+            )
 
         cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
             bdt_events["weight"][
@@ -331,40 +472,32 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ].to_numpy()
         )
 
-        mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
-            bdt_events["bdt_score"] < args.bdt_wps[0]
-        )
-        mask_bin2 = (
-            (bdt_events["H2TXbb"] > args.txbb_wps[1])
-            & (bdt_events["bdt_score"] > args.bdt_wps[1])
-            & ~(mask_bin1)
-            & ~(mask_corner)
-            & ~(mask_vbf)
-        )
-        bdt_events.loc[mask_bin2, "Category"] = 2
         cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
         cutflow_dict[key][f"Bin 2 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
         )
 
-        mask_bin3 = (
-            ~(mask_bin1) & ~(mask_bin2) & (bdt_events["bdt_score"] > args.bdt_wps[2]) & ~(mask_vbf)
-        )
-        bdt_events.loc[mask_bin3, "Category"] = 3
         cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
         cutflow_dict[key][f"Bin 3 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
 
-        mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
-            bdt_events["bdt_score"] > args.bdt_wps[2]
-        )
-        bdt_events.loc[mask_fail, "Category"] = 4
-
         # keep some (or all) columns
-        columns = ["Category", "H2Msd", "bdt_score", "H2TXbb", "H2PNetMass", "weight"]
+        columns = ["H2TXbb", "weight"]
+        for jshift in jshifts:
+            columns += [
+                check_get_jec_var("Category", jshift),
+                check_get_jec_var("bdt_score", jshift),
+                check_get_jec_var("H2Msd", jshift),
+                check_get_jec_var("H2PNetMass", jshift),
+            ]
         if "bdt_score_vbf" in bdt_events:
-            columns += ["bdt_score_vbf"]
+            columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        if key == "ttbar":
+            columns += ["weight_ttbarSFUp", "weight_ttbarSFDown"]
+        if key != "data":
+            columns += ["weight_triggerUp", "weight_triggerDown"]
+        columns = list(set(columns))
 
         if control_plots:
             bdt_events["H1T32top"] = bdt_events["H1T32"]
@@ -397,12 +530,56 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns]
 
-    for cut in cutflow_dict[key]:
-        cutflow[cut] = [cutflow_dict[key][cut] for key in events_dict]
-        cutflow_print[cut] = [f"{cutflow_dict[key][cut]:.2f}" for key in events_dict]
+    # make plots of weights
+    if weight_plots:
+        plotting.sigErrRatioPlot(
+            h_weights,
+            "hh4b",
+            "trigger",
+            "Event weight",
+            plot_dir=plot_dir,
+            name=f"{year}_sig_trigger{trigger_region}",
+            show=False,
+            ylim=[0, 2],
+        )
+        plotting.sigErrRatioPlot(
+            h_mass,
+            "hh4b",
+            "trigger",
+            "Jet 2 Mass (GeV)",
+            plot_dir=plot_dir,
+            name=f"mass_{year}_sig_trigger{trigger_region}",
+            show=False,
+            ylim=[0.9, 1.1],
+        )
+        for key in ["ptjj", "tau32", "txbb"]:
+            plotting.sigErrRatioPlot(
+                h_weights,
+                "ttbar",
+                key,
+                "Event weight",
+                plot_dir=plot_dir,
+                name=f"{year}_ttbar_{key}",
+                show=False,
+                ylim=[0, 2],
+            )
+        for key in ["ttsf", "ttsftau32", "ttsftau32bin1"]:
+            plotting.sigErrRatioPlot(
+                h_mass,
+                "ttbar",
+                key,
+                "Jet 2 Mass (GeV)",
+                plot_dir=plot_dir,
+                name=f"mass_{year}_ttbar_{key}",
+                show=False,
+                ylim=[0.5, 1.5],
+            )
+
+    for cut in cutflow_dict["hh4b"]:
+        cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
 
     print("\nCutflow")
-    print(cutflow_print)
+    print(cutflow)
     return events_dict_postprocess, cutflow
 
 
@@ -739,6 +916,7 @@ def postprocess_run3(args):
             year,
             bdt_training_keys,
             args.control_plots,
+            args.weight_plots,
             plot_dir,
         )
 
@@ -753,7 +931,7 @@ def postprocess_run3(args):
             processes,
             bg_keys=bg_keys_combined,
             scale_processes={
-                "hh4b": ["2022EE", "2023", "2023BPix"],
+                # "hh4b": ["2022EE", "2023", "2023BPix"], # FIXED
                 "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
             years_run3=args.years,
@@ -764,6 +942,7 @@ def postprocess_run3(args):
         scaled_by = {}
 
     # combined cutflow
+    cutflow_combined = None
     if len(args.years) > 0:
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
@@ -871,9 +1050,6 @@ def postprocess_run3(args):
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
 
-    if not args.templates:
-        return
-
     templ_dir = Path("templates") / args.templates_tag
     year = "2022-2023"
     (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
@@ -885,26 +1061,39 @@ def postprocess_run3(args):
         pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
+        cutflows[cyear] = cutflows[cyear].round(2)
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
+    if cutflow_combined is not None:
+        cutflow_combined = cutflow_combined.round(2)
+        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
+
+    if not args.templates:
+        return
 
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
     # individual templates per year
-    templates = postprocessing.get_templates(
-        events_combined,
-        year=year,
-        sig_keys=args.sig_keys,
-        selection_regions=selection_regions,
-        shape_vars=[fit_shape_var],
-        systematics={},
-        template_dir=templ_dir,
-        bg_keys=bg_keys_combined,
-        plot_dir=f"{templ_dir}/{year}",
-        weight_key="weight",
-        show=False,
-        energy=13.6,
-    )
+    templates = {}
+    for jshift in [""] + hh_vars.jec_shifts:
+        ttemps = postprocessing.get_templates(
+            events_combined,
+            year=year,
+            sig_keys=args.sig_keys,
+            selection_regions=selection_regions,
+            shape_vars=[fit_shape_var],
+            systematics={},
+            template_dir=templ_dir,
+            bg_keys=bg_keys_combined,
+            plot_dir=Path(f"{templ_dir}/{year}"),
+            weight_key="weight",
+            weight_shifts=weight_shifts,
+            plot_shifts=True,
+            show=False,
+            energy=13.6,
+            jshift=jshift,
+        )
+        templates = {**templates, **ttemps}
 
     # save templates per year
     postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
@@ -998,8 +1187,13 @@ if __name__ == "__main__":
         help="sig keys for which to make templates",
     )
 
+    parser.add_argument(
+        "--pt-second", type=float, default=300, help="pt threshold for subleading jet"
+    )
+
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
+    run_utils.add_bool_arg(parser, "weight-plots", default=False, help="make weight plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")

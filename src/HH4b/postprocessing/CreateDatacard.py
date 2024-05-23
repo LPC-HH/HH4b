@@ -52,7 +52,7 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "sig-separate", "separate templates for signals and bgs", default=False)
-add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=False)
+add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=True)
 
 parser.add_argument("--cards-dir", default="cards", type=str, help="output card directory")
 
@@ -71,7 +71,7 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
-parser.add_argument("--sig-sample", default="hh4b", type=str, help="specify signal")
+parser.add_argument("--sig-samples", default="hh4b", nargs="*", type=str, help="specify signals")
 
 parser.add_argument(
     "--nTF",
@@ -101,6 +101,12 @@ add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", de
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
+add_bool_arg(
+    parser,
+    "mc-closure",
+    "Perform MC closure test (fill data_obs with sum of MC bkg.",
+    default=False,
+)
 args = parser.parse_args()
 
 
@@ -147,7 +153,7 @@ hist_names = {}  # names of hist files for the samples
 
 for key in all_sig_keys:
     # check in case single sig sample is specified
-    if args.sig_sample is None or key == args.sig_sample:
+    if args.sig_samples is None or key in args.sig_samples:
         # TODO: change names to match HH combination convention
         mc_samples[key] = key
         sig_keys.append(key)
@@ -233,7 +239,14 @@ corr_year_shape_systs = {
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
     # TODO: separate into individual
-    "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    "ttbarSF": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -255,11 +268,19 @@ if not args.do_jshifts:
     del uncorr_year_shape_systs["JER"]
     del uncorr_year_shape_systs["JMS"]
     del uncorr_year_shape_systs["JMR"]
+else:
+    # TODO: implement others; currently only JES
+    del uncorr_year_shape_systs["JER"]
+    del uncorr_year_shape_systs["JMS"]
+    del uncorr_year_shape_systs["JMR"]
 
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "shape")
+    if syst.convert_shape_to_lnN:
+        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "lnN")
+    else:
+        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "shape")
 for skey, syst in uncorr_year_shape_systs.items():
     for year in years:
         if year in syst.uncorr_years:
@@ -474,7 +495,13 @@ def fill_regions(
                 logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                 effect_up, effect_down = get_effect_updown(
-                    values_nominal, values_up, values_down, mask, logger, args.epsilon
+                    values_nominal,
+                    values_up,
+                    values_down,
+                    mask,
+                    logger,
+                    args.epsilon,
+                    syst.convert_shape_to_lnN,
                 )
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
@@ -519,7 +546,11 @@ def fill_regions(
             )
 
         # data observed
-        ch.setObservation(region_templates[data_key, :])
+        if args.mc_closure:
+            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"]])
+            ch.setObservation(all_bg)
+        else:
+            ch.setObservation(region_templates[data_key, :])
 
 
 def alphabet_fit(
