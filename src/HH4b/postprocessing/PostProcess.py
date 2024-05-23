@@ -25,6 +25,7 @@ from HH4b.postprocessing import (
     combine_run3_samples,
     load_run3_samples,
     weight_shifts,
+    decorr_txbb_bins
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -279,22 +280,37 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         # tt corrections
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
-            tau32sf = corrections.ttbar_SF(
+            # ptjj correction 
+            ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+
+            # tau32 correction
+            tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
                 year, bdt_events, "Tau3OverTau2", "H1T32"
-            ) * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")
-            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb") * corrections.ttbar_SF(
-                year, bdt_events, "Xbb", "H2TXbb"
             )
+            tau32j2sf, tau32j2sf_up, tau32j2sf_dn = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H2T32")
+            tau32sf = tau32j1sf * tau32j2sf
+            tau32sf_up = tau32j1sf_up * tau32j2sf_up
+            tau32sf_dn = tau32j1sf_dn * tau32j2sf_dn
 
-            ttbar_weight = ptjjsf * txbbsf * tau32sf
+            # inclusive xbb correction
+            tempw1, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")
+            tempw2, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")
+            txbbsf = tempw1 * tempw2
 
+            # total ttbar correction
+            ttbar_weight = ptjjsf * tau32sf * txbbsf
+
+            # xbb up/down variations in bins
+            for i in range(len(decorr_txbb_bins)-1):
+                tempw1, tempw1_up, tempw1_dn = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb", decorr_txbb_bins[i:i+2])
+                tempw2, tempw2_up, tempw2_dn = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb", decorr_txbb_bins[i:i+2])
+                bdt_events[f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}_{year}Up"] = nominal_weight * ttbar_weight * tempw1_up * tempw2_up / (tempw1 * tempw2)
+                bdt_events[f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}_{year}Down"] = nominal_weight * ttbar_weight * tempw1_dn * tempw2_dn / (tempw1 * tempw2)
             h_weights.fill(f"{key}_ptjj", ptjjsf)
             h_weights.fill(f"{key}_tau32", tau32sf)
             h_weights.fill(f"{key}_txbb", txbbsf)
-            # h_mass.fill(f"{key}_ptjj",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * ptjjsf)
-            # h_mass.fill(f"{key}_tau32",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * tau32sf)
-            # h_mass.fill(f"{key}_txbb",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * txbbsf)
+
             h_mass.fill(
                 f"{key}_ttsf",
                 bdt_events[args.mass],
@@ -324,10 +340,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
             bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
         if key == "ttbar":
-            bdt_events["weight_ttbarSFUp"] = (
-                nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
-            )
-            bdt_events["weight_ttbarSFDown"] = nominal_weight * trigger_weight
+            bdt_events["weight_ttbarSF_pTjjUp"] = nominal_weight * ttbar_weight * ptjjsf
+            bdt_events["weight_ttbarSF_pTjjDown"] = nominal_weight * ttbar_weight / ptjjsf
+            bdt_events["weight_ttbarSF_tau32Up"] = nominal_weight * ttbar_weight * tau32sf_up / tau32sf
+            bdt_events["weight_ttbarSF_tau32Down"] = nominal_weight * ttbar_weight * tau32sf_dn / tau32sf
 
         # add selection to testing events
         bdt_events["event"] = events_dict["event"][0]
@@ -494,7 +510,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
-            columns += ["weight_ttbarSFUp", "weight_ttbarSFDown"]
+            columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
         columns = list(set(columns))

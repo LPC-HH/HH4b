@@ -3,11 +3,13 @@ from __future__ import annotations
 import correctionlib
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike
 
 
-def ttbar_SF(year: str, events_dict: dict[str, pd.DataFrame], corr: str, branch: str):
+def ttbar_SF(year: str, events_dict: dict[str, pd.DataFrame], corr: str, branch: str, input_range: ArrayLike | None = None):
     # corr: PTJJ, Tau3OverTau2, Xbb
     # branch: HHPt, H1T32, H2T32, H1TXbb, H2TXbb
+    # if input is outside of input_range, set correction to 1
     """Apply ttbar scale factors"""
     year_ = None
     if "2022" in year:
@@ -15,14 +17,25 @@ def ttbar_SF(year: str, events_dict: dict[str, pd.DataFrame], corr: str, branch:
     elif "2023" in year:
         year_ = "2023"
     tt_sf = correctionlib.CorrectionSet.from_file(f"../corrections/data/ttbarcorr_{year_}.json")[
-        corr
+        f"ttbar_corr_{corr}_{year}"
     ]
     input_var = events_dict[branch]
-    sfs = tt_sf.evaluate(input_var)
-    # replace zeros with 1
-    sfs[sfs == 0] = 1.0
 
-    return sfs
+    sfs = {}
+    for syst in ["nominal", "stat_up", "stat_dn"]:
+        sfs[syst] = tt_sf.evaluate(input_var, "nominal")
+        if syst == "stat_up":
+           sfs[syst] += tt_sf.evaluate(input_var, syst)
+        elif syst == "stat_dn":
+           sfs[syst] -= tt_sf.evaluate(input_var, syst)
+        # replace zeros or negatives with 1
+        sfs[syst][sfs[syst] <= 0] = 1.0
+        # if input is outside of (defined) input_range, set to 1
+        if input_range is not None:
+            sfs[syst][input_var < input_range[0]] = 1.0
+            sfs[syst][input_var > input_range[1]] = 1.0
+
+    return sfs["nominal"], sfs["stat_up"], sfs["stat_dn"]
 
 
 def _load_trig_effs(year: str, label: str, region: str):
