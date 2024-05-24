@@ -662,12 +662,12 @@ class bbbbSkimmer(SkimmerABC):
         
         # JEC variations for VBF Jets                                                                                                                                                                                                                                       
         if self._region == "signal" and isJECs:
-	    for var in ["pt"]:
+            for var in ["pt"]:
                 key = self.skim_vars["Jet"][var]
                 for label, shift in self.jecs.items():
                     if shift in ak.fields(vbf_jets):
                         for vari in ["up", "down"]:
-			    vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
+                            vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
                                 vbf_jets[shift][vari][var], 2, axis=1
                             )
                             
@@ -675,7 +675,7 @@ class bbbbSkimmer(SkimmerABC):
             **skimmed_events,
             **vbfJetVars,
         }
-
+        
         if self._region == "semilep-tt":
             # concatenate leptons
             leptons = ak.concatenate([muons, electrons], axis=1)
