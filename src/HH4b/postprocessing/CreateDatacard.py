@@ -252,50 +252,20 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_Xbb_bin_0_0.8_2022": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8_2022",
+    "ttbarSF_Xbb_bin_0_0.8": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_Xbb_bin_0.8_0.94_2022": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94_2022",
+    "ttbarSF_Xbb_bin_0.8_0.94": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_Xbb_bin_0.94_0.99_2022": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99_2022",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_Xbb_bin_0.99_1_2022": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1_2022",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_Xbb_bin_0_0.8_2023": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8_2023",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_Xbb_bin_0.8_0.94_2023": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94_2023",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_Xbb_bin_0.94_0.99_2023": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99_2023",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_Xbb_bin_0.99_1_2023": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1_2023",
+    "ttbarSF_Xbb_bin_0.94_0.99": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
