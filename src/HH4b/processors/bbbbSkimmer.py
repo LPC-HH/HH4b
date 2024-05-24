@@ -655,37 +655,26 @@ class bbbbSkimmer(SkimmerABC):
             **trigObjFatJetVars,
         }
 
-        if self._region == "signal":
-            # TODO: add shifts from JECs and JSMR
-            # bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
-
-            # VBF Jets
-            vbfJetVars = {
-                f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
-                for (var, key) in self.skim_vars["Jet"].items()
-            }
-
-            # JEC variations for VBF Jets
-            if self._region == "signal" and isJECs:
-                for var in ["pt"]:
-                    key = self.skim_vars["Jet"][var]
-                    for label, shift in self.jecs.items():
-                        if shift in ak.fields(vbf_jets):
-                            for vari in ["up", "down"]:
-                                vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
-                                    vbf_jets[shift][vari][var], 2, axis=1
-                                )
-
-            skimmed_events = {
-                **skimmed_events,
-                **vbfJetVars,
-            }
-        else:
-            # these variables aren't needed for signal region
-            skimmed_events = {
-                **skimmed_events,
-                **ak4JetVars,
-            }
+        vbfJetVars = {
+            f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
+            for (var, key) in self.skim_vars["Jet"].items()
+        }
+        
+        # JEC variations for VBF Jets                                                                                                                                                                                                                                       
+        if self._region == "signal" and isJECs:
+	    for var in ["pt"]:
+                key = self.skim_vars["Jet"][var]
+                for label, shift in self.jecs.items():
+                    if shift in ak.fields(vbf_jets):
+                        for vari in ["up", "down"]:
+			    vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
+                                vbf_jets[shift][vari][var], 2, axis=1
+                            )
+                            
+        skimmed_events = {
+            **skimmed_events,
+            **vbfJetVars,
+        }
 
         if self._region == "semilep-tt":
             # concatenate leptons
