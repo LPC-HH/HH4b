@@ -276,7 +276,6 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-
     "ttbarSF_Xbb_bin_0_0.8_2023": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8_2023",
         prior="shape",

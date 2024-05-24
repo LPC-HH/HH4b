@@ -167,7 +167,7 @@ sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 # keys that require running up/down systematics
-syst_keys = sig_keys # + bg_keys (TODO)
+syst_keys = sig_keys  # + bg_keys (TODO)
 # syst_keys.remove("qcd")
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
@@ -243,13 +243,13 @@ jec_vars = [
 
 # variables affected by JMS/JMR
 jmsr_vars = [
-#    "bbFatJetMsd",
-#    "bbFatJetPNetMassLegacy",
-#    "bdt_score",
-#    "bdt_score_vbf",
-#    "HHmass",
-#    "H1Pt_HHmass",
-#    "H2Pt_HHmass",
-#    "VBFjjMass",
-#    "Category",
+    #    "bbFatJetMsd",
+    #    "bbFatJetPNetMassLegacy",
+    #    "bdt_score",
+    #    "bdt_score_vbf",
+    #    "HHmass",
+    #    "H1Pt_HHmass",
+    #    "H2Pt_HHmass",
+    #    "VBFjjMass",
+    #    "Category",
 ]
