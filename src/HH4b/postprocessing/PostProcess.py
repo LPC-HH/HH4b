@@ -961,6 +961,7 @@ def postprocess_run3(args):
             bg_keys=bg_keys_combined,
             scale_processes={
                 # "hh4b": ["2022EE", "2023", "2023BPix"], # FIXED
+                "vbfhh4b": ["2022", "2022EE"],
                 "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
             years_run3=args.years,
@@ -1212,7 +1213,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=["hh4b", "vbfhh4b-k2v0"],
+        default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
     )
 
