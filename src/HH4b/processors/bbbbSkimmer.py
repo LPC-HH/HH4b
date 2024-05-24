@@ -388,8 +388,6 @@ class bbbbSkimmer(SkimmerABC):
         ht = ak.sum(jets.pt, axis=1)
         print("ak4", f"{time.time() - start:.2f}")
 
-        num_fatjets = 3  # number to save
-        # num_fatjets_cut = 2  # number to consider for selection
         fatjets = get_ak8jets(events.FatJet)  # this adds all our extra variables e.g. TXbb
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
@@ -497,10 +495,22 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
-        ak4JetAwayVars = {
-            f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
-            for (var, key) in jet_skimvars.items()
-        }
+        if len(ak4_jets_awayfromak8) == 2:
+            ak4JetAwayVars = {
+                f"AK4JetAway{key}": pad_val(
+                    ak.concatenate(
+                        [ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1
+                    ),
+                    2,
+                    axis=1,
+                )
+                for (var, key) in jet_skimvars.items()
+            }
+        else:
+            ak4JetAwayVars = {
+                f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+                for (var, key) in jet_skimvars.items()
+            }
 
         # FatJet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
@@ -523,7 +533,7 @@ class bbbbSkimmer(SkimmerABC):
             }
 
         ak8FatJetVars = {
-            f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
+            f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
         # FatJet ordered by bb
@@ -547,7 +557,7 @@ class bbbbSkimmer(SkimmerABC):
                 key = self.skim_vars["FatJet"][var]
                 for shift, vals in jec_shifted_bbfatjetvars[var].items():
                     if shift != "":
-                        bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, num_fatjets, axis=1)
+                        bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, 2, axis=1)
 
             # FatJet JMSR
             for var in jmsr_vars:
@@ -641,6 +651,8 @@ class bbbbSkimmer(SkimmerABC):
             **pileupVars,
             **HLTVars,
             **ak4JetAwayVars,
+            **ak8FatJetVars,
+            **trigObjFatJetVars,
         }
 
         if self._region == "signal":
@@ -667,16 +679,12 @@ class bbbbSkimmer(SkimmerABC):
             skimmed_events = {
                 **skimmed_events,
                 **vbfJetVars,
-                # **bbFatDijetVars,
-                **trigObjFatJetVars,
             }
         else:
             # these variables aren't needed for signal region
             skimmed_events = {
                 **skimmed_events,
-                **ak8FatJetVars,
                 **ak4JetVars,
-                **trigObjFatJetVars,
             }
 
         if self._region == "semilep-tt":
@@ -797,6 +805,7 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         elif self._region == "had-tt":
+            print("here ")
             # == 2 AK8 jets with pT>300 and mSD>40
             cut_pt_msd = (
                 np.sum(
