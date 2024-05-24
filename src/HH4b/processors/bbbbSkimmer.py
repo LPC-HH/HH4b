@@ -675,7 +675,7 @@ class bbbbSkimmer(SkimmerABC):
             **skimmed_events,
             **vbfJetVars,
         }
-        
+
         if self._region == "semilep-tt":
             # concatenate leptons
             leptons = ak.concatenate([muons, electrons], axis=1)
