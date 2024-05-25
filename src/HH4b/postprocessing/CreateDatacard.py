@@ -561,7 +561,13 @@ def fill_regions(
                     logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                     effect_up, effect_down = get_effect_updown(
-                        values_nominal, values_up, values_down, mask, logger, args.epsilon, syst.convert_shape_to_lnN,
+                        values_nominal,
+                        values_up,
+                        values_down,
+                        mask,
+                        logger,
+                        args.epsilon,
+                        syst.convert_shape_to_lnN,
                     )
                     sample.setParamEffect(
                         shape_systs_dict[f"{skey}_{year}"], effect_up, effect_down
