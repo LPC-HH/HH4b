@@ -270,6 +270,12 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
+    "ttbarSF_Xbb_bin_0.99_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
@@ -527,6 +533,9 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
+                print(skey)
+                print(effect_up)
+                print(effect_down)
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
             # uncorrelated shape systematics
@@ -552,7 +561,7 @@ def fill_regions(
                     logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                     effect_up, effect_down = get_effect_updown(
-                        values_nominal, values_up, values_down, mask, logger, args.epsilon
+                        values_nominal, values_up, values_down, mask, logger, args.epsilon, syst.convert_shape_to_lnN,
                     )
                     sample.setParamEffect(
                         shape_systs_dict[f"{skey}_{year}"], effect_up, effect_down

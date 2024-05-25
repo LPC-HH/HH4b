@@ -312,10 +312,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
                 )
                 bdt_events[
                     f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Up"
-                ] = (nominal_weight * ttbar_weight * tempw1_up * tempw2_up / (tempw1 * tempw2))
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw1_up * tempw2_up / (tempw1 * tempw2))
                 bdt_events[
                     f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Down"
-                ] = (nominal_weight * ttbar_weight * tempw1_dn * tempw2_dn / (tempw1 * tempw2))
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw1_dn * tempw2_dn / (tempw1 * tempw2))
             h_weights.fill(f"{key}_ptjj", ptjjsf)
             h_weights.fill(f"{key}_tau32", tau32sf)
             h_weights.fill(f"{key}_txbb", txbbsf)
