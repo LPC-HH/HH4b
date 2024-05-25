@@ -349,13 +349,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
             bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
         if key == "ttbar":
-            bdt_events["weight_ttbarSF_pTjjUp"] = nominal_weight * ttbar_weight * ptjjsf
-            bdt_events["weight_ttbarSF_pTjjDown"] = nominal_weight * ttbar_weight / ptjjsf
+            bdt_events["weight_ttbarSF_pTjjUp"] = nominal_weight * trigger_weight * ttbar_weight * ptjjsf
+            bdt_events["weight_ttbarSF_pTjjDown"] = nominal_weight * trigger_weight * ttbar_weight / ptjjsf
             bdt_events["weight_ttbarSF_tau32Up"] = (
-                nominal_weight * ttbar_weight * tau32sf_up / tau32sf
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_up / tau32sf
             )
             bdt_events["weight_ttbarSF_tau32Down"] = (
-                nominal_weight * ttbar_weight * tau32sf_dn / tau32sf
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_dn / tau32sf
             )
 
         # add selection to testing events
