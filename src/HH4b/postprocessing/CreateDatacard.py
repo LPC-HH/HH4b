@@ -30,7 +30,7 @@ from datacardHelpers import (
 )
 from hist import Hist
 
-from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
+from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf, years as hh_years
 
 try:
     rl.util.install_roofit_helpers()
@@ -90,10 +90,10 @@ parser.add_argument(
 parser.add_argument("--model-name", default=None, type=str, help="output model name")
 parser.add_argument(
     "--year",
-    help="year",
     type=str,
-    default="2022EE",
-    choices=["2022EE", "2022-2023"],
+    default="2022-2023",
+    choices=hh_years + ["2022-2023"],
+    help="years to make datacards for",
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
@@ -159,11 +159,13 @@ for key in all_sig_keys:
         sig_keys.append(key)
 
 
-print(sig_keys)
 all_mc = list(mc_samples.keys())
 
 
-years = [args.year]
+if args.year == "2022-2023":
+    years = hh_years
+else:
+    years = [args.year]
 full_lumi = LUMI[args.year]
 
 
