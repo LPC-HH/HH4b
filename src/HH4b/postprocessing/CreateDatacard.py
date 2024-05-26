@@ -173,10 +173,7 @@ for key in all_sig_keys:
 all_mc = list(mc_samples.keys())
 
 
-if args.year == "2022-2023":
-    years = hh_years
-else:
-    years = [args.year]
+years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
 
