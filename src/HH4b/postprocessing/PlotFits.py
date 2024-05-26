@@ -207,9 +207,7 @@ if __name__ == "__main__":
     )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=False, help="Include VBF region")
-    run_utils.add_bool_arg(
-        parser, "vbf-k2v0-signal", default=False, help="Plot VBF k2v=0 signal"
-    )
+    run_utils.add_bool_arg(parser, "vbf-k2v0-signal", default=False, help="Plot VBF k2v=0 signal")
 
     args = parser.parse_args()
 
