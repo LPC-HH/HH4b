@@ -30,7 +30,18 @@ from datacardHelpers import (
 )
 from hist import Hist
 
-from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf, years as hh_years
+from HH4b.hh_vars import (
+    LUMI,
+    data_key,
+    jecs,
+    jmsr,
+    qcd_key,
+    sig_keys_ggf,
+    sig_keys_vbf,
+)
+from HH4b.hh_vars import (
+    years as hh_years,
+)
 
 try:
     rl.util.install_roofit_helpers()
