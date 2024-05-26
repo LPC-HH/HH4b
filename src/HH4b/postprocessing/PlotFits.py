@@ -31,7 +31,7 @@ def plot_fits(args):
         ]
     )
 
-    sig_keys = ["hh4b"] if not args.vbf_signal else ["vbfhh4b-k2v0"]
+    sig_keys = ["hh4b", "vbfhh4b"] if not args.vbf_k2v0_signal else ["hh4b", "vbfhh4b-k2v0"]
     for key in sig_keys:
         hist_label_map_inverse[key] = key
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     run_utils.add_bool_arg(parser, "vbf-region", default=False, help="Include VBF region")
     run_utils.add_bool_arg(
-        parser, "vbf-signal", default=False, help="Plot VBF signal or ggF signal"
+        parser, "vbf-k2v0-signal", default=False, help="Plot VBF k2v=0 signal"
     )
 
     args = parser.parse_args()

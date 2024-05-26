@@ -533,9 +533,6 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
-                print(skey)
-                print(effect_up)
-                print(effect_down)
                 sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
             # uncorrelated shape systematics
