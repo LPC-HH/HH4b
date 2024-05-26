@@ -240,8 +240,38 @@ corr_year_shape_systs = {
     # ),
     # TODO: separate into individual
     "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
-    "ttbarSF": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf",
+    "ttbarSF_pTjj": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_tau32": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_tau32",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_Xbb_bin_0_0.8": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_Xbb_bin_0.8_0.94": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_Xbb_bin_0.94_0.99": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_Xbb_bin_0.99_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
@@ -528,7 +558,13 @@ def fill_regions(
                     logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                     effect_up, effect_down = get_effect_updown(
-                        values_nominal, values_up, values_down, mask, logger, args.epsilon
+                        values_nominal,
+                        values_up,
+                        values_down,
+                        mask,
+                        logger,
+                        args.epsilon,
+                        syst.convert_shape_to_lnN,
                     )
                     sample.setParamEffect(
                         shape_systs_dict[f"{skey}_{year}"], effect_up, effect_down
