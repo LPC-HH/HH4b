@@ -281,28 +281,28 @@ uncorr_year_shape_systs = {
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years = {"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
     "ttbarSF_Xbb_bin_0.8_0.94": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years = {"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
     "ttbarSF_Xbb_bin_0.94_0.99": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years = {"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
     "ttbarSF_Xbb_bin_0.99_1": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years = {"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
 }
 
@@ -321,14 +321,12 @@ else:
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
     shape_systs_dict[skey] = rl.NuisanceParameter(
-        syst.name, 
-        "lnN" if syst.convert_shape_to_lnN else "shape"
+        syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
     )
 for skey, syst in uncorr_year_shape_systs.items():
     for uncorr_label in syst.uncorr_years:
         shape_systs_dict[f"{skey}_{uncorr_label}"] = rl.NuisanceParameter(
-            f"{syst.name}_{uncorr_label}",  
-            "lnN" if syst.convert_shape_to_lnN else "shape"
+            f"{syst.name}_{uncorr_label}", "lnN" if syst.convert_shape_to_lnN else "shape"
         )
 
 
@@ -371,7 +369,9 @@ def get_templates(
     return templates_dict, templates_summed
 
 
-def get_year_updown(templates_dict, sample, region, region_noblinded, blind_str, years_to_shift, skey):
+def get_year_updown(
+    templates_dict, sample, region, region_noblinded, blind_str, years_to_shift, skey
+):
     """
     Return templates with only the given year's shapes shifted up and down by the ``skey`` systematic.
     Returns as [up templates, down templates]
