@@ -32,7 +32,8 @@ class Syst:
 
     samples: list[str] = None  # samples affected by it
     # in case of uncorrelated unc., which years to split into
-    uncorr_years: list[str] = field(default_factory=lambda: all_years)
+    # dictionary of label -> list of years to keep correlated
+    uncorr_years: dict[str, list[str]] = field(default_factory=lambda: {year: [year] for year in all_years})
     pass_only: bool = False  # is it applied only in the pass regions
     convert_shape_to_lnN: bool = False  # take shape uncertainty and convert to lnN
 
