@@ -529,8 +529,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
 
+        # save year as column
+        bdt_events["year"] = year
+
         # keep some (or all) columns
-        columns = ["H2TXbb", "weight"]
+        columns = ["year", "H2TXbb", "weight"]
         for jshift in jshifts:
             columns += [
                 check_get_jec_var("Category", jshift),
@@ -690,13 +693,10 @@ def scan_fom(
                 nevents_sig, nevents_bkg, _ = abcd(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
                 )
-                # print("abcd ", nevents_sig, nevents_bkg)
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
                 )
-                # print("sideband ",  nevents_sig, nevents_bkg)
-                # print("\n")
 
             if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
@@ -745,8 +745,6 @@ def get_cuts(args, region: str):
         )
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
-        # print("Passing Bin 1", np.mean(cut_xbb & cut_bdt & (~vbf_cut)))
-        # print("Passing Bin 1 without VBF veto", np.mean(cut_xbb & cut_bdt))
         return cut_xbb & cut_bdt & (~vbf_cut)
 
     # bin 1 without VBF region veto
@@ -853,7 +851,6 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             ratio_ylims=[0.2, 1.8],
             bg_err_mcstat=True,
             reweight_qcd=True,
-            # ylim=ylims[year],
         )
 
 
@@ -903,12 +900,8 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
     bg_tots = np.sum([dicts[key] for key in bg_keys], axis=0)
     # subtract other backgrounds
     dmt = np.array(dicts["data"]) - bg_tots
-    # C/D * B
-    bqcd = dmt[2] * dmt[1] / dmt[3]
-
-    # print("bqcd ",bqcd)
-    # print("bg0 ",bg_tots != 0)
-    # print("bg_tots ",bg_tots[0])
+    # A = B * C / D
+    bqcd = dmt[1] * dmt[2] / dmt[3]
 
     background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
     return s, background, dicts
@@ -938,7 +931,7 @@ def postprocess_run3(args):
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
 
-    mass_window = np.array(window_by_mass[args.mass])  # + np.array([-5, 5])
+    mass_window = np.array(window_by_mass[args.mass])
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -978,7 +971,6 @@ def postprocess_run3(args):
             processes,
             bg_keys=bg_keys_combined,
             scale_processes={
-                # "hh4b": ["2022EE", "2023", "2023BPix"], # FIXED
                 "vbfhh4b": ["2022", "2022EE"],
                 "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
@@ -1099,9 +1091,9 @@ def postprocess_run3(args):
         bdt_roc(events_combined, plot_dir, args.legacy)
 
     templ_dir = Path("templates") / args.templates_tag
-    year = "2022-2023"
-    (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-    (templ_dir / year).mkdir(parents=True, exist_ok=True)
+    for year in args.years:
+        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+        (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
     # save args for posterity
     with (templ_dir / "args.txt").open("w") as f:
@@ -1123,28 +1115,32 @@ def postprocess_run3(args):
 
     # individual templates per year
     templates = {}
-    for jshift in [""] + hh_vars.jec_shifts:
-        ttemps = postprocessing.get_templates(
-            events_combined,
-            year=year,
-            sig_keys=args.sig_keys,
-            selection_regions=selection_regions,
-            shape_vars=[fit_shape_var],
-            systematics={},
-            template_dir=templ_dir,
-            bg_keys=bg_keys_combined,
-            plot_dir=Path(f"{templ_dir}/{year}"),
-            weight_key="weight",
-            weight_shifts=weight_shifts,
-            plot_shifts=True,
-            show=False,
-            energy=13.6,
-            jshift=jshift,
-        )
-        templates = {**templates, **ttemps}
+    for year in args.years:
+        for jshift in [""] + hh_vars.jec_shifts:
+            events_by_year = {}
+            for sample, events in events_combined.items():
+                events_by_year[sample] = events[events["year"] == year]
+            ttemps = postprocessing.get_templates(
+                events_by_year,
+                year=year,
+                sig_keys=args.sig_keys,
+                selection_regions=selection_regions,
+                shape_vars=[fit_shape_var],
+                systematics={},
+                template_dir=templ_dir,
+                bg_keys=bg_keys_combined,
+                plot_dir=Path(f"{templ_dir}/{year}"),
+                weight_key="weight",
+                weight_shifts=weight_shifts,
+                plot_shifts=True,
+                show=False,
+                energy=13.6,
+                jshift=jshift,
+            )
+            templates = {**templates, **ttemps}
 
-    # save templates per year
-    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
+        # save templates per year
+        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
