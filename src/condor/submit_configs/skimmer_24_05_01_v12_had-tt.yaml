@@ -33,7 +33,7 @@
             ],
             "files_per_job": 6,
         },
-	"QCD": {
+        "QCD": {
             "subsamples": [
                 "QCD_HT-100to200",
                 "QCD_HT-200to400",
