@@ -135,7 +135,7 @@ xsecs["HHHTo6B_c3_minus1p5_d4_minus0p5"] = 0.0001941 * BR_HBB * BR_HBB * BR_HBB
 
 # Di-Higgs
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH?redirectedfrom=LHCPhysics.LHCHXSWGHH
-# ggHH xsec 13.6: σ = 76.4346-53.7587*κλ+11.7158*κλ2 in fb
+# ggHH xsec 13.6: = 76.4346-53.7587*kl+11.7158*kl2 in fb
 hh = {
     # kl scan
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 76.43e-3 * BR_HBB * BR_HBB,
