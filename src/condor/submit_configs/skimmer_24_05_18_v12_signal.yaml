@@ -35,7 +35,8 @@
                             "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
                             "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
                         ],
-                    "files_per_job": 10,
+                    "chunksize": 5000,
+                    "files_per_job": 1,
                 },
             "Hbb": { "files_per_job": 10 },
             "VJets":
@@ -76,7 +77,7 @@
             #         "subsamples": ["TTto2L2Nu", "TTto4Q", "TTtoLNu2Q"],
             #         "files_per_job": 10,
             #     },
-	        "SingleTop": {"files_per_job": 10,},
+            "SingleTop": {"files_per_job": 10,},
             # "Diboson":
             #     { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
             "HH":
@@ -95,10 +96,10 @@
                     "subsamples":
                         [
                             "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-                            # "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
                         ],
-	                "chunksize": 5000,
-                    "files_per_job": 10,
+                    "chunksize": 5000,
+                    "files_per_job": 1,
                 },
             # "Hbb": { "files_per_job": 10 },
             # "VJets":
@@ -149,7 +150,7 @@
                 },
             "Hbb": { "files_per_job": 10 },
             "QCD": { "files_per_job": 10 },
-            "HH": { "files_per_job": 10 },
+            "HH": { "files_per_job": 10 }, "VBFHH": { "files_per_job": 10, "chunksize": 5000},
     },
     "2023BPix":
     {
@@ -176,6 +177,6 @@
                     "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
                 ],
                 "files_per_job": 10
-            },
+            }, "VBFHH": { "files_per_job": 10, "chunksize": 5000},
     },
 }
