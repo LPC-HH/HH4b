@@ -168,7 +168,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weight_plots, plot_dir, mass_window):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, weight_plots, plot_dir, mass_window
+):
     legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
