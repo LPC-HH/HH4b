@@ -246,7 +246,37 @@ class bbbbSkimmer(SkimmerABC):
 
         self._systematics = save_systematics
 
-        self.jecs = HH4b.hh_vars.jecs
+        self.jecs = {
+            "JES": "JES",
+            "JER": "JER",
+            "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
+            "JES_AbsoluteScale": "JES_AbsoluteScale",  # goes in Absolute
+            "JES_AbsoluteStat": "JES_AbsoluteStat",  # goes in Abs_year
+            "JES_FlavorQCD": "JES_FlavorQCD",
+            "JES_Fragmentation": "JES_Fragmentation",  # goes in Absolute
+            "JES_PileUpDataMC": "JES_PileUpDataMC",  # goes in Absolute
+            "JES_PileUpPtBB": "JES_PileUpPtBB",  # goes in BBEC1
+            "JES_PileUpPtEC1": "JES_PileUpPtEC1",  # goes in BBEC1
+            "JES_PileUpPtEC2": "JES_PileUpPtEC2",
+            "JES_PileUpPtHF": "JES_PileUpPtHF",
+            "JES_PileUpPtRef": "JES_PileUpPtRef",  # goes in Absolute
+            "JES_RelativeFSR": "JES_RelativeFSR",  # goes in Absolute
+            "JES_RelativeJEREC1": "JES_RelativeJEREC1",  # goes in BBEC1_year
+            "JES_RelativeJEREC2": "JES_RelativeJEREC2",  # goes in EC2_year
+            "JES_RelativeJERHF": "JES_RelativeJERHF",  # goes in HF
+            "JES_RelativePtBB": "JES_RelativePtBB",  # goes in BBEC1
+            "JES_RelativePtEC1": "JES_RelativePtEC1",  # goes in BBEC1_year
+            "JES_RelativePtEC2": "JES_RelativePtEC2",  # goes in EC2_year
+            "JES_RelativePtHF": "JES_RelativePtHF",  # goes in HF
+            "JES_RelativeBal": "JES_RelativeBal",
+            "JES_RelativeSample": "JES_RelativeSample",
+            "JES_RelativeStatEC": "JES_RelativeStatEC",  # goes in BBEC1_year
+            "JES_RelativeStatFSR": "JES_RelativeStatFSR",  # goes in Abs_year
+            "JES_RelativeStatHF": "JES_RelativeStatHF",
+            "JES_SinglePionHCAL": "JES_SinglePionHCAL",  # goes in Absolute
+            "JES_SinglePionECAL": "JES_SinglePionECAL",  # goes in Absolute
+            "JES_TimePtEta": "JES_TimePtEta",  # goes in Abs_year
+        }
 
         self._nano_version = nano_version
 
@@ -655,37 +685,26 @@ class bbbbSkimmer(SkimmerABC):
             **trigObjFatJetVars,
         }
 
-        if self._region == "signal":
-            # TODO: add shifts from JECs and JSMR
-            # bbFatDijetVars = self.getFatDijetVars(bbFatJetVars, pt_shift="")
+        vbfJetVars = {
+            f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
+            for (var, key) in self.skim_vars["Jet"].items()
+        }
 
-            # VBF Jets
-            vbfJetVars = {
-                f"VBFJet{key}": pad_val(vbf_jets[var], 2, axis=1)
-                for (var, key) in self.skim_vars["Jet"].items()
-            }
+        # JEC variations for VBF Jets
+        if self._region == "signal" and isJECs:
+            for var in ["pt"]:
+                key = self.skim_vars["Jet"][var]
+                for label, shift in self.jecs.items():
+                    if shift in ak.fields(vbf_jets):
+                        for vari in ["up", "down"]:
+                            vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
+                                vbf_jets[shift][vari][var], 2, axis=1
+                            )
 
-            # JEC variations for VBF Jets
-            if self._region == "signal" and isJECs:
-                for var in ["pt"]:
-                    key = self.skim_vars["Jet"][var]
-                    for label, shift in self.jecs.items():
-                        if shift in ak.fields(vbf_jets):
-                            for vari in ["up", "down"]:
-                                vbfJetVars[f"VBFJet{key}_{label}_{vari}"] = pad_val(
-                                    vbf_jets[shift][vari][var], 2, axis=1
-                                )
-
-            skimmed_events = {
-                **skimmed_events,
-                **vbfJetVars,
-            }
-        else:
-            # these variables aren't needed for signal region
-            skimmed_events = {
-                **skimmed_events,
-                **ak4JetVars,
-            }
+        skimmed_events = {
+            **skimmed_events,
+            **vbfJetVars,
+        }
 
         if self._region == "semilep-tt":
             # concatenate leptons
