@@ -782,6 +782,8 @@ def evaluate_model(
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
         for key in xbb_dict:
+            if key not in training_keys:
+                continue
             h2_mass = mass_dict[key]
             h2_msd = msd_dict[key]
             h2_xbb = xbb_dict[key]
@@ -790,11 +792,13 @@ def evaluate_model(
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
+        hists = {
+            "msd": hist_h2_msd,
+            "mreg": hist_h2,
+        }
         for key in xbb_dict:
-            hists = {
-                "msd": hist_h2_msd,
-                "mreg": hist_h2,
-            }
+            if key not in training_keys:
+                continue
             for hkey, h in hists.items():
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 for cut in bdt_cuts:
