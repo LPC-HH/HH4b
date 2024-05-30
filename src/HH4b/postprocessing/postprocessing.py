@@ -137,7 +137,8 @@ load_columns_syst = [
 ]
 
 weight_shifts = {
-    "ttbarSF": Syst(samples=["ttbar"], label="ttbar SF", years=years + ["2022-2023"]),
+    "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
+    "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
     "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
@@ -145,6 +146,15 @@ weight_shifts = {
     # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
+
+decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
+
+for i in range(len(decorr_txbb_bins) - 1):
+    weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(
+        samples=["ttbar"],
+        label=f"ttbar SF Xbb bin [{decorr_txbb_bins[i]}, {decorr_txbb_bins[i+1]}]",
+        years=years + ["2022-2023"],
+    )
 
 
 def load_run3_samples(

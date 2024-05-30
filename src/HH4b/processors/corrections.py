@@ -54,11 +54,22 @@ pog_jsons = {
 }
 
 # Jet mass scale and Jet mass resolution
-# FIXME: Using placeholder values
 # nominal, down, up
-
 jmsValues = {}
 jmrValues = {}
+
+# Run3 JMS values (GeV) LEGACY
+# X/80 +/- DX/80
+# 2022: 1.23 +/- 0.40 => 1.015, 0.995, 1.005
+# 2022EE: 1.65 +/- 0.25 => 1.021, 0.997, 1.003
+# 2023: -0.05 +/- 0.25 => 0.999, 0.996, 1.003
+# 2023BPix: -2.01 +/- 0.39 => 0.974, 0.995, 1.005
+
+# Run3 JMR values LEGACY
+# 2022: 1.13 +/- 0.07
+# 2022EE: 1.20 +/- 0.05
+# 2023: 1.20 +/- 0.04
+# 2023BPix: 1.16 +/- 0.07
 
 jmrValues["msoftdrop"] = {
     "2016": [1.00, 1.0, 1.09],
@@ -374,7 +385,7 @@ class JECs:
                 print("warning, no valid dataset, JECs won't be applied to data")
                 applyData = False
         else:
-            corr_key = f"{year}mcnoJER" if "2023" in year else f"{year}mc"
+            corr_key = f"{year}mc"
 
         # fatjet_factory.build gives an error if there are no jets in event
         if apply_jecs:
