@@ -30,7 +30,18 @@ from datacardHelpers import (
 )
 from hist import Hist
 
-from HH4b.hh_vars import LUMI, data_key, jecs, jmsr, qcd_key, sig_keys_ggf, sig_keys_vbf
+from HH4b.hh_vars import (
+    LUMI,
+    data_key,
+    jecs,
+    jmsr,
+    qcd_key,
+    sig_keys_ggf,
+    sig_keys_vbf,
+)
+from HH4b.hh_vars import (
+    years as hh_years,
+)
 
 try:
     rl.util.install_roofit_helpers()
@@ -90,10 +101,10 @@ parser.add_argument(
 parser.add_argument("--model-name", default=None, type=str, help="output model name")
 parser.add_argument(
     "--year",
-    help="year",
     type=str,
-    default="2022EE",
-    choices=["2022EE", "2022-2023"],
+    default="2022-2023",
+    choices=hh_years + ["2022-2023"],
+    help="years to make datacards for",
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
@@ -101,6 +112,12 @@ add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", de
 add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
+add_bool_arg(
+    parser,
+    "mc-closure",
+    "Perform MC closure test (fill data_obs with sum of MC bkg.",
+    default=False,
+)
 args = parser.parse_args()
 
 
@@ -153,11 +170,10 @@ for key in all_sig_keys:
         sig_keys.append(key)
 
 
-print(sig_keys)
 all_mc = list(mc_samples.keys())
 
 
-years = [args.year]
+years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
 
@@ -234,8 +250,14 @@ corr_year_shape_systs = {
     # ),
     # TODO: separate into individual
     "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
-    "ttbarSF": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf",
+    "ttbarSF_pTjj": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_tau32": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_tau32",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
@@ -247,7 +269,6 @@ corr_year_shape_systs = {
     #     samples=sig_keys,
     #     pass_only=True,
     # ),
-    # "top_pt": Syst(name="CMS_top_pT_reweighting", prior="shape", samples=["ttbar"])  # TODO
 }
 
 uncorr_year_shape_systs = {
@@ -255,6 +276,34 @@ uncorr_year_shape_systs = {
     "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
     "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
     "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
+    "ttbarSF_Xbb_bin_0_0.8": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    ),
+    "ttbarSF_Xbb_bin_0.8_0.94": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    ),
+    "ttbarSF_Xbb_bin_0.94_0.99": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    ),
+    "ttbarSF_Xbb_bin_0.99_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    ),
 }
 
 if not args.do_jshifts:
@@ -271,16 +320,14 @@ else:
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    if syst.convert_shape_to_lnN:
-        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "lnN")
-    else:
-        shape_systs_dict[skey] = rl.NuisanceParameter(syst.name, "shape")
+    shape_systs_dict[skey] = rl.NuisanceParameter(
+        syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
+    )
 for skey, syst in uncorr_year_shape_systs.items():
-    for year in years:
-        if year in syst.uncorr_years:
-            shape_systs_dict[f"{skey}_{year}"] = rl.NuisanceParameter(
-                f"{syst.name}_{year}", "shape"
-            )
+    for uncorr_label in syst.uncorr_years:
+        shape_systs_dict[f"{skey}_{uncorr_label}"] = rl.NuisanceParameter(
+            f"{syst.name}_{uncorr_label}", "lnN" if syst.convert_shape_to_lnN else "shape"
+        )
 
 
 def get_templates(
@@ -322,7 +369,9 @@ def get_templates(
     return templates_dict, templates_summed
 
 
-def get_year_updown(templates_dict, sample, region, region_noblinded, blind_str, year, skey):
+def get_year_updown(
+    templates_dict, sample, region, region_noblinded, blind_str, years_to_shift, skey
+):
     """
     Return templates with only the given year's shapes shifted up and down by the ``skey`` systematic.
     Returns as [up templates, down templates]
@@ -335,13 +384,14 @@ def get_year_updown(templates_dict, sample, region, region_noblinded, blind_str,
         templates = {y: templates_dict[y][region][sample, ...] for y in years}
 
         # replace template for this year with the shifted template
-        if skey in jecs or skey in jmsr:
-            # JEC/JMCs saved as different "region" in dict
-            reg_name = f"{region_noblinded}_{sshift}{blind_str}"
-            templates[year] = templates_dict[year][reg_name][sample, ...]
-        else:
-            # weight uncertainties saved as different "sample" in dict
-            templates[year] = templates_dict[year][region][f"{sample}_{sshift}", ...]
+        for year in years_to_shift:
+            if skey in jecs or skey in jmsr:
+                # JEC/JMCs saved as different "region" in dict
+                reg_name = f"{region_noblinded}_{sshift}{blind_str}"
+                templates[year] = templates_dict[year][reg_name][sample, ...]
+            else:
+                # weight uncertainties saved as different "sample" in dict
+                templates[year] = templates_dict[year][region][f"{sample}_{sshift}", ...]
 
         # sum templates with year's template replaced with shifted
         updown.append(sum(list(templates.values())).values())
@@ -506,9 +556,7 @@ def fill_regions(
 
                 logging.info(f"Getting {skey} shapes")
 
-                for year in years:
-                    if year not in syst.uncorr_years:
-                        continue
+                for uncorr_label, years_to_shift in syst.uncorr_years.items():
 
                     values_up, values_down = get_year_updown(
                         templates_dict,
@@ -516,16 +564,22 @@ def fill_regions(
                         region,
                         region_noblinded,
                         blind_str,
-                        year,
+                        years_to_shift,
                         skey,
                     )
                     logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                     effect_up, effect_down = get_effect_updown(
-                        values_nominal, values_up, values_down, mask, logger, args.epsilon
+                        values_nominal,
+                        values_up,
+                        values_down,
+                        mask,
+                        logger,
+                        args.epsilon,
+                        syst.convert_shape_to_lnN,
                     )
                     sample.setParamEffect(
-                        shape_systs_dict[f"{skey}_{year}"], effect_up, effect_down
+                        shape_systs_dict[f"{skey}_{uncorr_label}"], effect_up, effect_down
                     )
 
             ch.addSample(sample)
@@ -540,7 +594,11 @@ def fill_regions(
             )
 
         # data observed
-        ch.setObservation(region_templates[data_key, :])
+        if args.mc_closure:
+            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"]])
+            ch.setObservation(all_bg)
+        else:
+            ch.setObservation(region_templates[data_key, :])
 
 
 def alphabet_fit(

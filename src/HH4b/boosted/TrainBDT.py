@@ -140,6 +140,7 @@ def preprocess_data(
     multiclass: bool,
     equalize_weights: bool,
     run2_wapproach: bool,
+    label_encoder,
 ):
 
     # dataframe function
@@ -149,13 +150,12 @@ def preprocess_data(
 
     training_keys = train_keys.copy()
     print("Training keys ", training_keys)
-
-    print("events dict ", events_dict.keys())
-
     for key in training_keys:
         if key not in events_dict:
             print(f"removing {key}")
             training_keys.remove(key)
+
+    print("events dict ", events_dict.keys())
 
     print("Train keys ", training_keys)
 
@@ -167,11 +167,6 @@ def preprocess_data(
         # get absolute weights (no negative weights)
         weights_bdt[key] = np.abs(events_dict[key]["finalWeight"].to_numpy())
         events_bdt[key] = events_dict[key]["event"].to_numpy()[:, 0]
-
-    # concatenate data
-    # if doing multiclass classification, encode each process separately
-    label_encoder = LabelEncoder()
-    label_encoder.classes_ = np.array(training_keys)  # need this to maintain training keys order
 
     events = pd.concat(
         [events_dict_bdt[key] for key in training_keys],
@@ -233,6 +228,7 @@ def preprocess_data(
     target = events["target"]
     simple_target = events["target"]
 
+    print("multiclass labeling")
     if multiclass:
         target = label_encoder.transform(list(events.index.get_level_values(0)))
 
@@ -310,7 +306,6 @@ def train_model(
     **classifier_params,
 ):
     """Trains BDT. ``classifier_params`` are hyperparameters for the classifier"""
-
     early_stopping_callback = xgb.callback.EarlyStopping(rounds=5, min_delta=0.0)
     classifier_params = {**classifier_params, "callbacks": [early_stopping_callback]}
 
@@ -559,6 +554,14 @@ def evaluate_model(
                     fpr, tpr, thresholds = roc_curve(
                         scores_true, scores_roc, sample_weight=scores_weights
                     )
+                    # save background roc curves
+                    roc_info_bg = {
+                        "fpr": fpr,
+                        "tpr": tpr,
+                        "thresholds": thresholds,
+                    }
+                    with (plot_dir / sig_key / f"roc_dict_{bkg}.pkl").open("wb") as f:
+                        pickle.dump(roc_info_bg, f)
                 else:
                     scores_roc = np.concatenate(
                         [scores[sig_key]] + [scores[bg_key] for bg_key in bg_keys]
@@ -577,6 +580,14 @@ def evaluate_model(
                     fpr, tpr, thresholds = roc_curve(
                         scores_true, scores_roc, sample_weight=scores_weights
                     )
+                    # save background roc curves
+                    roc_info_bg = {
+                        "fpr": fpr,
+                        "tpr": tpr,
+                        "thresholds": thresholds,
+                    }
+                    with (plot_dir / sig_key / f"roc_dict_{bkg}.pkl").open("wb") as f:
+                        pickle.dump(roc_info_bg, f)
 
                 ax.plot(tpr, fpr, linewidth=2, color=bkg_colors[bkg], label=legends[bkg])
 
@@ -1129,6 +1140,13 @@ def main(args):
                 events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str
             )
 
+        # concatenate data
+        # if doing multiclass classification, encode each process separately
+        label_encoder = LabelEncoder()
+        label_encoder.classes_ = np.array(
+            training_keys
+        )  # need this to maintain training keys order
+
         # pre-process data
         (
             X_train[year],
@@ -1150,6 +1168,7 @@ def main(args):
             args.multiclass,
             args.equalize_weights,
             args.run2_wapproach,
+            label_encoder,
         )
 
         (model_dir / "inferences" / year).mkdir(exist_ok=True, parents=True)
@@ -1167,8 +1186,8 @@ def main(args):
     weights_test_combined = get_combined(weights_test)
 
     classifier_params = {
-        "max_depth": 3,
-        "learning_rate": 0.1,
+        "max_depth": args.max_depth,
+        "learning_rate": args.learning_rate,
         "n_estimators": 1000,
         "verbosity": 2,
         "reg_lambda": 1.0,
@@ -1318,6 +1337,18 @@ if __name__ == "__main__":
         choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"],
         help="xbb pnet mass",
         required=True,
+    )
+    parser.add_argument(
+        "--learning-rate",
+        default=0.1,
+        help="BDT's learning rate",
+        type=float,
+    )
+    parser.add_argument(
+        "--max-depth",
+        default=3,
+        help="BDT's maximum depth",
+        type=int,
     )
 
     add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)

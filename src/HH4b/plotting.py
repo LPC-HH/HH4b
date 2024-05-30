@@ -404,8 +404,10 @@ def ratioHistPlot(
         name (str): name of file to save plot
         sig_scale_dict (Dict[str, float]): if scaling signals in the plot, dictionary of factors
           by which to scale each signal
+        xlim (optional): x-limit on plot
         xlim_low (optional): x-limit low on plot
         ylim (optional): y-limit on plot
+        ylim_low (optional): y-limit low on plot
         show (bool): show plots or not
         syst (Tuple): Tuple of (wshift: name of systematic e.g. pileup,  wsamples: list of samples which are affected by this),
           to plot variations of this systematic.
@@ -863,6 +865,246 @@ def ratioHistPlot(
         if not name.endswith((".pdf", ".png")):
             if save_pdf:
                 plt.savefig(f"{name}.pdf", bbox_inches="tight")
+            plt.savefig(f"{name}.png", bbox_inches="tight")
+        else:
+            plt.savefig(name, bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def subtractedHistPlot(
+    hists: Hist,
+    hists_fail: Hist,
+    year: str,
+    bg_keys: list[str],
+    bg_err: ArrayLike = None,
+    sortyield: bool = False,
+    title: str | None = None,
+    name: str = "",
+    xlim: int | None = None,
+    xlim_low: int | None = None,
+    ylim: int | None = None,
+    ylim_low: int | None = None,
+    show: bool = True,
+    bg_err_type: str = "shaded",
+    plot_data: bool = True,
+    bg_order=None,
+    log: bool = False,
+    logx: bool = False,
+    ratio_ylims: list[float] | None = None,
+    energy: str = "13.6",
+):
+    """
+    Makes and saves subtracted histogram plot, to show QCD transfer factor
+    with a data/mc ratio plot below
+
+    Args:
+        hists (Hist): input histograms per sample in pass region to plot
+        hists_fail (Hist): input histograms per sample in fail region to plot
+        year (str): datataking year
+        bg_keys (List[str]): background keys
+        title (str, optional): plot title. Defaults to None.
+        name (str): name of file to save plot
+        sig_scale_dict (Dict[str, float]): if scaling signals in the plot, dictionary of factors
+          by which to scale each signal
+        xlim_low (optional): x-limit low on plot
+        ylim (optional): y-limit on plot
+        show (bool): show plots or not
+        bg_order (List[str]): order in which to plot backgrounds
+        ratio_ylims (List[float]): y limits on the ratio plots
+        plot_significance (bool): plot Asimov significance below ratio plot
+    """
+
+    # copy hists and bg_keys so input objects are not changed
+    hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
+
+    if bg_order is None:
+        bg_order = bg_order_default
+
+    bg_keys, bg_colours, bg_labels, _, _, _ = _process_samples(
+        [], bg_keys, {}, None, None, bg_order
+    )
+
+    fig, (ax, rax) = plt.subplots(
+        2,
+        1,
+        figsize=(12, 12),
+        gridspec_kw={"height_ratios": [3.5, 1], "hspace": 0.18},
+        sharex=True,
+    )
+
+    # only use integers
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    plt.rcParams.update({"font.size": 30})
+
+    # plot histograms
+    ax.set_ylabel("Pass / Multijet in Fail")
+
+    # background samples
+    hep.histplot(
+        hists["qcd", :] / hists_fail["qcd", :],
+        ax=ax,
+        histtype="fill",
+        sort="yield" if sortyield else None,
+        stack=True,
+        edgecolor="black",
+        linewidth=2,
+        label="Multijet",
+        color=bg_colours[-1],
+    )
+
+    if bg_err is not None:
+        bg_tot = hists["qcd", :] / hists_fail["qcd", :]
+        if len(np.array(bg_err).shape) == 1:
+            bg_errs = [
+                bg_tot - bg_err / hists_fail["qcd", :],
+                bg_tot + bg_err / hists_fail["qcd", :],
+            ]
+
+        if bg_err_type == "shaded":
+            ax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat(bg_errs[0].values(), 2),
+                np.repeat(bg_errs[1].values(), 2),
+                color="black",
+                alpha=0.2,
+                hatch="//",
+                linewidth=0,
+                label="Multijet Unc.",
+            )
+        else:
+            ax.stairs(
+                bg_tot.values(),
+                hists.axes[1].edges,
+                color="black",
+                linewidth=3,
+                label="Bkg. Total",
+                baseline=bg_tot.values(),
+            )
+
+            ax.stairs(
+                bg_errs[0],
+                hists.axes[1].edges,
+                color="red",
+                linewidth=3,
+                label="Bkg. Down",
+                baseline=bg_errs[0],
+            )
+
+            ax.stairs(
+                bg_err[1],
+                hists.axes[1].edges,
+                color="#7F2CCB",
+                linewidth=3,
+                label="Bkg. Up",
+                baseline=bg_err[1],
+            )
+
+    # plot data
+    if plot_data:
+        data_val = hists[data_key, :].values()
+        qcd_fail_val = hists_fail["qcd", :].values()
+        yerr = ratio_uncertainty(data_val, qcd_fail_val, "poisson")
+        all_mc = sum(hists[bg_key, :] for bg_key in bg_keys if bg_key != "qcd")
+        yvalue = (hists[data_key, :] - all_mc) / hists_fail["qcd", :]
+        hep.histplot(
+            yvalue,
+            ax=ax,
+            yerr=yerr,
+            histtype="errorbar",
+            label="Data - Other Bkg.",
+            markersize=20,
+            color="black",
+        )
+
+    if log:
+        ax.set_yscale("log")
+    if logx:
+        ax.set_xscale("log")
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+
+    if xlim_low is not None:
+        if xlim is not None:
+            ax.set_xlim(xlim_low, xlim)
+        else:
+            ax.set_xlim(xlim_low, None)
+
+    y_lowlim = ylim_low if ylim_low is not None else 0 if not log else 0.001
+
+    if ylim is not None:
+        ax.set_ylim([y_lowlim, ylim])
+    else:
+        ax.set_ylim(y_lowlim)
+
+    ax.set_xlabel("")
+
+    # plot ratio below
+    if plot_data and len(bg_keys) > 0:
+        qcd_val = hists["qcd", :].values()
+        hep.histplot(
+            yvalue / (qcd_val / qcd_fail_val),
+            yerr=ratio_uncertainty(data_val, qcd_val, "poisson"),
+            ax=rax,
+            histtype="errorbar",
+            markersize=20,
+            color="black",
+            capsize=0,
+        )
+        rax.set_xlabel(hists.axes[1].label)
+
+        # fill error band of background
+        if bg_err is not None:
+            # (bkg + err) / bkg
+            rax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat((bg_errs[0].values()) / (qcd_val / qcd_fail_val), 2),
+                np.repeat((bg_errs[1].values()) / (qcd_val / qcd_fail_val), 2),
+                color="black",
+                alpha=0.1,
+                hatch="//",
+                linewidth=0,
+            )
+    else:
+        rax.set_xlabel(hists.axes[1].label)
+
+    rax.set_ylabel("Ratio")
+    rax.set_ylim(ratio_ylims)
+    minor_locator = mticker.AutoMinorLocator(2)
+    rax.yaxis.set_minor_locator(minor_locator)
+    rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
+
+    if title is not None:
+        ax.set_title(title, y=1.08)
+
+    if year == "all":
+        hep.cms.label(
+            "Work in Progress",
+            data=True,
+            lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
+            year=None,
+            ax=ax,
+            com=energy,
+        )
+    else:
+        hep.cms.label(
+            "Work in Progress",
+            fontsize=24,
+            data=True,
+            lumi=f"{LUMI[year] / 1e3:.0f}",
+            year=year,
+            ax=ax,
+            com=energy,
+        )
+
+    if len(name):
+        if not name.endswith((".pdf", ".png")):
+            plt.savefig(f"{name}.pdf", bbox_inches="tight")
             plt.savefig(f"{name}.png", bbox_inches="tight")
         else:
             plt.savefig(name, bbox_inches="tight")

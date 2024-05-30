@@ -68,9 +68,8 @@ xsecs["QCD_PT-800to1000_MuEnrichedPt5"] = 3.913
 xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
 
 # Top
-# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO
-# cross check these?
-# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012
+# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO: 923.6
+# https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012: 887
 xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
 xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
 xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
@@ -103,14 +102,15 @@ xsecs["TbarWplusto2L2Nu"] = 2.62
 xsecs["TWminusto2L2Nu"] = 2.62
 
 # Higgs
+xsecs["GluGluHto2B_M-125"] = 51.53 * BR_HBB  # 29.93
 # SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
-xsecs["GluGluHto2B_M-125"] = 30.2 * BR_HBB
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
-xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB
-xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB
-xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB
-xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB
+xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.023 * BR_HBB  # 2.34
+xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB  # 0.349
+xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB  # 0.167
+xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB  # 0.222
+xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  # 0.106
 xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB
 xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.8079 * BR_ZQQ * BR_HBB
 xsecs["ggZH_Hto2B_Zto2L_M-125"] = 0.1360 * BR_ZLL * BR_HBB
@@ -134,19 +134,20 @@ xsecs["HHHTo6B_c3_minus1_d4_minus1"] = 0.0001087 * BR_HBB * BR_HBB * BR_HBB
 xsecs["HHHTo6B_c3_minus1p5_d4_minus0p5"] = 0.0001941 * BR_HBB * BR_HBB * BR_HBB
 
 # Di-Higgs
-# TO- XCHECK (from xsecdb)
-# ggF SM from https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH#Latest_recommendations_for_gluon
-# TODO: find official values for VBF non-SM samples
+# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH?redirectedfrom=LHCPhysics.LHCHXSWGHH
+# ggHH xsec 13.6: = 76.4346-53.7587*kl+11.7158*kl2 in fb
 hh = {
-    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.06648 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 0.1492 * BR_HBB * BR_HBB,
+    # kl scan
+    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 76.43e-3 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 34.43e-3 * BR_HBB * BR_HBB,
+    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 100.5e-3 * BR_HBB * BR_HBB,
+    "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 15.049e-3 * BR_HBB * BR_HBB,
+    # from xsecdb
+    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.06648 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV": 0.01493 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV": 0.01052 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV": 2.802 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV": 1.875 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.01252 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.08664 * BR_HBB * BR_HBB,
 }
 for key, value in hh.items():
     xsecs[key] = value

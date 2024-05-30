@@ -22,6 +22,7 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
+    decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
 )
@@ -167,7 +168,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weight_plots, plot_dir):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, weight_plots, plot_dir, mass_window
+):
     legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
@@ -269,7 +272,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             
             h_weights.fill(f"{key}_trigger", trigger_weight)
             h_weights.fill(f"{key}_trigger_up", trigger_weight+trigger_weight_err)
-            h_weights.fill(f"{key}_trigger_down", trigger_weight-trigger_weight_err)
 
             h_mass.fill(
                 f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
@@ -277,33 +279,66 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             h_mass.fill(
                 f"{key}_trigger_up",
                 bdt_events[args.mass],
-                weight=nominal_weight * (trigger_weight+trigger_weight_err),
-            )
-            h_mass.fill(
-                f"{key}_trigger_down",
-                bdt_events[args.mass],
-                weight=nominal_weight * (trigger_weight-trigger_weight_err),
+                weight=nominal_weight * trigger_unc[key]
             )
 
         # tt corrections
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
-            tau32sf = corrections.ttbar_SF(
+            # ptjj correction
+            ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+
+            # tau32 correction
+            tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
                 year, bdt_events, "Tau3OverTau2", "H1T32"
-            ) * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")
-            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb") * corrections.ttbar_SF(
-                year, bdt_events, "Xbb", "H2TXbb"
             )
+            tau32j2sf, tau32j2sf_up, tau32j2sf_dn = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H2T32"
+            )
+            tau32sf = tau32j1sf * tau32j2sf
+            tau32sf_up = tau32j1sf_up * tau32j2sf_up
+            tau32sf_dn = tau32j1sf_dn * tau32j2sf_dn
 
-            ttbar_weight = ptjjsf * txbbsf * tau32sf
+            # inclusive xbb correction
+            tempw1, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")
+            tempw2, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")
+            txbbsf = tempw1 * tempw2
 
+            # total ttbar correction
+            ttbar_weight = ptjjsf * tau32sf * txbbsf
+
+            # xbb up/down variations in bins
+            for i in range(len(decorr_txbb_bins) - 1):
+                tempw1, tempw1_up, tempw1_dn = corrections.ttbar_SF(
+                    year, bdt_events, "Xbb", "H1TXbb", decorr_txbb_bins[i : i + 2]
+                )
+                tempw2, tempw2_up, tempw2_dn = corrections.ttbar_SF(
+                    year, bdt_events, "Xbb", "H2TXbb", decorr_txbb_bins[i : i + 2]
+                )
+                bdt_events[
+                    f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Up"
+                ] = (
+                    nominal_weight
+                    * trigger_weight
+                    * ttbar_weight
+                    * tempw1_up
+                    * tempw2_up
+                    / (tempw1 * tempw2)
+                )
+                bdt_events[
+                    f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Down"
+                ] = (
+                    nominal_weight
+                    * trigger_weight
+                    * ttbar_weight
+                    * tempw1_dn
+                    * tempw2_dn
+                    / (tempw1 * tempw2)
+                )
             h_weights.fill(f"{key}_ptjj", ptjjsf)
             h_weights.fill(f"{key}_tau32", tau32sf)
             h_weights.fill(f"{key}_txbb", txbbsf)
-            # h_mass.fill(f"{key}_ptjj",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * ptjjsf)
-            # h_mass.fill(f"{key}_tau32",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * tau32sf)
-            # h_mass.fill(f"{key}_txbb",  bdt_events[args.mass], weight=nominal_weight * trigger_weight * txbbsf)
+
             h_mass.fill(
                 f"{key}_ttsf",
                 bdt_events[args.mass],
@@ -333,10 +368,18 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
             bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
         if key == "ttbar":
-            bdt_events["weight_ttbarSFUp"] = (
-                nominal_weight * trigger_weight * ttbar_weight * ttbar_weight
+            bdt_events["weight_ttbarSF_pTjjUp"] = (
+                nominal_weight * trigger_weight * ttbar_weight * ptjjsf
             )
-            bdt_events["weight_ttbarSFDown"] = nominal_weight * trigger_weight
+            bdt_events["weight_ttbarSF_pTjjDown"] = (
+                nominal_weight * trigger_weight * ttbar_weight / ptjjsf
+            )
+            bdt_events["weight_ttbarSF_tau32Up"] = (
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_up / tau32sf
+            )
+            bdt_events["weight_ttbarSF_tau32Down"] = (
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_dn / tau32sf
+            )
 
         # add selection to testing events
         bdt_events["event"] = events_dict["event"][0]
@@ -381,7 +424,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events = bdt_events[mask_presel]
 
             ###### FINISH pre-selection
-            mass_window = [110, 140]
             mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
             mask_mass = (bdt_events[h2mass] >= mass_window[0]) & (
                 bdt_events[h2mass] <= mass_window[1]
@@ -491,8 +533,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
 
+        # save year as column
+        bdt_events["year"] = year
+
         # keep some (or all) columns
-        columns = ["H2TXbb", "weight"]
+        columns = ["year", "H2TXbb", "weight"]
         for jshift in jshifts:
             columns += [
                 check_get_jec_var("Category", jshift),
@@ -503,7 +548,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
-            columns += ["weight_ttbarSFUp", "weight_ttbarSFDown"]
+            columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
         columns = list(set(columns))
@@ -652,13 +697,10 @@ def scan_fom(
                 nevents_sig, nevents_bkg, _ = abcd(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
                 )
-                # print("abcd ", nevents_sig, nevents_bkg)
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
                 )
-                # print("sideband ",  nevents_sig, nevents_bkg)
-                # print("\n")
 
             if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
@@ -707,8 +749,6 @@ def get_cuts(args, region: str):
         )
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
-        # print("Passing Bin 1", np.mean(cut_xbb & cut_bdt & (~vbf_cut)))
-        # print("Passing Bin 1 without VBF veto", np.mean(cut_xbb & cut_bdt))
         return cut_xbb & cut_bdt & (~vbf_cut)
 
     # bin 1 without VBF region veto
@@ -815,7 +855,6 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
             ratio_ylims=[0.2, 1.8],
             bg_err_mcstat=True,
             reweight_qcd=True,
-            # ylim=ylims[year],
         )
 
 
@@ -865,12 +904,8 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
     bg_tots = np.sum([dicts[key] for key in bg_keys], axis=0)
     # subtract other backgrounds
     dmt = np.array(dicts["data"]) - bg_tots
-    # C/D * B
-    bqcd = dmt[2] * dmt[1] / dmt[3]
-
-    # print("bqcd ",bqcd)
-    # print("bg0 ",bg_tots != 0)
-    # print("bg_tots ",bg_tots[0])
+    # A = B * C / D
+    bqcd = dmt[1] * dmt[2] / dmt[3]
 
     background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
     return s, background, dicts
@@ -894,13 +929,12 @@ def postprocess_run3(args):
 
     window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [110, 140],
-        # "H2PNetMass": [115, 135],
+        "H2PNetMass": [105, 150],
     }
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
 
-    mass_window = np.array(window_by_mass[args.mass])  # + np.array([-5, 5])
+    mass_window = np.array(window_by_mass[args.mass])
 
     # variable to fit
     fit_shape_var = ShapeVar(
@@ -927,6 +961,7 @@ def postprocess_run3(args):
             args.control_plots,
             args.weight_plots,
             plot_dir,
+            mass_window,
         )
 
     print("Loaded all years")
@@ -940,7 +975,7 @@ def postprocess_run3(args):
             processes,
             bg_keys=bg_keys_combined,
             scale_processes={
-                # "hh4b": ["2022EE", "2023", "2023BPix"], # FIXED
+                "vbfhh4b": ["2022", "2022EE"],
                 "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
             years_run3=args.years,
@@ -1060,9 +1095,9 @@ def postprocess_run3(args):
         bdt_roc(events_combined, plot_dir, args.legacy)
 
     templ_dir = Path("templates") / args.templates_tag
-    year = "2022-2023"
-    (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-    (templ_dir / year).mkdir(parents=True, exist_ok=True)
+    for year in args.years:
+        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+        (templ_dir / year).mkdir(parents=True, exist_ok=True)
 
     # save args for posterity
     with (templ_dir / "args.txt").open("w") as f:
@@ -1084,28 +1119,32 @@ def postprocess_run3(args):
 
     # individual templates per year
     templates = {}
-    for jshift in [""] + hh_vars.jec_shifts:
-        ttemps = postprocessing.get_templates(
-            events_combined,
-            year=year,
-            sig_keys=args.sig_keys,
-            selection_regions=selection_regions,
-            shape_vars=[fit_shape_var],
-            systematics={},
-            template_dir=templ_dir,
-            bg_keys=bg_keys_combined,
-            plot_dir=Path(f"{templ_dir}/{year}"),
-            weight_key="weight",
-            weight_shifts=weight_shifts,
-            plot_shifts=True,
-            show=False,
-            energy=13.6,
-            jshift=jshift,
-        )
-        templates = {**templates, **ttemps}
+    for year in args.years:
+        for jshift in [""] + hh_vars.jec_shifts:
+            events_by_year = {}
+            for sample, events in events_combined.items():
+                events_by_year[sample] = events[events["year"] == year]
+            ttemps = postprocessing.get_templates(
+                events_by_year,
+                year=year,
+                sig_keys=args.sig_keys,
+                selection_regions=selection_regions,
+                shape_vars=[fit_shape_var],
+                systematics={},
+                template_dir=templ_dir,
+                bg_keys=bg_keys_combined,
+                plot_dir=Path(f"{templ_dir}/{year}"),
+                weight_key="weight",
+                weight_shifts=weight_shifts,
+                plot_shifts=True,
+                show=False,
+                energy=13.6,
+                jshift=jshift,
+            )
+            templates = {**templates, **ttemps}
 
-    # save templates per year
-    postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
+        # save templates per year
+        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
@@ -1192,7 +1231,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=["hh4b", "vbfhh4b-k2v0"],
+        default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
     )
 
