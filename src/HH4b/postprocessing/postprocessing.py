@@ -118,14 +118,14 @@ load_columns_v12 = load_columns + [
 ]
 
 load_columns_syst = [
-    ("bbFatJetPt_JES_up", 2),
-    ("bbFatJetPt_JES_down", 2),
-    ("VBFJetPt_JES_up", 2),
-    ("VBFJetPt_JES_down", 2),
-    # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
-    # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_up", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_down", 2),  # TODO: load once present
+    #("bbFatJetPt_JES_up", 2),
+    #("bbFatJetPt_JES_down", 2),
+    #("VBFJetPt_JES_up", 2),
+    #("VBFJetPt_JES_down", 2),
+    ("bbFatJetPt_JER_up", 2),  # TODO: load once present
+    ("bbFatJetPt_JER_down", 2),  # TODO: load once present
+    ("VBFJetPt_JER_up", 2),  # TODO: load once present
+    ("VBFJetPt_JER_down", 2),  # TODO: load once present
     # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
     # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
@@ -182,6 +182,11 @@ def load_run3_samples(
             txbb=txbb,
             variations=False,
         ),
+    }
+    print(samples_syst)
+    print(samples_nosyst)
+    events_dict = {
+        **events_dict,
         **utils.load_samples(
             input_dir,
             samples_syst,
@@ -210,7 +215,7 @@ def combine_run3_samples(
     processes: list[str],
     bg_keys: list[str] = None,
     weight_key: str = "weight",
-    scale_processes: dict = None,  # processes which are temporarily on certain eras, e.g {"hh4b": ["2022EE", "2023"]}
+    scale_processes: dict = {},  # processes which are temporarily on certain eras, e.g {"hh4b": ["2022EE", "2023"]}
     years_run3: list[str] = years,
 ):
     # create combined datasets

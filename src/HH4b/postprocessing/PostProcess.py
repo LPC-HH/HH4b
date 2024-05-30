@@ -7,7 +7,6 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
-import corrections
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -26,6 +25,7 @@ from HH4b.postprocessing import (
     load_run3_samples,
     weight_shifts,
 )
+from HH4b.postprocessing import corrections
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
 plt.style.use(hep.style.CMS)
@@ -197,7 +197,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
     # region in which QCD trigger weights were extracted
     trigger_region = "QCD"
 
+    trigger_unc = {}
     events_dict_postprocess = {}
+    columns_by_key = {}
     for key in samples_year:
         samples_to_process = {year: {key: samples_run3[year][key]}}
 
@@ -225,6 +227,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+
+        # remove duplicates
+        bdt_events = bdt_events.loc[:,~bdt_events.columns.duplicated()].copy()
+
+        # add more variables for control plots
         bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
         bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
         bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
@@ -255,12 +262,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         nevents = len(events_dict["bbFatJetPt"][0])
         trigger_weight = np.ones(nevents)
         if key != "data":
-            trigger_weight, trigger_weight_up, trigger_weight_dn = corrections.trigger_SF(
+            trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
+            trigger_unc[key] = total_err / total
+            
             h_weights.fill(f"{key}_trigger", trigger_weight)
-            h_weights.fill(f"{key}_trigger_up", trigger_weight_up)
-            h_weights.fill(f"{key}_trigger_down", trigger_weight_dn)
+            h_weights.fill(f"{key}_trigger_up", trigger_weight+trigger_weight_err)
+            h_weights.fill(f"{key}_trigger_down", trigger_weight-trigger_weight_err)
 
             h_mass.fill(
                 f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
@@ -268,12 +277,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             h_mass.fill(
                 f"{key}_trigger_up",
                 bdt_events[args.mass],
-                weight=nominal_weight * trigger_weight_up,
+                weight=nominal_weight * (trigger_weight+trigger_weight_err),
             )
             h_mass.fill(
                 f"{key}_trigger_down",
                 bdt_events[args.mass],
-                weight=nominal_weight * trigger_weight_dn,
+                weight=nominal_weight * (trigger_weight-trigger_weight_err),
             )
 
         # tt corrections
@@ -500,10 +509,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
         columns = list(set(columns))
 
         if control_plots:
-            bdt_events["H1T32top"] = bdt_events["H1T32"]
-            bdt_events["H2T32top"] = bdt_events["H2T32"]
-            bdt_events["H1Pt_H2Pt"] = bdt_events["H1Pt/H2Pt"]
+            bdt_events.rename(columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"})
             events_dict_postprocess[key] = bdt_events
+            columns_by_key[key] = columns
         else:
             events_dict_postprocess[key] = bdt_events[columns]
 
@@ -524,11 +532,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(
                 bdt_events, mask_bin3, args.mass, mass_window
             )
-
+    # end of loop over samples
+    
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.legacy)
         for key in events_dict_postprocess:
-            events_dict_postprocess[key] = events_dict_postprocess[key][columns]
+            events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
 
     # make plots of weights
     if weight_plots:
@@ -796,7 +805,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
         plotting.ratioHistPlot(
             hists[shape_var.var],
             year,
-            ["hh4b"] if year in ["2022EE", "2023"] else [],
+            ["hh4b"],
             bg_keys,
             name=f"{plot_dir}/control/{year}/{shape_var.var}",
             show=False,
@@ -1171,7 +1180,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        default="sideband",
+        default="abcd",
         choices=["abcd", "sideband"],
         help="method for scanning",
     )
