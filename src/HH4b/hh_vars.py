@@ -173,12 +173,12 @@ syst_keys = sig_keys  # + bg_keys (TODO)
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    "JES": "JES",
-    # "JER": "JER",
+    # "JES": "JES",
+    "JER": "JER",
     #####
     # including all sources
     #####
-    # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
+    "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
     # "JES_AbsoluteScale": "JES_AbsoluteScale",  # goes in Absolute
     # "JES_AbsoluteStat": "JES_AbsoluteStat",  # goes in Abs_year
     # "JES_FlavorQCD": "JES_FlavorQCD",

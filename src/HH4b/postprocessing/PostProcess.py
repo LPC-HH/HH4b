@@ -268,10 +268,13 @@ def load_process_run3_samples(
             trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
+            trigger_weight_up = trigger_weight + trigger_weight_err
+            trigger_weight_dn = trigger_weight - trigger_weight_err
+            
             trigger_unc[key] = total_err / total
             
             h_weights.fill(f"{key}_trigger", trigger_weight)
-            h_weights.fill(f"{key}_trigger_up", trigger_weight+trigger_weight_err)
+            h_weights.fill(f"{key}_trigger_up", trigger_weight*(1+trigger_unc[key]))
 
             h_mass.fill(
                 f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
@@ -279,7 +282,7 @@ def load_process_run3_samples(
             h_mass.fill(
                 f"{key}_trigger_up",
                 bdt_events[args.mass],
-                weight=nominal_weight * trigger_unc[key]
+                weight=nominal_weight * trigger_weight*(1+trigger_unc[key])
             )
 
         # tt corrections

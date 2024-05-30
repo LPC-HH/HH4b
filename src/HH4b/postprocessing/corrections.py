@@ -169,7 +169,6 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], pnet_str: str, r
         print("Warning: eff mc has 0 values")
 
     sf = tot_eff_data / tot_eff_mc
-    print("sf ", sf)
 
     # unc on eff: (1 - z): dz
     # z = x * y = (1-eff_1)(1-eff_2)

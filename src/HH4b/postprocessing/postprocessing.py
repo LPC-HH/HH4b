@@ -110,7 +110,6 @@ load_columns_legacy = load_columns + [
 
 load_columns_v12 = load_columns + [
     ("bbFatJetPNetTXbb", 2),
-    # ("bbFatJetPNetXbb", 2),
     ("bbFatJetPNetMass", 2),
     ("bbFatJetPNetQCD0HF", 2),
     ("bbFatJetPNetQCD1HF", 2),
@@ -122,16 +121,16 @@ load_columns_syst = [
     #("bbFatJetPt_JES_down", 2),
     #("VBFJetPt_JES_up", 2),
     #("VBFJetPt_JES_down", 2),
-    ("bbFatJetPt_JER_up", 2),  # TODO: load once present
-    ("bbFatJetPt_JER_down", 2),  # TODO: load once present
-    ("VBFJetPt_JER_up", 2),  # TODO: load once present
-    ("VBFJetPt_JER_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
+    ("bbFatJetPt_JES_AbsoluteMPFBias_up", 2),
+    ("bbFatJetPt_JES_AbsoluteMPFBias_down", 2),
+    ("VBFJetPt_JES_AbsoluteMPFBias_up", 2),
+    ("VBFJetPt_JES_AbsoluteMPFBias_down", 2),
+    ("bbFatJetPt_JER_up", 2),
+    ("bbFatJetPt_JER_down", 2),
+    ("VBFJetPt_JER_up", 2),
+    ("VBFJetPt_JER_down", 2),    
     # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_down", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
 ]
@@ -139,7 +138,7 @@ load_columns_syst = [
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    # "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
