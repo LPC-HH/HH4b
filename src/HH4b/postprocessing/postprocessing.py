@@ -17,7 +17,6 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    sig_keys,
     syst_keys,
     years,
 )
@@ -117,10 +116,10 @@ load_columns_v12 = load_columns + [
 ]
 
 load_columns_syst = [
-    #("bbFatJetPt_JES_up", 2),
-    #("bbFatJetPt_JES_down", 2),
-    #("VBFJetPt_JES_up", 2),
-    #("VBFJetPt_JES_down", 2),
+    # ("bbFatJetPt_JES_up", 2),
+    # ("bbFatJetPt_JES_down", 2),
+    # ("VBFJetPt_JES_up", 2),
+    # ("VBFJetPt_JES_down", 2),
     ("bbFatJetPt_JES_AbsoluteMPFBias_up", 2),
     ("bbFatJetPt_JES_AbsoluteMPFBias_down", 2),
     ("VBFJetPt_JES_AbsoluteMPFBias_up", 2),
@@ -128,7 +127,7 @@ load_columns_syst = [
     ("bbFatJetPt_JER_up", 2),
     ("bbFatJetPt_JER_down", 2),
     ("VBFJetPt_JER_up", 2),
-    ("VBFJetPt_JER_down", 2),    
+    ("VBFJetPt_JER_down", 2),
     # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
