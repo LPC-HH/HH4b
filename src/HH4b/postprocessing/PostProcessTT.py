@@ -159,13 +159,13 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         nevents = len(events_dict["bbFatJetPt"][0])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")[0]
             tau32sf = corrections.ttbar_SF(
                 year, bdt_events, "Tau3OverTau2", "H1T32"
-            ) * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")
-            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb") * corrections.ttbar_SF(
+            )[0] * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
+            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0] * corrections.ttbar_SF(
                 year, bdt_events, "Xbb", "H2TXbb"
-            )
+            )[0]
 
             ttbar_weight = ptjjsf * txbbsf * tau32sf
         bdt_events["weight_ttbar"] = ttbar_weight
@@ -366,14 +366,12 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
 
         if shape_var.var == "bdt_score_coarsebin":
             # save correction
-            num = hists[shape_var.var]["data", :]
-            den = sum([hists[shape_var.var][bkg, :] for bkg in ["qcd", "ttbar", "vjets", "diboson"]])
-            sfhist_values = num.values()/den.values()
-            yerr = ratio_uncertainty(num.values(), den.values(), "poisson")
-            sfhist = num
-            sfhist.name = "bdtshape"
-            sfhist.label = "weight"
-            edges = num.axes.edges[0]
+            num = hists[shape_var.var]["data", :].values() - sum([hists[shape_var.var][bkg, :] for bkg in ["qcd", "vjets", "diboson"]]).values()
+            den = hists[shape_var.var]["ttbar", :].values()
+            tt = hists[shape_var.var]["ttbar", :]
+            sfhist_values = num/den
+            yerr = ratio_uncertainty(num, den, "poisson")
+            edges = tt.axes.edges[0]
             corr = get_corr(
                 "bdtshape",
                 sfhist_values,
@@ -383,6 +381,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
                 edges,
             )
 
+            print(tag, sfhist_values)
             cset = schemav2.CorrectionSet(
                 schema_version=2, corrections=[corr],
             )
