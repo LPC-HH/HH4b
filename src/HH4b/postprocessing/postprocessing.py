@@ -92,6 +92,10 @@ load_columns = [
     ("VBFJetEta", 2),
     ("VBFJetPhi", 2),
     ("VBFJetMass", 2),
+    ("AK4JetAwayPt", 2),
+    ("AK4JetAwayPhi", 2),
+    ("AK4JetAwayEta", 2),
+    ("AK4JetAwayMass", 2),
 ]
 
 load_columns_legacy = load_columns + [
@@ -118,10 +122,10 @@ load_columns_v12 = load_columns + [
 ]
 
 load_columns_syst = [
-    ("bbFatJetPt_JES_up", 2),
-    ("bbFatJetPt_JES_down", 2),
-    ("VBFJetPt_JES_up", 2),
-    ("VBFJetPt_JES_down", 2),
+    # ("bbFatJetPt_JES_up", 2),
+    # ("bbFatJetPt_JES_down", 2),
+    # ("VBFJetPt_JES_up", 2),
+    # ("VBFJetPt_JES_down", 2),
     # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
     # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
     # ("VBFJetPt_JER_up", 2),  # TODO: load once present
