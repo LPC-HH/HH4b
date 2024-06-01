@@ -7,7 +7,6 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
-# import corrections
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -23,10 +22,15 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
+    decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
+    corrections
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
+
+# get top-level HH4b directory
+HH4B_DIR = Path(__file__).resolve().parents[3]
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -95,7 +99,7 @@ label_by_mass = {
 
 
 def get_bdt_training_keys(bdt_model: str):
-    inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+    inferences_dir = Path(f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
 
     training_keys = []
     for child in inferences_dir.iterdir():
@@ -167,34 +171,20 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, weight_plots, plot_dir, mass_window
+):
     legacy_label = "Legacy" if args.legacy else ""
-
-    events_dict = load_run3_samples(
-        f"{args.data_dir}/{args.tag}",
-        year,
-        args.legacy,
-        samples_run3,
-        reorder_txbb=True,
-        txbb=f"bbFatJetPNetTXbb{legacy_label}",
-    )
-
-    cutflow = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_print = pd.DataFrame(index=list(events_dict.keys()))
-    cutflow_dict = {
-        key: OrderedDict(
-            [("Skimmer Preselection", np.sum(events_dict[key]["finalWeight"].to_numpy()))]
-        )
-        for key in events_dict
-    }
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+    bdt_model.load_model(fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+
     # get function
     make_bdt_dataframe = importlib.import_module(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
+
     # make histograms to validate weights
     h_weights = hist.Hist(
         hist.axis.StrCategory([], name="samp", growth=True),
@@ -229,6 +219,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         cutflow_dict[key] = OrderedDict(
             [("Skimmer Preselection", np.sum(events_dict["finalWeight"].to_numpy()))]
         )
+
         # inference and assign score
         jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
 
@@ -265,15 +256,134 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # weights
         # finalWeight: includes genWeight, puWeight
-        # FIXME: genWeight taken only as sign for HH sample...
-        bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
+        nominal_weight = events_dict["finalWeight"].to_numpy()
         # add event, run, lumi
-        bdt_events["run"] = events_dict[key]["run"].to_numpy()
-        bdt_events["event"] = events_dict[key]["event"].to_numpy()
-        bdt_events["luminosityBlock"] = events_dict[key]["luminosityBlock"].to_numpy()
-        ## Add TTBar Weight here TODO: does this need to be re-measured for legacy PNet Mass?
-        # if key == "ttbar" and not args.legacy:
-        #    bdt_events["weight"] *= corrections.ttbar_pTjjSF(year, events_dict, "bbFatJetPNetMass")
+        bdt_events["run"] = events_dict["run"].to_numpy()
+        bdt_events["event"] = events_dict["event"].to_numpy()
+        bdt_events["luminosityBlock"] = events_dict["luminosityBlock"].to_numpy()
+
+        nevents = len(events_dict["bbFatJetPt"][0])
+        trigger_weight = np.ones(nevents)
+        if key != "data":
+            trigger_weight, trigger_weight_up, trigger_weight_dn = corrections.trigger_SF(
+                year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
+            )
+            h_weights.fill(f"{key}_trigger", trigger_weight)
+            h_weights.fill(f"{key}_trigger_up", trigger_weight_up)
+            h_weights.fill(f"{key}_trigger_down", trigger_weight_dn)
+
+            h_mass.fill(
+                f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+            h_mass.fill(
+                f"{key}_trigger_up",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_up,
+            )
+            h_mass.fill(
+                f"{key}_trigger_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight_dn,
+            )
+
+        # tt corrections
+        ttbar_weight = np.ones(nevents)
+        if key == "ttbar":
+            # ptjj correction
+            ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
+
+            # tau32 correction
+            tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H1T32"
+            )
+            tau32j2sf, tau32j2sf_up, tau32j2sf_dn = corrections.ttbar_SF(
+                year, bdt_events, "Tau3OverTau2", "H2T32"
+            )
+            tau32sf = tau32j1sf * tau32j2sf
+            tau32sf_up = tau32j1sf_up * tau32j2sf_up
+            tau32sf_dn = tau32j1sf_dn * tau32j2sf_dn
+
+            # inclusive xbb correction
+            tempw1, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")
+            tempw2, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")
+            txbbsf = tempw1 * tempw2
+
+            # total ttbar correction
+            ttbar_weight = ptjjsf * tau32sf * txbbsf
+
+            # xbb up/down variations in bins
+            for i in range(len(decorr_txbb_bins) - 1):
+                tempw1, tempw1_up, tempw1_dn = corrections.ttbar_SF(
+                    year, bdt_events, "Xbb", "H1TXbb", decorr_txbb_bins[i : i + 2]
+                )
+                tempw2, tempw2_up, tempw2_dn = corrections.ttbar_SF(
+                    year, bdt_events, "Xbb", "H2TXbb", decorr_txbb_bins[i : i + 2]
+                )
+                bdt_events[
+                    f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Up"
+                ] = (
+                    nominal_weight
+                    * trigger_weight
+                    * ttbar_weight
+                    * tempw1_up
+                    * tempw2_up
+                    / (tempw1 * tempw2)
+                )
+                bdt_events[
+                    f"weight_ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}Down"
+                ] = (
+                    nominal_weight
+                    * trigger_weight
+                    * ttbar_weight
+                    * tempw1_dn
+                    * tempw2_dn
+                    / (tempw1 * tempw2)
+                )
+            h_weights.fill(f"{key}_ptjj", ptjjsf)
+            h_weights.fill(f"{key}_tau32", tau32sf)
+            h_weights.fill(f"{key}_txbb", txbbsf)
+
+            h_mass.fill(
+                f"{key}_ttsf",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf,
+            )
+            h_mass.fill(
+                f"{key}_ttsf_down", bdt_events[args.mass], weight=nominal_weight * trigger_weight
+            )
+
+            h_mass.fill(
+                f"{key}_ttsftau32",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight * ptjjsf * txbbsf * tau32sf,
+            )
+            h_mass.fill(
+                f"{key}_ttsftau32_down",
+                bdt_events[args.mass],
+                weight=nominal_weight * trigger_weight,
+            )
+
+        bdt_events["weight_ttbar"] = ttbar_weight
+
+        # FIXME: genWeight taken only as sign for HH sample...
+        bdt_events["weight_nottbar"] = nominal_weight * trigger_weight
+        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
+        if key != "data":
+            bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
+            bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
+        if key == "ttbar":
+            bdt_events["weight_ttbarSF_pTjjUp"] = (
+                nominal_weight * trigger_weight * ttbar_weight * ptjjsf
+            )
+            bdt_events["weight_ttbarSF_pTjjDown"] = (
+                nominal_weight * trigger_weight * ttbar_weight / ptjjsf
+            )
+            bdt_events["weight_ttbarSF_tau32Up"] = (
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_up / tau32sf
+            )
+            bdt_events["weight_ttbarSF_tau32Down"] = (
+                nominal_weight * trigger_weight * ttbar_weight * tau32sf_dn / tau32sf
+            )
 
         # add selection to testing events
         bdt_events["event"] = events_dict["event"][0]
@@ -442,6 +552,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             "run",
             "luminosityBlock",
         ]
+        for jshift in jshifts:
+            columns += [
+                check_get_jec_var("Category", jshift),
+                check_get_jec_var("bdt_score", jshift),
+                check_get_jec_var("H2Msd", jshift),
+                check_get_jec_var("H2PNetMass", jshift),
+            ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
@@ -842,7 +959,7 @@ def postprocess_run3(args):
         blind_window=window_by_mass[args.mass],
     )
 
-    plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
+    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
     plot_dir.mkdir(exist_ok=True, parents=True)
 
     # load samples
