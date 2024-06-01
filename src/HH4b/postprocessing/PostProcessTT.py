@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import pprint
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable
 
-import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -15,22 +12,18 @@ import mplhep as hep
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from correctionlib import schemav2
+from hist.intervals import ratio_uncertainty
 
-from HH4b import hh_vars, plotting, postprocessing, run_utils
-from HH4b.boosted.TrainBDT import get_legtitle
+from HH4b import hh_vars, plotting, run_utils
 from HH4b.hh_vars import LUMI, bg_keys, years  # noqa: F401
 from HH4b.postprocessing import (
-    Region,
+    PostProcess,
     combine_run3_samples,
+    corrections,
     load_run3_samples,
-    weight_shifts,
-    PostProcess
 )
-from HH4b.postprocessing import corrections
-from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
-
-from hist.intervals import ratio_uncertainty
-from correctionlib import schemav2
+from HH4b.utils import ShapeVar, get_var_mapping, singleVarHist
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -79,8 +72,10 @@ samples_run3 = {
         "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
         "diboson": ["ZZ", "WW", "WZ"],
         "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
-    } for year in years
+    }
+    for year in years
 }
+
 
 def load_process_run3_samples(args, year, control_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
@@ -116,14 +111,12 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             [("Skimmer Preselection", np.sum(events_dict["finalWeight"].to_numpy()))]
         )
 
-        bdt_events = make_bdt_dataframe.bdt_dataframe(
-            events_dict, get_var_mapping("")
-        )
+        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict, get_var_mapping(""))
         preds = bdt_model.predict_proba(bdt_events)
         PostProcess.add_bdt_scores(bdt_events, preds, "")
 
         # remove duplicates
-        bdt_events = bdt_events.loc[:,~bdt_events.columns.duplicated()].copy()
+        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
 
         # add more variables for control plots
         bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
@@ -160,12 +153,14 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
             ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")[0]
-            tau32sf = corrections.ttbar_SF(
-                year, bdt_events, "Tau3OverTau2", "H1T32"
-            )[0] * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
-            txbbsf = corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0] * corrections.ttbar_SF(
-                year, bdt_events, "Xbb", "H2TXbb"
-            )[0]
+            tau32sf = (
+                corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H1T32")[0]
+                * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
+            )
+            txbbsf = (
+                corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
+                * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
+            )
 
             ttbar_weight = ptjjsf * txbbsf * tau32sf
         bdt_events["weight_ttbar"] = ttbar_weight
@@ -179,9 +174,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         mask_presel = (
-            (bdt_events["H1Msd"] > 40)
-            & (bdt_events["H1Pt"] > 300)
-            & (bdt_events["H2Pt"] > 300)
+            (bdt_events["H1Msd"] > 40) & (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300)
         )
         bdt_events = bdt_events[mask_presel]
 
@@ -217,42 +210,75 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         )
         bdt_events.loc[mask_bin3, "Category"] = 3
 
-        
         # save cutflows for nominal variables
-        cutflow_dict[key][f"H1Msd > 40 & Pt>300"] = np.sum(bdt_events["weight"].to_numpy())
-        cutflow_dict[key][f"H1TXbb>0.9, H1M:[150-200]"] = np.sum(
+        cutflow_dict[key]["H1Msd > 40 & Pt>300"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key]["H1TXbb>0.9, H1M:[150-200]"] = np.sum(
             bdt_events["weight"][mask_bin1].to_numpy()
         )
-        cutflow_dict[key][f"H1TXbb>0.1,H2TXbb>0.1,H1T32<0.46, H1M:[150-200]"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
-        cutflow_dict[key][f"H1TXbb>0.9,H1T32<0.46, H1M:[160-200]"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
+        cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.46, H1M:[150-200]"] = np.sum(
+            bdt_events["weight"][mask_bin2].to_numpy()
+        )
+        cutflow_dict[key]["H1TXbb>0.9,H1T32<0.46, H1M:[160-200]"] = np.sum(
+            bdt_events["weight"][mask_bin3].to_numpy()
+        )
 
         # keep some (or all) columns
         columns = ["H2TXbb", "weight", "Category", "bdt_score", "H2Msd", "H2PNetMass"]
         columns = list(set(columns))
 
         if control_plots:
-            bdt_events = bdt_events.rename(columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"})
+            bdt_events = bdt_events.rename(
+                columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"}
+            )
             events_dict_postprocess[key] = bdt_events
         else:
             events_dict_postprocess[key] = bdt_events[columns]
 
     # end of loop over samples
-    
+
     if control_plots:
-        events_to_plot = {key: events[events["Category"]==1] for key, events in events_dict_postprocess.items()}
-        make_control_plots(events_to_plot, plot_dir, year, args.legacy, "cat1", ["diboson", "vjets", "qcd", "ttbar"])
+        events_to_plot = {
+            key: events[events["Category"] == 1] for key, events in events_dict_postprocess.items()
+        }
+        make_control_plots(
+            events_to_plot,
+            plot_dir,
+            year,
+            args.legacy,
+            "cat1",
+            ["diboson", "vjets", "qcd", "ttbar"],
+        )
 
-        events_to_plot = {key: events[events["Category"]==2] for key, events in events_dict_postprocess.items()}
-        make_control_plots(events_to_plot, plot_dir, year, args.legacy, "cat2", ["diboson", "vjets", "qcd", "ttbar"])
+        events_to_plot = {
+            key: events[events["Category"] == 2] for key, events in events_dict_postprocess.items()
+        }
+        make_control_plots(
+            events_to_plot,
+            plot_dir,
+            year,
+            args.legacy,
+            "cat2",
+            ["diboson", "vjets", "qcd", "ttbar"],
+        )
 
-        events_to_plot = {key: events[events["Category"]==3] for key, events in events_dict_postprocess.items()}
-        make_control_plots(events_to_plot, plot_dir, year, args.legacy, "cat3", ["diboson", "vjets", "qcd", "ttbar"])
+        events_to_plot = {
+            key: events[events["Category"] == 3] for key, events in events_dict_postprocess.items()
+        }
+        make_control_plots(
+            events_to_plot,
+            plot_dir,
+            year,
+            args.legacy,
+            "cat3",
+            ["diboson", "vjets", "qcd", "ttbar"],
+        )
     for cut in cutflow_dict["data"]:
         cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
 
     print("\nCutflow")
     print(cutflow)
     return events_dict_postprocess, cutflow
+
 
 def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
     def singlebinning(eff):
@@ -293,6 +319,7 @@ def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
     )
     return corr
 
+
 def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
     legacy_label = "Legacy" if legacy else ""
 
@@ -305,7 +332,12 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
         # ShapeVar(var="H2TXbbNoLeg", label=r"Xbb$^{2}$ v12", bins=[30, 0, 1]),
         ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
         ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
-        ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[0, 40, 80, 120, 200, 350, 500, 700, 1000], reg=False),
+        ShapeVar(
+            var="HHPt",
+            label=r"HH $p_{T}$ (GeV)",
+            bins=[0, 40, 80, 120, 200, 350, 500, 700, 1000],
+            reg=False,
+        ),
         # ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         # ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
         # ShapeVar(var="MET", label=r"MET (GeV)", bins=[30, 0, 600]),
@@ -332,7 +364,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
             label=r"BDT score",
             bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
             reg=False,
-        )
+        ),
     ]
 
     odir = f"control_{tag}/{year}"
@@ -366,10 +398,15 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
 
         if (shape_var.var == "bdt_score_coarsebin" and tag=="cat3") or (shape_var.var == "bdt_score_finebin" and tag!="cat3"):
             # save correction
-            num = hists[shape_var.var]["data", :].values() - sum([hists[shape_var.var][bkg, :] for bkg in ["qcd", "vjets", "diboson"]]).values()
+            num = (
+                hists[shape_var.var]["data", :].values()
+                - sum(
+                    [hists[shape_var.var][bkg, :] for bkg in ["qcd", "vjets", "diboson"]]
+                ).values()
+            )
             den = hists[shape_var.var]["ttbar", :].values()
             tt = hists[shape_var.var]["ttbar", :]
-            sfhist_values = num/den
+            sfhist_values = num / den
             yerr = ratio_uncertainty(num, den, "poisson")
             edges = tt.axes.edges[0]
             corr = get_corr(
@@ -383,13 +420,14 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
 
             print(tag, sfhist_values, edges)
             cset = schemav2.CorrectionSet(
-                schema_version=2, corrections=[corr],
+                schema_version=2,
+                corrections=[corr],
             )
             path = Path(f"../corrections/data/ttbar_bdtshape{tag}_{year}.json")
             with path.open("w") as fout:
                 fout.write(cset.json(exclude_unset=True))
 
-            
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -410,7 +448,6 @@ def postprocess_run3(args):
 
     print("Loaded all years ", args.years)
 
-
     if len(args.years) > 1:
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
@@ -421,15 +458,43 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
 
-    events_to_plot = {key: events[events["Category"]==1] for key, events in events_combined.items()}
-    make_control_plots(events_to_plot, plot_dir, "2022-2023", args.legacy, "cat1", ["diboson", "vjets", "qcd", "ttbar"])
+    events_to_plot = {
+        key: events[events["Category"] == 1] for key, events in events_combined.items()
+    }
+    make_control_plots(
+        events_to_plot,
+        plot_dir,
+        "2022-2023",
+        args.legacy,
+        "cat1",
+        ["diboson", "vjets", "qcd", "ttbar"],
+    )
 
-    events_to_plot = {key: events[events["Category"]==2] for key, events in events_combined.items()}
-    make_control_plots(events_to_plot, plot_dir, "2022-2023", args.legacy, "cat2", ["diboson", "vjets", "qcd", "ttbar"])
+    events_to_plot = {
+        key: events[events["Category"] == 2] for key, events in events_combined.items()
+    }
+    make_control_plots(
+        events_to_plot,
+        plot_dir,
+        "2022-2023",
+        args.legacy,
+        "cat2",
+        ["diboson", "vjets", "qcd", "ttbar"],
+    )
 
-    events_to_plot = {key: events[events["Category"]==3] for key, events in events_combined.items()}
-    make_control_plots(events_to_plot, plot_dir, "2022-2023", args.legacy, "cat3", ["diboson", "vjets", "qcd", "ttbar"])
-    
+    events_to_plot = {
+        key: events[events["Category"] == 3] for key, events in events_combined.items()
+    }
+    make_control_plots(
+        events_to_plot,
+        plot_dir,
+        "2022-2023",
+        args.legacy,
+        "cat3",
+        ["diboson", "vjets", "qcd", "ttbar"],
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(

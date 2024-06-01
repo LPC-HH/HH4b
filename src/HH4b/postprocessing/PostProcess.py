@@ -22,11 +22,11 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
+    corrections,
     decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
 )
-from HH4b.postprocessing import corrections
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
 plt.style.use(hep.style.CMS)
@@ -232,7 +232,7 @@ def load_process_run3_samples(
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
 
         # remove duplicates
-        bdt_events = bdt_events.loc[:,~bdt_events.columns.duplicated()].copy()
+        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
 
         # add more variables for control plots
         bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
@@ -270,11 +270,11 @@ def load_process_run3_samples(
             )
             trigger_weight_up = trigger_weight + trigger_weight_err
             trigger_weight_dn = trigger_weight - trigger_weight_err
-            
+
             trigger_unc[key] = total_err / total
-            
+
             h_weights.fill(f"{key}_trigger", trigger_weight)
-            h_weights.fill(f"{key}_trigger_up", trigger_weight*(1+trigger_unc[key]))
+            h_weights.fill(f"{key}_trigger_up", trigger_weight * (1 + trigger_unc[key]))
 
             h_mass.fill(
                 f"{key}_trigger", bdt_events[args.mass], weight=nominal_weight * trigger_weight
@@ -282,7 +282,7 @@ def load_process_run3_samples(
             h_mass.fill(
                 f"{key}_trigger_up",
                 bdt_events[args.mass],
-                weight=nominal_weight * trigger_weight*(1+trigger_unc[key])
+                weight=nominal_weight * trigger_weight * (1 + trigger_unc[key]),
             )
 
         # tt corrections
@@ -557,7 +557,9 @@ def load_process_run3_samples(
         columns = list(set(columns))
 
         if control_plots:
-            bdt_events.rename(columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"})
+            bdt_events.rename(
+                columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"}
+            )
             events_dict_postprocess[key] = bdt_events
             columns_by_key[key] = columns
         else:
@@ -581,7 +583,7 @@ def load_process_run3_samples(
                 bdt_events, mask_bin3, args.mass, mass_window
             )
     # end of loop over samples
-    
+
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.legacy)
         for key in events_dict_postprocess:
