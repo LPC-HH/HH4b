@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import correctionlib
 import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
-from pathlib import Path
 
 
 def ttbar_SF(
@@ -23,9 +24,9 @@ def ttbar_SF(
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    tt_sf = correctionlib.CorrectionSet.from_file(f"{Path(__file__).parents[1]}/corrections/data/ttbarcorr_{year_}.json")[
-        f"ttbar_corr_{corr}_{year_}"
-    ]
+    tt_sf = correctionlib.CorrectionSet.from_file(
+        f"{Path(__file__).parents[1]}/corrections/data/ttbarcorr_{year_}.json"
+    )[f"ttbar_corr_{corr}_{year_}"]
     input_var = events_dict[branch]
 
     sfs = {}

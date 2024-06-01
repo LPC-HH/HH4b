@@ -22,10 +22,10 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
+    corrections,
     decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
-    corrections
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -99,7 +99,9 @@ label_by_mass = {
 
 
 def get_bdt_training_keys(bdt_model: str):
-    inferences_dir = Path(f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+    inferences_dir = Path(
+        f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE"
+    )
 
     training_keys = []
     for child in inferences_dir.iterdir():
@@ -178,7 +180,9 @@ def load_process_run3_samples(
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    bdt_model.load_model(fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+    bdt_model.load_model(
+        fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
+    )
 
     # get function
     make_bdt_dataframe = importlib.import_module(
