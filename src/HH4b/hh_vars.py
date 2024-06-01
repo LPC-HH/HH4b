@@ -33,21 +33,27 @@ common_samples_bg = {
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
-    # TODO: Add single top!
+    "singletop": [
+        "TbarBQ_t-channel_4FS",
+        "TBbarQ_t-channel_4FS",
+        "TWminustoLNu2Q",
+        "TWminusto4Q",
+        "TbarWplustoLNu2Q",
+        "TbarWplusto4Q",
+    ],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
-        # "WplusH_Hto2B_WtoLNu_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",
-        # "WminusH_Hto2B_WtoLNu_M-125",
         "ZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2Q_M-125",
+        # "WplusH_Hto2B_WtoLNu_M-125",
+        # "WminusH_Hto2B_WtoLNu_M-125",
         # "ggZH_Hto2B_Zto2L_M-125",
         # "ggZH_Hto2B_Zto2Nu_M-125",
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
     "diboson": ["ZZ", "WW", "WZ"],
-    # "vjetslnu": ["WtoLNu-4Jets"],  # TODO: didn't run on these?
     "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
 }
 
@@ -66,10 +72,13 @@ samples_run3_sig = {
     },
     "2023": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        # "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        # "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
 }
 
@@ -174,11 +183,11 @@ norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonS
 
 jecs = {
     # "JES": "JES",
-    "JER": "JER",
+    # "JER": "JER",
     #####
     # including all sources
     #####
-    "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
+    # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
     # "JES_AbsoluteScale": "JES_AbsoluteScale",  # goes in Absolute
     # "JES_AbsoluteStat": "JES_AbsoluteStat",  # goes in Abs_year
     # "JES_FlavorQCD": "JES_FlavorQCD",

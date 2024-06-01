@@ -53,8 +53,10 @@ control_plot_vars = [
     ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),
     ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$", bins=[30, 0, 1]),
     ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$", bins=[30, 0, 1]),
+    ShapeVar(var="H1Xbb", label=r"Xbb$^{1}$", bins=[30, 0, 1]),
     ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV)", bins=[30, 0, 300]),
     ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV)", bins=[30, 0, 300]),
+    ShapeVar(var="H1Mass", label=r"$m_{reg}^{1}$ (GeV)", bins=[30, 0, 300]),
     ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
     ShapeVar(var="HHEta", label=r"HH $\eta$", bins=[30, -5, 5]),
     ShapeVar(var="HHMass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
@@ -64,12 +66,18 @@ control_plot_vars = [
     ShapeVar(var="H1Pt", label=r"H $p_{T}^{0}$ (GeV)", bins=[30, 200, 1000]),
     ShapeVar(var="H2Pt", label=r"H $p_{T}^{1}$ (GeV)", bins=[30, 200, 1000]),
     ShapeVar(var="H1Eta", label=r"H $\eta^{0}$", bins=[30, -4, 4]),
-    ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 1]),
-    ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 1]),
-    ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 1]),
+    ShapeVar(var="H1QCDb", label=r"QCDb$^{1}$", bins=[30, 0, 0.2]),
+    ShapeVar(var="H1QCDbb", label=r"QCDbb$^{1}$", bins=[30, 0, 0.2]),
+    ShapeVar(var="H1QCDothers", label=r"QCDothers$^{1}$", bins=[30, 0, 0.2]),
     ShapeVar(var="H1Pt_HHmass", label=r"H$^0$ $p_{T}/mass$", bins=[30, 0, 1]),
     ShapeVar(var="H2Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 0.7]),
-    ShapeVar(var="H1Pt/H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
+    ShapeVar(var="H1Pt_H2Pt", label=r"H$^0$/H$^1$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
+    ShapeVar(var="VBFjjMass", label=r"VBF jj mass (GeV)", bins=[30, 0.0, 1000]),
+    ShapeVar(var="VBFjjDeltaEta", label=r"VBF jj $\Delta \eta$", bins=[30, 0, 5]),
+    ShapeVar(var="H1dRAK4", label=r"$\Delta R$(H1,J1)", bins=[30, 0, 5]),
+    ShapeVar(var="H2dRAK4", label=r"$\Delta R$(H2,J2)", bins=[30, 0, 5]),
+    ShapeVar(var="H1AK4mass", label=r"(H1 + J1) mass (GeV)", bins=[30, 80, 600]),
+    ShapeVar(var="H2AK4mass", label=r"(H2 + J2) mass (GeV)", bins=[30, 80, 600]),
 ]
 
 # do not include small qcd bins
@@ -87,20 +95,25 @@ for year in samples_run3:
 
 
 def get_legtitle(legacy, pnet_xbb_str):
-    title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n" + "$T_{Xbb}^{0}$>0.8"
-    title += "\n" + r"m$_{SD}^{0}$ > 30 GeV"
+    title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n"
+    if legacy:
+        title += "$T_{Xbb}^{0}$>0.8"
+    else:
+        title += "$T_{Xbb}^{0}$>0.5"
+
+    title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
     if "Legacy" in pnet_xbb_str:
         title += "\n" + "PNet Legacy"
 
     if legacy:
         title += "\n" + r"m$_{reg Legacy}$ > 50 GeV"
     else:
-        title += "\n" + r"m$_{reg}$ > 50 GeV"
+        title += "\n" + r"m > 50 GeV & m$_{SD}$ > 30 GeV"
 
     return title
 
 
-def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
+def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str, legacy):
     """
     Apply cuts
     Skimmer selection already includes
@@ -108,10 +121,8 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
     - HLT OR
     - Here we apply a pT selection at the very least
     """
-    mass_cut = False
     for key in events_dict:
         msd1 = events_dict[key]["bbFatJetMsd"][0]
-        msd2 = events_dict[key]["bbFatJetMsd"][1]
         pt1 = events_dict[key]["bbFatJetPt"][0]
         pt2 = events_dict[key]["bbFatJetPt"][1]
         xbb1 = events_dict[key][pnet_xbb_str][0]
@@ -120,13 +131,14 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
         # add msd > 40 cut for the first jet
         # add regressed mass cut above 50
         # FIXME: replace this by the trigobj matched jet
-        events_dict[key] = events_dict[key][
-            (pt1 > 300) & (pt2 > 300) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
-        ].copy()
-        # mass cuts on both jets (false by default)
-        if mass_cut:
-            # for legacy add msd cuts for both jets
-            events_dict[key] = events_dict[key][(msd1 > 30) & (msd2 > 30)].copy()
+        if legacy:
+            events_dict[key] = events_dict[key][
+                (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+            ].copy()
+        else:
+            events_dict[key] = events_dict[key][
+                (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.5) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+            ].copy()
 
     return events_dict
 
@@ -932,6 +944,7 @@ def plot_train_test(
     (plot_dir / "inputs").mkdir(exist_ok=True, parents=True)
     ########### Plot training BDT Inputs ############
     for shape_var in control_plot_vars:
+        print("shape ", shape_var.var, X_train.columns)
         if shape_var.var in X_train.columns:
             h = hist.Hist(cat_axis, shape_var.axis)
             for key in training_keys:
@@ -1141,7 +1154,7 @@ def main(args):
         if args.apply_cuts:
             # apply cuts
             events_dict_years[year] = apply_cuts(
-                events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str
+                events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str, args.legacy
             )
 
         # concatenate data
@@ -1192,7 +1205,7 @@ def main(args):
     classifier_params = {
         "max_depth": args.max_depth,
         "learning_rate": args.learning_rate,
-        "n_estimators": 1000,
+        "n_estimators": 5000,
         "verbosity": 2,
         "reg_lambda": 1.0,
     }
@@ -1274,7 +1287,9 @@ def main(args):
             txbb=args.pnet_xbb_str,
         )
         if args.apply_cuts:
-            events_dict[year] = apply_cuts(events_dict[year], args.pnet_xbb_str, args.pnet_mass_str)
+            events_dict[year] = apply_cuts(
+                events_dict[year], args.pnet_xbb_str, args.pnet_mass_str, args.legacy
+            )
 
     plot_allyears(
         events_dict,
@@ -1338,7 +1353,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--mass",
-        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy"],
+        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy", "bbFatJetMsd"],
         help="xbb pnet mass",
         required=True,
     )
