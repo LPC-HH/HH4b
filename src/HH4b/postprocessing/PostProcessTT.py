@@ -364,7 +364,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
             save_pdf=False,
         )
 
-        if shape_var.var == "bdt_score_coarsebin":
+        if (shape_var.var == "bdt_score_coarsebin" and tag=="cat3") or (shape_var.var == "bdt_score_finebin" and tag!="cat3"):
             # save correction
             num = hists[shape_var.var]["data", :].values() - sum([hists[shape_var.var][bkg, :] for bkg in ["qcd", "vjets", "diboson"]]).values()
             den = hists[shape_var.var]["ttbar", :].values()
@@ -381,7 +381,7 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
                 edges,
             )
 
-            print(tag, sfhist_values)
+            print(tag, sfhist_values, edges)
             cset = schemav2.CorrectionSet(
                 schema_version=2, corrections=[corr],
             )
