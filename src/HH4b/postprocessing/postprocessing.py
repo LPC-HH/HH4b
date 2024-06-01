@@ -82,8 +82,8 @@ HLTs = {
 load_columns = [
     ("weight", 1),
     ("event", 1),
-    ("run",1),
-    ('luminosityBlock', 1),
+    ("run", 1),
+    ("luminosityBlock", 1),
     ("MET_pt", 1),
     ("bbFatJetPt", 2),
     ("bbFatJetEta", 2),

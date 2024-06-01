@@ -7,7 +7,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
-#import corrections
+# import corrections
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -23,7 +23,6 @@ from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
-    decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
 )
@@ -168,11 +167,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(
-    args, year, bdt_training_keys, control_plots, plot_dir
-):
+def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir):
     legacy_label = "Legacy" if args.legacy else ""
-    
+
     events_dict = load_run3_samples(
         f"{args.data_dir}/{args.tag}",
         year,
@@ -270,7 +267,7 @@ def load_process_run3_samples(
         # finalWeight: includes genWeight, puWeight
         # FIXME: genWeight taken only as sign for HH sample...
         bdt_events["weight"] = events_dict[key]["finalWeight"].to_numpy()
-        #add event, run, lumi
+        # add event, run, lumi
         bdt_events["run"] = events_dict[key]["run"].to_numpy()
         bdt_events["event"] = events_dict[key]["event"].to_numpy()
         bdt_events["luminosityBlock"] = events_dict[key]["luminosityBlock"].to_numpy()
@@ -434,7 +431,17 @@ def load_process_run3_samples(
         bdt_events["year"] = year
 
         # keep some (or all) columns
-        columns = ["Category", "H2Msd", "bdt_score", "H2TXbb", "H2PNetMass", "weight", "event","run","luminosityBlock"]
+        columns = [
+            "Category",
+            "H2Msd",
+            "bdt_score",
+            "H2TXbb",
+            "H2PNetMass",
+            "weight",
+            "event",
+            "run",
+            "luminosityBlock",
+        ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
