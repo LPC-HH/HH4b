@@ -121,7 +121,7 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str):
         # add regressed mass cut above 50
         # FIXME: replace this by the trigobj matched jet
         events_dict[key] = events_dict[key][
-            (pt1 > 300) & (pt2 > 300) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+            (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
         ].copy()
         # mass cuts on both jets (false by default)
         if mass_cut:
