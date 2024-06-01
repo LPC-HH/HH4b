@@ -168,7 +168,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weight_plots, plot_dir):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, weight_plots, plot_dir, mass_window
+):
     legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
@@ -419,7 +421,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, weig
             bdt_events = bdt_events[mask_presel]
 
             ###### FINISH pre-selection
-            mass_window = [110, 140]
             mass_str = f"[{mass_window[0]}-{mass_window[1]}]"
             mask_mass = (bdt_events[h2mass] >= mass_window[0]) & (
                 bdt_events[h2mass] <= mass_window[1]
@@ -925,8 +926,7 @@ def postprocess_run3(args):
 
     window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [110, 140],
-        # "H2PNetMass": [115, 135],
+        "H2PNetMass": [105, 150],
     }
     if not args.legacy:
         window_by_mass["H2PNetMass"] = [120, 150]
@@ -958,6 +958,7 @@ def postprocess_run3(args):
             args.control_plots,
             args.weight_plots,
             plot_dir,
+            mass_window,
         )
 
     print("Loaded all years")
