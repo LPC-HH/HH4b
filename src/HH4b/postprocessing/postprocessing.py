@@ -17,9 +17,9 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
+    jecs,
     syst_keys,
     years,
-    jecs,
 )
 
 # define ShapeVar (label and bins for a given variable)
@@ -127,10 +127,10 @@ load_columns_syst = [
 ]
 for jec_key, jec_weight in jecs.items():
     load_columns_syst += [
-        (f"bbFatJetPt_{jec_weight}_up", 2), 
+        (f"bbFatJetPt_{jec_weight}_up", 2),
         (f"bbFatJetPt_{jec_weight}_down", 2),
-        (f"VBFJetPt_{jec_weight}_up", 2), 
-        (f"VBFJetPt_{jec_weight}_down", 2)
+        (f"VBFJetPt_{jec_weight}_up", 2),
+        (f"VBFJetPt_{jec_weight}_down", 2),
     ]
 
 weight_shifts = {
