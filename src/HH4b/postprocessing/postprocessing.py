@@ -125,7 +125,7 @@ load_columns_syst = [
     # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
 ]
-for jec_key, jec_weight in jecs.items():
+for jec_weight in jecs.values():
     load_columns_syst += [
         (f"bbFatJetPt_{jec_weight}_up", 2),
         (f"bbFatJetPt_{jec_weight}_down", 2),
