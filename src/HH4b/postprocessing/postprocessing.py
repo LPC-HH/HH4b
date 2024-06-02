@@ -68,12 +68,12 @@ HLTs = {
     "2023": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        "AK8PFJet400_SoftDropMass40",
+        # "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
     "2023BPix": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        "AK8PFJet400_SoftDropMass40",
+        # "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
 }

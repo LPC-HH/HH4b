@@ -885,7 +885,9 @@ def postprocess_run3(args):
             processes,
             bg_keys=bg_keys_combined,
             scale_processes={
-                "vbfhh4b": ["2022", "2022EE", "2023"],
+                # "vbfhh4b": ["2022", "2022EE", "2023"],
+                "vbfhh4b": ["2022", "2022EE"],
+                "vbfhh4b-k2v0": ["2022", "2022EE"],
             },
             years_run3=args.years,
         )
