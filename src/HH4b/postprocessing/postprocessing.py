@@ -19,6 +19,7 @@ from HH4b.hh_vars import (
     data_key,
     syst_keys,
     years,
+    jecs,
 )
 
 # define ShapeVar (label and bins for a given variable)
@@ -118,25 +119,19 @@ load_columns_v12 = load_columns + [
     ("bbFatJetPNetQCD1HF", 2),
     ("bbFatJetPNetQCD2HF", 2),
 ]
-
 load_columns_syst = [
-    # ("bbFatJetPt_JES_up", 2),
-    # ("bbFatJetPt_JES_down", 2),
-    # ("VBFJetPt_JES_up", 2),
-    # ("VBFJetPt_JES_down", 2),
-    ("bbFatJetPt_JES_AbsoluteMPFBias_up", 2),
-    ("bbFatJetPt_JES_AbsoluteMPFBias_down", 2),
-    ("VBFJetPt_JES_AbsoluteMPFBias_up", 2),
-    ("VBFJetPt_JES_AbsoluteMPFBias_down", 2),
-    ("bbFatJetPt_JER_up", 2),
-    ("bbFatJetPt_JER_down", 2),
-    ("VBFJetPt_JER_up", 2),
-    ("VBFJetPt_JER_down", 2),
     # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
     # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
 ]
+for jec_key, jec_weight in jecs.items():
+    load_columns_syst += [
+        (f"bbFatJetPt_{jec_weight}_up", 2), 
+        (f"bbFatJetPt_{jec_weight}_down", 2),
+        (f"VBFJetPt_{jec_weight}_up", 2), 
+        (f"VBFJetPt_{jec_weight}_down", 2)
+    ]
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),

@@ -63,7 +63,6 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "sig-separate", "separate templates for signals and bgs", default=False)
-add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=True)
 
 parser.add_argument("--cards-dir", default="cards", type=str, help="output card directory")
 
@@ -249,7 +248,7 @@ corr_year_shape_systs = {
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
     # TODO: separate into individual
-    "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_Abs", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -262,7 +261,7 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -274,8 +273,8 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
-    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
+    # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
+    # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
@@ -305,18 +304,6 @@ uncorr_year_shape_systs = {
         uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
 }
-
-if not args.do_jshifts:
-    del corr_year_shape_systs["JES"]
-    del uncorr_year_shape_systs["JER"]
-    del uncorr_year_shape_systs["JMS"]
-    del uncorr_year_shape_systs["JMR"]
-else:
-    # TODO: implement others; currently only JES
-    del uncorr_year_shape_systs["JER"]
-    del uncorr_year_shape_systs["JMS"]
-    del uncorr_year_shape_systs["JMR"]
-
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
