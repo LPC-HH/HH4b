@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import pprint
+from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
@@ -242,7 +243,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
-        nominal_weight = bdt_events["weight"]
 
         # triggerWeight
         nevents = len(events_dict["bbFatJetPt"][0])
@@ -253,8 +253,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
-            trigger_weight_up = trigger_weight + trigger_weight_err
-            trigger_weight_dn = trigger_weight - trigger_weight_err
+            # print("error ",total_err/total)
+            # print(trigger_weight_err)
+            trigger_weight_up = trigger_weight + total_err / total
+            trigger_weight_dn = trigger_weight - total_err / total
             bdt_events["trigger_weight"] = trigger_weight
             bdt_events["trigger_weight_up"] = trigger_weight_up
             bdt_events["trigger_weight_dn"] = trigger_weight_dn
@@ -278,6 +280,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
         nominal_weight = bdt_events["weight"]
+        trigger_weight = bdt_events["trigger_weight"]
+        trigger_weight_up = bdt_events["trigger_weight_up"]
+        trigger_weight_dn = bdt_events["trigger_weight_dn"]
+        cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
         nevents = len(bdt_events["H1Pt"])
