@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import importlib
 import pprint
-from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
@@ -188,7 +187,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     # region in which QCD trigger weights were extracted
     trigger_region = "QCD"
 
-    trigger_unc = {}
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
@@ -244,25 +242,24 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        nominal_weight = bdt_events["weight"]
 
         # triggerWeight
         nevents = len(events_dict["bbFatJetPt"][0])
-        trigger_weight = np.ones(nevents)
-        trigger_weight_up = np.ones(nevents)
-        trigger_weight_dn = np.ones(nevents)
+        bdt_events["trigger_weight"] = np.ones(nevents)
+        bdt_events["trigger_weight_up"] = np.ones(nevents)
+        bdt_events["trigger_weight_dn"] = np.ones(nevents)
         if key != "data":
             trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
             trigger_weight_up = trigger_weight + trigger_weight_err
             trigger_weight_dn = trigger_weight - trigger_weight_err
-            trigger_unc[key] = total_err / total
-        bdt_events["trigger_weight"] = trigger_weight
-        bdt_events["trigger_weight_up"] = trigger_weight_up
-        bdt_events["trigger_weight_dn"] = trigger_weight_dn
+            bdt_events["trigger_weight"] = trigger_weight
+            bdt_events["trigger_weight_up"] = trigger_weight_up
+            bdt_events["trigger_weight_dn"] = trigger_weight_dn
 
-        # add selection of testing events
-        # this needs to be done on bdt_events since that is a flat pandas dataframe
+        # remove training events if asked
         if (
             args.training_years is not None
             and year in args.training_years
@@ -274,22 +271,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
 
             evt_list = np.load(inferences_dir / f"evt_{key}.npy")
-            keep_events = bdt_events["event"].isin(evt_list)
-            fraction = np.sum(keep_events.to_numpy() == 1) / bdt_events["event"].shape[0]
-            print(f"year {year} used in training, going to remove {key} {fraction}% events!!")
+            events_to_keep = bdt_events["event"].isin(evt_list)
+            fraction = np.sum(events_to_keep.to_numpy() == 1) / bdt_events["event"].shape[0]
+            print(f"Keep {fraction}% of {key} for year {year}")
+            bdt_events = bdt_events[events_to_keep]
+            bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
-            # remove events
-            bdt_events = bdt_events[keep_events]
-
-            # divide by BDT test / train ratio
-            bdt_events["weight"] *= 1 / fraction
-
-        # cutflow
-        cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
         nominal_weight = bdt_events["weight"]
-        trigger_weight = bdt_events["trigger_weight"]
-        trigger_weight_up = bdt_events["trigger_weight_up"]
-        trigger_weight_dn = bdt_events["trigger_weight_dn"]
 
         # tt corrections
         nevents = len(bdt_events["H1Pt"])
