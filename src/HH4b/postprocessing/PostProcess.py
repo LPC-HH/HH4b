@@ -833,7 +833,7 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
         # region D
         dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
 
-    # other backgrounds
+    # other backgrounds (bg_tots[0] is in region A)
     bg_tots = np.sum([dicts[key] for key in bg_keys], axis=0)
     # subtract other backgrounds
     dmt = np.array(dicts["data"]) - bg_tots
