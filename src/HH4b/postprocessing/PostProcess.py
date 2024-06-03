@@ -389,7 +389,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
-                & (bdt_events[h1pt] >= 300)
+                & (bdt_events[h1pt] >= args.pt_first)
                 & (bdt_events[h2pt] >= args.pt_second)
                 & (bdt_events["H1TXbb"] >= 0.8)
                 & (bdt_events[h2mass] >= 60)
@@ -654,6 +654,9 @@ def scan_fom(
 
 
 def get_cuts(args, region: str):
+    xbb_cut_bin1 = args.txbb_wps[0]
+    bdt_cut_bin1 = args.bdt_wps[0]
+
     # VBF region
     def get_cut_vbf(events, xbb_cut, bdt_cut):
         cut_xbb = events["H2TXbb"] > xbb_cut
@@ -663,8 +666,15 @@ def get_cuts(args, region: str):
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
+    # VBF with bin1 veto
+    def get_cut_vbf_vetobin1(events, xbb_cut, bdt_cut):
+        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_xbb = events["H2TXbb"] > xbb_cut
+        cut_bdt = events["bdt_score_vbf"] > bdt_cut
+        return cut_xbb & cut_bdt & (~cut_bin1)
+
     # bin 1 with VBF region veto
-    def get_cut_bin1(events, xbb_cut, bdt_cut):
+    def get_cut_bin1_vetovbf(events, xbb_cut, bdt_cut):
         vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
             events["H2TXbb"] >= args.vbf_txbb_wp
         )
@@ -672,17 +682,14 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt & (~vbf_cut)
 
-    # bin 1 without VBF region veto
-    def get_cut_bin1_novbf(events, xbb_cut, bdt_cut):
+    # bin 1 region
+    def get_cut_bin1(events, xbb_cut, bdt_cut):
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    xbb_cut_bin1 = args.txbb_wps[0]
-    bdt_cut_bin1 = args.bdt_wps[0]
-
     # bin 2 with VBF region veto
-    def get_cut_bin2(events, xbb_cut, bdt_cut):
+    def get_cut_bin2_vetovbf(events, xbb_cut, bdt_cut):
         vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
             events["H2TXbb"] >= args.vbf_txbb_wp
         )
@@ -699,7 +706,7 @@ def get_cuts(args, region: str):
         return cut_bin2
 
     # bin 2 without VBF region veto
-    def get_cut_bin2_novbf(events, xbb_cut, bdt_cut):
+    def get_cut_bin2(events, xbb_cut, bdt_cut):
         cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
         cut_corner = (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
         cut_bin2 = (
@@ -712,12 +719,17 @@ def get_cuts(args, region: str):
         return cut_bin2
 
     if region == "vbf":
-        # if no VBF region, set all events to "fail VBF"
-        return get_cut_vbf if args.vbf else get_cut_novbf
+        if args.vbf and args.vbf_priority:
+            return get_cut_vbf
+        elif args.vbf and not args.vbf_priority:
+            return get_cut_vbf_vetobin1
+        else:
+            # if no VBF region, set all events to "fail VBF"
+            return get_cut_novbf
     elif region == "bin1":
-        return get_cut_bin1 if args.vbf else get_cut_bin1_novbf
+        return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
-        return get_cut_bin2 if args.vbf else get_cut_bin2_novbf
+        return get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
     else:
         raise ValueError("Invalid region")
 
@@ -852,7 +864,7 @@ def postprocess_run3(args):
         label_by_mass[args.mass],
         [n_mass_bins, 60, 220],
         reg=True,
-        blind_window=window_by_mass[args.mass],
+        blind_window=[110, 140],
     )
 
     plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
@@ -945,7 +957,10 @@ def postprocess_run3(args):
     if args.fom_scan:
 
         if args.fom_scan_vbf and args.vbf:
-            print("Scanning VBF WPs")
+            if args.vbf_priority:
+                print("Scanning VBF WPs")
+            else:
+                print("Scanning VBF WPs, vetoing Bin1")
             scan_fom(
                 args.method,
                 events_combined,
@@ -961,12 +976,12 @@ def postprocess_run3(args):
             )
 
         if args.fom_scan_bin1:
-            if args.vbf:
+            if args.vbf and args.vbf_priority:
                 print(
-                    f"Scanning Bin 1 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
+                    f"Scanning Bin 1 vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
                 )
             else:
-                print("Scanning Bin 1, no VBF")
+                print("Scanning Bin 1, no VBF category")
 
             scan_fom(
                 args.method,
@@ -1173,7 +1188,7 @@ if __name__ == "__main__":
         default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
     )
-
+    parser.add_argument("--pt-first", type=float, default=300, help="pt threshold for leading jet")
     parser.add_argument(
         "--pt-second", type=float, default=300, help="pt threshold for subleading jet"
     )
