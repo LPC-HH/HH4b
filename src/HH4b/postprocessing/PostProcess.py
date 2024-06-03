@@ -835,14 +835,19 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
-    window_by_mass = {
+    fom_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [105, 150],
+        "H2PNetMass": [105, 150], # use wider range for FoM scan
+    }
+    blind_window_by_mass = {
+        "H2Msd": [110, 140],
+        "H2PNetMass": [110, 140], # only blind 3 bins
     }
     if not args.legacy:
-        window_by_mass["H2PNetMass"] = [120, 150]
+        fom_window_by_mass["H2PNetMass"] = [120, 150]
+        blind_window_by_mass["H2PNetMass"] = [120, 150]
 
-    mass_window = np.array(window_by_mass[args.mass])
+    mass_window = np.array(fom_window_by_mass[args.mass])
 
     n_mass_bins = int((220 - 60) / args.mass_bins)
 
@@ -852,7 +857,7 @@ def postprocess_run3(args):
         label_by_mass[args.mass],
         [n_mass_bins, 60, 220],
         reg=True,
-        blind_window=window_by_mass[args.mass],
+        blind_window=blind_window_by_mass[args.mass],
     )
 
     plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
