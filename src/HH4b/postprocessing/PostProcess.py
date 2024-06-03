@@ -837,11 +837,11 @@ def postprocess_run3(args):
 
     fom_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [105, 150], # use wider range for FoM scan
+        "H2PNetMass": [105, 150],  # use wider range for FoM scan
     }
     blind_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [110, 140], # only blind 3 bins
+        "H2PNetMass": [110, 140],  # only blind 3 bins
     }
     if not args.legacy:
         fom_window_by_mass["H2PNetMass"] = [120, 150]
