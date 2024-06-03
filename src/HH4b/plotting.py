@@ -1349,7 +1349,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     ax.set_ylim(bins_y[0], bins_y[-1])
     ax.set_xlim(bins_x[0], bins_x[-1])
     fig.tight_layout()
-    plt.savefig(f"{plot_dir}/{name}.png")
+    plt.savefig(f"{plot_dir}/{name}.png", bbox_inches="tight")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
     if show:
