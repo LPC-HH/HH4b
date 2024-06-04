@@ -1,1 +1,101 @@
-{"schema_version": 2, "corrections": [{"name": "ttbar_corr_bdtshape_2023BPix", "description": "ttbar correction bdtshape for 2023BPix", "version": 1, "inputs": [{"name": "bdtshape", "type": "real", "description": "bdtshape"}, {"name": "systematic", "type": "string", "description": "Systematic variation"}], "output": {"name": "weight", "type": "real", "description": "ttbar efficiency"}, "data": {"nodetype": "category", "input": "systematic", "content": [{"key": "nominal", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.03, 0.3, 0.68, 0.9, 1.0], "content": [0.679797167017853, 0.8972928139987193, 1.185007772275387, 2.0770396430883364, 0.0], "flow": 1.0}}, {"key": "stat_up", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.03, 0.3, 0.68, 0.9, 1.0], "content": [0.029793674528510228, 0.09746384425717414, 0.28807618510738264, 1.0226349460558597, 0.0], "flow": 1.0}}, {"key": "stat_dn", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.03, 0.3, 0.68, 0.9, 1.0], "content": [0.03112896401530807, 0.10867217492344161, 0.3683522348927297, 1.7170034114081831, NaN], "flow": 1.0}}]}}]}
+{
+    "schema_version": 2,
+    "corrections": [
+        {
+            "name": "ttbar_corr_bdtshape_2023BPix",
+            "description": "ttbar correction bdtshape for 2023BPix",
+            "version": 1,
+            "inputs": [
+                {
+                    "name": "bdtshape",
+                    "type": "real",
+                    "description": "bdtshape"
+                },
+                {
+                    "name": "systematic",
+                    "type": "string",
+                    "description": "Systematic variation"
+                }
+            ],
+            "output": {
+                "name": "weight",
+                "type": "real",
+                "description": "ttbar efficiency"
+            },
+            "data": {
+                "nodetype": "category",
+                "input": "systematic",
+                "content": [
+                    {
+                        "key": "nominal",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.03,
+                                0.3,
+                                0.68,
+                                0.9,
+                                1.0
+                            ],
+                            "content": [
+                                0.679797167017853,
+                                0.8972928139987193,
+                                1.185007772275387,
+                                2.0770396430883364,
+                                0.0
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_dn",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.03,
+                                0.3,
+                                0.68,
+                                0.9,
+                                1.0
+                            ],
+                            "content": [
+                                0.029793674528510228,
+                                0.09746384425717414,
+                                0.28807618510738264,
+                                1.0226349460558597,
+                                0.0
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_up",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.03,
+                                0.3,
+                                0.68,
+                                0.9,
+                                1.0
+                            ],
+                            "content": [
+                                0.03112896401530807,
+                                0.10867217492344161,
+                                0.3683522348927297,
+                                1.7170034114081831, NaN
+                            ],
+                            "flow": 1.0
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

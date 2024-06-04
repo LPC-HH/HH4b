@@ -261,6 +261,36 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
+    "ttbarSF_BDT_bin_0_0.03": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0_0p03",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.03_0.3": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.3_0.68": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p68",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.68_0.9": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p68_0p9",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.9_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p9_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
     # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",

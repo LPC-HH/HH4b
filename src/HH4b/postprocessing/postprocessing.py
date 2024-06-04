@@ -145,11 +145,19 @@ weight_shifts = {
 }
 
 decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
+decorr_bdt_bins = [0, 0.03, 0.3, 0.68, 0.9, 1]
 
 for i in range(len(decorr_txbb_bins) - 1):
     weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(
         samples=["ttbar"],
         label=f"ttbar SF Xbb bin [{decorr_txbb_bins[i]}, {decorr_txbb_bins[i+1]}]",
+        years=years + ["2022-2023"],
+    )
+
+for i in range(len(decorr_bdt_bins) - 1):
+    weight_shifts[f"ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}"] = Syst(
+        samples=["ttbar"],
+        label=f"ttbar SF BDT bin [{decorr_bdt_bins[i]}, {decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
 
