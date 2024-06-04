@@ -1,1 +1,90 @@
-{"schema_version": 2, "corrections": [{"name": "ttbar_corr_bdtshape_2022-2023", "description": "ttbar correction bdtshape for 2022-2023", "version": 1, "inputs": [{"name": "bdtshape", "type": "real", "description": "bdtshape"}, {"name": "systematic", "type": "string", "description": "Systematic variation"}], "output": {"name": "weight", "type": "real", "description": "ttbar efficiency"}, "data": {"nodetype": "category", "input": "systematic", "content": [{"key": "nominal", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.3, 0.68, 1.0], "content": [0.8940711600739193, 0.8856481265540544, 1.1509180763324476], "flow": 1.0}}, {"key": "stat_up", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.3, 0.68, 1.0], "content": [0.00839331960401779, 0.04097670823615507, 0.21389928002895386], "flow": 1.0}}, {"key": "stat_dn", "value": {"nodetype": "binning", "input": "bdtshape", "edges": [0.0, 0.3, 0.68, 1.0], "content": [0.008472486302503968, 0.04291791316801019, 0.2578939997226597], "flow": 1.0}}]}}]}
+{
+    "schema_version": 2,
+    "corrections": [
+        {
+            "name": "ttbar_corr_bdtshape_2022-2023",
+            "description": "ttbar correction bdtshape for 2022-2023",
+            "version": 1,
+            "inputs": [
+                {
+                    "name": "bdtshape",
+                    "type": "real",
+                    "description": "bdtshape"
+                },
+                {
+                    "name": "systematic",
+                    "type": "string",
+                    "description": "Systematic variation"
+                }
+            ],
+            "output": {
+                "name": "weight",
+                "type": "real",
+                "description": "ttbar efficiency"
+            },
+            "data": {
+                "nodetype": "category",
+                "input": "systematic",
+                "content": [
+                    {
+                        "key": "nominal",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.3,
+                                0.68,
+                                1.0
+                            ],
+                            "content": [
+                                0.8940711600739193,
+                                0.8856481265540544,
+                                1.1509180763324476
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_dn",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.3,
+                                0.68,
+                                1.0
+                            ],
+                            "content": [
+                                0.00839331960401779,
+                                0.04097670823615507,
+                                0.21389928002895386
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_up",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.3,
+                                0.68,
+                                1.0
+                            ],
+                            "content": [
+                                0.008472486302503968,
+                                0.04291791316801019,
+                                0.2578939997226597
+                            ],
+                            "flow": 1.0
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
