@@ -62,6 +62,8 @@ def ttbar_bdtshape(
             sfs[syst] += tt_sf.evaluate(input_var, syst)
         elif syst == "stat_dn":
             sfs[syst] -= tt_sf.evaluate(input_var, syst)
+        # replace zeros or negatives with 1
+        sfs[syst][sfs[syst] <= 0] = 1.0
         # if input is outside of (defined) input_range, set to 1
         if input_range is not None:
             sfs[syst][input_var < input_range[0]] = 1.0
