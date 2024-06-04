@@ -46,11 +46,11 @@ def ttbar_SF(
 
 
 def ttbar_bdtshape(
-        cat: str,
-        events_dict: dict[str, pd.DataFrame],
-        branch: str,
-        input_range: ArrayLike | None = None
-    ):
+    cat: str,
+    events_dict: dict[str, pd.DataFrame],
+    branch: str,
+    input_range: ArrayLike | None = None,
+):
     tt_sf = correctionlib.CorrectionSet.from_file(
         f"../corrections/data/ttbar_bdtshape{cat}_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]

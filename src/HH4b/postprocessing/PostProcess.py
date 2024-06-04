@@ -23,8 +23,8 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     corrections,
-    decorr_txbb_bins,
     decorr_bdt_bins,
+    decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
 )
@@ -343,25 +343,15 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
             # bdt up/dn variations in bins
             for i in range(len(decorr_bdt_bins) - 1):
-                tempw, tempw_up, tempw_dn = corrections.ttbar_bdtshape("cat2", bdt_events, "bdt_score", decorr_bdt_bins[i : i + 2])
+                tempw, tempw_up, tempw_dn = corrections.ttbar_bdtshape(
+                    "cat2", bdt_events, "bdt_score", decorr_bdt_bins[i : i + 2]
+                )
                 bdt_events[
                     f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Up"
-                ] = (
-                    nominal_weight
-                    * trigger_weight
-                    * ttbar_weight
-                    * tempw_up
-                    / tempw
-                )
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw_up / tempw)
                 bdt_events[
                     f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Down"
-                ] = (
-                    nominal_weight
-                    * trigger_weight
-                    * ttbar_weight
-                    * tempw_dn
-                    / tempw
-                )
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw_dn / tempw)
 
         bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
         if key != "data":
