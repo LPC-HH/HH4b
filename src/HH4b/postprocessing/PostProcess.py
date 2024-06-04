@@ -306,8 +306,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             tempw2, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")
             txbbsf = tempw1 * tempw2
 
-            # inclusive bdt correction
-            bdtsf, bdtsf_up, bdtsf_dn = corrections.ttbar_bdtshape("cat2", bdt_events, "bdt_score")
+            # inclusive bdt shape correction
+            bdtsf, _, _ = corrections.ttbar_bdtshape("cat2", bdt_events, "bdt_score")
 
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
