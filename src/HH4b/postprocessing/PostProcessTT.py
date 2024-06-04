@@ -414,8 +414,8 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder):
             corr = get_corr(
                 "bdtshape",
                 sfhist_values,
-                yerr[1] - sfhist_values,
-                sfhist_values - yerr[0],
+                yerr[1],
+                yerr[0],
                 year,
                 edges,
             )
