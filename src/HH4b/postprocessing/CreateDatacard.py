@@ -248,7 +248,7 @@ corr_year_shape_systs = {
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
     # TODO: separate into individual
-    "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_Abs", prior="shape", samples=all_mc),
+    # "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_Abs", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -261,7 +261,7 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
+    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -272,7 +272,7 @@ corr_year_shape_systs = {
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
-    "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
+    # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
     # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
     # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
