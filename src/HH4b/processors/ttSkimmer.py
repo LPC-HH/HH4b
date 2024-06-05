@@ -264,6 +264,11 @@ class ttSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
 
+        jmsr_vars = (
+            ["msoftdrop", "particleNet_mass_legacy", "particleNet_mass"]
+        )
+        jmsr_shifted_vars = get_jmsr(fatjets, 2, year, isData, jmsr_vars=jmsr_vars)
+        
         print("Object definition", f"{time.time() - start:.2f}")
 
         #########################
@@ -308,6 +313,12 @@ class ttSkimmer(SkimmerABC):
             for (var, key) in fatjet_skimvars.items()
         }
 
+        for var in jmsr_vars:
+            key = fatjet_skimvars[var]
+            for shift, vals in jmsr_shifted_vars[var].items():
+                label = "" if shift == "" else "_" + shift
+                ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
+                    
         print("FatJet vars", f"{time.time() - start:.2f}")
 
         # lepton variables
