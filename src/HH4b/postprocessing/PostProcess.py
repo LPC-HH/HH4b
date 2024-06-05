@@ -246,21 +246,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
 
         # triggerWeight
-        nevents = len(events_dict["bbFatJetPt"][0])
-        bdt_events["trigger_weight"] = np.ones(nevents)
-        bdt_events["trigger_weight_up"] = np.ones(nevents)
-        bdt_events["trigger_weight_dn"] = np.ones(nevents)
+        nevents = len(bdt_events["H1Pt"])
+        trigger_weight = np.ones(nevents)
+        trigger_weight_up = np.ones(nevents)
+        trigger_weight_dn = np.ones(nevents)
         if key != "data":
-            trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
+            trigger_weight, _, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
-            # print("error ",total_err/total)
-            # print(trigger_weight_err)
-            trigger_weight_up = trigger_weight + total_err / total
-            trigger_weight_dn = trigger_weight - total_err / total
-            bdt_events["trigger_weight"] = trigger_weight
-            bdt_events["trigger_weight_up"] = trigger_weight_up
-            bdt_events["trigger_weight_dn"] = trigger_weight_dn
+            trigger_weight_up = trigger_weight * (1 + total_err / total)
+            trigger_weight_dn = trigger_weight * (1 - total_err / total)
 
         # remove training events if asked
         if (
@@ -281,13 +276,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
         nominal_weight = bdt_events["weight"]
-        trigger_weight = bdt_events["trigger_weight"]
-        trigger_weight_up = bdt_events["trigger_weight_up"]
-        trigger_weight_dn = bdt_events["trigger_weight_dn"]
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
-        nevents = len(bdt_events["H1Pt"])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
             ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
