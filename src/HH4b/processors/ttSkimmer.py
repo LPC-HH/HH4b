@@ -20,6 +20,7 @@ from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
+    get_jmsr,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
