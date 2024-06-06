@@ -243,11 +243,9 @@ def main(args):
 
     mass_window = [args.mass_low, args.mass_high]
 
-    all_bdt_cuts = np.linspace(0.8, 1, int(bdt_bins*0.2 + 1))[:-1]
-    bdt_cuts = all_bdt_cuts
+    bdt_cuts = np.linspace(0.8, 1, int(bdt_bins*0.2 + 1))[:-1]
 
-    all_xbb_cuts = np.linspace(0.9, 1, int(xbb_bins*0.1 + 1))[:-1]
-    xbb_cuts = all_xbb_cuts
+    xbb_cuts = np.linspace(0.9, 1, int(xbb_bins*0.1 + 1))[:-1]
 
     # define fail region for ABCD
     bdt_fail = 0.03
@@ -340,31 +338,29 @@ def main(args):
     h_mass_xbb_bdt = hist.Hist(mass_axis, xbb_axis, bdt_axis)
     h_mass_xbb_bdt.fill(mass=bdt_events_dict["hh4b"][mass_var], 
                         xbb=bdt_events_dict["hh4b"]["H2TXbb"], 
-                        bdt=bdt_events_dict["hh4b"]["bdt_score"])
+                        bdt=bdt_events_dict["hh4b"]["bdt_score"],
+                        weight=bdt_events_dict["hh4b"]["weight"] * kfactor_signal)
 
     bdt_events_data = bdt_events_dict["data"]
     bdt_events_sig = bdt_events_dict["hh4b"]
     bdt_events_others = bdt_events_dict["others"]
 
-    print(f"Mean number of background events to draw from data: {bdt_events_data[mass_var].shape[0]}")
-    print(
-        f"Mean number of signal events to inject: {np.sum(bdt_events_sig['weight'] * kfactor_signal)}"
-    )
+    integral = np.sum(h_mass.values())
+    integral_signal = np.sum(h_mass_xbb_bdt.values())
+    print(f"Mean number of background events to draw from data: {integral}")
+    print(f"Mean number of signal events to inject: {integral_signal}")
 
     for itoy in range(ntoys):
-
-        integral = np.sum(h_mass.values())
         n_samples = np.random.poisson(integral)
         random_mass = get_toy_from_hist(h_mass, n_samples)
         random_xbb = get_toy_from_hist(h_xbb, n_samples)
         random_bdt = get_toy_from_hist(h_bdt, n_samples)
 
-        n_signal_samples = np.random.poisson(np.sum(bdt_events_sig["weight"] * kfactor_signal))
+        n_signal_samples = np.random.poisson(integral_signal)
+        random_mass_xbb_bdt = get_toy_from_3d_hist(h_mass_xbb_bdt, n_signal_samples)
 
         print(f"Number of background events for toy {itoy}: {n_samples}")
         print(f"Number of signal events for toy {itoy}: {n_signal_samples}")
-        random_mass_xbb_bdt = get_toy_from_3d_hist(h_mass_xbb_bdt, n_signal_samples)
-        print(random_mass_xbb_bdt)
 
         # build toy = data + injected signal
         # sum weights together, but scale weight of signal
@@ -406,15 +402,16 @@ def main(args):
                         & cut_mass_sig
                     ]
                 )
+                print(nevents_sig_true)
+                nevents_sig_true = h_mass_xbb_bdt.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j).integrate("xbb", xbb_cut * 1j, 1j).integrate("bdt", bdt_cut * 1j, 1j)
+                print(nevents_sig_true)
 
-                # TRUE number of bkg events (from Data before injecting Signal) in signal mass window, bdt cut and xbb cut
-                cut_mass_data = (random_mass >= mass_window[0]) & (random_mass <= mass_window[1])
-                nevents_bkg_true = np.sum(
-                    bdt_events_data["weight"][
-                        (random_bdt >= bdt_cut) & (random_xbb >= xbb_cut) & cut_mass_data
-                    ]
-                )
+                # TRUE number of bkg events from integrating 1D histograms
+                mass_integral = h_mass.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j)
+                xbb_integral = h_xbb.integrate("xbb", xbb_cut * 1j, 1j)
+                bdt_integral = h_bdt.integrate("bdt", bdt_cut * 1j, 1j)
 
+                nevents_bkg_true = mass_integral * xbb_integral * bdt_integral / integral / integral
                 # estimate of signal events and background toy events from SIDEBAND METHOD
                 nevents_sig_bdt_cut_sb, nevents_bkg_bdt_cut_sb = sideband_fom(
                     mass_data=mass_toy,
