@@ -45,17 +45,29 @@ def ttbar_SF(
     return sfs["nominal"], sfs["stat_up"], sfs["stat_dn"]
 
 
-def ttbar_bdtshape(cat, input_var):
+def ttbar_bdtshape(
+    cat: str,
+    events_dict: dict[str, pd.DataFrame],
+    branch: str,
+    input_range: ArrayLike | None = None,
+):
     tt_sf = correctionlib.CorrectionSet.from_file(
         f"../corrections/data/ttbar_bdtshape{cat}_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]
     sfs = {}
+    input_var = events_dict[branch]
     for syst in ["nominal", "stat_up", "stat_dn"]:
         sfs[syst] = tt_sf.evaluate(input_var, "nominal")
         if syst == "stat_up":
             sfs[syst] += tt_sf.evaluate(input_var, syst)
         elif syst == "stat_dn":
             sfs[syst] -= tt_sf.evaluate(input_var, syst)
+        # replace zeros or negatives with 1
+        sfs[syst][sfs[syst] <= 0] = 1.0
+        # if input is outside of (defined) input_range, set to 1
+        if input_range is not None:
+            sfs[syst][input_var < input_range[0]] = 1.0
+            sfs[syst][input_var > input_range[1]] = 1.0
 
     return sfs["nominal"], sfs["stat_up"], sfs["stat_dn"]
 

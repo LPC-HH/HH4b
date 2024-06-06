@@ -23,6 +23,7 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     corrections,
+    decorr_bdt_bins,
     decorr_txbb_bins,
     load_run3_samples,
     weight_shifts,
@@ -250,21 +251,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
 
         # triggerWeight
-        nevents = len(events_dict["bbFatJetPt"][0])
-        bdt_events["trigger_weight"] = np.ones(nevents)
-        bdt_events["trigger_weight_up"] = np.ones(nevents)
-        bdt_events["trigger_weight_dn"] = np.ones(nevents)
+        nevents = len(bdt_events["H1Pt"])
+        trigger_weight = np.ones(nevents)
+        trigger_weight_up = np.ones(nevents)
+        trigger_weight_dn = np.ones(nevents)
         if key != "data":
-            trigger_weight, trigger_weight_err, total, total_err = corrections.trigger_SF(
+            trigger_weight, _, total, total_err = corrections.trigger_SF(
                 year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
             )
-            # print("error ",total_err/total)
-            # print(trigger_weight_err)
-            trigger_weight_up = trigger_weight + total_err / total
-            trigger_weight_dn = trigger_weight - total_err / total
-            bdt_events["trigger_weight"] = trigger_weight
-            bdt_events["trigger_weight_up"] = trigger_weight_up
-            bdt_events["trigger_weight_dn"] = trigger_weight_dn
+            trigger_weight_up = trigger_weight * (1 + total_err / total)
+            trigger_weight_dn = trigger_weight * (1 - total_err / total)
 
         # remove training events if asked
         if (
@@ -285,13 +281,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
         nominal_weight = bdt_events["weight"]
-        trigger_weight = bdt_events["trigger_weight"]
-        trigger_weight_up = bdt_events["trigger_weight_up"]
-        trigger_weight_dn = bdt_events["trigger_weight_dn"]
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
-        nevents = len(bdt_events["H1Pt"])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
             ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
@@ -310,19 +302,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             tempw2, _, _ = corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")
             txbbsf = tempw1 * tempw2
 
+            # inclusive bdt shape correction
+            bdtsf, _, _ = corrections.ttbar_bdtshape("cat2", bdt_events, "bdt_score")
+
             # total ttbar correction
-            ttbar_weight = ptjjsf * tau32sf * txbbsf
+            ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
-            # get bdt shape correction for each bdt working point
-            bdtsf_bin1, _, _ = corrections.ttbar_bdtshape("cat2", args.bdt_wps[0] + 0.1)
-            bdtsf_bin2, _, _ = corrections.ttbar_bdtshape("cat2", args.bdt_wps[1])
-            bdtsf_bin3, _, _ = corrections.ttbar_bdtshape("cat2", args.bdt_wps[2])
-            print("bin1 2 3", bdtsf_bin1, bdtsf_bin2, bdtsf_bin3)
-
-            # get bdt shape correction for each value of bdt score
-            bdtsf, bdtsf_up, bdtsf_dn = corrections.ttbar_bdtshape("cat2", bdt_events["bdt_score"])
-
-            # xbb up/dn variationsin bins
+            # xbb up/dn variations in bins
             for i in range(len(decorr_txbb_bins) - 1):
                 tempw1, tempw1_up, tempw1_dn = corrections.ttbar_SF(
                     year, bdt_events, "Xbb", "H1TXbb", decorr_txbb_bins[i : i + 2]
@@ -351,6 +337,18 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     / (tempw1 * tempw2)
                 )
 
+            # bdt up/dn variations in bins
+            for i in range(len(decorr_bdt_bins) - 1):
+                tempw, tempw_up, tempw_dn = corrections.ttbar_bdtshape(
+                    "cat2", bdt_events, "bdt_score", decorr_bdt_bins[i : i + 2]
+                )
+                bdt_events[
+                    f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Up"
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw_up / tempw)
+                bdt_events[
+                    f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Down"
+                ] = (nominal_weight * trigger_weight * ttbar_weight * tempw_dn / tempw)
+
         bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
         if key != "data":
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
@@ -367,15 +365,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
             bdt_events["weight_ttbarSF_tau32Down"] = (
                 nominal_weight * trigger_weight * ttbar_weight * tau32sf_dn / tau32sf
-            )
-            bdt_events["weight_ttbarSF_bdtSF"] = (
-                nominal_weight * trigger_weight * ttbar_weight * bdtsf
-            )
-            bdt_events["weight_ttbarSF_bdtSFUp"] = (
-                nominal_weight * trigger_weight * ttbar_weight * bdtsf_up
-            )
-            bdt_events["weight_ttbarSF_bdtSFDown"] = (
-                nominal_weight * trigger_weight * ttbar_weight * bdtsf_dn
             )
 
         # HLT selection
