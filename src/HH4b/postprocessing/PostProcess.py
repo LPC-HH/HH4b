@@ -107,7 +107,9 @@ def get_bdt_training_keys(bdt_model: str):
     return training_keys
 
 
-def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
+def add_bdt_scores(
+    events: pd.DataFrame, preds: np.ArrayLike, jshift: str = "", weight_ttbar: float = 1
+):
     jlabel = "" if jshift == "" else "_" + jshift
 
     if preds.shape[1] == 2:  # binary BDT only
@@ -117,7 +119,10 @@ def add_bdt_scores(events: pd.DataFrame, preds: np.ArrayLike, jshift: str = ""):
     elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
         bg_tot = np.sum(preds[:, 2:], axis=1)
         events[f"bdt_score{jlabel}"] = preds[:, 0] / (preds[:, 0] + bg_tot)
-        events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+        # events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
+        events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (
+            preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3]
+        )
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
@@ -211,7 +216,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 events_dict, get_var_mapping(jshift)
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
-            add_bdt_scores(bdt_events[jshift], preds, jshift)
+            add_bdt_scores(bdt_events[jshift], preds, jshift, weight_ttbar=args.weight_ttbar_bdt)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
 
         # remove duplicates
@@ -458,8 +463,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events.loc[mask_fail, category] = 4
 
         # save cutflows for nominal variables
-        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second}"] = np.sum(
-            bdt_events["weight"].to_numpy()
+        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
+            np.sum(bdt_events["weight"].to_numpy())
         )
 
         cutflow_dict[key]["BDT > min"] = np.sum(
@@ -623,6 +628,10 @@ def scan_fom(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
                 )
 
+            # number of events in data in sideband
+            cut = get_cut(events_combined["data"], xbb_cut, bdt_cut)
+            nevents_sideband = get_nevents_nosignal(events_combined["data"], cut, mass, mass_window)
+
             if fom == "s/sqrt(s+b)":
                 figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
             elif fom == "2sqrt(b)/s":
@@ -630,13 +639,13 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_sig > 0.5 and nevents_bkg >= 2:
+            if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
                 if figure_of_merit < min_fom:
                     min_fom = figure_of_merit
-                    min_nevents = [nevents_bkg, nevents_sig]
+                    min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
 
         if len(cuts) > 0:
             cuts = np.array(cuts)
@@ -645,7 +654,7 @@ def scan_fom(
 
             print(
                 f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
-                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f}"
+                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
             )
 
     name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
@@ -1185,6 +1194,10 @@ if __name__ == "__main__":
 
     parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
     parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
+
+    parser.add_argument(
+        "--weight-ttbar-bdt", type=float, default=1.0, help="Weight TTbar discriminator on VBF BDT"
+    )
 
     parser.add_argument(
         "--sig-keys",
