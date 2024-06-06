@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from HH4b import postprocessing
+from HH4b import postprocessing, run_utils
 
 mass_axis = hist.axis.Regular(20, 50, 250, name="mass")
 bdt_bins = 100
@@ -380,6 +380,10 @@ def main(args):
 
         signal_abcd_toys = []
 
+        if not args.optimize:
+            # DO NOT OPTIMIZE choose always the same cut (from data) for the toy
+            xbb_cuts = [optimal_xbb_cut_data]
+            bdt_cuts = [optimal_bdt_cut_data]
         for xbb_cut in xbb_cuts:
             for bdt_cut in bdt_cuts:
 
@@ -433,8 +437,7 @@ def main(args):
                     cut_data=(bdt_toy >= bdt_cut) & (xbb_toy >= xbb_cut),
                     cut_sig=(bdt_events_sig["bdt_score"] >= bdt_cut)
                     & (bdt_events_sig["H2TXbb"] >= xbb_cut),
-                    cut_others=(bdt_events_others["bdt_score"] >= bdt_cut)
-                    & (bdt_events_others["H2TXbb"] >= xbb_cut),
+                    cut_others=None,  # (bdt_events_others["bdt_score"] >= bdt_cut) & (bdt_events_others["H2TXbb"] >= xbb_cut),
                     weight_data=weight_toy,
                     weight_signal=bdt_events_sig["weight"] * kfactor_signal,
                     weight_others=None,  # bdt_events_others["weight"],
@@ -481,22 +484,6 @@ def main(args):
                 # )
                 # print("n sideband ",nevents_sideband)
 
-                # DO NOT OPTIMIZE choose always the same cut for the toy
-                if xbb_cut == optimal_xbb_cut_data and bdt_cut == optimal_bdt_cut_data:
-                    bdt_cuts_toys.append(bdt_cut)
-                    xbb_cuts_toys.append(xbb_cut)
-
-                    figure_of_merit_toys.append(soversb)
-                    figure_of_merit_abcd_toys.append(soversb_abcd)
-
-                    signal_toys.append(sig)
-                    background_toys.append(b_from_toy)
-                    truebackground_toys.append(nevents_bkg_true)
-                    truesignal_toys.append(nevents_sig_true)
-
-                    signal_abcd_toys.append(nevents_toy_bdt_cut - nevents_bkg_bdt_cut)
-
-                """
                 # NOTE: here optimizing by soversb but can change the figure of merit...
                 if (
                     nevents_sig_bdt_cut > 0.5 and nevents_bkg_bdt_cut >= 2
@@ -512,10 +499,9 @@ def main(args):
                     truebackground_toys.append(nevents_bkg_true)
                     truesignal_toys.append(nevents_sig_true)
 
-                    sbleft_toys.append(nevents_sig_left / nevents_data_left)
-                    sbright_toys.append(nevents_sig_right / nevents_data_right)
+                    # sbleft_toys.append(nevents_sig_left / nevents_data_left)
+                    # sbright_toys.append(nevents_sig_right / nevents_data_right)
                     signal_abcd_toys.append(nevents_toy_bdt_cut - nevents_bkg_bdt_cut)
-                """
 
         # choose "optimal" bdt and xbb cut, check if it gives the expected sensitivity
         optimal_bdt_cut = 0
@@ -668,5 +654,6 @@ if __name__ == "__main__":
         default=20,
     )
     parser.add_argument("--tag", help="tag test", required=True, type=str)
+    run_utils.add_bool_arg(parser, "optimize", default=False, help="Optimize cuts for toys (otherwise just take best from data)")
     args = parser.parse_args()
     main(args)
