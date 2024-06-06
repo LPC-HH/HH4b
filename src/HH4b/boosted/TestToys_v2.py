@@ -265,25 +265,23 @@ def main(args):
             nevents_sig, nevents_bkg = abcd_fom(
                 mass_data=bdt_events_dict["data"][mass_var],
                 mass_sig=bdt_events_dict["hh4b"][mass_var],
-                mass_others=bdt_events_dict["others"][mass_var],
+                mass_others=None,  # bdt_events_dict["others"][mass_var],
                 cut_data=(bdt_events_dict["data"]["bdt_score"] >= bdt_cut)
                 & (bdt_events_dict["data"]["H2TXbb"] >= xbb_cut),
                 cut_sig=(bdt_events_dict["hh4b"]["bdt_score"] >= bdt_cut)
                 & (bdt_events_dict["hh4b"]["H2TXbb"] >= xbb_cut),
-                cut_others=(bdt_events_dict["others"]["bdt_score"] >= bdt_cut)
-                & (bdt_events_dict["others"]["H2TXbb"] >= xbb_cut),
+                cut_others=None,  # (bdt_events_dict["others"]["bdt_score"] >= bdt_cut) & (bdt_events_dict["others"]["H2TXbb"] >= xbb_cut),
                 weight_data=bdt_events_dict["data"]["weight"],
                 weight_signal=bdt_events_dict["hh4b"]["weight"] * kfactor_signal,
-                weight_others=bdt_events_dict["others"]["weight"],
+                # weight_others=bdt_events_dict["others"]["weight"],
                 # INVERTED stuff
                 mass_inv_data=bdt_events_dict["data"][mass_var],
-                mass_inv_others=bdt_events_dict["others"][mass_var],
+                mass_inv_others=None,  # bdt_events_dict["others"][mass_var],
                 invcut_data=(bdt_events_dict["data"]["bdt_score"] < bdt_fail)
                 & (bdt_events_dict["data"]["H2TXbb"] < xbb_cut),  # fail region
-                invcut_others=(bdt_events_dict["others"]["bdt_score"] < bdt_fail)
-                & (bdt_events_dict["others"]["H2TXbb"] < xbb_cut),
+                invcut_others=None,  # (bdt_events_dict["others"]["bdt_score"] < bdt_fail) & (bdt_events_dict["others"]["H2TXbb"] < xbb_cut),
                 weight_inv_data=bdt_events_dict["data"]["weight"],
-                weight_inv_others=bdt_events_dict["others"]["weight"],
+                weight_inv_others=None,  # bdt_events_dict["others"]["weight"],
                 mass_window=mass_window,
             )
             soversb = nevents_sig / np.sqrt(nevents_bkg + nevents_sig)
@@ -402,16 +400,15 @@ def main(args):
                         & cut_mass_sig
                     ]
                 )
-                print(nevents_sig_true)
-                nevents_sig_true = h_mass_xbb_bdt.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j).integrate("xbb", xbb_cut * 1j, 1j).integrate("bdt", bdt_cut * 1j, 1j)
-                print(nevents_sig_true)
+                # consistent with this:
+                # nevents_sig_true = h_mass_xbb_bdt.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j).integrate("xbb", xbb_cut * 1j, 1j).integrate("bdt", bdt_cut * 1j, 1j)
 
                 # TRUE number of bkg events from integrating 1D histograms
-                mass_integral = h_mass.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j)
-                xbb_integral = h_xbb.integrate("xbb", xbb_cut * 1j, 1j)
-                bdt_integral = h_bdt.integrate("bdt", bdt_cut * 1j, 1j)
+                mass_integral_frac = h_mass.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j) / integral
+                xbb_integral_frac = h_xbb.integrate("xbb", xbb_cut * 1j, 1j) / integral
+                bdt_integral_frac = h_bdt.integrate("bdt", bdt_cut * 1j, 1j) / integral
 
-                nevents_bkg_true = mass_integral * xbb_integral * bdt_integral / integral / integral
+                nevents_bkg_true = integral * mass_integral_frac * xbb_integral_frac * bdt_integral_frac
                 # estimate of signal events and background toy events from SIDEBAND METHOD
                 nevents_sig_bdt_cut_sb, nevents_bkg_bdt_cut_sb = sideband_fom(
                     mass_data=mass_toy,
@@ -428,7 +425,7 @@ def main(args):
                 nevents_sig_bdt_cut, nevents_bkg_bdt_cut = abcd_fom(
                     mass_data=mass_toy,
                     mass_sig=bdt_events_sig[mass_var],
-                    mass_others=bdt_events_others[mass_var],
+                    mass_others=None,  # bdt_events_others[mass_var],
                     cut_data=(bdt_toy >= bdt_cut) & (xbb_toy >= xbb_cut),
                     cut_sig=(bdt_events_sig["bdt_score"] >= bdt_cut)
                     & (bdt_events_sig["H2TXbb"] >= xbb_cut),
@@ -436,15 +433,14 @@ def main(args):
                     & (bdt_events_others["H2TXbb"] >= xbb_cut),
                     weight_data=weight_toy,
                     weight_signal=bdt_events_sig["weight"] * kfactor_signal,
-                    weight_others=bdt_events_others["weight"],
+                    weight_others=None,  # bdt_events_others["weight"],
                     # definitions of mass values, BDT cut and weights for inverted Xbb regions (C,D)
                     mass_inv_data=mass_toy,
-                    mass_inv_others=bdt_events_others[mass_var],
+                    mass_inv_others=None,  # bdt_events_others[mass_var],
                     invcut_data=(xbb_toy < xbb_cut) & (bdt_toy < bdt_fail),
-                    invcut_others=(bdt_events_others["H2TXbb"] < xbb_cut)
-                    & (bdt_events_others["bdt_score"] < bdt_fail),
+                    invcut_others=None,  #  (bdt_events_others["H2TXbb"] < xbb_cut) & (bdt_events_others["bdt_score"] < bdt_fail),
                     weight_inv_data=weight_toy,
-                    weight_inv_others=bdt_events_others["weight"],
+                    weight_inv_others=None,  # bdt_events_others["weight"],
                     mass_window=mass_window,
                 )
 
