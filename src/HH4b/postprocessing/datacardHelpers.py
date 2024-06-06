@@ -219,11 +219,11 @@ def get_effect_updown(
 
 
 def smass(sName):
-    if sName in ['hh4b','vbfhh4b','vbfhh4b-k2v0']:
-        _mass = 125.
-    elif sName in ['vhtobb','diboson', 'vjets']:
+    if sName in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"]:
+        _mass = 125.0
+    elif sName in ["vhtobb", "diboson", "vjets"]:
         _mass = 80.379  # use W mass instead of Z mass = 91.
         # TODO: split W/Z processes?
     else:
-        raise ValueError("What is {}".format(sName))
+        raise ValueError(f"What is {sName}")
     return _mass

@@ -19,7 +19,6 @@ from pathlib import Path
 
 import numpy as np
 import rhalphalib as rl
-from rhalphalib import MorphHistW2
 from datacardHelpers import (
     ShapeVar,
     Syst,
@@ -28,7 +27,6 @@ from datacardHelpers import (
     get_effect_updown,
     rem_neg,
     sum_templates,
-    smass,
 )
 from hist import Hist
 
