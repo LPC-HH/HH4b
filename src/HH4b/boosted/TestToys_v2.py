@@ -242,9 +242,12 @@ def main(args):
                 mass_data=bdt_events_dict["data"][mass_var],
                 mass_sig=bdt_events_dict["hh4b"][mass_var],
                 mass_others=bdt_events_dict["others"][mass_var],
-                cut_data=(bdt_events_dict["data"]["bdt_score"] >= bdt_cut) & (),
-                cut_sig=(bdt_events_dict["hh4b"]["bdt_score"] >= bdt_cut),
-                cut_others=(bdt_events_dict["others"]["bdt_score"] >= bdt_cut),
+                cut_data=(bdt_events_dict["data"]["bdt_score"] >= bdt_cut)
+                & (bdt_events_dict["data"]["H2TXbb"] >= xbb_cut),
+                cut_sig=(bdt_events_dict["hh4b"]["bdt_score"] >= bdt_cut)
+                & (bdt_events_dict["hh4b"]["H2TXbb"] >= xbb_cut),
+                cut_others=(bdt_events_dict["others"]["bdt_score"] >= bdt_cut)
+                & (bdt_events_dict["others"]["H2TXbb"] >= xbb_cut),
                 weight_data=bdt_events_dict["data"]["weight"],
                 weight_signal=bdt_events_dict["hh4b"]["weight"] * kfactor_signal,
                 weight_others=bdt_events_dict["others"]["weight"],
