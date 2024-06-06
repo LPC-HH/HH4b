@@ -13,8 +13,10 @@ import xgboost as xgb
 from HH4b import postprocessing
 
 mass_axis = hist.axis.Regular(20, 50, 250, name="mass")
-bdt_axis = hist.axis.Regular(500, 0, 1, name="bdt")
-xbb_axis = hist.axis.Regular(500, 0, 1, name="xbb")
+bdt_bins = 100
+bdt_axis = hist.axis.Regular(bdt_bins, 0, 1, name="bdt")
+xbb_bins = 100
+xbb_axis = hist.axis.Regular(xbb_bins, 0, 1, name="xbb")
 diff_axis = hist.axis.Regular(50, -2, 2, name="diff")
 cut_axis = hist.axis.StrCategory([], name="cut", growth=True)
 
@@ -23,20 +25,44 @@ legacy_label = "Legacy"
 CUT_MAX_VAL = 9999.0
 
 
-def get_toy_from_hist(h_hist):
+def get_toy_from_hist(h_hist, n_samples):
     """
     Get random values drawn from histogram
     """
     h, bins = h_hist.to_numpy()
-    integral = int(np.sum(h_hist.values()))
 
     bin_midpoints = bins[:-1] + np.diff(bins) / 2
     cdf = np.cumsum(h)
     cdf = cdf / cdf[-1]
-    values = np.random.rand(integral)  # noqa: NPY002
+    values = np.random.rand(n_samples)  # noqa: NPY002
     value_bins = np.searchsorted(cdf, values)
     random_from_cdf = bin_midpoints[value_bins]
     return random_from_cdf
+
+
+def get_toy_from_3d_hist(h_hist, n_samples):
+    """
+    Get random values drawn from histogram
+    """
+    h, x_bins, y_bins, z_bins = h_hist.to_numpy()
+
+    x_bin_midpoints = x_bins[:-1] + np.diff(x_bins) / 2
+    y_bin_midpoints = y_bins[:-1] + np.diff(y_bins) / 2
+    z_bin_midpoints = z_bins[:-1] + np.diff(z_bins) / 2
+    cdf = np.cumsum(h.ravel())
+    cdf = cdf / cdf[-1]
+    values = np.random.rand(n_samples)  # noqa: NPY002
+    value_bins = np.searchsorted(cdf, values)
+    x_idx, y_idx, z_idx = np.unravel_index(value_bins, 
+                                           (len(x_bin_midpoints),
+                                            len(y_bin_midpoints),
+                                            len(z_bin_midpoints)))
+    random_from_cdf = np.column_stack((x_bin_midpoints[x_idx],
+                                       y_bin_midpoints[y_idx],
+                                       z_bin_midpoints[z_idx]))
+    
+    return random_from_cdf
+
 
 
 def get_dataframe(events_dict, year, bdt_model_name, bdt_config):
@@ -217,10 +243,10 @@ def main(args):
 
     mass_window = [args.mass_low, args.mass_high]
 
-    all_bdt_cuts = 0.005 * np.arange(80, 100)
+    all_bdt_cuts = np.linspace(0.8, 1, int(bdt_bins*0.2 + 1))[:-1]
     bdt_cuts = all_bdt_cuts
 
-    all_xbb_cuts = 0.01 * np.arange(90, 100)
+    all_xbb_cuts = np.linspace(0.9, 1, int(xbb_bins*0.1 + 1))[:-1]
     xbb_cuts = all_xbb_cuts
 
     # define fail region for ABCD
@@ -310,28 +336,42 @@ def main(args):
     h_bdt = hist.Hist(bdt_axis)
     h_bdt.fill(bdt_events_dict["data"]["bdt_score"])
 
+    # make 3d histogram for signal
+    h_mass_xbb_bdt = hist.Hist(mass_axis, xbb_axis, bdt_axis)
+    h_mass_xbb_bdt.fill(mass=bdt_events_dict["hh4b"][mass_var], 
+                        xbb=bdt_events_dict["hh4b"]["H2TXbb"], 
+                        bdt=bdt_events_dict["hh4b"]["bdt_score"])
+
     bdt_events_data = bdt_events_dict["data"]
     bdt_events_sig = bdt_events_dict["hh4b"]
     bdt_events_others = bdt_events_dict["others"]
 
-    print("Number of events to draw from data ", bdt_events_data[mass_var].shape[0])
+    print(f"Mean number of background events to draw from data: {bdt_events_data[mass_var].shape[0]}")
     print(
-        "Number of events to inject in signal ", np.sum(bdt_events_sig["weight"] * kfactor_signal)
+        f"Mean number of signal events to inject: {np.sum(bdt_events_sig['weight'] * kfactor_signal)}"
     )
 
     for itoy in range(ntoys):
-        random_xbb = get_toy_from_hist(h_xbb)
-        random_mass = get_toy_from_hist(h_mass)
-        random_bdt = get_toy_from_hist(h_bdt)
+
+        integral = np.sum(h_mass.values())
+        n_samples = np.random.poisson(integral)
+        random_mass = get_toy_from_hist(h_mass, n_samples)
+        random_xbb = get_toy_from_hist(h_xbb, n_samples)
+        random_bdt = get_toy_from_hist(h_bdt, n_samples)
+
+        n_signal_samples = np.random.poisson(np.sum(bdt_events_sig["weight"] * kfactor_signal))
+
+        print(f"Number of background events for toy {itoy}: {n_samples}")
+        print(f"Number of signal events for toy {itoy}: {n_signal_samples}")
+        random_mass_xbb_bdt = get_toy_from_3d_hist(h_mass_xbb_bdt, n_signal_samples)
+        print(random_mass_xbb_bdt)
 
         # build toy = data + injected signal
         # sum weights together, but scale weight of signal
-        mass_toy = np.concatenate([random_mass, bdt_events_sig[mass_var]])
-        xbb_toy = np.concatenate([random_xbb, bdt_events_sig["H2TXbb"]])
-        bdt_toy = np.concatenate([random_bdt, bdt_events_sig["bdt_score"]])
-        weight_toy = np.concatenate(
-            [bdt_events_data["weight"], bdt_events_sig["weight"] * kfactor_signal]
-        )
+        mass_toy = np.concatenate([random_mass, random_mass_xbb_bdt[:, 0]])
+        xbb_toy = np.concatenate([random_xbb, random_mass_xbb_bdt[:, 1]])
+        bdt_toy = np.concatenate([random_bdt, random_mass_xbb_bdt[:, 2]])
+        weight_toy = np.ones((n_samples + n_signal_samples))
 
         # perform optimization for toy
         bdt_cuts_toys = []
