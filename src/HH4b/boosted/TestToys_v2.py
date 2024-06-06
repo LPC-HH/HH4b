@@ -273,7 +273,7 @@ def main(args):
                 cut_others=None,  # (bdt_events_dict["others"]["bdt_score"] >= bdt_cut) & (bdt_events_dict["others"]["H2TXbb"] >= xbb_cut),
                 weight_data=bdt_events_dict["data"]["weight"],
                 weight_signal=bdt_events_dict["hh4b"]["weight"] * kfactor_signal,
-                # weight_others=bdt_events_dict["others"]["weight"],
+                weight_others=None,  # bdt_events_dict["others"]["weight"],
                 # INVERTED stuff
                 mass_inv_data=bdt_events_dict["data"][mass_var],
                 mass_inv_others=None,  # bdt_events_dict["others"][mass_var],
