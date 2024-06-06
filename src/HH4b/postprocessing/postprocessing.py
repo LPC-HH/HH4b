@@ -138,7 +138,7 @@ weight_shifts = {
 }
 
 decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
-decorr_bdt_bins = [0, 0.03, 0.3, 0.68, 0.9, 1]
+decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
 for i in range(len(decorr_txbb_bins) - 1):
     weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(

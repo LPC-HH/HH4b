@@ -303,7 +303,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             txbbsf = tempw1 * tempw2
 
             # inclusive bdt shape correction
-            bdtsf, _, _ = corrections.ttbar_bdtshape("cat2", bdt_events, "bdt_score")
+            bdtsf, _, _ = corrections.ttbar_bdtshape(args.bdt_model, "cat5", bdt_events, "bdt_score")
 
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
@@ -340,7 +340,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # bdt up/dn variations in bins
             for i in range(len(decorr_bdt_bins) - 1):
                 tempw, tempw_up, tempw_dn = corrections.ttbar_bdtshape(
-                    "cat2", bdt_events, "bdt_score", decorr_bdt_bins[i : i + 2]
+                    args.bdt_model, "cat5", bdt_events, "bdt_score", decorr_bdt_bins[i : i + 2]
                 )
                 bdt_events[
                     f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Up"

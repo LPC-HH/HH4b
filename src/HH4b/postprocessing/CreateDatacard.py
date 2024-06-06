@@ -19,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 import rhalphalib as rl
+from rhalphalib import MorphHistW2
 from datacardHelpers import (
     ShapeVar,
     Syst,
@@ -27,6 +28,7 @@ from datacardHelpers import (
     get_effect_updown,
     rem_neg,
     sum_templates,
+    smass,
 )
 from hist import Hist
 
@@ -175,6 +177,18 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
+jmr_values = {
+    "2022": [1.13, 1.06, 1.20],
+    "2022EE": [1.20, 1.15, 1.25],
+    "2023": [1.20, 1.16, 1.24],
+    "2023BPix": [1.16, 1.09, 1.23],
+}
+jms_values = {
+    "2022": [1.015, 1.010, 1.005],
+    "2022EE": [1.021, 1.018, 1.024],
+    "2023": [0.999, 0.996, 1.003],
+    "2023BPix": [0.974, 0.970, 0.980],
+}
 
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
@@ -247,8 +261,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    # TODO: separate into individual
-    # "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_Abs", prior="shape", samples=all_mc),
+    "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_AbsoluteMPFBias", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -261,37 +274,37 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_BDT_bin_0_0.03": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0_0p03",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
     "ttbarSF_BDT_bin_0.03_0.3": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_BDT_bin_0.3_0.68": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p68",
+    "ttbarSF_BDT_bin_0.3_0.5": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_BDT_bin_0.68_0.9": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p68_0p9",
+    "ttbarSF_BDT_bin_0.5_0.7": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_BDT_bin_0.9_1": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p9_1",
+    "ttbarSF_BDT_bin_0.7_0.93": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
+    "ttbarSF_BDT_bin_0.93_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
