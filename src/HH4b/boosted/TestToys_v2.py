@@ -53,16 +53,14 @@ def get_toy_from_3d_hist(h_hist, n_samples):
     cdf = cdf / cdf[-1]
     values = np.random.rand(n_samples)  # noqa: NPY002
     value_bins = np.searchsorted(cdf, values)
-    x_idx, y_idx, z_idx = np.unravel_index(value_bins, 
-                                           (len(x_bin_midpoints),
-                                            len(y_bin_midpoints),
-                                            len(z_bin_midpoints)))
-    random_from_cdf = np.column_stack((x_bin_midpoints[x_idx],
-                                       y_bin_midpoints[y_idx],
-                                       z_bin_midpoints[z_idx]))
-    
-    return random_from_cdf
+    x_idx, y_idx, z_idx = np.unravel_index(
+        value_bins, (len(x_bin_midpoints), len(y_bin_midpoints), len(z_bin_midpoints))
+    )
+    random_from_cdf = np.column_stack(
+        (x_bin_midpoints[x_idx], y_bin_midpoints[y_idx], z_bin_midpoints[z_idx])
+    )
 
+    return random_from_cdf
 
 
 def get_dataframe(events_dict, year, bdt_model_name, bdt_config):
@@ -243,9 +241,9 @@ def main(args):
 
     mass_window = [args.mass_low, args.mass_high]
 
-    bdt_cuts = np.linspace(0.8, 1, int(bdt_bins*0.2 + 1))[:-1]
+    bdt_cuts = np.linspace(0.8, 1, int(bdt_bins * 0.2 + 1))[:-1]
 
-    xbb_cuts = np.linspace(0.9, 1, int(xbb_bins*0.1 + 1))[:-1]
+    xbb_cuts = np.linspace(0.9, 1, int(xbb_bins * 0.1 + 1))[:-1]
 
     # define fail region for ABCD
     bdt_fail = 0.03
@@ -334,10 +332,12 @@ def main(args):
 
     # make 3d histogram for signal
     h_mass_xbb_bdt = hist.Hist(mass_axis, xbb_axis, bdt_axis)
-    h_mass_xbb_bdt.fill(mass=bdt_events_dict["hh4b"][mass_var], 
-                        xbb=bdt_events_dict["hh4b"]["H2TXbb"], 
-                        bdt=bdt_events_dict["hh4b"]["bdt_score"],
-                        weight=bdt_events_dict["hh4b"]["weight"] * kfactor_signal)
+    h_mass_xbb_bdt.fill(
+        mass=bdt_events_dict["hh4b"][mass_var],
+        xbb=bdt_events_dict["hh4b"]["H2TXbb"],
+        bdt=bdt_events_dict["hh4b"]["bdt_score"],
+        weight=bdt_events_dict["hh4b"]["weight"] * kfactor_signal,
+    )
 
     bdt_events_data = bdt_events_dict["data"]
     bdt_events_sig = bdt_events_dict["hh4b"]
@@ -365,7 +365,7 @@ def main(args):
         mass_toy = np.concatenate([random_mass, random_mass_xbb_bdt[:, 0]])
         xbb_toy = np.concatenate([random_xbb, random_mass_xbb_bdt[:, 1]])
         bdt_toy = np.concatenate([random_bdt, random_mass_xbb_bdt[:, 2]])
-        weight_toy = np.ones((n_samples + n_signal_samples))
+        weight_toy = np.ones(n_samples + n_signal_samples)
 
         # perform optimization for toy
         bdt_cuts_toys = []
@@ -404,11 +404,15 @@ def main(args):
                 # nevents_sig_true = h_mass_xbb_bdt.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j).integrate("xbb", xbb_cut * 1j, 1j).integrate("bdt", bdt_cut * 1j, 1j)
 
                 # TRUE number of bkg events from integrating 1D histograms
-                mass_integral_frac = h_mass.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j) / integral
+                mass_integral_frac = (
+                    h_mass.integrate("mass", mass_window[0] * 1j, mass_window[1] * 1j) / integral
+                )
                 xbb_integral_frac = h_xbb.integrate("xbb", xbb_cut * 1j, 1j) / integral
                 bdt_integral_frac = h_bdt.integrate("bdt", bdt_cut * 1j, 1j) / integral
 
-                nevents_bkg_true = integral * mass_integral_frac * xbb_integral_frac * bdt_integral_frac
+                nevents_bkg_true = (
+                    integral * mass_integral_frac * xbb_integral_frac * bdt_integral_frac
+                )
                 # estimate of signal events and background toy events from SIDEBAND METHOD
                 nevents_sig_bdt_cut_sb, nevents_bkg_bdt_cut_sb = sideband_fom(
                     mass_data=mass_toy,
