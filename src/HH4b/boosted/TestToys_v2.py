@@ -638,6 +638,11 @@ if __name__ == "__main__":
         default=20,
     )
     parser.add_argument("--tag", help="tag test", required=True, type=str)
-    run_utils.add_bool_arg(parser, "optimize", default=False, help="Optimize cuts for toys (otherwise just take best from data)")
+    run_utils.add_bool_arg(
+        parser,
+        "optimize",
+        default=False,
+        help="Optimize cuts for toys (otherwise just take best from data)",
+    )
     args = parser.parse_args()
     main(args)
