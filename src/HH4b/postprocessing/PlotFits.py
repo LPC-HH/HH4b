@@ -76,8 +76,8 @@ def plot_fits(args):
     ylims = {
         "passvbf": 10,
         "passbin1": 10,
-        "passbin2": 40,
-        "passbin3": 1500,
+        "passbin2": 60,
+        "passbin3": 2000,
         "fail": 300000,
     }
 

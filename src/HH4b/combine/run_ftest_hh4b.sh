@@ -90,7 +90,7 @@ goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$yea
 # Set up fit args
 ####################################################################################################
 
-templates_dir="/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
+templates_dir="/home/users/cmantill/hh/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
 cards_dir="cards/f_tests/${cards_tag}/"
 mkdir -p "${cards_dir}"
 echo "Saving datacards to ${cards_dir}"
@@ -101,7 +101,16 @@ wsm_snapshot=higgsCombineSnapshot.MultiDimFit.mH125
 outsdir="./outs"
 
 # nonresoant args
-maskunblindedargs="mask_passbin${passbin}=1,mask_fail=1,mask_passbin${passbin}MCBlinded=0,mask_failMCBlinded=0"
+
+if [ "$passbin" == "vbf" ]; then
+    region="passvbf"
+    region_="pass_vbf"
+else
+    region="passbin${passbin}"
+    region_="pass_bin${passbin}"
+fi
+maskunblindedargs="mask_${region}=1,mask_fail=1,mask_${region}MCBlinded=0,mask_failMCBlinded=0"
+
 
 # freeze qcd params in blinded bins
 setparamsblinded=""
@@ -123,13 +132,13 @@ freezeparamsblinded=${freezeparamsblinded%,}
 
 for ord in {0..3}
 do
-    model_name="passbin${passbin}_nTF_${ord}"
+    model_name="${region}_nTF_${ord}"
 
     # create datacards if they don't already exist
     if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" --regions pass_bin${passbin}
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" --regions ${region_}
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
@@ -138,15 +147,15 @@ do
     # make workspace, background-only fit, GoF on data if they don't already exist
     if [ ! -f "./higgsCombineData.GoodnessOfFit.mH125.root" ]; then
         echo "Making workspace, doing b-only fit and gof on data"
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -wbg --passbin=${passbin}
+	run_blinded_hh4b.sh -wbg --passbin=${passbin}
     fi
 
     if [ $dfit = 1 ]; then
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -d --passbin=${passbin}
+	run_blinded_hh4b.sh -d --passbin=${passbin}
     fi
 
     if [ $limits = 1 ]; then
-	/uscms_data/d1/jduarte1/HH4b/src/HH4b/combine/run_blinded_hh4b.sh -l --passbin=${passbin}
+	run_blinded_hh4b.sh -l --passbin=${passbin}
     fi
 
     cd - || exit
@@ -157,7 +166,7 @@ done
 # Generate toys for lower order
 ####################################################################################################
 
-model_name="passbin${passbin}_nTF_${order}"
+model_name="${region}_nTF_${order}"
 toys_name=$order
 cd "${cards_dir}/${model_name}/" || exit
 toys_file="$(pwd)/higgsCombineToys${toys_name}.GenerateOnly.mH125.$seed.root"
@@ -186,7 +195,7 @@ fi
 if [ $ffits = 1 ]; then
     for ord in $order $((order+1))
     do
-	model_name="passbin${passbin}_nTF_${ord}"
+	model_name="${region}_nTF_${ord}"
         echo "Fits for $model_name"
 
         cd "${cards_dir}/${model_name}/" || exit
