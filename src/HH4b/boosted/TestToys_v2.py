@@ -279,7 +279,8 @@ def main(args):
                 mass_inv_others=bdt_events_dict["others"][mass_var],
                 invcut_data=(bdt_events_dict["data"]["bdt_score"] > bdt_fail)
                 & (bdt_events_dict["data"]["H2TXbb"] < xbb_cut),  # fail region
-                invcut_others=(bdt_events_dict["others"]["bdt_score"] > bdt_fail) & (bdt_events_dict["others"]["H2TXbb"] < xbb_cut),
+                invcut_others=(bdt_events_dict["others"]["bdt_score"] > bdt_fail)
+                & (bdt_events_dict["others"]["H2TXbb"] < xbb_cut),
                 weight_inv_data=bdt_events_dict["data"]["weight"],
                 weight_inv_others=bdt_events_dict["others"]["weight"],
                 mass_window=mass_window,
@@ -394,13 +395,21 @@ def main(args):
 
                 # number of signal events in toy
                 s_from_toy = np.sum(
-                    weight_toy_s[(
-                        mass_toy_s >= mass_window[0]) & (mass_toy_s <= mass_window[1]) & (bdt_toy_s >= bdt_cut) & (xbb_toy_s >= xbb_cut)]
+                    weight_toy_s[
+                        (mass_toy_s >= mass_window[0])
+                        & (mass_toy_s <= mass_window[1])
+                        & (bdt_toy_s >= bdt_cut)
+                        & (xbb_toy_s >= xbb_cut)
+                    ]
                 )
                 # number of background events in toy
                 b_from_toy = np.sum(
-                    weight_toy_b[(
-                        mass_toy_b >= mass_window[0]) & (mass_toy_b <= mass_window[1]) & (bdt_toy_b >= bdt_cut) & (xbb_toy_b >= xbb_cut)]
+                    weight_toy_b[
+                        (mass_toy_b >= mass_window[0])
+                        & (mass_toy_b <= mass_window[1])
+                        & (bdt_toy_b >= bdt_cut)
+                        & (xbb_toy_b >= xbb_cut)
+                    ]
                 )
 
                 # TRUE number of signal events (from MC) in signal mass window, bdt cut and xbb cut
@@ -446,7 +455,7 @@ def main(args):
                     weight_inv_data=weight_toy,
                     weight_inv_others=None,
                     mass_window=mass_window,
-                )        
+                )
                 if args.method == "sideband":
                     # estimate of background events from SIDEBAND METHOD
                     _, nevents_bkg_estimate_method = sideband_fom(
@@ -469,17 +478,25 @@ def main(args):
                         ((mass_toy < mass_window[0]) | (mass_toy > mass_window[1]))
                         & (bdt_toy >= bdt_cut)
                         & (xbb_toy >= xbb_cut)
-                        ]
-                        )
+                    ]
+                )
 
                 # NOTE: here optimizing by soversb but can change the figure of merit...
-                if (nevents_sig_true > 0.5 and nevents_bkg_estimate_method >= 2 and nevents_sideband >= 12):
+                if (
+                    nevents_sig_true > 0.5
+                    and nevents_bkg_estimate_method >= 2
+                    and nevents_sideband >= 12
+                ):
                     bdt_cuts_toys.append(bdt_cut)
                     xbb_cuts_toys.append(xbb_cut)
 
-                    soversb_method = nevents_sig_true / np.sqrt(nevents_sig_true + nevents_bkg_estimate_method)
+                    soversb_method = nevents_sig_true / np.sqrt(
+                        nevents_sig_true + nevents_bkg_estimate_method
+                    )
                     soversb_true = nevents_sig_true / np.sqrt(nevents_sig_true + nevents_bkg_true)
-                    soversb_toy = s_extract_abcd / np.sqrt(s_extract_abcd + nevents_bkg_estimate_abcd)
+                    soversb_toy = s_extract_abcd / np.sqrt(
+                        s_extract_abcd + nevents_bkg_estimate_abcd
+                    )
 
                     figure_of_merit_method_toys.append(soversb_method)
                     figure_of_merit_true_toys.append(soversb_true)
@@ -516,9 +533,7 @@ def main(args):
             pull = (figure_of_merit_toys[biggest] - compare_to) / compare_to
             diff = figure_of_merit_toys[biggest] - compare_to
 
-            pull_s = (signal_toys[biggest] - truesignal_toys[biggest]) / truesignal_toys[
-                biggest
-            ]
+            pull_s = (signal_toys[biggest] - truesignal_toys[biggest]) / truesignal_toys[biggest]
             diff_s = signal_toys[biggest] - truesignal_toys[biggest]
 
             pull_array.append(pull)
