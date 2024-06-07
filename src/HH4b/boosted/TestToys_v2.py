@@ -502,8 +502,8 @@ def main(args):
                     figure_of_merit_true_toys.append(soversb_true)
                     figure_of_merit_toys.append(soversb_toy)
 
-                    signal_toys.append(s_from_toy)
-                    background_toys.append(b_from_toy)
+                    signal_toys.append(s_extract_abcd)
+                    background_toys.append(nevents_bkg_estimate_abcd)
                     truebackground_toys.append(nevents_bkg_true)
                     truesignal_toys.append(nevents_sig_true)
 
@@ -525,9 +525,9 @@ def main(args):
 
             print(
                 f" Optimal {optimal_xbb_cut:.3f} {optimal_bdt_cut:.2f}, FOM: {figure_of_merit_method_toys[biggest]:.2f} \n"
-                + f" S Toy: {signal_toys[biggest]:.3f}, S True: {truesignal_toys[biggest]:.3f} \n"
-                + f" B Toy {background_toys[biggest]:.2f}, B True: {truebackground_toys[biggest]:.3f} \n"
-                + f" S/sqrt(S+B): {figure_of_merit_toys[biggest]:.2f}, S/sqrt(S+B) True: {compare_to:.2f} \n"
+                + f" S Extract: {signal_toys[biggest]:.3f}, S True: {truesignal_toys[biggest]:.3f} \n"
+                + f" B Extract {background_toys[biggest]:.2f}, B True: {truebackground_toys[biggest]:.3f} \n"
+                + f" S/sqrt(S+B) Extract: {figure_of_merit_toys[biggest]:.2f}, S/sqrt(S+B) True: {compare_to:.2f} \n"
             )
 
             pull = (figure_of_merit_toys[biggest] - compare_to) / compare_to
