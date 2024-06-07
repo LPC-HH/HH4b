@@ -342,9 +342,7 @@ def main(args):
         weight=bdt_events_dict["hh4b"]["weight"] * kfactor_signal,
     )
 
-    bdt_events_data = bdt_events_dict["data"]
     bdt_events_sig = bdt_events_dict["hh4b"]
-    bdt_events_others = bdt_events_dict["others"]
 
     integral = np.sum(h_mass.values())
     integral_signal = np.sum(h_mass_xbb_bdt.values())
@@ -352,13 +350,13 @@ def main(args):
     print(f"Mean number of signal events to inject: {integral_signal}")
 
     for itoy in range(ntoys):
-        n_samples = np.random.poisson(integral)
+        n_samples = np.random.poisson(integral)  # noqa: NPY002
         mass_toy_b = get_toy_from_hist(h_mass, n_samples)
         xbb_toy_b = get_toy_from_hist(h_xbb, n_samples)
         bdt_toy_b = get_toy_from_hist(h_bdt, n_samples)
         weight_toy_b = np.ones(n_samples)
 
-        n_signal_samples = np.random.poisson(integral_signal)
+        n_signal_samples = np.random.poisson(integral_signal)  # noqa: NPY002
         mass_xbb_bdt_toy_s = get_toy_from_3d_hist(h_mass_xbb_bdt, n_signal_samples)
         mass_toy_s = mass_xbb_bdt_toy_s[:, 0]
         xbb_toy_s = mass_xbb_bdt_toy_s[:, 1]
@@ -525,7 +523,7 @@ def main(args):
 
             print(
                 f" Optimal {optimal_xbb_cut:.3f} {optimal_bdt_cut:.2f}, FOM: {figure_of_merit_method_toys[biggest]:.2f} \n"
-                + f" S Extract: {signal_toys[biggest]:.3f}, S True: {truesignal_toys[biggest]:.3f} \n"
+                + f" S Extract: {signal_toys[biggest]:.3f}, S True: {compare_to_s:.3f} \n"
                 + f" B Extract {background_toys[biggest]:.2f}, B True: {truebackground_toys[biggest]:.3f} \n"
                 + f" S/sqrt(S+B) Extract: {figure_of_merit_toys[biggest]:.2f}, S/sqrt(S+B) True: {compare_to:.2f} \n"
             )
@@ -533,8 +531,8 @@ def main(args):
             pull = (figure_of_merit_toys[biggest] - compare_to) / compare_to
             diff = figure_of_merit_toys[biggest] - compare_to
 
-            pull_s = (signal_toys[biggest] - truesignal_toys[biggest]) / truesignal_toys[biggest]
-            diff_s = signal_toys[biggest] - truesignal_toys[biggest]
+            pull_s = (signal_toys[biggest] - compare_to_s) / compare_to_s
+            diff_s = signal_toys[biggest] - compare_to_s
 
             pull_array.append(pull)
             pull_s_array.append(pull_s)
