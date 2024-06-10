@@ -544,7 +544,7 @@ def main(args):
             pull_b = (background_toys[biggest] - compare_to_b) / compare_to_b
             diff_b = background_toys[biggest] - compare_to_b
 
-            pull_sb = (signal_toys[biggest] - compare_to_s) / np.sqrt(signal_toys[biggest] + background_toys[biggest])
+            pull_sb = (signal_toys[biggest] - compare_to_s) * signal_toys[biggest] / np.sqrt(signal_toys[biggest] + background_toys[biggest])
 
             pull_array.append(pull)
             pull_s_array.append(pull_s)
@@ -631,28 +631,28 @@ def main(args):
         h_pull,
         r"$(S_{t}/\sqrt{S_{t}+B_{t}} - S/\sqrt{S+B}) / S/\sqrt{S+B}$",
         "soverb",
-        [-1.5, 1.5],
+        [-2, 2],
         "pull",
     )
     plot_h(
         h_pull_s,
         r"$(S_{t} - S)/S$",
         "s",
-        [-1.5, 1.5],
+        [-2, 2],
         "pull_s",
     )
     plot_h(
         h_pull_b,
         r"$(B_{t} - B)/B$",
         "b",
-        [-1.5, 1.5],
+        [-2, 2],
         "pull_b",
     )
     plot_h(
         h_pull_sb,
-        r"$(S_{t} - S)/\sqrt{S_t+B_t}$",
+        r"$(S_{t} - S)S_{t}/\sqrt{S_{t}+B_{t}}$",
         "sb",
-        [-1.5, 1.5],
+        [-2, 2],
         "pull_sb",
     )
 
