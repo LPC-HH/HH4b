@@ -17,7 +17,7 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    sig_keys,
+    jec_shifts,
     syst_keys,
     years,
 )
@@ -46,8 +46,8 @@ filters_legacy = [
 
 filters_v12 = [
     [
-        ("('bbFatJetPt', '0')", ">=", 300),
-        ("('bbFatJetPt', '1')", ">=", 300),
+        ("('bbFatJetPt', '0')", ">=", 250),
+        ("('bbFatJetPt', '1')", ">=", 250),
         ("('bbFatJetMsd', '0')", "<=", 250),
         ("('bbFatJetMsd', '1')", "<=", 250),
         ("('bbFatJetMsd', '0')", ">=", 30),
@@ -68,12 +68,12 @@ HLTs = {
     "2023": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
     "2023BPix": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
 }
@@ -93,8 +93,8 @@ load_columns = [
     ("VBFJetPhi", 2),
     ("VBFJetMass", 2),
     ("AK4JetAwayPt", 2),
-    ("AK4JetAwayPhi", 2),
     ("AK4JetAwayEta", 2),
+    ("AK4JetAwayPhi", 2),
     ("AK4JetAwayMass", 2),
 ]
 
@@ -114,36 +114,22 @@ load_columns_legacy = load_columns + [
 
 load_columns_v12 = load_columns + [
     ("bbFatJetPNetTXbb", 2),
-    # ("bbFatJetPNetXbb", 2),
     ("bbFatJetPNetMass", 2),
     ("bbFatJetPNetQCD0HF", 2),
     ("bbFatJetPNetQCD1HF", 2),
     ("bbFatJetPNetQCD2HF", 2),
 ]
-
-load_columns_syst = [
-    # ("bbFatJetPt_JES_up", 2),
-    # ("bbFatJetPt_JES_down", 2),
-    # ("VBFJetPt_JES_up", 2),
-    # ("VBFJetPt_JES_down", 2),
-    # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
-    # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_up", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_down", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
-]
+load_columns_syst = []
+for jshift in jec_shifts:
+    load_columns_syst += [
+        (f"bbFatJetPt_{jshift}", 2),
+        (f"VBFJetPt_{jshift}", 2),
+    ]
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    # "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
@@ -152,11 +138,19 @@ weight_shifts = {
 }
 
 decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
+decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
 for i in range(len(decorr_txbb_bins) - 1):
     weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(
         samples=["ttbar"],
         label=f"ttbar SF Xbb bin [{decorr_txbb_bins[i]}, {decorr_txbb_bins[i+1]}]",
+        years=years + ["2022-2023"],
+    )
+
+for i in range(len(decorr_bdt_bins) - 1):
+    weight_shifts[f"ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}"] = Syst(
+        samples=["ttbar"],
+        label=f"ttbar SF BDT bin [{decorr_bdt_bins[i]}, {decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
 
@@ -196,6 +190,9 @@ def load_run3_samples(
             txbb=txbb,
             variations=False,
         ),
+    }
+    events_dict = {
+        **events_dict,
         **utils.load_samples(
             input_dir,
             samples_syst,
@@ -229,6 +226,9 @@ def combine_run3_samples(
 ):
     # create combined datasets
     lumi_total = np.sum([LUMI[year] for year in years_run3])
+
+    if scale_processes is None:
+        scale_processes = {}
 
     events_combined = {}
     scaled_by = {}
@@ -264,17 +264,6 @@ def combine_run3_samples(
         events_combined.pop("ttlep")
         if bg_keys:
             bg_keys.remove("ttlep")
-
-    # combine others
-    # others = ["diboson", "vjets", "gghtobb", "vbfhtobb"]
-    # if np.all([key in processes for key in others]):
-    #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
-    #     for key in others:
-    #         events_combined.pop(key)
-    #         if bg_keys:
-    #             bg_keys.remove(key)
-    #     if bg_keys:
-    #         bg_keys.append("others")
 
     return events_combined, scaled_by
 
@@ -341,25 +330,6 @@ def _get_fill_data(
         )
         for shape_var in shape_vars
     }
-
-
-def bb_assignment(events_dict: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """
-    Creates a dataframe of masks for getting leading and sub-leading jets in Txbb score.
-
-    Returns:
-        Dict[str, pd.DataFrame]: ``bb_masks`` dict of boolean masks for each sample,
-          of shape ``[num_events, 2]``.
-
-    """
-    bb_masks = {}
-
-    for sample, events in events_dict.items():
-        txbb = events["ak8FatJetPNetXbb"]
-        bb_mask = txbb[0] >= txbb[1]
-        bb_masks[sample] = pd.concat((bb_mask, ~bb_mask), axis=1)
-
-    return bb_masks
 
 
 def get_templates(
@@ -528,6 +498,18 @@ def get_templates(
                     "hists": h,
                     "sig_keys": sig_keys if plot_sig_keys is None else plot_sig_keys,
                     "bg_keys": bg_keys,
+                    "bg_order": [
+                        "vbfhtobb",
+                        "gghtobb",
+                        "tthtobb",
+                        "vhtobb",
+                        "singletop",
+                        "diboson",
+                        "vjets",
+                        "vjetslnu",
+                        "ttbar",
+                        "qcd",
+                    ],
                     "sig_scale_dict": sig_scale_dict if pass_region else None,
                     "show": show,
                     "year": year,
