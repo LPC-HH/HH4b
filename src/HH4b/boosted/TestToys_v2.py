@@ -544,8 +544,10 @@ def main(args):
             pull_b = (background_toys[biggest] - compare_to_b) / compare_to_b
             diff_b = background_toys[biggest] - compare_to_b
 
-            pull_sb = (signal_toys[biggest] - compare_to_s) * signal_toys[biggest] / np.sqrt(
-                signal_toys[biggest] + background_toys[biggest]
+            pull_sb = (
+                (signal_toys[biggest] - compare_to_s)
+                * signal_toys[biggest]
+                / np.sqrt(signal_toys[biggest] + background_toys[biggest])
             )
 
             pull_array.append(pull)
