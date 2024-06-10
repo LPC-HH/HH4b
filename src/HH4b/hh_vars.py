@@ -216,6 +216,9 @@ jecs = {
     "JES_TimePtEta": "JES_TimePtEta",  # goes in Abs_year
 }
 
+# turn off jecs for now
+jecs = {}
+
 jec_shifts = []
 for key in jecs:
     for shift in ["up", "down"]:
