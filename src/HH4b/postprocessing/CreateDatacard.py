@@ -199,17 +199,22 @@ jms_values = {
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties
     # https://gitlab.cern.ch/hh/naming-conventions#theory-uncertainties
-    "BR_hbb": Syst(prior="lnN", samples=sig_keys + single_h_keys,
-                   value={"hh4b": 1.0124**2,
-                          "vbfhh4b": 1.0124**2,
-                          "vhtobb": 1.0124,
-                          "tthtobb": 1.0124,
-                   },
-                   value_down={"hh4b":0.9874**2,
-                               "vbfhh4b":0.9874**2,
-                               "vhtobb":0.9874,
-                               "tthtobb":0.9874,
-                     }),
+    "BR_hbb": Syst(
+        prior="lnN",
+        samples=sig_keys + single_h_keys,
+        value={
+            "hh4b": 1.0124**2,
+            "vbfhh4b": 1.0124**2,
+            "vhtobb": 1.0124,
+            "tthtobb": 1.0124,
+        },
+        value_down={
+            "hh4b": 0.9874**2,
+            "vbfhh4b": 0.9874**2,
+            "vhtobb": 0.9874,
+            "tthtobb": 0.9874,
+        },
+    ),
     "pdf_gg": Syst(prior="lnN", samples=["ttbar"], value=1.042),
     # "pdf_qqbar": Syst(prior="lnN", samples=["ST"], value=1.027),
     "pdf_Higgs_ggHH": Syst(prior="lnN", samples=sig_keys_ggf, value=1.030),
