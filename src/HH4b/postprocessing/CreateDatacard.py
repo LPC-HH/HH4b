@@ -27,6 +27,8 @@ from datacardHelpers import (
     get_effect_updown,
     rem_neg,
     sum_templates,
+    smass,
+    smorph,
 )
 from hist import Hist
 
@@ -149,6 +151,11 @@ mc_samples = OrderedDict(
         ("diboson", "diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
+    ]
+)
+
+mc_samples_sig = OrderedDict(
+    [
         ("hh4b", "ggHH_kl_1_kt_1_hbbhbb"),
         ("hh4b-kl0", "ggHH_kl_0_kt_1_hbbhbb"),
         ("hh4b-kl2p45", "ggHH_kl_2p45_kt_1_hbbhbb"),
@@ -158,7 +165,7 @@ mc_samples = OrderedDict(
     ]
 )
 
-bg_keys = [key for key in mc_samples.keys() if key not in sig_keys_ggf + sig_keys_vbf]
+bg_keys = list(mc_samples.keys())
 single_h_keys = ["vhtobb", "tthtobb"]
 
 if args.only_sm:
@@ -172,7 +179,7 @@ for key in all_sig_keys:
     # check in case single sig sample is specified
     if args.sig_samples is None or key in args.sig_samples:
         # TODO: change names to match HH combination convention
-        mc_samples[key] = key
+        mc_samples[key] = mc_samples_sig[key]
         sig_keys.append(key)
 
 
@@ -182,18 +189,20 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
-jmr_values = {
-    "2022": [1.13, 1.06, 1.20],
-    "2022EE": [1.20, 1.15, 1.25],
-    "2023": [1.20, 1.16, 1.24],
-    "2023BPix": [1.16, 1.09, 1.23],
+jmsr_values = {}
+jmsr_values["JMR"] = {
+    "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
+    "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
+    "2023": {"nom":1.20, "down": 1.16, "up": 1.24},
+    "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
 }
-jms_values = {
-    "2022": [1.015, 1.010, 1.020],
-    "2022EE": [1.021, 1.018, 1.024],
-    "2023": [0.999, 0.996, 1.003],
-    "2023BPix": [0.974, 0.970, 0.980],
+jmsr_values["JMS"] = {
+    "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
+    "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
+    "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
+    "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
+jmsr_keys = sig_keys + ["vhtobb", "diboson"]
 
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
@@ -214,6 +223,7 @@ nuisance_params = {
             "vhtobb": 0.9874,
             "tthtobb": 0.9874,
         },
+        diff_samples=True,
     ),
     "pdf_gg": Syst(prior="lnN", samples=["ttbar"], value=1.042),
     # "pdf_qqbar": Syst(prior="lnN", samples=["ST"], value=1.027),
@@ -336,8 +346,8 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
-    # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
+    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
+    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
@@ -392,8 +402,31 @@ def get_templates(
     if not sig_separate:
         # signal and background templates in same hist, just need to load and sum across years
         for year in years:
+            jms_nom = jmsr_values["JMS"][year]["nom"]
+            jmr_nom = jmsr_values["JMR"][year]["nom"]
             with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
+                regions = list(templates_dict[year].keys())
+                for region in regions:
+                    region_noblinded = region.split(MCB_LABEL)[0]
+                    for sample in templates_dict[year][region].axes[0]:
+                        if sample in jmsr_keys:
+                            templ_original = templates_dict[year][region][sample, :].copy()
+                            templ = smorph(templ_original, sample, jms_nom, jmr_nom)
+                            templates_dict[year][region][sample, :].view(flow=False).value = templ.view(flow=False).value
+                            templates_dict[year][region][sample, :].view(flow=False).variance = templ.view(flow=False).variance
+                            for skey in jmsr:
+                                for shift in ["up", "down"]:
+                                    if skey == "JMS":
+                                        jms = jmsr_values["JMS"][year][shift]
+                                        jmr = jmr_nom
+                                    else:
+                                        jms = jms_nom
+                                        jmr = jmsr_values["JMR"][year][shift]
+                                    templates_dict[year][f"{region}_{skey}_{shift}"] = templ_original.copy()
+                                    templ = smorph(templ_original, sample, jms, jmr)
+                                    templates_dict[year][f"{region}_{skey}_{shift}"][sample, :].view(flow=False).value = templ.view(flow=False).value
+                                    templates_dict[year][f"{region}_{skey}_{shift}"][sample, :].view(flow=False).variance = templ.view(flow=False).variance
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:

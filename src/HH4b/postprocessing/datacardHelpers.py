@@ -223,7 +223,7 @@ def get_effect_updown(
 def smass(sName):
     if sName in sig_keys_ggf + sig_keys_vbf:
         _mass = 125.0
-    elif sName in ["vhtobb", "diboson", "vjets"]:
+    elif sName in ["vhtobb", "diboson"]:
         _mass = 80.379  # use W mass instead of Z mass = 91.
         # TODO: split W/Z processes?
     else:
@@ -235,7 +235,7 @@ def smorph(templ, sample_name, jms_value, jmr_value):
     if templ is None:
         return None
 
-    if sample_name not in ["ttbar", "tthtobb"]:
+    if sample_name not in ["ttbar", "tthtobb", "vjets"]:
         return MorphHistW2(templ).get(shift=(jms_value - 1.0) * smass(sample_name), smear=jmr_value)
     else:
         return templ
