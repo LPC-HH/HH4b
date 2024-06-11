@@ -1,6 +1,6 @@
 {
-    "2022":
-        {
+    # "2022":
+    #     {
             # "HH": {
             #     "subsamples": [
             #         "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV",
@@ -59,9 +59,9 @@
             #             ],
             #         "files_per_job": 10,
             #     },
-       },
-    "2022EE":
-        {
+    #    },
+    # "2022EE":
+    #     {
     #         "JetMET":
     #             {
     #                 "subsamples":
@@ -78,8 +78,8 @@
     #                 "files_per_job": 10,
     #             },
     #         "SingleTop": {"files_per_job": 10,},
-            "Diboson":
-                { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+    #         "Diboson":
+    #             { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
     #         "HH":
     #             {
     #                "subsamples":
@@ -122,9 +122,9 @@
     #                     ],
     #                 "files_per_job": 10,
     #             },
-        },
-    "2023":
-       {
+    #     },
+    # "2023":
+    #    {
     #         "JetMET":
     #             {
     #                 "subsamples":
@@ -142,8 +142,8 @@
     #                 "files_per_job": 10,
     #             },
     #         "SingleTop": {"files_per_job": 10,},
-            "Diboson":
-                 { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
+    #         "Diboson":
+    #              { "subsamples": ["WW", "WZ", "ZZ"], "files_per_job": 20 },
     #         "VJets":
     #             {
     #                 "files_per_job": 6,
@@ -151,7 +151,7 @@
     #         "Hbb": { "files_per_job": 10 },
     #         "QCD": { "files_per_job": 10 },
     #         "HH": { "files_per_job": 10 }, "VBFHH": { "files_per_job": 10, "chunksize": 5000},
-    },
+    #},
     "2023BPix":
     {
     #         "JetMET": { "subsamples": ["JetMET_Run2023D"], "files_per_job": 8 },
@@ -191,7 +191,7 @@
         # "VBFHHto4B_CV_m0p012_C2V_0p030_C3_10p2_TuneCP5_13p6TeV_madgraph-pythia8",
         # "VBFHHto4B_CV_m1p21_C2V_1p94_C3_m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
         ],
-        "files_per_job": 10, "chunksize": 5000
+        "files_per_job": 1, "chunksize": 5000
       },
     },
 }
