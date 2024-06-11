@@ -149,12 +149,16 @@ mc_samples = OrderedDict(
         ("diboson", "diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
-        ("hh4b": "ggHH_kl_1_kt_1_hbbhbb"),
-        ("hh4b": "ggHH_kl_1_kt_1_hbbhbb"),
+        ("hh4b", "ggHH_kl_1_kt_1_hbbhbb"),
+        ("hh4b-kl0", "ggHH_kl_0_kt_1_hbbhbb"),
+        ("hh4b-kl2p45", "ggHH_kl_2p45_kt_1_hbbhbb"),
+        ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
+        ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
+        ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
     ]
 )
 
-bg_keys = list(mc_samples.keys())
+bg_keys = [key for key in mc_samples.keys() if key not in sig_keys_ggf + sig_keys_vbf]
 single_h_keys = ["vhtobb", "tthtobb"]
 
 if args.only_sm:
