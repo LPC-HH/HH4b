@@ -149,13 +149,16 @@ mc_samples = OrderedDict(
         ("diboson", "diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
+        ("hh4b": "ggHH_kl_1_kt_1_hbbhbb"),
+        ("hh4b": "ggHH_kl_1_kt_1_hbbhbb"),
     ]
 )
 
 bg_keys = list(mc_samples.keys())
+single_h_keys = ["vhtobb", "tthtobb"]
 
 if args.only_sm:
-    sig_keys_ggf, sig_keys_vbf = ["hh4b"], []
+    sig_keys_ggf, sig_keys_vbf = ["hh4b"], ["vbfhh4b"]
 
 all_sig_keys = sig_keys_ggf + sig_keys_vbf
 sig_keys = []
@@ -192,7 +195,17 @@ jms_values = {
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties
     # https://gitlab.cern.ch/hh/naming-conventions#theory-uncertainties
-    "BR_hbb": Syst(prior="lnN", samples=sig_keys, value=1.0124**2, value_down=0.9874**2),
+    "BR_hbb": Syst(prior="lnN", samples=sig_keys + single_h_keys, 
+                   value={"hh4b": 1.0124**2,
+                          "vbfhh4b": 1.0124**2,
+                          "vhtobb": 1.0124,
+                          "tthtobb": 1.0124,
+                   },
+                   value_down={"hh4b":0.9874**2,
+                               "vbfhh4b":0.9874**2,
+                               "vhtobb":0.9874,
+                               "tthtobb":0.9874,
+                     }),
     "pdf_gg": Syst(prior="lnN", samples=["ttbar"], value=1.042),
     # "pdf_qqbar": Syst(prior="lnN", samples=["ST"], value=1.027),
     "pdf_Higgs_ggHH": Syst(prior="lnN", samples=sig_keys_ggf, value=1.030),
