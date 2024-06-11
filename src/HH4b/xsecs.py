@@ -162,8 +162,10 @@ for key, value in hh.items():
 vbfhh_sm = 1.873758517 / 1000
 # k-factor from 13.6 / 13
 vbfhh_sm_prev = 1.726 / 1000
-vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev # 1.0856
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = vbfhh_sm * BR_HBB * BR_HBB # 0.001837
+vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev  # 1.0856
+xsecs["VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    vbfhh_sm * BR_HBB * BR_HBB
+)  # 0.001837
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = vbfhh_sm * BR_HBB * BR_HBB
 
 xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
@@ -175,7 +177,7 @@ xsecs["VBFHHto4B_CV-1_C2V-0_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 
 xsecs["VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-) # 0.03834
+)  # 0.03834
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
 )
@@ -207,17 +209,33 @@ xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 (CV=-1.83, C2V=3.57, kl=-3.93) -> 13.6 TeV xsec=0.0216500238682384
 (CV=-2.12, C2V=3.87, kl=-5.96) -> 13.6 TeV xsec=0.0568180849835668
 """
-xsecs["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.398705 * BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.398705 * BR_HBB * BR_HBB
+)
 
-xsecs["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.0000118 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.36648 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.001088 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.003614 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.01139 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m1p83_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.02165 * BR_HBB * BR_HBB
-xsecs["VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = 0.056818 * BR_HBB * BR_HBB
+xsecs["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.0000118 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.36648 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.001088 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.003614 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.01139 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m1p83_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.02165 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.056818 * BR_HBB * BR_HBB
+)
 
-                
+
 # V+Jets
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
 xsecs["Wto2Q-3Jets_HT-400to600"] = 299.8
