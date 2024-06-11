@@ -26,9 +26,8 @@ from datacardHelpers import (
     combine_templates,
     get_effect_updown,
     rem_neg,
-    sum_templates,
-    smass,
     smorph,
+    sum_templates,
 )
 from hist import Hist
 
@@ -193,7 +192,7 @@ jmsr_values = {}
 jmsr_values["JMR"] = {
     "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
-    "2023": {"nom":1.20, "down": 1.16, "up": 1.24},
+    "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
     "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
 }
 jmsr_values["JMS"] = {
@@ -413,8 +412,12 @@ def get_templates(
                         if sample in jmsr_keys:
                             templ_original = templates_dict[year][region][sample, :].copy()
                             templ = smorph(templ_original, sample, jms_nom, jmr_nom)
-                            templates_dict[year][region][sample, :].view(flow=False).value = templ.view(flow=False).value
-                            templates_dict[year][region][sample, :].view(flow=False).variance = templ.view(flow=False).variance
+                            templates_dict[year][region][sample, :].view(flow=False).value = (
+                                templ.view(flow=False).value
+                            )
+                            templates_dict[year][region][sample, :].view(flow=False).variance = (
+                                templ.view(flow=False).variance
+                            )
                             for skey in jmsr:
                                 for shift in ["up", "down"]:
                                     if skey == "JMS":
@@ -423,10 +426,16 @@ def get_templates(
                                     else:
                                         jms = jms_nom
                                         jmr = jmsr_values["JMR"][year][shift]
-                                    templates_dict[year][f"{region}_{skey}_{shift}"] = templ_original.copy()
+                                    templates_dict[year][
+                                        f"{region}_{skey}_{shift}"
+                                    ] = templ_original.copy()
                                     templ = smorph(templ_original, sample, jms, jmr)
-                                    templates_dict[year][f"{region}_{skey}_{shift}"][sample, :].view(flow=False).value = templ.view(flow=False).value
-                                    templates_dict[year][f"{region}_{skey}_{shift}"][sample, :].view(flow=False).variance = templ.view(flow=False).variance
+                                    templates_dict[year][f"{region}_{skey}_{shift}"][
+                                        sample, :
+                                    ].view(flow=False).value = templ.view(flow=False).value
+                                    templates_dict[year][f"{region}_{skey}_{shift}"][
+                                        sample, :
+                                    ].view(flow=False).variance = templ.view(flow=False).variance
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
