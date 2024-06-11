@@ -349,6 +349,9 @@ class bbbbSkimmer(SkimmerABC):
             or "Wto2Q" in dataset
             or "Zto2Q" in dataset
             or "Hto2B" in dataset
+            or "WW" in dataset
+            or "ZZ" in dataset
+            or "WZ" in dataset
         )
 
         # if isSignal:
