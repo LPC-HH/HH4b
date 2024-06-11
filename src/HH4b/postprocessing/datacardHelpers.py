@@ -8,7 +8,8 @@ import numpy as np
 from hist import Hist
 from rhalphalib import MorphHistW2
 
-from HH4b.hh_vars import years as all_years, sig_keys_ggf, sig_keys_vbf
+from HH4b.hh_vars import sig_keys_ggf, sig_keys_vbf
+from HH4b.hh_vars import years as all_years
 
 #################################################
 # Common

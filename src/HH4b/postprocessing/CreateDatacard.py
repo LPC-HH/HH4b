@@ -195,7 +195,7 @@ jms_values = {
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties
     # https://gitlab.cern.ch/hh/naming-conventions#theory-uncertainties
-    "BR_hbb": Syst(prior="lnN", samples=sig_keys + single_h_keys, 
+    "BR_hbb": Syst(prior="lnN", samples=sig_keys + single_h_keys,
                    value={"hh4b": 1.0124**2,
                           "vbfhh4b": 1.0124**2,
                           "vhtobb": 1.0124,
