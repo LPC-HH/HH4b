@@ -40,6 +40,11 @@ To scan:
 python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --fom-scan --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-control-plots --no-bdt-roc --no-templates --no-fom-scan-vbf --years 2022EE --method sideband
 ```
 
+For tt corrections:
+```bash
+python PostProcessTT.py --templates-tag 24May24 --tag 24May25_v12_private_had-tt --data-dir ../../../../data/skimmer/ --mass H2PNetMass --legacy --control-plots --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --year 2022 2022EE 2023 2023BPix
+```
+
 # Run-2
 ```bash
 python3 PostProcessRun2.py --template-dir 20210712_regression --tag 20210712_regression --years 2016,2017,2018

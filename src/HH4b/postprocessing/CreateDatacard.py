@@ -63,7 +63,6 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "sig-separate", "separate templates for signals and bgs", default=False)
-add_bool_arg(parser, "do-jshifts", "Do JEC/JMC corrections.", default=True)
 
 parser.add_argument("--cards-dir", default="cards", type=str, help="output card directory")
 
@@ -127,7 +126,7 @@ qcd_data_key = "qcd_datadriven"
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 1, 2]
+        args.nTF = [0, 1, 1]
         if args.vbf_region:
             args.nTF = [0] + args.nTF
     else:
@@ -176,6 +175,18 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
+jmr_values = {
+    "2022": [1.13, 1.06, 1.20],
+    "2022EE": [1.20, 1.15, 1.25],
+    "2023": [1.20, 1.16, 1.24],
+    "2023BPix": [1.16, 1.09, 1.23],
+}
+jms_values = {
+    "2022": [1.015, 1.010, 1.020],
+    "2022EE": [1.021, 1.018, 1.024],
+    "2023": [0.999, 0.996, 1.003],
+    "2023BPix": [0.974, 0.970, 0.980],
+}
 
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
@@ -248,8 +259,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    # TODO: separate into individual
-    "JES": Syst(name="CMS_scale_j", prior="shape", samples=sig_keys),  # TODO: update to all_mc
+    # "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_AbsoluteMPFBias", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -262,7 +272,37 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),  # TODO: fix
+    # "ttbarSF_BDT_bin_0.03_0.3": Syst(
+    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
+    #     prior="shape",
+    #     samples=["ttbar"],
+    #     convert_shape_to_lnN=True,
+    # ),
+    # "ttbarSF_BDT_bin_0.3_0.5": Syst(
+    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
+    #     prior="shape",
+    #     samples=["ttbar"],
+    #     convert_shape_to_lnN=True,
+    # ),
+    # "ttbarSF_BDT_bin_0.5_0.7": Syst(
+    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
+    #     prior="shape",
+    #     samples=["ttbar"],
+    #     convert_shape_to_lnN=True,
+    # ),
+    # "ttbarSF_BDT_bin_0.7_0.93": Syst(
+    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
+    #     prior="shape",
+    #     samples=["ttbar"],
+    #     convert_shape_to_lnN=True,
+    # ),
+    # "ttbarSF_BDT_bin_0.93_1": Syst(
+    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
+    #     prior="shape",
+    #     samples=["ttbar"],
+    #     convert_shape_to_lnN=True,
+    # ),
+    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     # "txbb": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
     #     prior="shape",
@@ -273,9 +313,9 @@ corr_year_shape_systs = {
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
-    "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
-    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
+    # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
+    # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
+    # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
@@ -305,18 +345,6 @@ uncorr_year_shape_systs = {
         uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
 }
-
-if not args.do_jshifts:
-    del corr_year_shape_systs["JES"]
-    del uncorr_year_shape_systs["JER"]
-    del uncorr_year_shape_systs["JMS"]
-    del uncorr_year_shape_systs["JMR"]
-else:
-    # TODO: implement others; currently only JES
-    del uncorr_year_shape_systs["JER"]
-    del uncorr_year_shape_systs["JMS"]
-    del uncorr_year_shape_systs["JMR"]
-
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
