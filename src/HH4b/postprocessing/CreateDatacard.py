@@ -616,7 +616,7 @@ def fill_regions(
 
             # # rate params per signal to freeze them for individual limits
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
-            #     srate = rate_p farams[sample_name]
+            #     srate = rate_params[sample_name]
             #     sample.setParamEffect(srate, 1 * srate)
 
             # nominal values, errors

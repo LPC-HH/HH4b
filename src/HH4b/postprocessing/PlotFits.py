@@ -31,9 +31,19 @@ def plot_fits(args):
         ]
     )
 
+    hist_label_map_inverse_sig = OrderedDict(
+        [
+            ("hh4b", "ggHH_kl_1_kt_1_hbbhbb"),
+            ("hh4b-kl0", "ggHH_kl_0_kt_1_hbbhbb"),
+            ("hh4b-kl2p45", "ggHH_kl_2p45_kt_1_hbbhbb"),
+            ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
+            ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
+            ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
+        ]
+    )
     sig_keys = ["hh4b", "vbfhh4b"] if not args.vbf_k2v0_signal else ["hh4b", "vbfhh4b-k2v0"]
     for key in sig_keys:
-        hist_label_map_inverse[key] = key
+        hist_label_map_inverse[key] = hist_label_map_inverse_sig[key]
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
     bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
