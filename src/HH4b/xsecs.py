@@ -212,26 +212,57 @@ xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 xsecs["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.398705 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_1p74_C2V_1p37_C3_14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.398705 * BR_HBB * BR_HBB
+)
+
 
 xsecs["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.0000118 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m0p012_C2V_0p030_C3_10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.0000118 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.36648 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m0p758_C2V_1p44_C3_m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.36648 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.001088 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m0p962_C2V_0p959_C3_m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.001088 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.003614 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m1p21_C2V_1p94_C3_m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.003614 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.01139 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.01139 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m1p83_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.02165 * BR_HBB * BR_HBB
 )
+xsecs["VBFHHto4B_CV_m1p83_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.02165 * BR_HBB * BR_HBB
+)
+
 xsecs["VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+    0.056818 * BR_HBB * BR_HBB
+)
+xsecs["VBFHHto4B_CV_m2p12_C2V_3p87_C3_m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.056818 * BR_HBB * BR_HBB
 )
 
