@@ -237,6 +237,7 @@ def smorph(templ, sample_name, jms_value, jmr_value):
 
     for sample_check in sig_keys_ggf + sig_keys_vbf + ["vhtobb", "diboson"]:
         if sample_check in sample_name:
-            return MorphHistW2(templ).get(shift=(jms_value - 1.0) * smass(sample_check), smear=jmr_value)
-    else:
-        return templ
+            return MorphHistW2(templ).get(
+                shift=(jms_value - 1.0) * smass(sample_check), smear=jmr_value
+            )
+    return templ

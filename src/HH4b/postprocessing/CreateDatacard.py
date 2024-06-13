@@ -43,7 +43,6 @@ from HH4b.hh_vars import (
 from HH4b.hh_vars import (
     years as hh_years,
 )
-
 from HH4b.utils import blindBins
 
 try:
@@ -434,8 +433,11 @@ def get_templates(
             with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
                 regions = list(templates_dict[year].keys())
-                if not args.jmsr: continue
-                regions = [region for region in regions if region.count(MCB_LABEL) < 2]  # Note: postprocessing saves blinded regions over and over                
+                if not args.jmsr:
+                    continue
+                regions = [
+                    region for region in regions if region.count(MCB_LABEL) < 2
+                ]  # Note: postprocessing saves blinded regions over and over
                 for region in regions:
                     region_noblinded = region.split(MCB_LABEL)[0]
                     blind_str = MCB_LABEL if region.endswith(MCB_LABEL) else ""
@@ -443,15 +445,25 @@ def get_templates(
                     # initialize Hists for JMS/JMR shifts
                     for skey in jmsr:
                         for shift in ["up", "down"]:
-                            templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"] = templ_region_original.copy()
+                            templates_dict[year][
+                                f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                            ] = templ_region_original.copy()
                     samples = list(templates_dict[year][region].axes[0])
                     for sample in samples:
                         if any([sample_check in sample for sample_check in jmsr_keys]):
-                            templ_original = templates_dict[year][region_noblinded][sample, :].copy()
+                            templ_original = templates_dict[year][region_noblinded][
+                                sample, :
+                            ].copy()
                             templ = smorph(templ_original, sample, jms_nom, jmr_nom)
-                            sample_key_index = np.where(np.array(list(templates_dict[year][region].axes[0])) == sample)[0][0]
-                            templates_dict[year][region].view(flow=False)[sample_key_index].value = np.nan_to_num(templ.view(flow=False).value, nan=0.0)
-                            templates_dict[year][region].view(flow=False)[sample_key_index].variance = np.nan_to_num(templ.view(flow=False).variance, nan=0.0)
+                            sample_key_index = np.where(
+                                np.array(list(templates_dict[year][region].axes[0])) == sample
+                            )[0][0]
+                            templates_dict[year][region].view(flow=False)[
+                                sample_key_index
+                            ].value = np.nan_to_num(templ.view(flow=False).value, nan=0.0)
+                            templates_dict[year][region].view(flow=False)[
+                                sample_key_index
+                            ].variance = np.nan_to_num(templ.view(flow=False).variance, nan=0.0)
                             for skey in jmsr:
                                 for shift in ["up", "down"]:
                                     if skey == "JMS":
@@ -461,16 +473,27 @@ def get_templates(
                                         jms = jms_nom
                                         jmr = jmsr_values["JMR"][year][shift]
                                     templ_shift = smorph(templ_original, sample, jms, jmr)
-                                    templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"].view(flow=False)[
-                                        sample_key_index].value = np.nan_to_num(templ_shift.view(flow=False).value, nan=0.0)
-                                    templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"].view(flow=False)[
-                                        sample_key_index].variance = np.nan_to_num(templ_shift.view(flow=False).variance, nan=0.0)
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ].view(flow=False)[sample_key_index].value = np.nan_to_num(
+                                        templ_shift.view(flow=False).value, nan=0.0
+                                    )
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ].view(flow=False)[sample_key_index].variance = np.nan_to_num(
+                                        templ_shift.view(flow=False).variance, nan=0.0
+                                    )
                     if MCB_LABEL in region:
                         # reblind both nominal and shifted
                         blindBins(templates_dict[year][region], blind_window)
                         for skey in jmsr:
                             for shift in ["up", "down"]:
-                                blindBins(templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"], blind_window)                 
+                                blindBins(
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ],
+                                    blind_window,
+                                )
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
@@ -657,7 +680,7 @@ def fill_regions(
                     ]
 
                     values_up = up_hist.values()
-                    values_down = down_hist.values()                    
+                    values_down = down_hist.values()
                 else:
                     # weight uncertainties saved as different "sample" in dict
                     values_up = region_templates[f"{sample_name}_{skey}_up", :].values()
