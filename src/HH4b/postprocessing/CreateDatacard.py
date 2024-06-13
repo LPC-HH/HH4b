@@ -349,8 +349,28 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=jmsr_keys, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
-    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=jmsr_keys, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
+    "JMS": Syst(
+        name=f"{CMS_PARAMS_LABEL}_jms",
+        prior="shape",
+        samples=jmsr_keys,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        },
+    ),
+    "JMR": Syst(
+        name=f"{CMS_PARAMS_LABEL}_jmr",
+        prior="shape",
+        samples=jmsr_keys,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        },
+    ),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
