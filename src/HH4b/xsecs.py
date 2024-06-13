@@ -267,8 +267,6 @@ xsecs["VBFHHto4B_CV_m2p12_C2V_3p87_C3_m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] =
 )
 
 
-
-
 # V+Jets
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
 xsecs["Wto2Q-3Jets_HT-400to600"] = 299.8

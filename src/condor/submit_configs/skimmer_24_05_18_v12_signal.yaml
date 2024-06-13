@@ -170,8 +170,8 @@
     #             },
     #         "Hbb": { "files_per_job": 10 },
     #         "QCD": { "files_per_job": 10 },
-    #         "HH": { "files_per_job": 10 }, 
-            "VBFHH": { 
+    #         "HH": { "files_per_job": 10 },
+            "VBFHH": {
                 "subsamples": [
                     "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
                     "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
