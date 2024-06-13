@@ -44,6 +44,8 @@ from HH4b.hh_vars import (
     years as hh_years,
 )
 
+from HH4b.utils import blindBins
+
 try:
     rl.util.install_roofit_helpers()
     rl.ParametericSample.PreferRooParametricHist = False
@@ -118,12 +120,14 @@ add_bool_arg(
     "Perform MC closure test (fill data_obs with sum of MC bkg.",
     default=False,
 )
+add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
 args = parser.parse_args()
 
 
 CMS_PARAMS_LABEL = "CMS_bbbb_hadronic"
 MCB_LABEL = "MCBlinded"
 qcd_data_key = "qcd_datadriven"
+blind_window = [110, 140]
 
 if args.nTF is None:
     if args.regions == "all":
@@ -345,8 +349,8 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
-    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
+    "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=jmsr_keys, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
+    "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=jmsr_keys, uncorr_years = {"2022": ["2022"], "2022EE": ["2022EE"], "2023": ["2023"], "2023BPix": ["2023BPix"]}),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
@@ -377,6 +381,10 @@ uncorr_year_shape_systs = {
     ),
 }
 
+if not args.jmsr:
+    del uncorr_year_shape_systs["JMR"]
+    del uncorr_year_shape_systs["JMS"]
+
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
     shape_systs_dict[skey] = rl.NuisanceParameter(
@@ -406,18 +414,24 @@ def get_templates(
             with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
                 regions = list(templates_dict[year].keys())
+                if not args.jmsr: continue
+                regions = [region for region in regions if region.count(MCB_LABEL) < 2]  # Note: postprocessing saves blinded regions over and over                
                 for region in regions:
                     region_noblinded = region.split(MCB_LABEL)[0]
-                    for sample in templates_dict[year][region].axes[0]:
-                        if sample in jmsr_keys:
-                            templ_original = templates_dict[year][region][sample, :].copy()
+                    blind_str = MCB_LABEL if region.endswith(MCB_LABEL) else ""
+                    templ_region_original = templates_dict[year][region].copy()
+                    # initialize Hists for JMS/JMR shifts
+                    for skey in jmsr:
+                        for shift in ["up", "down"]:
+                            templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"] = templ_region_original.copy()
+                    samples = list(templates_dict[year][region].axes[0])
+                    for sample in samples:
+                        if any([sample_check in sample for sample_check in jmsr_keys]):
+                            templ_original = templates_dict[year][region_noblinded][sample, :].copy()
                             templ = smorph(templ_original, sample, jms_nom, jmr_nom)
-                            templates_dict[year][region][sample, :].view(flow=False).value = (
-                                templ.view(flow=False).value
-                            )
-                            templates_dict[year][region][sample, :].view(flow=False).variance = (
-                                templ.view(flow=False).variance
-                            )
+                            sample_key_index = np.where(np.array(list(templates_dict[year][region].axes[0])) == sample)[0][0]
+                            templates_dict[year][region].view(flow=False)[sample_key_index].value = np.nan_to_num(templ.view(flow=False).value, nan=0.0)
+                            templates_dict[year][region].view(flow=False)[sample_key_index].variance = np.nan_to_num(templ.view(flow=False).variance, nan=0.0)
                             for skey in jmsr:
                                 for shift in ["up", "down"]:
                                     if skey == "JMS":
@@ -426,16 +440,17 @@ def get_templates(
                                     else:
                                         jms = jms_nom
                                         jmr = jmsr_values["JMR"][year][shift]
-                                    templates_dict[year][
-                                        f"{region}_{skey}_{shift}"
-                                    ] = templ_original.copy()
-                                    templ = smorph(templ_original, sample, jms, jmr)
-                                    templates_dict[year][f"{region}_{skey}_{shift}"][
-                                        sample, :
-                                    ].view(flow=False).value = templ.view(flow=False).value
-                                    templates_dict[year][f"{region}_{skey}_{shift}"][
-                                        sample, :
-                                    ].view(flow=False).variance = templ.view(flow=False).variance
+                                    templ_shift = smorph(templ_original, sample, jms, jmr)
+                                    templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"].view(flow=False)[
+                                        sample_key_index].value = np.nan_to_num(templ_shift.view(flow=False).value, nan=0.0)
+                                    templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"].view(flow=False)[
+                                        sample_key_index].variance = np.nan_to_num(templ_shift.view(flow=False).variance, nan=0.0)
+                    if MCB_LABEL in region:
+                        # reblind both nominal and shifted
+                        blindBins(templates_dict[year][region], blind_window)
+                        for skey in jmsr:
+                            for shift in ["up", "down"]:
+                                blindBins(templates_dict[year][f"{region_noblinded}_{skey}_{shift}{blind_str}"], blind_window)                 
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
@@ -558,7 +573,7 @@ def fill_regions(
 
             # # rate params per signal to freeze them for individual limits
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
-            #     srate = rate_params[sample_name]
+            #     srate = rate_p farams[sample_name]
             #     sample.setParamEffect(srate, 1 * srate)
 
             # nominal values, errors
@@ -622,7 +637,7 @@ def fill_regions(
                     ]
 
                     values_up = up_hist.values()
-                    values_down = down_hist.values()
+                    values_down = down_hist.values()                    
                 else:
                     # weight uncertainties saved as different "sample" in dict
                     values_up = region_templates[f"{sample_name}_{skey}_up", :].values()
