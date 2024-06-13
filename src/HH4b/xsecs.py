@@ -162,7 +162,6 @@ for key, value in hh.items():
 vbfhh_sm = 1.873758517 / 1000
 # k-factor from 13.6 / 13
 vbfhh_sm_prev = 1.726 / 1000
-print(vbfhh_sm)
 vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev  # 1.0856
 xsecs["VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     vbfhh_sm * BR_HBB * BR_HBB
