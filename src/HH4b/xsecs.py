@@ -185,7 +185,7 @@ xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 xsecs["VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
 )
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+xsecs["VBFHHto4B_CV_1_C2V_2_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
 )
 
