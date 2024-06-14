@@ -527,7 +527,7 @@ def main(args):
             compare_to_s = truesignal_toys[biggest]
             compare_to = figure_of_merit_true_toys[biggest]
             compare_to_b = truebackground_toys[biggest]
-            
+
             print(
                 f" Optimal {optimal_xbb_cut:.3f} {optimal_bdt_cut:.2f}, FOM: {figure_of_merit_method_toys[biggest]:.2f} \n"
                 + f" S Extract: {signal_toys[biggest]:.3f}, S True: {compare_to_s:.3f} \n"

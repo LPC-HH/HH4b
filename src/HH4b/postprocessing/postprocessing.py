@@ -159,6 +159,7 @@ for i in range(len(decorr_bdt_bins) - 1):
 txbbsfs_decorr_txbb_bins = [0.975, 0.95, 0.92]
 txbbsfs_decorr_pt_bins = [200, 250, 300, 400, 500, 100000]
 
+
 def load_run3_samples(
     input_dir: str,
     year: str,
