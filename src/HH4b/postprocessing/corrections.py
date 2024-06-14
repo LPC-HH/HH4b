@@ -1,10 +1,46 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import correctionlib
 import hist
 import numpy as np
 import pandas as pd
+from coffea.lookup_tools.dense_lookup import dense_lookup
 from numpy.typing import ArrayLike
+
+package_path = Path(__file__).parent.parent.resolve()
+
+
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict, pt_bins: list):
+    """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
+
+    with (package_path / f"corrections/data/txbb_sfs/{fname}.json").open() as f:
+        txbb_sf = json.load(f)
+
+    wps = ["WP1", "WP2", "WP3"]
+
+    txbb_bins = np.array([0] + [txbb_wps[year][wp] for wp in wps] + [1])
+    pt_bins = np.array(pt_bins)
+    edges = (txbb_bins, pt_bins)
+    keys = ["central", "high", "low"]
+    vals = {key: [] for key in keys}
+
+    for key in keys:
+        for wp in wps:
+            wval = []
+            for low, high in zip(pt_bins[:-1], pt_bins[1:]):
+                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"]["final"][key])
+            vals[key].append(wval)
+    vals = {key: np.array(val) for key, val in list(vals.items())}
+
+    txbb_sf_lookups_year = {
+        "nom": dense_lookup(vals["central"], edges),
+        "up": dense_lookup(vals["central"] + vals["high"], edges),
+        "down": dense_lookup(vals["central"] - vals["low"], edges),
+    }
+    return txbb_sf_lookups_year
 
 
 def ttbar_SF(
@@ -53,7 +89,7 @@ def ttbar_bdtshape(
     input_range: ArrayLike | None = None,
 ):
     tt_sf = correctionlib.CorrectionSet.from_file(
-        f"../corrections/data/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
+        f"../corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]
     sfs = {}
     input_var = events_dict[branch]

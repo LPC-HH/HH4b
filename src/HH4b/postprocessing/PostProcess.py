@@ -26,6 +26,8 @@ from HH4b.postprocessing import (
     decorr_bdt_bins,
     decorr_txbb_bins,
     load_run3_samples,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_bins,
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
@@ -194,9 +196,22 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     # region in which QCD trigger weights were extracted
     trigger_region = "QCD"
 
+    # load TXbb SFs
+    txbb_wps = {
+        "2022": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
+        "2022EE": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
+        "2023": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
+        "2023BPix": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
+    }
+    txbb_sfs_year = corrections._load_txbb_sfs(
+        year, "sf_txbbv11_Jun14", txbb_wps, txbbsfs_decorr_pt_bins
+    )
+
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
+        print(f"load samples {key}")
+
         samples_to_process = {year: {key: samples_run3[year][key]}}
 
         events_dict = load_run3_samples(
@@ -210,7 +225,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # inference and assign score
         jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
+        print("JEC shifts ", jshifts)
 
+        print("perform inference")
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
@@ -219,6 +236,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift, weight_ttbar=args.weight_ttbar_bdt)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+        print("inference done")
 
         # remove duplicates
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
@@ -262,6 +280,48 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             trigger_weight_up = trigger_weight * (1 + total_err / total)
             trigger_weight_dn = trigger_weight * (1 - total_err / total)
 
+        # TXbbWeight
+        txbb_sf_weight = np.ones(nevents)
+        if "hh" in key:
+            h1pt = bdt_events["H1Pt"].to_numpy()
+            h2pt = bdt_events["H2Pt"].to_numpy()
+            h1txbb = bdt_events["H1TXbb"].to_numpy()
+            h2txbb = bdt_events["H2TXbb"].to_numpy()
+            txbb_sf_weight = txbb_sfs_year["nom"](h1txbb, h1pt) * txbb_sfs_year["nom"](h2txbb, h2pt)
+
+            # TODO: Add decorrelated variations for each bin (txbb bin and pt bin)
+            # https://github.com/LPC-HH/HHLooper/blob/master/app/HHLooper.cc#L1695-L2214
+            txbb_sf_weight_up = txbb_sfs_year["up"](h1txbb, h1pt) * txbb_sfs_year["up"](
+                h2txbb, h2pt
+            )
+            print("up ", txbb_sf_weight_up)
+            txbb_input_range = txbbsfs_decorr_txbb_bins[0 : 0 + 2]
+            pt_input_range = txbbsfs_decorr_pt_bins[0 : 0 + 2]
+            print("input range ", txbb_input_range)
+            print("h1 xbb ", h1txbb)
+            print("h1 pt ", h1pt)
+            print("h1 < ", (h1txbb < txbb_input_range[0]) & (h1pt < pt_input_range[0]))
+            print("h2 xbb ", h2txbb)
+            print("h2 pt ", h2pt)
+            print("h2 < ", (h2txbb < txbb_input_range[0]) & (h2pt < pt_input_range[0]))
+            txbb_sf_weight_bin11_up = txbb_sf_weight_up.copy()
+            txbb_sf_weight_bin11_up[
+                ((h1txbb < txbb_input_range[0]) & (h1pt < pt_input_range[0]))
+                & ((h2txbb < txbb_input_range[0]) & (h2pt < pt_input_range[0]))
+            ] = 1.0
+            txbb_sf_weight_bin11_up[
+                ((h1txbb > txbb_input_range[1]) & (h1pt > pt_input_range[1]))
+                & ((h2txbb > txbb_input_range[1]) & (h2pt > pt_input_range[1]))
+            ] = 1.0
+
+            print("TXbb SF weight up bin11 ", txbb_sf_weight_bin11_up)
+            bdt_events["weight_TXbb_Xbb_bin11Up"] = txbb_sf_weight_bin11_up
+
+        # TODO: apply to Single Higgs processes
+        # need to match fatjet to Gen-Level single H
+        # if key in ["vhtobb", "tthtobb"]:
+        #    hpt = events_dict[]
+
         # remove training events if asked
         if (
             args.training_years is not None
@@ -286,6 +346,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # tt corrections
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
+            print("Adding TT corrections")
             ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
             tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
                 year, bdt_events, "Tau3OverTau2", "H1T32"
@@ -351,7 +412,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     f"weight_ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}Down"
                 ] = (nominal_weight * trigger_weight * ttbar_weight * tempw_dn / tempw)
 
-        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight
+        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight * txbb_sf_weight
         if key != "data":
             bdt_events["weight_triggerUp"] = nominal_weight * trigger_weight_up * ttbar_weight
             bdt_events["weight_triggerDown"] = nominal_weight * trigger_weight_dn * ttbar_weight
@@ -374,7 +435,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
+        # Veto VBF (temporary! from Run-2 veto)
+        # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
+        # bdt_events = bdt_events[mask_vetovbf]
+        # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
+
         for jshift in jshifts:
+            print(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
             h2pt = check_get_jec_var("H2Pt", jshift)
             h1msd = check_get_jec_var("H1Msd", jshift)
@@ -514,8 +581,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         columns = list(set(columns))
 
         if control_plots:
-            bdt_events.rename(
-                columns={"H1T32": "H1T32top", "H2T32": "H2T32top", "H1Pt/H2Pt": "H1Pt_H2Pt"}
+            bdt_events = bdt_events.rename(
+                columns={
+                    "H1T32": "H1T32top",
+                    "H2T32": "H2T32top",
+                    "H1Pt/H2Pt": "H1Pt_H2Pt",
+                    "H1AK4JetAway1dR": "H1dRAK4r",
+                    "H2AK4JetAway2dR": "H2dRAK4r",
+                    "H1AK4JetAway1mass": "H1AK4mass",
+                    "H2AK4JetAway2mass": "H2AK4mass",
+                },
             )
             events_dict_postprocess[key] = bdt_events
             columns_by_key[key] = columns
@@ -762,6 +837,12 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
         ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
         ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
         ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
+        ShapeVar(var="VBFjjMass", label=r"VBF jj mass (GeV)", bins=[30, 0.0, 1000]),
+        ShapeVar(var="VBFjjDeltaEta", label=r"VBF jj $\Delta \eta$", bins=[30, 0, 5]),
+        ShapeVar(var="H1dRAK4r", label=r"$\Delta R$(H1,J1)", bins=[30, 0, 5]),
+        ShapeVar(var="H2dRAK4r", label=r"$\Delta R$(H2,J2)", bins=[30, 0, 5]),
+        ShapeVar(var="H1AK4mass", label=r"(H1 + J1) mass (GeV)", bins=[30, 80, 600]),
+        ShapeVar(var="H2AK4mass", label=r"(H2 + J2) mass (GeV)", bins=[30, 80, 600]),
     ]
 
     (plot_dir / f"control/{year}").mkdir(exist_ok=True, parents=True)
@@ -775,20 +856,20 @@ def make_control_plots(events_dict, plot_dir, year, legacy):
                 weight_key="weight",
             )
 
-        plotting.ratioHistPlot(
-            hists[shape_var.var],
-            year,
-            ["hh4b"],
-            bg_keys,
-            name=f"{plot_dir}/control/{year}/{shape_var.var}",
-            show=False,
-            log=True,
-            plot_significance=False,
-            significance_dir=shape_var.significance_dir,
-            ratio_ylims=[0.2, 1.8],
-            bg_err_mcstat=True,
-            reweight_qcd=True,
-        )
+            plotting.ratioHistPlot(
+                hists[shape_var.var],
+                year,
+                ["hh4b"],
+                bg_keys,
+                name=f"{plot_dir}/control/{year}/{shape_var.var}",
+                show=False,
+                log=True,
+                plot_significance=False,
+                significance_dir=shape_var.significance_dir,
+                ratio_ylims=[0.2, 1.8],
+                bg_err_mcstat=True,
+                reweight_qcd=True,
+            )
 
 
 def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
@@ -881,7 +962,7 @@ def postprocess_run3(args):
     cutflows = {}
     for year in args.years:
         print(f"\n{year}")
-        events_dict_postprocess[year], cutflows[year] = load_process_run3_samples(
+        events, cutflow = load_process_run3_samples(
             args,
             year,
             bdt_training_keys,
@@ -889,23 +970,23 @@ def postprocess_run3(args):
             plot_dir,
             mass_window,
         )
+        events_dict_postprocess[year] = events
+        cutflows[year] = cutflow
 
     print("Loaded all years")
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
-    print("bg keys", bg_keys)
 
     if len(args.years) > 1:
+        scaled_by_years = {
+            # "vbfhh4b-k2v0": ["2022", "2022EE", "2023"],
+        }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
             bg_keys=bg_keys_combined,
-            scale_processes={
-                # "vbfhh4b": ["2022", "2022EE", "2023"],
-                "vbfhh4b": ["2022", "2022EE"],
-                "vbfhh4b-k2v0": ["2022", "2022EE"],
-            },
+            scale_processes=scaled_by_years,
             years_run3=args.years,
         )
         print("Combined years")
@@ -934,26 +1015,31 @@ def postprocess_run3(args):
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
         samples = list(events_combined.keys())
         for cut in cutflows[year_0]:
-            yield_s = 0
+            # yield_s = 0
             yield_b = 0
             for s in samples:
-                cutflow_sample = np.sum(
-                    [
-                        cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0.0
-                        for year in args.years
-                    ]
-                )
                 if s in scaled_by:
-                    print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
+                    cutflow_sample = 0.0
+                    for year in args.years:
+                        if s in cutflows[year][cut].index and year in scaled_by_years[s]:
+                            cutflow_sample += cutflows[year][cut].loc[s]
                     cutflow_sample *= scaled_by[s]
-                if s == "hh4b":
-                    yield_s = cutflow_sample
+                    print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
+                else:
+                    cutflow_sample = np.sum(
+                        [
+                            cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0.0
+                            for year in args.years
+                        ]
+                    )
+
+                # if s == "hh4b":
+                #    yield_s = cutflow_sample
                 if s == "data":
                     yield_b = cutflow_sample
                 cutflow_combined.loc[s, cut] = f"{cutflow_sample:.2f}"
 
             if "Bin 1 [" in cut and yield_b > 0:
-                cutflow_combined.loc["S/B sideband", cut] = f"{yield_s/yield_b:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
@@ -1199,7 +1285,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--pt-first", type=float, default=300, help="pt threshold for leading jet")
     parser.add_argument(
-        "--pt-second", type=float, default=300, help="pt threshold for subleading jet"
+        "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
 
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")

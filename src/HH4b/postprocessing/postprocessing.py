@@ -126,6 +126,8 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 
+load_columns_signal = []
+
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
@@ -153,6 +155,9 @@ for i in range(len(decorr_bdt_bins) - 1):
         label=f"ttbar SF BDT bin [{decorr_bdt_bins[i]}, {decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
+
+txbbsfs_decorr_txbb_bins = [0.975, 0.95, 0.92]
+txbbsfs_decorr_pt_bins = [200, 250, 300, 400, 500, 100000]
 
 
 def load_run3_samples(
@@ -398,21 +403,9 @@ def get_templates(
             print("cutflow ", rname, cf)
             cf.to_csv(f"{template_dir}/cutflows/{year}/{rname}_cutflow{jlabel}.csv")
 
-        # # TODO: trigger uncertainties
-        # if not do_jshift:
-        #     systematics[year][rname] = {}
-        #     total, total_err = corrections.get_uncorr_trig_eff_unc(events_dict, bb_masks, year, sel)
-        #     systematics[year][rname]["trig_total"] = total
-        #     systematics[year][rname]["trig_total_err"] = total_err
-        #     print(f"Trigger SF Unc.: {total_err / total:.3f}\n")
-
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
-
-            # # TODO: ParticleNetMD Txbb
-            # if pass_region:
-            #     corrections.apply_txbb_sfs(sig_events[sig_key], year, weight_key)
 
         # set up samples
         hist_samples = list(events_dict.keys())
