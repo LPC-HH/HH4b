@@ -317,6 +317,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             print("TXbb SF weight up bin11 ", txbb_sf_weight_bin11_up)
             bdt_events["weight_TXbb_Xbb_bin11Up"] = txbb_sf_weight_bin11_up
 
+            # TO ADD:
+            # 3 bins in Txbb, 5 bins in Pt
+            # bin11: 1 bin in TXbb, 1 bin in Pt
+            # bin11Down/Up
+            # bin21Down/Up
+            # bin31Down/Up
+            # bin12Down/Up
+            # bin22Down/Up
+            # bin23Down/Up
+            # etc
+
         # TODO: apply to Single Higgs processes
         # need to match fatjet to Gen-Level single H
         # if key in ["vhtobb", "tthtobb"]:
