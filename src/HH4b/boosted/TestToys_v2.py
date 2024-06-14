@@ -540,6 +540,7 @@ def main(args):
 
             pull_s = (signal_toys[biggest] - compare_to_s) / compare_to_s
             diff_s = signal_toys[biggest] - compare_to_s
+
             pull_b = (background_toys[biggest] - compare_to_b) / compare_to_b
             diff_b = background_toys[biggest] - compare_to_b
 
@@ -579,6 +580,7 @@ def main(args):
     diff_array = np.array(diff_array)
     diff_s_array = np.array(diff_s_array)
     diff_b_array = np.array(diff_b_array)
+
     gaus_fit = {
         "pull": [np.mean(pull_array), np.std(pull_array)],
         "pull_s": [np.mean(pull_s_array), np.std(pull_s_array)],
@@ -621,12 +623,6 @@ def main(args):
         [-2, 2],
         "diff_s",
     )
-
-    plot_h(
-        h_pull,
-        r"(S$_{t}/\sqrt{S_{t}+B_{t}}$ - S/$\sqrt{S+B}$) / S/$\sqrt{S+B}$",
-        "soverb",
-        [-1.5, 1.5],
     plot_h(
         h_diff_b,
         r"$B_{t} - B$",
