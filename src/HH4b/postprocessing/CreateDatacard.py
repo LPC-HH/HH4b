@@ -348,8 +348,6 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
-    # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
     "JMS": Syst(
         name=f"{CMS_PARAMS_LABEL}_jms",
         prior="shape",
