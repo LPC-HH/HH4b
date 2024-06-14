@@ -318,12 +318,18 @@ def main(args):
 
     h_pull = hist.Hist(diff_axis)
     h_pull_s = hist.Hist(diff_axis)
+    h_pull_b = hist.Hist(diff_axis)
+    h_pull_sb = hist.Hist(diff_axis)
     h_diff = hist.Hist(diff_axis)
     h_diff_s = hist.Hist(diff_axis)
+    h_diff_b = hist.Hist(diff_axis)
     pull_array = []
     pull_s_array = []
+    pull_b_array = []
+    pull_sb_array = []
     diff_array = []
     diff_s_array = []
+    diff_b_array = []
 
     # create toy from data mass distribution
     h_mass = hist.Hist(mass_axis)
@@ -520,7 +526,8 @@ def main(args):
 
             compare_to_s = truesignal_toys[biggest]
             compare_to = figure_of_merit_true_toys[biggest]
-
+            compare_to_b = truebackground_toys[biggest]
+            
             print(
                 f" Optimal {optimal_xbb_cut:.3f} {optimal_bdt_cut:.2f}, FOM: {figure_of_merit_method_toys[biggest]:.2f} \n"
                 + f" S Extract: {signal_toys[biggest]:.3f}, S True: {compare_to_s:.3f} \n"
@@ -533,11 +540,22 @@ def main(args):
 
             pull_s = (signal_toys[biggest] - compare_to_s) / compare_to_s
             diff_s = signal_toys[biggest] - compare_to_s
+            pull_b = (background_toys[biggest] - compare_to_b) / compare_to_b
+            diff_b = background_toys[biggest] - compare_to_b
+
+            pull_sb = (
+                (signal_toys[biggest] - compare_to_s)
+                * signal_toys[biggest]
+                / np.sqrt(signal_toys[biggest] + background_toys[biggest])
+            )
 
             pull_array.append(pull)
             pull_s_array.append(pull_s)
+            pull_b_array.append(pull_b)
             diff_array.append(diff)
             diff_s_array.append(diff_s)
+            diff_b_array.append(diff_b)
+            pull_sb_array.append(pull_sb)
 
             h_pull.fill(pull)
             h_diff.fill(diff)
@@ -545,20 +563,30 @@ def main(args):
             h_pull_s.fill(pull_s)
             h_diff_s.fill(diff_s)
 
+            h_pull_b.fill(pull_b)
+            h_diff_b.fill(diff_b)
+
+            h_pull_sb.fill(pull_sb)
+
             # for this toy the BDT and Xbb cut are
             print(f"{itoy} Optimal cuts: Xbb ", optimal_xbb_cut, "BDT ", optimal_bdt_cut)
 
     # plot diff
     pull_array = np.array(pull_array)
     pull_s_array = np.array(pull_s_array)
+    pull_b_array = np.array(pull_b_array)
+    pull_sb_array = np.array(pull_sb_array)
     diff_array = np.array(diff_array)
     diff_s_array = np.array(diff_s_array)
-
+    diff_b_array = np.array(diff_b_array)
     gaus_fit = {
         "pull": [np.mean(pull_array), np.std(pull_array)],
         "pull_s": [np.mean(pull_s_array), np.std(pull_s_array)],
+        "pull_b": [np.mean(pull_b_array), np.std(pull_b_array)],
+        "pull_sb": [np.mean(pull_sb_array), np.std(pull_sb_array)],
         "diff": [np.mean(diff_array), np.std(diff_array)],
         "diff_s": [np.mean(diff_s_array), np.std(diff_s_array)],
+        "diff_b": [np.mean(diff_b_array), np.std(diff_b_array)],
     }
 
     def plot_h(h_hist, xlabel, plot_name, xlim, gaus_label):
@@ -576,18 +604,19 @@ def main(args):
         ax.set_ylabel("Density")
         ax.set_xlim(xlim)
         ax.legend(title=legend_title)
+        plt.tight_layout()
         fig.savefig(f"templates/toybyxbb_{args.method}_{args.tag}_{plot_name}.png")
 
     plot_h(
         h_diff,
-        r"(S$_{t}/\sqrt{S_{t}+B_{t}}$ - S/$\sqrt{S+B}$)",
+        r"$(S_{t}/\sqrt{S_{t}+B_{t}} - S/\sqrt{S+B})$",
         "soverb_diff",
         [-2, 2],
         "diff",
     )
     plot_h(
         h_diff_s,
-        r"S$_{t}$ - S",
+        r"$S_{t} - S$",
         "s_diff",
         [-2, 2],
         "diff_s",
@@ -598,14 +627,41 @@ def main(args):
         r"(S$_{t}/\sqrt{S_{t}+B_{t}}$ - S/$\sqrt{S+B}$) / S/$\sqrt{S+B}$",
         "soverb",
         [-1.5, 1.5],
+    plot_h(
+        h_diff_b,
+        r"$B_{t} - B$",
+        "b_diff",
+        [-2, 2],
+        "diff_b",
+    )
+
+    plot_h(
+        h_pull,
+        r"$(S_{t}/\sqrt{S_{t}+B_{t}} - S/\sqrt{S+B}) / S/\sqrt{S+B}$",
+        "soverb",
+        [-2, 2],
         "pull",
     )
     plot_h(
         h_pull_s,
-        r"(S$_{t}$ - S)/S",
+        r"$(S_{t} - S)/S$",
         "s",
-        [-1.5, 1.5],
+        [-2, 2],
         "pull_s",
+    )
+    plot_h(
+        h_pull_b,
+        r"$(B_{t} - B)/B$",
+        "b",
+        [-2, 2],
+        "pull_b",
+    )
+    plot_h(
+        h_pull_sb,
+        r"$(S_{t} - S)S_{t}/\sqrt{S_{t}+B_{t}}$",
+        "sb",
+        [-2, 2],
+        "pull_sb",
     )
 
 

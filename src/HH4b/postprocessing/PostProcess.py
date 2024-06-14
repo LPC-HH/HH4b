@@ -236,7 +236,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             preds = bdt_model.predict_proba(bdt_events[jshift])
             add_bdt_scores(bdt_events[jshift], preds, jshift, weight_ttbar=args.weight_ttbar_bdt)
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-        print("inference done")
 
         # remove duplicates
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
@@ -346,7 +345,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # tt corrections
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            print("Adding TT corrections")
             ptjjsf, _, _ = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")
             tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
                 year, bdt_events, "Tau3OverTau2", "H1T32"
@@ -977,6 +975,7 @@ def postprocess_run3(args):
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
+    print("bg keys", bg_keys)
 
     if len(args.years) > 1:
         scaled_by_years = {

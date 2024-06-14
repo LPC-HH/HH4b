@@ -291,7 +291,6 @@ def trigger_SF(
     )
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")
-
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
     txbb = "txbbv11" if legacy else "txbb"

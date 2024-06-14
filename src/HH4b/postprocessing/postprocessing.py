@@ -125,8 +125,8 @@ for jshift in jec_shifts:
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
     ]
-
 load_columns_signal = []
+
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
@@ -158,7 +158,6 @@ for i in range(len(decorr_bdt_bins) - 1):
 
 txbbsfs_decorr_txbb_bins = [0.975, 0.95, 0.92]
 txbbsfs_decorr_pt_bins = [200, 250, 300, 400, 500, 100000]
-
 
 def load_run3_samples(
     input_dir: str,
