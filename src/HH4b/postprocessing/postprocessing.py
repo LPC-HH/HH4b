@@ -16,9 +16,9 @@ from HH4b import plotting, utils
 from HH4b.hh_vars import (
     LUMI,
     bg_keys,
-    sig_keys,
     data_key,
     jec_shifts,
+    sig_keys,
     syst_keys,
     years,
 )
@@ -132,7 +132,9 @@ weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
     "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
-    "TXbbSF_correlated": Syst(samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]),
+    "TXbbSF_correlated": Syst(
+        samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
+    ),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
@@ -144,14 +146,18 @@ ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
 for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
-    weight_shifts[f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"] = Syst(
+    weight_shifts[
+        f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
+    ] = Syst(
         samples=["ttbar"],
         label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[i]}, {ttbarsfs_decorr_txbb_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
 
 for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
-    weight_shifts[f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"] = Syst(
+    weight_shifts[
+        f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"
+    ] = Syst(
         samples=["ttbar"],
         label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
@@ -162,11 +168,14 @@ txbbsfs_decorr_pt_bins = [250, 300, 400, 500, 100000]
 
 for i in range(len(txbbsfs_decorr_txbb_bins) - 1):
     for j in range(len(txbbsfs_decorr_pt_bins) - 1):
-        weight_shifts[f"TXbbSF_uncorrelated_TXbb_bin_{txbbsfs_decorr_txbb_bins[i]}_{txbbsfs_decorr_txbb_bins[i+1]}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"] = Syst(
+        weight_shifts[
+            f"TXbbSF_uncorrelated_TXbb_bin_{txbbsfs_decorr_txbb_bins[i]}_{txbbsfs_decorr_txbb_bins[i+1]}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
             samples=sig_keys,
             label=f"TXbb SF uncorrelated TXbb bin [{txbbsfs_decorr_txbb_bins[i]}, {txbbsfs_decorr_txbb_bins[i+1]}], pT bin [{txbbsfs_decorr_pt_bins[j]}, {txbbsfs_decorr_pt_bins[j+1]}]",
             years=years + ["2022-2023"],
         )
+
 
 def load_run3_samples(
     input_dir: str,

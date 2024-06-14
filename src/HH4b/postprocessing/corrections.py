@@ -24,11 +24,12 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict, pt_bins: list):
     txbb_bins = np.array([0] + [txbb_wps[year][wp] for wp in wps] + [1])
     pt_bins = np.array(pt_bins)
     edges = (txbb_bins, pt_bins)
-    keys = [("final", "central"), 
-            ("final", "high"),
-            ("final", "low")
-            ("stats", "high"), 
-            ("stats", "low")]
+    keys = [
+        ("final", "central"),
+        ("final", "high"),
+        ("final", "low")("stats", "high"),
+        ("stats", "low"),
+    ]
     vals = {}
 
     for key1, key2 in keys:
