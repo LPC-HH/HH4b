@@ -450,7 +450,9 @@ def get_templates(
                             ] = templ_region_original.copy()
                     samples = list(templates_dict[year][region].axes[0])
                     for sample in samples:
-                        if any([sample_check in sample for sample_check in jmsr_keys]):  # noqa: C419
+                        if any(
+                            [sample_check in sample for sample_check in jmsr_keys]
+                        ):
                             templ_original = templates_dict[year][region_noblinded][
                                 sample, :
                             ].copy()
