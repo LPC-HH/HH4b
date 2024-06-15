@@ -18,7 +18,7 @@ import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
-from HH4b.hh_vars import LUMI, bg_keys, sig_keys, samples_run3, years  # noqa: F401
+from HH4b.hh_vars import LUMI, bg_keys, samples_run3, sig_keys, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -1230,6 +1230,7 @@ def postprocess_run3(args):
         )
         postprocessing.save_templates(templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var)
     """
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
