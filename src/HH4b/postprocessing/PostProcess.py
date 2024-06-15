@@ -202,7 +202,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     trigger_region = "QCD"
 
     # load TXbb SFs
-    txbb_sf = corrections._load_txbb_sfs(year, "sf_txbbv11_Jun14", txbbsfs_decorr_txbb_wps, txbbsfs_decorr_pt_bins)
+    txbb_sf = corrections._load_txbb_sfs(
+        year, "sf_txbbv11_Jun14", txbbsfs_decorr_txbb_wps, txbbsfs_decorr_pt_bins
+    )
 
     events_dict_postprocess = {}
     columns_by_key = {}

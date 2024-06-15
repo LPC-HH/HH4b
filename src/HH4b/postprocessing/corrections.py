@@ -13,7 +13,7 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str: list], pt_bins: list):
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: list):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     with (package_path / f"corrections/data/txbb_sfs/{fname}.json").open() as f:
@@ -77,9 +77,9 @@ def _load_ttbar_sfs(year: str, corr: str):
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    return correctionlib.CorrectionSet.from_file(f"{package_path}/corrections/data/ttbarcorr_{year_}.json")[
-        f"ttbar_corr_{corr}_{year_}"
-    ]
+    return correctionlib.CorrectionSet.from_file(
+        f"{package_path}/corrections/data/ttbarcorr_{year_}.json"
+    )[f"ttbar_corr_{corr}_{year_}"]
 
 
 def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str):
