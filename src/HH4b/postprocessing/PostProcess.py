@@ -1327,7 +1327,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=sig_keys,
+        default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
         help="sig keys for which to make templates",
     )
     parser.add_argument("--pt-first", type=float, default=300, help="pt threshold for leading jet")
