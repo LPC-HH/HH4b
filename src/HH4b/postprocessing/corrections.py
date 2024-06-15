@@ -16,7 +16,7 @@ package_path = Path(__file__).parent.parent.resolve()
 def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: list):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
-    with (package_path / f"corrections/data/txbb_sfs/{fname}.json").open() as f:
+    with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])

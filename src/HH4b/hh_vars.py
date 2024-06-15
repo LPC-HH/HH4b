@@ -278,7 +278,11 @@ bg_keys.remove("data")
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
 sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
-sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
+sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0", "vbfhh4b-k2v2", "vbfhh4b-kl2", 
+                "vbfhh4b-kv1p74-k2v1p37-kl14p4", "vbfhh4b-kvm0p012-k2v0p03-kl10p2",
+                "vbfhh4b-kvm0p758-k2v1p44-klm19p3", "vbfhh4b-kv0p962-k2v0p959-kl1p43", 
+                "vbfhh4b-kvm1p21-k2v1p94-klm0p94", "vbfhh4b-kvm1p6-k2v2p72-klm1p36", 
+                "vbfhh4b-kvm1p83-k2v3p57-klm3p39", "vbfhh4b-kvm2p12-k2v3p87-klm5p96"]
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 # keys that require running up/down systematics
@@ -321,9 +325,6 @@ jecs = {
     # "JES_SinglePionECAL": "JES_SinglePionECAL",
     # "JES_TimePtEta": "JES_TimePtEta",
 }
-
-# turn off jecs for now
-jecs = {}
 
 jec_shifts = []
 for key in jecs:
