@@ -18,7 +18,7 @@ import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
-from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
+from HH4b.hh_vars import LUMI, bg_keys, sig_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -1195,7 +1195,7 @@ def postprocess_run3(args):
                 plot_dir=Path(f"{templ_dir}/{year}"),
                 weight_key="weight",
                 weight_shifts=weight_shifts,
-                plot_shifts=True,
+                plot_shifts=False,  # skip for time
                 show=False,
                 energy=13.6,
                 jshift=jshift,
@@ -1206,27 +1206,30 @@ def postprocess_run3(args):
         postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
 
     # combined templates
-    (templ_dir / "cutflows" / "2022-2023").mkdir(parents=True, exist_ok=True)
-    (templ_dir / "2022-2023").mkdir(parents=True, exist_ok=True)
-    templates = postprocessing.get_templates(
-        events_combined,
-        year="2022-2023",
-        sig_keys=args.sig_keys,
-        selection_regions=selection_regions,
-        shape_vars=[fit_shape_var],
-        systematics={},
-        template_dir=templ_dir,
-        bg_keys=bg_keys_combined,
-        plot_dir=Path(f"{templ_dir}/2022-2023"),
-        weight_key="weight",
-        weight_shifts=weight_shifts,
-        plot_shifts=True,
-        show=False,
-        energy=13.6,
-        jshift="",
-    )
-    postprocessing.save_templates(templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var)
-
+    # skip for time
+    """
+    if len(args.years) > 0:
+        (templ_dir / "cutflows" / "2022-2023").mkdir(parents=True, exist_ok=True)
+        (templ_dir / "2022-2023").mkdir(parents=True, exist_ok=True)
+        templates = postprocessing.get_templates(
+            events_combined,
+            year="2022-2023",
+            sig_keys=args.sig_keys,
+            selection_regions=selection_regions,
+            shape_vars=[fit_shape_var],
+            systematics={},
+            template_dir=templ_dir,
+            bg_keys=bg_keys_combined,
+            plot_dir=Path(f"{templ_dir}/2022-2023"),
+            weight_key="weight",
+            weight_shifts=weight_shifts,
+            plot_shifts=False,
+            show=False,
+            energy=13.6,
+            jshift="",
+        )
+        postprocessing.save_templates(templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var)
+    """
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -1323,7 +1326,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+        default=sig_keys,
         help="sig keys for which to make templates",
     )
     parser.add_argument("--pt-first", type=float, default=300, help="pt threshold for leading jet")
