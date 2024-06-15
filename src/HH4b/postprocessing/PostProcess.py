@@ -285,7 +285,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             h2pt = bdt_events["H2Pt"].to_numpy()
             h1txbb = bdt_events["H1TXbb"].to_numpy()
             h2txbb = bdt_events["H2TXbb"].to_numpy()
-            txbb_sf_weight = txbb_sf["nominal"](h1txbb, h1pt) * txbb_sf["nominal"](h2txbb, h2pt)
+            txbb_range = [0.92, 1]
+            pt_range = [250, 100000]
+            txbb_sf_weight1 = corrections.restrict_SF(txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range)
+            txbb_sf_weight2 = corrections.restrict_SF(txbb_sf["nominal"], h2txbb, h2pt, txbb_range, pt_range)
+            txbb_sf_weight = txbb_sf_weight1 * txbb_sf_weight2
 
         # TODO: apply to Single Higgs processes
         # need to match fatjet to Gen-Level single H
@@ -346,11 +350,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             h2pt = bdt_events["H2Pt"].to_numpy()
             h1txbb = bdt_events["H1TXbb"].to_numpy()
             h2txbb = bdt_events["H2TXbb"].to_numpy()
+            txbb_range = [0.92, 1]
+            pt_range = [250, 100000]
             # correlated signal xbb up/dn variations
-            corr_up1 = txbb_sf["corr_up"](h1txbb, h1pt)
-            corr_up2 = txbb_sf["corr_up"](h2txbb, h2pt)
-            corr_dn1 = txbb_sf["corr_dn"](h1txbb, h1pt)
-            corr_dn2 = txbb_sf["corr_dn"](h2txbb, h2pt)
+            corr_up1 = corrections.restrict_SF(txbb_sf["corr_up"], h1txbb, h1pt, txbb_range, pt_range)
+            corr_up2 = corrections.restrict_SF(txbb_sf["corr_up"], h2txbb, h2pt, txbb_range, pt_range)
+            corr_dn1 = corrections.restrict_SF(txbb_sf["corr_dn"], h1txbb, h1pt, txbb_range, pt_range)
+            corr_dn2 = corrections.restrict_SF(txbb_sf["corr_dn"], h2txbb, h2pt, txbb_range, pt_range)
             bdt_events["weight_TXbbSF_correlatedUp"] = (
                 bdt_events["weight"] * corr_up1 * corr_up2 / txbb_sf_weight
             )
@@ -1159,8 +1165,8 @@ def postprocess_run3(args):
         selection_regions.pop("pass_vbf")
 
     # individual templates per year
-    templates = {}
     for year in args.years:
+        templates = {}
         for jshift in [""] + hh_vars.jec_shifts:
             events_by_year = {}
             for sample, events in events_combined.items():
@@ -1190,7 +1196,7 @@ def postprocess_run3(args):
     # combined templates
     (templ_dir / "cutflows" / "2022-2023").mkdir(parents=True, exist_ok=True)
     (templ_dir / "2022-2023").mkdir(parents=True, exist_ok=True)
-    ttemps = postprocessing.get_templates(
+    templates = postprocessing.get_templates(
         events_combined,
         year="2022-2023",
         sig_keys=args.sig_keys,
@@ -1207,6 +1213,7 @@ def postprocess_run3(args):
         energy=13.6,
         jshift="",
     )
+    postprocessing.save_templates(templates, templ_dir / f"2022-2023_templates.pkl", fit_shape_var)
 
 
 if __name__ == "__main__":
