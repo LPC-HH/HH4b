@@ -27,7 +27,7 @@ from HH4b.postprocessing import (
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
-    txbbsfs_decorr_txbb_bins,
+    txbbsfs_decorr_txbb_wps,
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
@@ -186,7 +186,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb")
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
-    tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs(args.bdt_model, "cat5")
+    tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
 
     # get function
     make_bdt_dataframe = importlib.import_module(
@@ -202,13 +202,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     trigger_region = "QCD"
 
     # load TXbb SFs
-    txbb_wps = {
-        "2022": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
-        "2022EE": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
-        "2023": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
-        "2023BPix": {"WP1": 0.975, "WP2": 0.95, "WP3": 0.92},
-    }
-    txbb_sf = corrections._load_txbb_sfs(year, "sf_txbbv11_Jun14", txbb_wps, txbbsfs_decorr_pt_bins)
+    txbb_sf = corrections._load_txbb_sfs(year, "sf_txbbv11_Jun14", txbbsfs_decorr_txbb_wps, txbbsfs_decorr_pt_bins)
 
     events_dict_postprocess = {}
     columns_by_key = {}
@@ -285,10 +279,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # TXbbWeight
         txbb_sf_weight = np.ones(nevents)
         if "hh" in key:
-            h1pt = bdt_events["H1Pt"]
-            h2pt = bdt_events["H2Pt"]
-            h1txbb = bdt_events["H1TXbb"]
-            h2txbb = bdt_events["H2TXbb"]
+            h1pt = bdt_events["H1Pt"].to_numpy()
+            h2pt = bdt_events["H2Pt"].to_numpy()
+            h1txbb = bdt_events["H1TXbb"].to_numpy()
+            h2txbb = bdt_events["H2TXbb"].to_numpy()
             txbb_sf_weight = txbb_sf["nominal"](h1txbb, h1pt) * txbb_sf["nominal"](h2txbb, h2pt)
 
         # TODO: apply to Single Higgs processes
@@ -346,15 +340,15 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight * txbb_sf_weight
 
         if "hh" in key:
-            h1pt = bdt_events["H1Pt"]
-            h2pt = bdt_events["H2Pt"]
-            h1txbb = bdt_events["H1TXbb"]
-            h2txbb = bdt_events["H2TXbb"]
+            h1pt = bdt_events["H1Pt"].to_numpy()
+            h2pt = bdt_events["H2Pt"].to_numpy()
+            h1txbb = bdt_events["H1TXbb"].to_numpy()
+            h2txbb = bdt_events["H2TXbb"].to_numpy()
             # correlated signal xbb up/dn variations
-            corr_up1 = corrections.restrict_SF(txbb_sf["corr_up"], h1txbb, h1pt)
-            corr_up2 = corrections.restrict_SF(txbb_sf["corr_up"], h2txbb, h2pt)
-            corr_dn1 = corrections.restrict_SF(txbb_sf["corr_dn"], h1txbb, h1pt)
-            corr_dn2 = corrections.restrict_SF(txbb_sf["corr_dn"], h2txbb, h2pt)
+            corr_up1 = txbb_sf["corr_up"](h1txbb, h1pt)
+            corr_up2 = txbb_sf["corr_up"](h2txbb, h2pt)
+            corr_dn1 = txbb_sf["corr_dn"](h1txbb, h1pt)
+            corr_dn2 = txbb_sf["corr_dn"](h2txbb, h2pt)
             bdt_events["weight_TXbbSF_correlatedUp"] = (
                 bdt_events["weight"] * corr_up1 * corr_up2 / txbb_sf_weight
             )
@@ -363,55 +357,55 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
 
             # uncorrelated signal xbb up/dn variations in bins
-            for i in range(len(txbbsfs_decorr_txbb_bins) - 1):
+            for wp in txbbsfs_decorr_txbb_wps:
                 for j in range(len(txbbsfs_decorr_pt_bins) - 1):
                     nominal1 = corrections.restrict_SF(
                         txbb_sf["nominal"],
                         h1txbb,
                         h1pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     nominal2 = corrections.restrict_SF(
                         txbb_sf["nominal"],
                         h2txbb,
                         h2pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     stat_up1 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
                         h1txbb,
                         h1pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     stat_up2 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
                         h2txbb,
                         h2pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     stat_dn1 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
                         h1txbb,
                         h1pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     stat_dn2 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
                         h2txbb,
                         h2pt,
-                        txbbsfs_decorr_txbb_bins[i : i + 2],
+                        txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
                     )
                     bdt_events[
-                        f"weight_TXbbSF_uncorrelated_TXbb_bin_{txbbsfs_decorr_txbb_bins[i]}_{txbbsfs_decorr_txbb_bins[i+1]}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Up"
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Up"
                     ] = (bdt_events["weight"] * stat_up1 * stat_up2 / (nominal1 * nominal2))
                     bdt_events[
-                        f"weight_TXbbSF_uncorrelated_TXbb_bin_{txbbsfs_decorr_txbb_bins[i]}_{txbbsfs_decorr_txbb_bins[i+1]}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Down"
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Down"
                     ] = (bdt_events["weight"] * stat_dn1 * stat_dn2 / (nominal1 * nominal2))
 
         if key == "ttbar":

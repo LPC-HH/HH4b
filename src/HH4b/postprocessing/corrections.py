@@ -13,35 +13,34 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict, pt_bins: list):
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str: list], pt_bins: list):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     with (package_path / f"corrections/data/txbb_sfs/{fname}.json").open() as f:
         txbb_sf = json.load(f)
 
-    wps = ["WP1", "WP2", "WP3"]
-
-    txbb_bins = np.array([0] + [txbb_wps[year][wp] for wp in wps] + [1])
+    txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
     pt_bins = np.array(pt_bins)
     edges = (txbb_bins, pt_bins)
     keys = [
         ("final", "central"),
         ("final", "high"),
-        ("final", "low")("stats", "high"),
+        ("final", "low"),
+        ("stats", "high"),
         ("stats", "low"),
     ]
-    vals = {}
+    vals = {key: [] for key in keys}
 
     for key1, key2 in keys:
-        for wp in wps:
+        for wp in txbb_wps:
             wval = []
             for low, high in zip(pt_bins[:-1], pt_bins[1:]):
-                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1, key2])
-            vals[(key1, key2)].append(wval)
+                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+            vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 
-    corr_err_high = np.sqrt(vals["final, high"] ** 2 - vals["stats, high"] ** 2)
-    corr_err_low = np.sqrt(vals["final, low"] ** 2 - vals["stats, low"] ** 2)
+    corr_err_high = np.sqrt(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2)
+    corr_err_low = np.sqrt(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2)
 
     txbb_sf = {
         "nominal": dense_lookup(vals["final", "central"], edges),
@@ -50,17 +49,19 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict, pt_bins: list):
         "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
         "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
     }
+
     return txbb_sf
 
 
 def restrict_SF(
-    sf: ArrayLike,
+    lookup: dense_lookup,
     txbb: ArrayLike,
     pt: ArrayLike,
     txbb_input_range: ArrayLike | None = None,
     pt_input_range: ArrayLike | None = None,
 ):
     """Apply txbb scale factors"""
+    sf = lookup(txbb, pt)
     if txbb_input_range is not None:
         sf[txbb < txbb_input_range[0]] = 1.0
         sf[txbb > txbb_input_range[1]] = 1.0
@@ -76,14 +77,14 @@ def _load_ttbar_sfs(year: str, corr: str):
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    return correctionlib.CorrectionSet.from_file(f"../corrections/data/ttbarcorr_{year_}.json")[
+    return correctionlib.CorrectionSet.from_file(f"{package_path}/corrections/data/ttbarcorr_{year_}.json")[
         f"ttbar_corr_{corr}_{year_}"
     ]
 
 
 def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str):
     return correctionlib.CorrectionSet.from_file(
-        f"../corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
+        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]
 
 
@@ -116,7 +117,7 @@ def ttbar_SF(
 
 def _load_trig_effs(year: str, label: str, region: str):
     return correctionlib.CorrectionSet.from_file(
-        f"../corrections/data/fatjet_triggereff_{year}_{label}_{region}.json"
+        f"{package_path}/corrections/data/fatjet_triggereff_{year}_{label}_{region}.json"
     )
 
 
@@ -289,11 +290,7 @@ def trigger_SF(
         350.0,
     ]
 
-    xbb_axis = (
-        hist.axis.Variable(xbbv11_range, name="xbb")
-        if legacy
-        else hist.axis.Variable(xbb_range, name="xbb")
-    )
+    xbb_axis = hist.axis.Variable(xbbv11_range if legacy else xbb_range, name="xbb")
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")
     # load trigger efficiencies
