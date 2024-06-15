@@ -18,7 +18,7 @@ import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
-from HH4b.hh_vars import LUMI, bg_keys, samples_run3, sig_keys, years  # noqa: F401
+from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -1327,7 +1327,7 @@ if __name__ == "__main__":
         "--sig-keys",
         type=str,
         nargs="+",
-        default=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+        default=hh_vars.sig_keys,
         help="sig keys for which to make templates",
     )
     parser.add_argument("--pt-first", type=float, default=300, help="pt threshold for leading jet")

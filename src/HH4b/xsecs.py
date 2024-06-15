@@ -252,10 +252,10 @@ xsecs["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] =
     0.01139 * BR_HBB * BR_HBB
 )
 
-xsecs["VBFHHto4B_CV-m1p83_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+xsecs["VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.02165 * BR_HBB * BR_HBB
 )
-xsecs["VBFHHto4B_CV_m1p83_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+xsecs["VBFHHto4B_CV_m1p83_C2V_3p57_C3_m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.02165 * BR_HBB * BR_HBB
 )
 

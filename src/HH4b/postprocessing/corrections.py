@@ -39,8 +39,8 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: lis
             vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 
-    corr_err_high = np.sqrt(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2)
-    corr_err_low = np.sqrt(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2)
+    corr_err_high = np.sqrt(np.maximum(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2, 0))
+    corr_err_low = np.sqrt(np.maximum(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2, 0))
 
     txbb_sf = {
         "nominal": dense_lookup(vals["final", "central"], edges),
