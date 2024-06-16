@@ -361,8 +361,8 @@ corr_year_shape_systs = {
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(
-        name="CMS_res_j", 
-        prior="shape", 
+        name="CMS_res_j",
+        prior="shape",
         samples=all_mc,
         convert_shape_to_lnN=True,
         uncorr_years={
@@ -370,7 +370,7 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
-        }
+        },
     ),
     "JMS": Syst(
         name=f"{CMS_PARAMS_LABEL}_jms",
@@ -429,7 +429,7 @@ for wp in txbbsfs_decorr_txbb_wps:
         uncorr_year_shape_systs[
             f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
         ] = Syst(
-            name = f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
+            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
             prior="shape",
             samples=sig_keys,
             convert_shape_to_lnN=True,

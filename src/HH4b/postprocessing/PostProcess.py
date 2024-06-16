@@ -18,7 +18,14 @@ import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
-from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years, ttbarsfs_decorr_bdt_bins, ttbarsfs_decorr_txbb_bins, txbbsfs_decorr_pt_bins, txbbsfs_decorr_txbb_wps  # noqa: F401
+from HH4b.hh_vars import (
+    bg_keys,
+    samples_run3,
+    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_txbb_bins,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
+)
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -1025,7 +1032,7 @@ def postprocess_run3(args):
             "vbfhh4b-kv0p962-k2v0p959-kl1p43": ["2022", "2023BPix"],
             "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["2022", "2022EE", "2023BPix"],
             "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["2023", "2023BPix"],           
+            "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["2023", "2023BPix"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,

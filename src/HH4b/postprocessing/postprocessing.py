@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pickle
 import sys
-from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,11 +20,11 @@ from HH4b.hh_vars import (
     jec_shifts,
     sig_keys,
     syst_keys,
-    years,
-    ttbarsfs_decorr_txbb_bins,
     ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
+    years,
 )
 
 # define ShapeVar (label and bins for a given variable)

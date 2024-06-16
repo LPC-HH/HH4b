@@ -5,6 +5,7 @@ Authors: Raghav Kansal, Cristina Suarez
 """
 
 from __future__ import annotations
+
 from collections import OrderedDict
 
 years = ["2022", "2022EE", "2023", "2023BPix"]
