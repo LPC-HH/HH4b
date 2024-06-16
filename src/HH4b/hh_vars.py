@@ -132,9 +132,6 @@ samples_run3_sig = {
         "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
             "VBFHHto4B_CV_1p74_C2V_1p37_C3_14p4_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
-            "VBFHHto4B_CV_m0p758_C2V_1p44_C3_m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
         "vbfhh4b-kvm0p962-k2v0p959-kl1p43": [
             "VBFHHto4B_CV_m0p962_C2V_0p959_C3_m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
