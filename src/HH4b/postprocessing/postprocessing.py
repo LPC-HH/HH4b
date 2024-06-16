@@ -22,6 +22,10 @@ from HH4b.hh_vars import (
     sig_keys,
     syst_keys,
     years,
+    ttbarsfs_decorr_txbb_bins,
+    ttbarsfs_decorr_bdt_bins,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
 )
 
 # define ShapeVar (label and bins for a given variable)
@@ -143,9 +147,6 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
 
-ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
-ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
-
 for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
     weight_shifts[
         f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
@@ -163,10 +164,6 @@ for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
         label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
-txbbsfs_decorr_txbb_wps = OrderedDict(
-    [("WP3", [0.92, 0.95]), ("WP2", [0.95, 0.975]), ("WP1", [0.975, 1])]
-)
-txbbsfs_decorr_pt_bins = [250, 300, 400, 500, 100000]
 
 for wp in txbbsfs_decorr_txbb_wps:
     for j in range(len(txbbsfs_decorr_pt_bins) - 1):

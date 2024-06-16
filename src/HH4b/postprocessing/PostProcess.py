@@ -18,16 +18,12 @@ import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
-from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years  # noqa: F401
+from HH4b.hh_vars import LUMI, bg_keys, samples_run3, years, ttbarsfs_decorr_bdt_bins, ttbarsfs_decorr_txbb_bins, txbbsfs_decorr_pt_bins, txbbsfs_decorr_txbb_wps  # noqa: F401
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     corrections,
     load_run3_samples,
-    ttbarsfs_decorr_bdt_bins,
-    ttbarsfs_decorr_txbb_bins,
-    txbbsfs_decorr_pt_bins,
-    txbbsfs_decorr_txbb_wps,
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
@@ -1022,7 +1018,14 @@ def postprocess_run3(args):
 
     if len(args.years) > 1:
         scaled_by_years = {
-            # "vbfhh4b-k2v0": ["2022", "2022EE", "2023"],
+            "vbfhh4b-k2v2": ["2022", "2022EE"],
+            "vbfhh4b-kl2": ["2022", "2022EE"],
+            "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["2022", "2022EE", "2023BPix"],
+            "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["2022", "2022EE", "2023BPix"],
+            "vbfhh4b-kv0p962-k2v0p959-kl1p43": ["2022", "2023BPix"],
+            "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["2022", "2022EE", "2023BPix"],
+            "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["2022", "2022EE", "2023BPix"],
+            "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["2023", "2023BPix"],           
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,

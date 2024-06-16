@@ -5,6 +5,7 @@ Authors: Raghav Kansal, Cristina Suarez
 """
 
 from __future__ import annotations
+from collections import OrderedDict
 
 years = ["2022", "2022EE", "2023", "2023BPix"]
 
@@ -369,3 +370,11 @@ jmsr_vars = [
     #    "VBFjjMass",
     #    "Category",
 ]
+
+ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
+ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
+
+txbbsfs_decorr_txbb_wps = OrderedDict(
+    [("WP3", [0.92, 0.95]), ("WP2", [0.95, 0.975]), ("WP1", [0.975, 1])]
+)
+txbbsfs_decorr_pt_bins = [250, 300, 400, 500, 100000]

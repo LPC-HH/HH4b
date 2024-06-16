@@ -39,6 +39,8 @@ from HH4b.hh_vars import (
     qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
 )
 from HH4b.hh_vars import (
     years as hh_years,
@@ -164,6 +166,16 @@ mc_samples_sig = OrderedDict(
         ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
         ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
         ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
+        ("vbfhh4b-k2v2", "qqHH_CV_1_C2V_2_kl_1_hbbhbb"),
+        ("vbfhh4b-kl2", "qqHH_CV_1_C2V_1_kl_2_hbbhbb"),
+        ("vbfhh4b-kv1p74-k2v1p37-kl14p4", "qqHH_CV_1p74_C2V_1p37_kl_14p4_hbbhbb"),
+        ("vbfhh4b-kvm0p012-k2v0p03-kl10p2", "qqHH_CV_m0p012_C2V_0p03_kl_10p2_hbbhbb"),
+        ("vbfhh4b-kvm0p758-k2v1p44-klm19p3", "qqHH_CV_m0p758_C2V_1p44_kl_m19p3_hbbhbb"),
+        ("vbfhh4b-kv0p962-k2v0p959-kl1p43", "qqHH_CV_0p962_C2V_0p959_kl_1p43_hbbhbb"),
+        ("vbfhh4b-kvm1p21-k2v1p94-klm0p94", "qqHH_CV_m1p21_C2V_1p94_kl_m0p94_hbbhbb"),
+        ("vbfhh4b-kvm1p6-k2v2p72-klm1p36", "qqHH_CV_m1p60_C2V_2p72_kl_m1p36_hbbhbb"),
+        ("vbfhh4b-kvm1p83-k2v3p57-klm3p39", "qqHH_CV_m1p83_C2V_3p57_kl_m3p39_hbbhbb"),
+        ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_hbbhbb"),
     ]
 )
 
@@ -293,7 +305,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    # "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_AbsoluteMPFBias", prior="shape", samples=all_mc),
+    "JES_AbsoluteScale": Syst(name="CMS_scale_j_AbsoluteScale", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -306,48 +318,60 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    # "ttbarSF_BDT_bin_0.03_0.3": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.3_0.5": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.5_0.7": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.7_0.93": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.93_1": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
-    # "txbb": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
-    #     prior="shape",
-    #     samples=sig_keys,
-    #     pass_only=True,
-    # ),
+    "ttbarSF_BDT_bin_0.03_0.3": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.3_0.5": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.5_0.7": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.7_0.93": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.93_1": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
+    "TXbbSF_correlated": Syst(
+        name=f"{CMS_PARAMS_LABEL}_txbb_sf_correlated",
+        prior="shape",
+        samples=sig_keys,
+        pass_only=True,
+        convert_shape_to_lnN=True,
+    ),
 }
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
-    # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
+    "JER": Syst(
+        name="CMS_res_j", 
+        prior="shape", 
+        samples=all_mc,
+        convert_shape_to_lnN=True,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        }
+    ),
     "JMS": Syst(
         name=f"{CMS_PARAMS_LABEL}_jms",
         prior="shape",
@@ -399,6 +423,23 @@ uncorr_year_shape_systs = {
         uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     ),
 }
+
+for wp in txbbsfs_decorr_txbb_wps:
+    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+        uncorr_year_shape_systs[
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
+            name = f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
+            prior="shape",
+            samples=sig_keys,
+            convert_shape_to_lnN=True,
+            uncorr_years={
+                "2022": ["2022"],
+                "2022EE": ["2022EE"],
+                "2023": ["2023"],
+                "2023BPix": ["2023BPix"],
+            },
+        )
 
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
