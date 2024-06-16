@@ -1029,7 +1029,6 @@ def postprocess_run3(args):
             "vbfhh4b-kl2": ["2022", "2022EE"],
             "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["2022", "2022EE", "2023BPix"],
             "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kv0p962-k2v0p959-kl1p43": ["2022", "2023BPix"],
             "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["2022", "2022EE", "2023BPix"],
             "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["2022", "2022EE", "2023BPix"],
             "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["2023", "2023BPix"],
