@@ -122,7 +122,9 @@ add_bool_arg(
     default=False,
 )
 add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
-add_bool_arg(parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True)
+add_bool_arg(
+    parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
+)
 args = parser.parse_args()
 
 
