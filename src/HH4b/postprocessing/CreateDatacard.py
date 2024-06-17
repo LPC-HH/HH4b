@@ -122,7 +122,7 @@ add_bool_arg(
     default=False,
 )
 add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
-add_bool_arg(parser, "txbb-sfs", "Do txbb sf uncertainties", default=False)
+add_bool_arg(parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True)
 args = parser.parse_args()
 
 
@@ -219,6 +219,11 @@ jmsr_values["JMS"] = {
 }
 jmsr_keys = sig_keys + ["vhtobb", "diboson"]
 
+
+br_hbb_values = {key: 1.0124**2 for key in sig_keys}
+br_hbb_values.update({key: 1.0124 for key in single_h_keys})
+br_hbb_values_down = {key: 0.9874**2 for key in sig_keys}
+br_hbb_values_down.update({key: 0.9874 for key in single_h_keys})
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties
@@ -226,18 +231,8 @@ nuisance_params = {
     "BR_hbb": Syst(
         prior="lnN",
         samples=sig_keys + single_h_keys,
-        value={
-            "hh4b": 1.0124**2,
-            "vbfhh4b": 1.0124**2,
-            "vhtobb": 1.0124,
-            "tthtobb": 1.0124,
-        },
-        value_down={
-            "hh4b": 0.9874**2,
-            "vbfhh4b": 0.9874**2,
-            "vhtobb": 0.9874,
-            "tthtobb": 0.9874,
-        },
+        value=br_hbb_values,
+        value_down=br_hbb_values_down,
         diff_samples=True,
     ),
     "pdf_gg": Syst(prior="lnN", samples=["ttbar"], value=1.042),
@@ -276,6 +271,8 @@ nuisance_params = {
     # apply 2022 uncertainty to all MC (until 2023 rec.)
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
+if not args.thu_hh:
+    del nuisance_params["THU_HH"]
 
 rate_params = {}
 if args.ttbar_rate_param:
@@ -425,25 +422,22 @@ uncorr_year_shape_systs = {
     ),
 }
 
-if args.txbb_sfs:
-    for wp in txbbsfs_decorr_txbb_wps:
-        for j in range(len(txbbsfs_decorr_pt_bins) - 1):
-            uncorr_year_shape_systs[
-                f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
-            ] = Syst(
-                name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
-                prior="shape",
-                samples=sig_keys,
-                convert_shape_to_lnN=True,
-                uncorr_years={
-                    "2022": ["2022"],
-                    "2022EE": ["2022EE"],
-                    "2023": ["2023"],
-                    "2023BPix": ["2023BPix"],
-                },
-            )
-else:
-    del corr_year_shape_systs["TXbbSF_correlated"]
+for wp in txbbsfs_decorr_txbb_wps:
+    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+        uncorr_year_shape_systs[
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
+            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
+            prior="shape",
+            samples=sig_keys,
+            convert_shape_to_lnN=True,
+            uncorr_years={
+                "2022": ["2022"],
+                "2022EE": ["2022EE"],
+                "2023": ["2023"],
+                "2023BPix": ["2023BPix"],
+            },
+        )
 
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
@@ -703,6 +697,7 @@ def fill_regions(
                     val = val[region]
                     val_down = val_down[region] if val_down is not None else val_down
                 if syst.diff_samples:
+                    print(skey)
                     val = val[sample_name]
                     val_down = val_down[sample_name] if val_down is not None else val_down
 

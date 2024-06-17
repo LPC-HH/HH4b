@@ -297,6 +297,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 txbb_sf["nominal"], h2txbb, h2pt, txbb_range, pt_range
             )
             txbb_sf_weight = txbb_sf_weight1 * txbb_sf_weight2
+            # plt.figure()
+            # plt.hist(txbb_sf_weight[h2txbb > 0.975], bins=50, range=[0.5, 1.5], histtype="step", label=f"ggF HH4b, mean = {np.mean(txbb_sf_weight[h2txbb > 0.975]):.3f}, std = {np.std(txbb_sf_weight[h2txbb > 0.975]):.3f}")
+            # plt.xlabel("Event weight = H1 TXbb SF * H2 TXbb SF")
+            # plt.ylabel("Events")
+            # plt.legend(title=f"{year} [H2 TXbb > 0.975]")
+            # plt.savefig(f"txbb_sf_weight_{year}.png")
 
         # TODO: apply to Single Higgs processes
         # need to match fatjet to Gen-Level single H
@@ -1196,6 +1202,7 @@ def postprocess_run3(args):
                 events_by_year,
                 year=year,
                 sig_keys=args.sig_keys,
+                plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
                 selection_regions=selection_regions,
                 shape_vars=[fit_shape_var],
                 systematics={},
