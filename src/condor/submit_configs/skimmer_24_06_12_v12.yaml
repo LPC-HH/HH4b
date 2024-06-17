@@ -1,0 +1,44 @@
+{
+    "2022":
+        {
+            "VBFHH":
+                {
+                    "subsamples":
+                        [
+                            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                        ],
+                    "chunksize": 5000,
+                    "files_per_job": 1,
+                },
+        },
+    "2022EE":
+        {
+            "VBFHH":
+                {
+                    "subsamples":
+                        [
+                            "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                        ],
+                    "chunksize": 5000,
+                    "files_per_job": 1,
+                },
+        },
+    "2023":
+        {
+            "VBFHH": {
+                "subsamples": [
+                    "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                ],
+                "files_per_job": 1, "chunksize": 5000
+            },
+        },
+    "2023BPix":
+        {
+            "VBFHH": {
+                "subsamples": [
+                    "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                ],
+                "files_per_job": 1, "chunksize": 5000
+            },
+        }
+}

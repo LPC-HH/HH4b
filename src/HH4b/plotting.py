@@ -381,6 +381,7 @@ def ratioHistPlot(
     energy: str = "13.6",
     add_pull: bool = False,
     reweight_qcd: bool = False,
+    save_pdf: bool = True,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -862,7 +863,8 @@ def ratioHistPlot(
 
     if axrax is None and len(name):
         if not name.endswith((".pdf", ".png")):
-            plt.savefig(f"{name}.pdf", bbox_inches="tight")
+            if save_pdf:
+                plt.savefig(f"{name}.pdf", bbox_inches="tight")
             plt.savefig(f"{name}.png", bbox_inches="tight")
         else:
             plt.savefig(name, bbox_inches="tight")
@@ -1347,7 +1349,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     ax.set_ylim(bins_y[0], bins_y[-1])
     ax.set_xlim(bins_x[0], bins_x[-1])
     fig.tight_layout()
-    plt.savefig(f"{plot_dir}/{name}.png")
+    plt.savefig(f"{plot_dir}/{name}.png", bbox_inches="tight")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
     if show:

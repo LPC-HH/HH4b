@@ -33,21 +33,27 @@ common_samples_bg = {
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
     "vbfhtobb": ["VBFHto2B_M-125_dipoleRecoilOn"],
-    # TODO: Add single top!
+    # "singletop": [
+    #     "TbarBQ_t-channel_4FS",
+    #     "TBbarQ_t-channel_4FS",
+    #     "TWminustoLNu2Q",
+    #     "TWminusto4Q",
+    #     "TbarWplustoLNu2Q",
+    #     "TbarWplusto4Q",
+    # ],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
-        # "WplusH_Hto2B_WtoLNu_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",
-        # "WminusH_Hto2B_WtoLNu_M-125",
         "ZH_Hto2B_Zto2Q_M-125",
         "ggZH_Hto2B_Zto2Q_M-125",
+        # "WplusH_Hto2B_WtoLNu_M-125",
+        # "WminusH_Hto2B_WtoLNu_M-125",
         # "ggZH_Hto2B_Zto2L_M-125",
         # "ggZH_Hto2B_Zto2Nu_M-125",
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
     "diboson": ["ZZ", "WW", "WZ"],
-    # "vjetslnu": ["WtoLNu-4Jets"],  # TODO: didn't run on these?
     "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
 }
 
@@ -56,20 +62,35 @@ common_samples_sig = {}  # TODO: none yet
 samples_run3_sig = {
     "2022": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
         "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2022EE": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
         "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
         "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2023": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        # "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_TSG"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
     },
 }
 
@@ -167,45 +188,48 @@ sig_keys_vbf = ["vbfhh4b", "vbfhh4b-k2v0"]  # TODO
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
 # keys that require running up/down systematics
-syst_keys = sig_keys  # + bg_keys (TODO)
-# syst_keys.remove("qcd")
+syst_keys = sig_keys + bg_keys
+syst_keys.remove("qcd")
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    "JES": "JES",
-    # "JER": "JER",
-    #####
-    # including all sources
-    #####
-    # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
-    # "JES_AbsoluteScale": "JES_AbsoluteScale",  # goes in Absolute
-    # "JES_AbsoluteStat": "JES_AbsoluteStat",  # goes in Abs_year
-    # "JES_FlavorQCD": "JES_FlavorQCD",
-    # "JES_Fragmentation": "JES_Fragmentation",  # goes in Absolute
-    # "JES_PileUpDataMC": "JES_PileUpDataMC",  # goes in Absolute
-    # "JES_PileUpPtBB": "JES_PileUpPtBB",  # goes in BBEC1
-    # "JES_PileUpPtEC1": "JES_PileUpPtEC1",  # goes in BBEC1
-    # "JES_PileUpPtEC2": "JES_PileUpPtEC2",
-    # "JES_PileUpPtHF": "JES_PileUpPtHF",
-    # "JES_PileUpPtRef": "JES_PileUpPtRef",  # goes in Absolute
-    # "JES_RelativeFSR": "JES_RelativeFSR",  # goes in Absolute
-    # "JES_RelativeJEREC1": "JES_RelativeJEREC1",  # goes in BBEC1_year
-    # "JES_RelativeJEREC2": "JES_RelativeJEREC2",  # goes in EC2_year
-    # "JES_RelativeJERHF": "JES_RelativeJERHF",  # goes in HF
-    # "JES_RelativePtBB": "JES_RelativePtBB",  # goes in BBEC1
-    # "JES_RelativePtEC1": "JES_RelativePtEC1",  # goes in BBEC1_year
-    # "JES_RelativePtEC2": "JES_RelativePtEC2",  # goes in EC2_year
-    # "JES_RelativePtHF": "JES_RelativePtHF",  # goes in HF
-    # "JES_RelativeBal": "JES_RelativeBal",
-    # "JES_RelativeSample": "JES_RelativeSample",
-    # "JES_RelativeStatEC": "JES_RelativeStatEC",  # goes in BBEC1_year
-    # "JES_RelativeStatFSR": "JES_RelativeStatFSR",  # goes in Abs_year
-    # "JES_RelativeStatHF": "JES_RelativeStatHF",
-    # "JES_SinglePionHCAL": "JES_SinglePionHCAL",  # goes in Absolute
-    # "JES_SinglePionECAL": "JES_SinglePionECAL",  # goes in Absolute
-    # "JES_TimePtEta": "JES_TimePtEta",  # goes in Abs_year
+    # "JES": "JES",
+    "JER": "JER",
+    # #####
+    # # including all sources
+    # #####
+    "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute
+    "JES_AbsoluteScale": "JES_AbsoluteScale",  # goes in Absolute
+    "JES_AbsoluteStat": "JES_AbsoluteStat",  # goes in Abs_year
+    "JES_FlavorQCD": "JES_FlavorQCD",
+    "JES_Fragmentation": "JES_Fragmentation",  # goes in Absolute
+    "JES_PileUpDataMC": "JES_PileUpDataMC",  # goes in Absolute
+    "JES_PileUpPtBB": "JES_PileUpPtBB",  # goes in BBEC1
+    "JES_PileUpPtEC1": "JES_PileUpPtEC1",  # goes in BBEC1
+    "JES_PileUpPtEC2": "JES_PileUpPtEC2",
+    "JES_PileUpPtHF": "JES_PileUpPtHF",
+    "JES_PileUpPtRef": "JES_PileUpPtRef",  # goes in Absolute
+    "JES_RelativeFSR": "JES_RelativeFSR",  # goes in Absolute
+    "JES_RelativeJEREC1": "JES_RelativeJEREC1",  # goes in BBEC1_year
+    "JES_RelativeJEREC2": "JES_RelativeJEREC2",  # goes in EC2_year
+    "JES_RelativeJERHF": "JES_RelativeJERHF",  # goes in HF
+    "JES_RelativePtBB": "JES_RelativePtBB",  # goes in BBEC1
+    "JES_RelativePtEC1": "JES_RelativePtEC1",  # goes in BBEC1_year
+    "JES_RelativePtEC2": "JES_RelativePtEC2",  # goes in EC2_year
+    "JES_RelativePtHF": "JES_RelativePtHF",  # goes in HF
+    "JES_RelativeBal": "JES_RelativeBal",
+    "JES_RelativeSample": "JES_RelativeSample",
+    "JES_RelativeStatEC": "JES_RelativeStatEC",  # goes in BBEC1_year
+    "JES_RelativeStatFSR": "JES_RelativeStatFSR",  # goes in Abs_year
+    "JES_RelativeStatHF": "JES_RelativeStatHF",
+    "JES_SinglePionHCAL": "JES_SinglePionHCAL",  # goes in Absolute
+    "JES_SinglePionECAL": "JES_SinglePionECAL",  # goes in Absolute
+    "JES_TimePtEta": "JES_TimePtEta",  # goes in Abs_year
 }
+
+# turn off jecs for now
+jecs = {}
 
 jec_shifts = []
 for key in jecs:
