@@ -278,7 +278,12 @@ if not args.thu_hh:
 
 rate_params = {}
 if args.ttbar_rate_param:
-    rate_params = {"ttbar": {region: rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_rp_ttbar_{region}", 1.0, 0, 10) for region in signal_regions}}
+    rate_params = {
+        "ttbar": {
+            region: rl.IndependentParameter(f"{CMS_PARAMS_LABEL}_rp_ttbar_{region}", 1.0, 0, 10)
+            for region in signal_regions
+        }
+    }
 
 # add temporary uncertainties
 if args.temp_uncs:
