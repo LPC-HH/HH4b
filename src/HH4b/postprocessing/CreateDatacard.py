@@ -26,6 +26,7 @@ from datacardHelpers import (
     combine_templates,
     get_effect_updown,
     rem_neg,
+    smorph,
     sum_templates,
 )
 from hist import Hist
@@ -38,10 +39,13 @@ from HH4b.hh_vars import (
     qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
 )
 from HH4b.hh_vars import (
     years as hh_years,
 )
+from HH4b.utils import blindBins
 
 try:
     rl.util.install_roofit_helpers()
@@ -117,12 +121,17 @@ add_bool_arg(
     "Perform MC closure test (fill data_obs with sum of MC bkg.",
     default=False,
 )
+add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
+add_bool_arg(
+    parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
+)
 args = parser.parse_args()
 
 
 CMS_PARAMS_LABEL = "CMS_bbbb_hadronic"
 MCB_LABEL = "MCBlinded"
 qcd_data_key = "qcd_datadriven"
+blind_window = [110, 140]
 
 if args.nTF is None:
     if args.regions == "all":
@@ -152,10 +161,32 @@ mc_samples = OrderedDict(
     ]
 )
 
+mc_samples_sig = OrderedDict(
+    [
+        ("hh4b", "ggHH_kl_1_kt_1_hbbhbb"),
+        ("hh4b-kl0", "ggHH_kl_0_kt_1_hbbhbb"),
+        ("hh4b-kl2p45", "ggHH_kl_2p45_kt_1_hbbhbb"),
+        ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
+        ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
+        ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
+        ("vbfhh4b-k2v2", "qqHH_CV_1_C2V_2_kl_1_hbbhbb"),
+        ("vbfhh4b-kl2", "qqHH_CV_1_C2V_1_kl_2_hbbhbb"),
+        ("vbfhh4b-kv1p74-k2v1p37-kl14p4", "qqHH_CV_1p74_C2V_1p37_kl_14p4_hbbhbb"),
+        ("vbfhh4b-kvm0p012-k2v0p03-kl10p2", "qqHH_CV_m0p012_C2V_0p03_kl_10p2_hbbhbb"),
+        ("vbfhh4b-kvm0p758-k2v1p44-klm19p3", "qqHH_CV_m0p758_C2V_1p44_kl_m19p3_hbbhbb"),
+        ("vbfhh4b-kvm0p962-k2v0p959-klm1p43", "qqHH_CV_m0p962_C2V_0p959_kl_m1p43_hbbhbb"),
+        ("vbfhh4b-kvm1p21-k2v1p94-klm0p94", "qqHH_CV_m1p21_C2V_1p94_kl_m0p94_hbbhbb"),
+        ("vbfhh4b-kvm1p6-k2v2p72-klm1p36", "qqHH_CV_m1p6_C2V_2p72_kl_m1p36_hbbhbb"),
+        ("vbfhh4b-kvm1p83-k2v3p57-klm3p39", "qqHH_CV_m1p83_C2V_3p57_kl_m3p39_hbbhbb"),
+        ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_hbbhbb"),
+    ]
+)
+
 bg_keys = list(mc_samples.keys())
+single_h_keys = ["vhtobb", "tthtobb"]
 
 if args.only_sm:
-    sig_keys_ggf, sig_keys_vbf = ["hh4b"], []
+    sig_keys_ggf, sig_keys_vbf = ["hh4b"], ["vbfhh4b"]
 
 all_sig_keys = sig_keys_ggf + sig_keys_vbf
 sig_keys = []
@@ -165,7 +196,7 @@ for key in all_sig_keys:
     # check in case single sig sample is specified
     if args.sig_samples is None or key in args.sig_samples:
         # TODO: change names to match HH combination convention
-        mc_samples[key] = key
+        mc_samples[key] = mc_samples_sig[key]
         sig_keys.append(key)
 
 
@@ -175,24 +206,37 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
-jmr_values = {
-    "2022": [1.13, 1.06, 1.20],
-    "2022EE": [1.20, 1.15, 1.25],
-    "2023": [1.20, 1.16, 1.24],
-    "2023BPix": [1.16, 1.09, 1.23],
+jmsr_values = {}
+jmsr_values["JMR"] = {
+    "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
+    "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
+    "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
+    "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
 }
-jms_values = {
-    "2022": [1.015, 1.010, 1.020],
-    "2022EE": [1.021, 1.018, 1.024],
-    "2023": [0.999, 0.996, 1.003],
-    "2023BPix": [0.974, 0.970, 0.980],
+jmsr_values["JMS"] = {
+    "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
+    "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
+    "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
+    "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
+jmsr_keys = sig_keys + ["vhtobb", "diboson"]
 
+
+br_hbb_values = {key: 1.0124**2 for key in sig_keys}
+br_hbb_values.update({key: 1.0124 for key in single_h_keys})
+br_hbb_values_down = {key: 0.9874**2 for key in sig_keys}
+br_hbb_values_down.update({key: 0.9874 for key in single_h_keys})
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties
     # https://gitlab.cern.ch/hh/naming-conventions#theory-uncertainties
-    "BR_hbb": Syst(prior="lnN", samples=sig_keys, value=1.0124**2, value_down=0.9874**2),
+    "BR_hbb": Syst(
+        prior="lnN",
+        samples=sig_keys + single_h_keys,
+        value=br_hbb_values,
+        value_down=br_hbb_values_down,
+        diff_samples=True,
+    ),
     "pdf_gg": Syst(prior="lnN", samples=["ttbar"], value=1.042),
     # "pdf_qqbar": Syst(prior="lnN", samples=["ST"], value=1.027),
     "pdf_Higgs_ggHH": Syst(prior="lnN", samples=sig_keys_ggf, value=1.030),
@@ -229,6 +273,8 @@ nuisance_params = {
     # apply 2022 uncertainty to all MC (until 2023 rec.)
     "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
 }
+if not args.thu_hh:
+    del nuisance_params["THU_HH"]
 
 rate_params = {}
 if args.ttbar_rate_param:
@@ -259,7 +305,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    # "JES_AbsoluteMPFBias": Syst(name="CMS_scale_j_AbsoluteMPFBias", prior="shape", samples=all_mc),
+    "JES_AbsoluteScale": Syst(name="CMS_scale_j_AbsoluteScale", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -272,50 +318,82 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    # "ttbarSF_BDT_bin_0.03_0.3": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.3_0.5": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.5_0.7": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.7_0.93": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "ttbarSF_BDT_bin_0.93_1": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
-    #     prior="shape",
-    #     samples=["ttbar"],
-    #     convert_shape_to_lnN=True,
-    # ),
-    # "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
-    # "txbb": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_PNetHbbScaleFactors_correlated",
-    #     prior="shape",
-    #     samples=sig_keys,
-    #     pass_only=True,
-    # ),
+    "ttbarSF_BDT_bin_0.03_0.3": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.3_0.5": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.5_0.7": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.7_0.93": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "ttbarSF_BDT_bin_0.93_1.0": Syst(
+        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    ),
+    "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
+    "TXbbSF_correlated": Syst(
+        name=f"{CMS_PARAMS_LABEL}_txbb_sf_correlated",
+        prior="shape",
+        samples=sig_keys,
+        pass_only=True,
+        convert_shape_to_lnN=True,
+    ),
 }
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
-    # "JER": Syst(name="CMS_res_j", prior="shape", samples=all_mc),
-    # "JMS": Syst(name=f"{CMS_PARAMS_LABEL}_jms", prior="shape", samples=all_mc),
-    # "JMR": Syst(name=f"{CMS_PARAMS_LABEL}_jmr", prior="shape", samples=all_mc),
+    "JER": Syst(
+        name="CMS_res_j",
+        prior="shape",
+        samples=all_mc,
+        convert_shape_to_lnN=True,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        },
+    ),
+    "JMS": Syst(
+        name=f"{CMS_PARAMS_LABEL}_jms",
+        prior="shape",
+        samples=jmsr_keys,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        },
+    ),
+    "JMR": Syst(
+        name=f"{CMS_PARAMS_LABEL}_jmr",
+        prior="shape",
+        samples=jmsr_keys,
+        uncorr_years={
+            "2022": ["2022"],
+            "2022EE": ["2022EE"],
+            "2023": ["2023"],
+            "2023BPix": ["2023BPix"],
+        },
+    ),
     "ttbarSF_Xbb_bin_0_0.8": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
         prior="shape",
@@ -346,6 +424,27 @@ uncorr_year_shape_systs = {
     ),
 }
 
+for wp in txbbsfs_decorr_txbb_wps:
+    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+        uncorr_year_shape_systs[
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
+            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
+            prior="shape",
+            samples=sig_keys,
+            convert_shape_to_lnN=True,
+            uncorr_years={
+                "2022": ["2022"],
+                "2022EE": ["2022EE"],
+                "2023": ["2023"],
+                "2023BPix": ["2023BPix"],
+            },
+        )
+
+if not args.jmsr:
+    del uncorr_year_shape_systs["JMR"]
+    del uncorr_year_shape_systs["JMS"]
+
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
     shape_systs_dict[skey] = rl.NuisanceParameter(
@@ -370,8 +469,72 @@ def get_templates(
     if not sig_separate:
         # signal and background templates in same hist, just need to load and sum across years
         for year in years:
+            jms_nom = jmsr_values["JMS"][year]["nom"]
+            jmr_nom = jmsr_values["JMR"][year]["nom"]
             with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
+                regions = list(templates_dict[year].keys())
+                if not args.jmsr:
+                    continue
+                regions = [
+                    region for region in regions if region.count(MCB_LABEL) < 2
+                ]  # Note: postprocessing saves blinded regions over and over
+                for region in regions:
+                    region_noblinded = region.split(MCB_LABEL)[0]
+                    blind_str = MCB_LABEL if region.endswith(MCB_LABEL) else ""
+                    templ_region_original = templates_dict[year][region].copy()
+                    # initialize Hists for JMS/JMR shifts
+                    for skey in jmsr:
+                        for shift in ["up", "down"]:
+                            templates_dict[year][
+                                f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                            ] = templ_region_original.copy()
+                    samples = list(templates_dict[year][region].axes[0])
+                    for sample in samples:
+                        if any(sample_check in sample for sample_check in jmsr_keys):
+                            templ_original = templates_dict[year][region_noblinded][
+                                sample, :
+                            ].copy()
+                            templ = smorph(templ_original, sample, jms_nom, jmr_nom)
+                            sample_key_index = np.where(
+                                np.array(list(templates_dict[year][region].axes[0])) == sample
+                            )[0][0]
+                            templates_dict[year][region].view(flow=False)[
+                                sample_key_index
+                            ].value = np.nan_to_num(templ.view(flow=False).value, nan=0.0)
+                            templates_dict[year][region].view(flow=False)[
+                                sample_key_index
+                            ].variance = np.nan_to_num(templ.view(flow=False).variance, nan=0.0)
+                            for skey in jmsr:
+                                for shift in ["up", "down"]:
+                                    if skey == "JMS":
+                                        jms = jmsr_values["JMS"][year][shift]
+                                        jmr = jmr_nom
+                                    else:
+                                        jms = jms_nom
+                                        jmr = jmsr_values["JMR"][year][shift]
+                                    templ_shift = smorph(templ_original, sample, jms, jmr)
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ].view(flow=False)[sample_key_index].value = np.nan_to_num(
+                                        templ_shift.view(flow=False).value, nan=0.0
+                                    )
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ].view(flow=False)[sample_key_index].variance = np.nan_to_num(
+                                        templ_shift.view(flow=False).variance, nan=0.0
+                                    )
+                    if MCB_LABEL in region:
+                        # reblind both nominal and shifted
+                        blindBins(templates_dict[year][region], blind_window)
+                        for skey in jmsr:
+                            for shift in ["up", "down"]:
+                                blindBins(
+                                    templates_dict[year][
+                                        f"{region_noblinded}_{skey}_{shift}{blind_str}"
+                                    ],
+                                    blind_window,
+                                )
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
@@ -536,6 +699,7 @@ def fill_regions(
                     val = val[region]
                     val_down = val_down[region] if val_down is not None else val_down
                 if syst.diff_samples:
+                    print(skey)
                     val = val[sample_name]
                     val_down = val_down[sample_name] if val_down is not None else val_down
 
