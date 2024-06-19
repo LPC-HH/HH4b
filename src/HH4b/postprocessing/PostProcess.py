@@ -610,11 +610,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        # Run-only on VBF  (temporary!)
-        # mask_run2vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.)
-        # bdt_events = bdt_events[mask_run2vbf]
-        # cutflow_dict[key]["VBF DeltaEta,Mjj"] = np.sum(bdt_events["weight"].to_numpy())
-
         # Veto VBF (temporary! from Run-2 veto)
         # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
         # bdt_events = bdt_events[mask_vetovbf]
@@ -652,9 +647,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events[category] = 5  # all events
             if args.vbf:
                 bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
-                mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
-                    bdt_events["H2TXbb"] > args.vbf_txbb_wp
-                )
+                #mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
+                #    bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                #)
+                # VBF selection from Run-2 (temporary!)
+                #mask_vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.) & (bdt_events["H1TXbb"] > 0.98) & (bdt_events["H2TXbb"] > 0.98) & (bdt_events[h1mass] >= 110) & (bdt_events[h1mass] <= 150)
+                #mask_vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.) & (bdt_events["H1TXbb"] > 0.94) & (bdt_events["H2TXbb"] > 0.94) & (bdt_events[h1mass] >= 110) & (bdt_events[h1mass] <= 150)
+                mask_vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.) & (bdt_events["H1TXbb"] > 0.9) & (bdt_events["H2TXbb"] > 0.9) & (bdt_events[h1mass] >= 110) & (bdt_events[h1mass] <= 150)
             else:
                 # if no VBF region, set all events to "fail VBF"
                 mask_vbf = np.zeros(len(bdt_events), dtype=bool)
@@ -804,7 +803,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
 
     for cut in cutflow_dict["hh4b"]:
-        cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
+        cutflow[cut] = [cutflow_dict[key][cut].round(4) for key in events_dict_postprocess]
 
     print("\nCutflow")
     print(cutflow)
@@ -941,6 +940,11 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
+    def get_cut_vbf_run2(events, xbb_cut, bdt_cut):
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (events["VBFjjMass"] > 500) & (events["VBFjjDeltaEta"] > 4.) & (events["H1TXbb"] > 0.9) & (events["H2TXbb"] > 0.9) & (events[h1mass] >= 110) & (bdt_events[h1mass] <= 150)
+        return cut_vbf
+        
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
@@ -1004,6 +1008,9 @@ def get_cuts(args, region: str):
         else:
             # if no VBF region, set all events to "fail VBF"
             return get_cut_novbf
+    elif region == "vbfrun2":
+        if args.vbf and args.vbf_priority:
+            return get_cut_vbf_run2
     elif region == "bin1":
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
@@ -1229,6 +1236,17 @@ def postprocess_run3(args):
             "hh4b",
         )
 
+        s_binVBF, b_binVBF, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2"), # temporary!
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+        )
+
         # note: need to do this since not all the years have all the samples..
         year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
         samples = list(events_combined.keys())
@@ -1255,9 +1273,13 @@ def postprocess_run3(args):
                 #    yield_s = cutflow_sample
                 if s == "data":
                     yield_b = cutflow_sample
-                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.2f}"
+                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
 
+            if "VBF " in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.3f}"
+                cutflow_combined.loc["S/B ABCD", cut] = f"{s_binVBF/b_binVBF:.3f}"
             if "Bin 1 [" in cut and yield_b > 0:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
@@ -1304,8 +1326,10 @@ def postprocess_run3(args):
                 get_cuts(args, "bin1"),
                 # np.arange(0.95, 0.999, 0.005),
                 # np.arange(0.9, 0.999, 0.01),
-                np.arange(0.95, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
+                #np.arange(0.95, 0.999, 0.0025),
+                #np.arange(0.9, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025), 
                 mass_window,
                 plot_dir,
                 "fom_bin1",
@@ -1344,10 +1368,10 @@ def postprocess_run3(args):
         pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
-        cutflows[cyear] = cutflows[cyear].round(2)
+        cutflows[cyear] = cutflows[cyear].round(4)
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
     if cutflow_combined is not None:
-        cutflow_combined = cutflow_combined.round(2)
+        cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
     if not args.templates:
