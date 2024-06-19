@@ -36,7 +36,6 @@ from HH4b.hh_vars import (
     data_key,
     jecs,
     jmsr,
-    qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
     txbbsfs_decorr_pt_bins,
