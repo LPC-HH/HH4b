@@ -120,6 +120,8 @@ add_bool_arg(
     default=False,
 )
 add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
+add_bool_arg(
+    parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
 args = parser.parse_args()
 
 
@@ -403,6 +405,19 @@ uncorr_year_shape_systs = {
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
     del uncorr_year_shape_systs["JMS"]
+
+if not args.jesr:
+    del corr_year_shape_systs["JES_AbsoluteScale"]
+    del uncorr_year_shape_systs["JER"]
+
+if args.ttbar_rate_param:
+    # remove all ttbarSF systematics
+    for key in list(corr_year_shape_systs.keys()):
+        if "ttbarSF" in key:
+            del corr_year_shape_systs[key]
+    for key in list(uncorr_year_shape_systs.keys()):
+        if "ttbarSF" in key:
+            del uncorr_year_shape_systs[key]
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
@@ -827,8 +842,8 @@ def alphabet_fit(
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
         qcd_eff = (
-            templates_summed[sr][qcd_key, :].sum().value
-            / templates_summed["fail"][qcd_key, :].sum().value
+            templates_summed[sr][data_key, :].sum().value
+            / templates_summed["fail"][data_key, :].sum().value
         )
         logging.info(f"qcd eff {qcd_eff:.5f}")
 
