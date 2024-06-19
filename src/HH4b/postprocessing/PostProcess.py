@@ -339,7 +339,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
-
         print(f"load samples {key}")
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
@@ -355,7 +354,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # inference and assign score
         jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
+        print("JEC shifts ", jshifts)
 
+        print("perform inference")
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
@@ -429,17 +430,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # plt.ylabel("Events")
             # plt.legend(title=f"{year} [H2 TXbb > 0.975]")
             # plt.savefig(f"txbb_sf_weight_{year}.png")
-
-            # TO ADD:
-            # 3 bins in Txbb, 5 bins in Pt
-            # bin11: 1 bin in TXbb, 1 bin in Pt
-            # bin11Down/Up
-            # bin21Down/Up
-            # bin31Down/Up
-            # bin12Down/Up
-            # bin22Down/Up
-            # bin23Down/Up
-            # etc
 
         # TODO: apply to Single Higgs processes
         # need to match fatjet to Gen-Level single H
@@ -631,6 +621,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         for jshift in jshifts:
+            print(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
             h2pt = check_get_jec_var("H2Pt", jshift)
             h1msd = check_get_jec_var("H1Msd", jshift)
