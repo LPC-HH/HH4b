@@ -450,6 +450,10 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
     del uncorr_year_shape_systs["JMS"]
 
+if not args.jesr:
+    del corr_year_shape_systs["JES_AbsoluteScale"]
+    del uncorr_year_shape_systs["JER"]
+
 if args.ttbar_rate_param:
     # remove all ttbarSF systematics
     for key in list(corr_year_shape_systs.keys()):
