@@ -887,8 +887,8 @@ def alphabet_fit(
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
         qcd_eff = (
-            templates_summed[sr][data_key, :].sum().value
-            / templates_summed["fail"][data_key, :].sum().value
+            templates_summed[sr][qcd_key, :].sum().value
+            / templates_summed["fail"][qcd_key, :].sum().value
         )
         logging.info(f"qcd eff {qcd_eff:.5f}")
 
