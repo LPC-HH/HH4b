@@ -87,6 +87,8 @@ color_by_sample = {
     "hh4b-kl5": "cyan",
     "vbfhh4b": "fuchsia",
     "vbfhh4b-k2v0": "purple",
+    "vbfhh4b-k2v2": "thistle",
+    "vbfhh4b-kl2": "deeppink",
     "ttbar": colours["darkblue"],
     "ttlep": "cadetblue",
     "qcd": colours["canary"],
@@ -118,6 +120,8 @@ label_by_sample = {
     "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
     "vbfhh4b": r"VBF HH4b",
     "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
+    "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
+    "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -1319,7 +1323,7 @@ def ROCCurve(
         plt.close()
 
 
-def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
+def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5):
     """Plot FoM scan"""
 
     eff, bins_x, bins_y = h_sb.to_numpy()
@@ -1341,7 +1345,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     color="black",
                     ha="center",
                     va="center",
-                    fontsize=10,
+                    fontsize=fontsize,
                 )
 
     ax.set_xlabel("BDT Cut")
