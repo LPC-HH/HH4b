@@ -132,9 +132,24 @@ def add_bdt_scores(
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
-    sig_keys = ["hh4b", "vbfhh4b-k2v0"]
+    sig_keys = [
+        "hh4b",
+        "hh4b-kl0",
+        "hh4b-kl2p45",
+        "hh4b-kl5",
+        "vbfhh4b",
+        "vbfhh4b-k2v0",
+        "vbfhh4b-k2v2",
+        "vbfhh4b-kl2",
+    ]
     scores_keys = {
         "hh4b": "bdt_score",
+        "hh4b-kl0": "bdt_score",
+        "hh4b-kl2p45": "bdt_score",
+        "hh4b-kl5": "bdt_score",
+        "vbfhh4b": "bdt_score_vbf",
+        "vbfhh4b-kl2": "bdt_score_vbf",
+        "vbfhh4b-k2v2": "bdt_score_vbf",
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
@@ -178,6 +193,116 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         fig.savefig(plot_dir / f"{sig_key}_roc.pdf", bbox_inches="tight")
         plt.close()
 
+    bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
+    cat_axis = hist.axis.StrCategory([], name="cat", label="cat", growth=True)
+    h_bdt = hist.Hist(bdt_axis, cat_axis)
+    for sig_key in sig_keys:
+        h_bdt.fill(
+            events_combined[sig_key][scores_keys[sig_key]],
+            sig_key,
+            weight=events_combined[sig_key]["weight"],
+        )
+
+    def find_nearest(array, value):
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return idx
+
+    th_colours = ["#9381FF", "#1f78b4", "#a6cee3", "cyan", "blue"]
+
+    for vbf_in_sig_key in [True, False]:
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        # add lines at BDT cuts
+        plot_thresholds = [0.88, 0.98] if vbf_in_sig_key else [0.95, 0.98]
+        pths = {th: [[], []] for th in plot_thresholds}
+
+        for isig, sig_key in enumerate(sig_keys):
+            if ("vbf" in sig_key) == vbf_in_sig_key:
+                continue
+            rocs = postprocessing.make_rocs(
+                events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
+            )
+            for th in plot_thresholds:
+                idx = find_nearest(rocs["merged"]["thresholds"], th)
+                pths[th][0].append(rocs["merged"]["tpr"][idx])
+                pths[th][1].append(rocs["merged"]["fpr"][idx])
+            for k, th in enumerate(plot_thresholds):
+                if isig == 0:
+                    ax.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        label=rf"BDT > {th}",
+                        color=th_colours[k],
+                        zorder=100,
+                    )
+                else:
+                    ax.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        color=th_colours[k],
+                        zorder=100,
+                    )
+
+            ax.plot(
+                rocs["merged"]["tpr"],
+                rocs["merged"]["fpr"],
+                linewidth=2,
+                color=plotting.color_by_sample[sig_key],
+                label=plotting.label_by_sample[sig_key],
+            )
+        ax.set_xlim([0.0, 0.6])
+        ax.set_ylim([1e-5, 1e-1])
+        ax.set_yscale("log")
+        if vbf_in_sig_key:
+            ax.set_title("ggF BDT ROC Curve")
+        else:
+            ax.set_title("VBF BDT ROC Curve")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
+
+        ax.legend(
+            title=legtitle,
+            bbox_to_anchor=(1.03, 1),
+            loc="upper left",
+        )
+        fig.tight_layout()
+        if vbf_in_sig_key:
+            fig.savefig(plot_dir / "GGF_hh4b_allroc.png", bbox_inches="tight")
+            fig.savefig(plot_dir / "GGF_hh4b_allroc.pdf", bbox_inches="tight")
+        else:
+            fig.savefig(plot_dir / "VBF_hh4b_allroc.png", bbox_inches="tight")
+            fig.savefig(plot_dir / "VBF_hh4b_allroc.pdf", bbox_inches="tight")
+        plt.close()
+
+        # plot scores too
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        for sig_key in sig_keys:
+            if ("vbf" in sig_key) == vbf_in_sig_key:
+                continue
+            hep.histplot(
+                h_bdt[{"cat": sig_key}],
+                ax=ax,
+                label=plotting.label_by_sample[sig_key],
+                color=plotting.color_by_sample[sig_key],
+                histtype="step",
+                linewidth=1.5,
+                density=True,
+                flow="none",
+            )
+        ax.legend()
+        fig.tight_layout()
+        if vbf_in_sig_key:
+            fig.savefig(plot_dir / "GGF_hh4b_allbdt.png", bbox_inches="tight")
+            fig.savefig(plot_dir / "GGF_hh4b_allbdt.pdf", bbox_inches="tight")
+        else:
+            fig.savefig(plot_dir / "VBF_hh4b_allbdt.png", bbox_inches="tight")
+            fig.savefig(plot_dir / "VBF_hh4b_allbdt.pdf", bbox_inches="tight")
+        plt.close()
+
 
 def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window):
     legacy_label = "Legacy" if args.legacy else ""
@@ -198,6 +323,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
+    if not control_plots and not args.bdt_roc:
+        samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
 
@@ -212,6 +339,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
+
         print(f"load samples {key}")
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
@@ -227,9 +355,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # inference and assign score
         jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
-        print("JEC shifts ", jshifts)
 
-        print("perform inference")
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
@@ -494,13 +620,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
+        # Run-only on VBF  (temporary!)
+        # mask_run2vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.)
+        # bdt_events = bdt_events[mask_run2vbf]
+        # cutflow_dict[key]["VBF DeltaEta,Mjj"] = np.sum(bdt_events["weight"].to_numpy())
+
         # Veto VBF (temporary! from Run-2 veto)
         # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
         # bdt_events = bdt_events[mask_vetovbf]
         # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         for jshift in jshifts:
-            print(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
             h2pt = check_get_jec_var("H2Pt", jshift)
             h1msd = check_get_jec_var("H1Msd", jshift)
@@ -738,6 +868,21 @@ def scan_fom(
         hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
     )
 
+    h_b = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
+    h_b_unc = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
+    h_sideband = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
     print(f"Scanning {fom} with {method}")
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
@@ -770,6 +915,9 @@ def scan_fom(
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+                h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
+                h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
+                h_sideband.fill(bdt_cut, xbb_cut, weight=nevents_sideband)
                 if figure_of_merit < min_fom:
                     min_fom = figure_of_merit
                     min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
@@ -786,7 +934,10 @@ def scan_fom(
 
     name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
     print(f"Plotting FOM scan: {plot_dir}/{name} \n")
-    plotting.plot_fom(h_sb, plot_dir, name=name)
+    plotting.plot_fom(h_sb, plot_dir, name=name, fontsize=2.0)
+    plotting.plot_fom(h_b, plot_dir, name=f"{name}_bkg", fontsize=2.0)
+    plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
+    plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
 
 
 def get_cuts(args, region: str):
@@ -949,7 +1100,11 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key="hh4b"):
+def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
+    bg_keys = bg_keys_all.copy()
+    if "qcd" in bg_keys:
+        bg_keys.remove("qcd")
+
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     for key in [sig_key, "data"] + bg_keys:
@@ -1038,8 +1193,12 @@ def postprocess_run3(args):
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
+    if not args.control_plots and not args.bdt_roc:
+        processes.remove("qcd")
+        bg_keys.remove("qcd")
+        bg_keys_combined.remove("qcd")
     print("bg keys", bg_keys)
-
+    print("bg_keys_combined ", bg_keys_combined)
     if len(args.years) > 1:
         scaled_by_years = {
             "vbfhh4b-k2v2": ["2022", "2022EE"],
@@ -1113,6 +1272,10 @@ def postprocess_run3(args):
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
 
+    if args.bdt_roc:
+        print("Making BDT ROC curve")
+        bdt_roc(events_combined, plot_dir, args.legacy)
+
     if args.fom_scan:
 
         if args.fom_scan_vbf and args.vbf:
@@ -1124,8 +1287,10 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.9, 0.999, 0.01),
-                np.arange(0.9, 0.999, 0.01),
+                # np.arange(0.9, 0.999, 0.01),
+                # np.arange(0.9, 0.999, 0.01),
+                np.arange(0.8, 0.999, 0.005),
+                np.arange(0.5, 0.99, 0.01),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
@@ -1146,8 +1311,10 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
-                np.arange(0.95, 0.999, 0.005),
-                np.arange(0.9, 0.999, 0.01),
+                # np.arange(0.95, 0.999, 0.005),
+                # np.arange(0.9, 0.999, 0.01),
+                np.arange(0.95, 0.999, 0.0025),
+                np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin1",
@@ -1174,10 +1341,6 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 mass=args.mass,
             )
-
-    if args.bdt_roc:
-        print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.legacy)
 
     templ_dir = Path("templates") / args.templates_tag
     for year in args.years:
@@ -1234,7 +1397,6 @@ def postprocess_run3(args):
 
     # combined templates
     # skip for time
-    """
     if len(args.years) > 0:
         (templ_dir / "cutflows" / "2022-2023").mkdir(parents=True, exist_ok=True)
         (templ_dir / "2022-2023").mkdir(parents=True, exist_ok=True)
@@ -1255,8 +1417,9 @@ def postprocess_run3(args):
             energy=13.6,
             jshift="",
         )
-        postprocessing.save_templates(templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var)
-    """
+        postprocessing.save_templates(
+            templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var
+        )
 
 
 if __name__ == "__main__":
