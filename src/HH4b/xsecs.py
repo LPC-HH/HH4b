@@ -199,7 +199,10 @@ xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 # From Javier (interpolating)
 """
 (CV=1, C2V=0, kl=1) -> 13.6 TeV xsec=0.0293982506606955
+(CV=1, C2V=1, kl=0) -> 13.6 TeV xsec=0.00500345633198256
 (CV=1, C2V=1, kl=1) -> 13.6 TeV xsec=0.00187375851700032
+(CV=1, C2V=1, kl=2) -> 13.6 TeV xsec=0.00154460232791894
+(CV=1, C2V=2, kl=1) -> 13.6 TeV xsec=0.0154349500828524
 (CV=1.74, C2V=1.37, kl=14.4) -> 13.6 TeV xsec=0.398705299546498
 (CV=-0.012, C2V=0.03, kl=10.2) -> 13.6 TeV xsec=0.0000118762250272907
 (CV=-0.758, C2V=1.44, kl=-19.3) -> 13.6 TeV xsec=0.366479977711258
@@ -252,10 +255,10 @@ xsecs["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] =
     0.01139 * BR_HBB * BR_HBB
 )
 
-xsecs["VBFHHto4B_CV-m1p83_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+xsecs["VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.02165 * BR_HBB * BR_HBB
 )
-xsecs["VBFHHto4B_CV_m1p83_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
+xsecs["VBFHHto4B_CV_m1p83_C2V_3p57_C3_m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     0.02165 * BR_HBB * BR_HBB
 )
 
