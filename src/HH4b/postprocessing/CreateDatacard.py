@@ -122,6 +122,7 @@ add_bool_arg(
     default=False,
 )
 add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
+add_bool_arg(parser, "jesr", "Do JES/JER uncertainties", default=True)
 add_bool_arg(
     parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
 )
@@ -886,6 +887,10 @@ def alphabet_fit(
 
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
+        # qcd_eff = (
+        #     templates_summed[sr][data_key, :].sum().value - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])
+        #     / (templates_summed["fail"][data_key, :].sum().value - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys]))
+        # )
         qcd_eff = (
             templates_summed[sr][qcd_key, :].sum().value
             / templates_summed["fail"][qcd_key, :].sum().value
