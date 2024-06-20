@@ -139,8 +139,8 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         "hh4b-kl5",
         "vbfhh4b",
         "vbfhh4b-k2v0",
-        "vbfhh4b-k2v2",
-        "vbfhh4b-kl2",
+        # "vbfhh4b-k2v2",
+        # "vbfhh4b-kl2",
     ]
     scores_keys = {
         "hh4b": "bdt_score",
@@ -213,19 +213,21 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
     for vbf_in_sig_key in [True, False]:
         fig, ax = plt.subplots(1, 1, figsize=(18, 12))
         # add lines at BDT cuts
-        plot_thresholds = [0.88, 0.98] if vbf_in_sig_key else [0.95, 0.98]
-        pths = {th: [[], []] for th in plot_thresholds}
+        plot_thresholds = [0.88, 0.98] if vbf_in_sig_key else [0.98]
 
-        for isig, sig_key in enumerate(sig_keys):
+        isig = 0
+        for sig_key in sig_keys:
             if ("vbf" in sig_key) == vbf_in_sig_key:
                 continue
             rocs = postprocessing.make_rocs(
                 events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
             )
+            pths = {th: [[], []] for th in plot_thresholds}
             for th in plot_thresholds:
                 idx = find_nearest(rocs["merged"]["thresholds"], th)
                 pths[th][0].append(rocs["merged"]["tpr"][idx])
                 pths[th][1].append(rocs["merged"]["fpr"][idx])
+            # print(vbf_in_sig_key, " isig ",isig, sig_key, pths)
             for k, th in enumerate(plot_thresholds):
                 if isig == 0:
                     ax.scatter(
@@ -252,6 +254,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
                 color=plotting.color_by_sample[sig_key],
                 label=plotting.label_by_sample[sig_key],
             )
+            isig = isig + 1
         ax.set_xlim([0.0, 0.6])
         ax.set_ylim([1e-5, 1e-1])
         ax.set_yscale("log")
@@ -608,12 +611,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
         bdt_events = bdt_events[mask_hlt]
-        cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
-
-        # Run-only on VBF  (temporary!)
-        # mask_run2vbf = (bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4.)
-        # bdt_events = bdt_events[mask_run2vbf]
-        # cutflow_dict[key]["VBF DeltaEta,Mjj"] = np.sum(bdt_events["weight"].to_numpy())
+        # cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         # Veto VBF (temporary! from Run-2 veto)
         # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
@@ -651,13 +649,40 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # define category
             bdt_events[category] = 5  # all events
             if args.vbf:
-                bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
-                mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
-                    bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                # bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
+                # mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
+                #    bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                # )
+                # VBF selection from Run-2 (temporary!)
+                mask_vbf = (
+                    (bdt_events["VBFjjMass"] > 500)
+                    & (bdt_events["VBFjjDeltaEta"] > 4.0)
+                    & (bdt_events["H1TXbb"] > 0.94)
+                    & (bdt_events["H1TXbb"] <= 0.98)
+                    & (bdt_events["H2TXbb"] > 0.94)
+                    & (bdt_events["H2TXbb"] <= 0.98)
+                    & (bdt_events[h1mass] >= 110)
+                    & (bdt_events[h1mass] <= 150)
+                    & (bdt_events["HHmass"] > 800)
                 )
             else:
                 # if no VBF region, set all events to "fail VBF"
                 mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
+            mask_vbf_hp = (
+                (bdt_events["VBFjjMass"] > 500)
+                & (bdt_events["VBFjjDeltaEta"] > 4.0)
+                & (bdt_events["H1TXbb"] > 0.98)
+                & (bdt_events["H2TXbb"] > 0.98)
+                & (bdt_events[h1mass] >= 110)
+                & (bdt_events[h1mass] <= 150)
+                & (bdt_events["HHmass"] > 800)
+            )
+            mask_vbf_mp_bin1 = mask_vbf & (bdt_events["HHmass"] <= 1200)
+            mask_vbf_mp_bin2 = (
+                mask_vbf & (bdt_events["HHmass"] > 1200) & (bdt_events["HHmass"] <= 1600)
+            )
+            mask_vbf_mp_bin3 = mask_vbf & (bdt_events["HHmass"] > 1600)
 
             mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
                 bdt_events[bdt_score] > args.bdt_wps[0]
@@ -701,41 +726,54 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events.loc[mask_fail, category] = 4
 
         # save cutflows for nominal variables
-        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
-            np.sum(bdt_events["weight"].to_numpy())
-        )
+        # cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
+        cutflow_dict[key]["Pt"] = np.sum(bdt_events["weight"].to_numpy())
 
-        cutflow_dict[key]["BDT > min"] = np.sum(
-            bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
-        )
+        # cutflow_dict[key]["BDT > min"] = np.sum(
+        #    bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+        # )
 
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
-        cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
+        # cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
 
-        cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
+        cutflow_dict[key][f"Bin VBF MP Bin1 {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf_mp_bin1 & mask_mass].to_numpy()
+        )
+        cutflow_dict[key][f"Bin VBF MP Bin2 {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf_mp_bin2 & mask_mass].to_numpy()
+        )
+        cutflow_dict[key][f"Bin VBF MP Bin3 {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf_mp_bin3 & mask_mass].to_numpy()
+        )
+
+        cutflow_dict[key][f"Bin VBF HP {mass_str}"] = np.sum(
+            bdt_events["weight"][mask_vbf_hp & mask_mass].to_numpy()
+        )
+
+        # cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
         )
 
-        cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
-            bdt_events["weight"][
-                (bdt_events["H2TXbb"] > args.txbb_wps[0])
-                & (bdt_events["bdt_score"] > args.bdt_wps[0])
-                & mask_vbf
-            ].to_numpy()
-        )
+        # cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
+        #     bdt_events["weight"][
+        #         (bdt_events["H2TXbb"] > args.txbb_wps[0])
+        #         & (bdt_events["bdt_score"] > args.bdt_wps[0])
+        #         & mask_vbf
+        #     ].to_numpy()
+        # )
 
-        cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
+        # cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
         cutflow_dict[key][f"Bin 2 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
         )
 
-        cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
+        # cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
         cutflow_dict[key][f"Bin 3 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
@@ -760,6 +798,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
+        columns += ["VBFjjMass", "VBFjjDeltaEta", "H1TXbb", "H1PNetMass", "HHmass"]
         columns = list(set(columns))
 
         if control_plots:
@@ -780,22 +819,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             events_dict_postprocess[key] = bdt_events[columns]
 
         # blind!!
-        if key == "data":
-            # get sideband estimate instead
-            print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
-            cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
-                bdt_events, mask_vbf, args.mass, mass_window
-            )
+        # if key == "data":
+        #    cutflow_dict[key][f"Bin VBF {mass_str}"] = float(0.)
+        #    cutflow_dict[key][f"Bin 1 {mass_str}"] = float(0.)
+        #    cutflow_dict[key][f"Bin 2 {mass_str}"] = float(0.)
+        #    cutflow_dict[key][f"Bin 3 {mass_str}"] = float(0.)
 
-            cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
-                bdt_events, mask_bin1, args.mass, mass_window
-            )
-            cutflow_dict[key][f"Bin 2 {mass_str}"] = get_nevents_data(
-                bdt_events, mask_bin2, args.mass, mass_window
-            )
-            cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(
-                bdt_events, mask_bin3, args.mass, mass_window
-            )
     # end of loop over samples
 
     if control_plots:
@@ -804,7 +833,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
 
     for cut in cutflow_dict["hh4b"]:
-        cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
+        cutflow[cut] = [
+            cutflow_dict[key][cut].round(4) if cut in cutflow_dict[key] else -1.0
+            for key in events_dict_postprocess
+        ]
 
     print("\nCutflow")
     print(cutflow)
@@ -941,6 +973,81 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
+    def get_cut_vbf_run2(events, xbb_cut, bdt_cut):  # noqa: ARG001
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (
+            (events["VBFjjMass"] > 500)
+            & (events["VBFjjDeltaEta"] > 4.0)
+            & (events["H1TXbb"] > 0.94)
+            & (events["H2TXbb"] > 0.94)
+            & (events[h1mass] >= 110)
+            & (events[h1mass] <= 150)
+            & (events["H1TXbb"] <= 0.98)
+            & (events["H2TXbb"] <= 0.98)
+            & (events["HHmass"] > 800)
+        )
+        return cut_vbf
+
+    def get_cut_vbf_run2_bin1(events, xbb_cut, bdt_cut):  # noqa: ARG001
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (
+            (events["VBFjjMass"] > 500)
+            & (events["VBFjjDeltaEta"] > 4.0)
+            & (events["H1TXbb"] > 0.94)
+            & (events["H2TXbb"] > 0.94)
+            & (events[h1mass] >= 110)
+            & (events[h1mass] <= 150)
+            & (events["H1TXbb"] <= 0.98)
+            & (events["H2TXbb"] <= 0.98)
+            & (events["HHmass"] > 800)
+            & (events["HHmass"] <= 1200)
+        )
+        return cut_vbf
+
+    def get_cut_vbf_run2_bin2(events, xbb_cut, bdt_cut):  # noqa: ARG001
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (
+            (events["VBFjjMass"] > 500)
+            & (events["VBFjjDeltaEta"] > 4.0)
+            & (events["H1TXbb"] > 0.94)
+            & (events["H2TXbb"] > 0.94)
+            & (events[h1mass] >= 110)
+            & (events[h1mass] <= 150)
+            & (events["H1TXbb"] <= 0.98)
+            & (events["H2TXbb"] <= 0.98)
+            & (events["HHmass"] > 1200)
+            & (events["HHmass"] <= 1600)
+        )
+        return cut_vbf
+
+    def get_cut_vbf_run2_bin3(events, xbb_cut, bdt_cut):  # noqa: ARG001
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (
+            (events["VBFjjMass"] > 500)
+            & (events["VBFjjDeltaEta"] > 4.0)
+            & (events["H1TXbb"] > 0.94)
+            & (events["H2TXbb"] > 0.94)
+            & (events[h1mass] >= 110)
+            & (events[h1mass] <= 150)
+            & (events["H1TXbb"] <= 0.98)
+            & (events["H2TXbb"] <= 0.98)
+            & (events["HHmass"] > 1600)
+        )
+        return cut_vbf
+
+    def get_cut_vbf_run2_hp(events, xbb_cut, bdt_cut):  # noqa: ARG001
+        h1mass = args.mass.replace("H2", "H1")
+        cut_vbf = (
+            (events["VBFjjMass"] > 500)
+            & (events["VBFjjDeltaEta"] > 4.0)
+            & (events["H1TXbb"] > 0.98)
+            & (events["H2TXbb"] > 0.98)
+            & (events[h1mass] >= 110)
+            & (events[h1mass] <= 150)
+            & (events["HHmass"] > 800)
+        )
+        return cut_vbf
+
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
@@ -1004,6 +1111,16 @@ def get_cuts(args, region: str):
         else:
             # if no VBF region, set all events to "fail VBF"
             return get_cut_novbf
+    elif region == "vbfrun2":
+        return get_cut_vbf_run2
+    elif region == "vbfrun2bin1":
+        return get_cut_vbf_run2_bin1
+    elif region == "vbfrun2bin2":
+        return get_cut_vbf_run2_bin2
+    elif region == "vbfrun2bin3":
+        return get_cut_vbf_run2_bin3
+    elif region == "vbfrun2hp":
+        return get_cut_vbf_run2_hp
     elif region == "bin1":
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
@@ -1091,7 +1208,17 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
+def abcd(
+    events_dict,
+    get_cut,
+    txbb_cut,
+    bdt_cut,
+    mass,
+    mass_window,
+    bg_keys_all,
+    sig_key="hh4b",
+    fail_region="run3",
+):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
@@ -1115,7 +1242,11 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all
         # region B
         dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
 
-        cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
+        if fail_region == "run3":
+            cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
+        else:
+            cut = (events["H2TXbb"] < 0.9) & (events["H2TXbb"] > 0.1) & (events["H1TXbb"] < 0.9)
+
         # region C
         dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
         # region D
@@ -1212,6 +1343,10 @@ def postprocess_run3(args):
         events_combined = events_dict_postprocess[args.years[0]]
         scaled_by = {}
 
+    if args.bdt_roc:
+        print("Making BDT ROC curve")
+        bdt_roc(events_combined, plot_dir, args.legacy)
+
     # combined cutflow
     cutflow_combined = None
     if len(args.years) > 0:
@@ -1227,6 +1362,67 @@ def postprocess_run3(args):
             mass_window,
             bg_keys,
             "hh4b",
+        )
+
+        s_binVBF, b_binVBF, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2"),  # temporary!
+            # get_cuts(args, "vbf"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+            "run2",
+        )
+
+        s_binVBFbin1, b_binVBFbin1, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2bin1"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+            "run2",
+        )
+
+        s_binVBFbin2, b_binVBFbin2, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2bin2"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+            "run2",
+        )
+
+        s_binVBFbin3, b_binVBFbin3, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2bin3"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+            "run2",
+        )
+
+        s_binVBFhp, b_binVBFhp, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbfrun2hp"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+            "run2",
         )
 
         # note: need to do this since not all the years have all the samples..
@@ -1255,20 +1451,26 @@ def postprocess_run3(args):
                 #    yield_s = cutflow_sample
                 if s == "data":
                     yield_b = cutflow_sample
-                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.2f}"
+                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
 
+            if "VBF [" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
+            if "VBF MP Bin1" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin1:.4f}"
+            if "VBF MP Bin2" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin2:.4f}"
+            if "VBF MP Bin3" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin3:.4f}"
+            if "VBF HP" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFhp:.4f}"
             if "Bin 1 [" in cut and yield_b > 0:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
 
-    if args.bdt_roc:
-        print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.legacy)
-
     if args.fom_scan:
-
         if args.fom_scan_vbf and args.vbf:
             if args.vbf_priority:
                 print("Scanning VBF WPs")
@@ -1304,8 +1506,10 @@ def postprocess_run3(args):
                 get_cuts(args, "bin1"),
                 # np.arange(0.95, 0.999, 0.005),
                 # np.arange(0.9, 0.999, 0.01),
-                np.arange(0.95, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
+                # np.arange(0.95, 0.999, 0.0025),
+                # np.arange(0.9, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin1",
@@ -1344,10 +1548,10 @@ def postprocess_run3(args):
         pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
-        cutflows[cyear] = cutflows[cyear].round(2)
+        cutflows[cyear] = cutflows[cyear].round(4)
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
     if cutflow_combined is not None:
-        cutflow_combined = cutflow_combined.round(2)
+        cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
     if not args.templates:
@@ -1424,7 +1628,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
+        default="/ceph/cms/store/user/cmantill/bbbb/skimmer/",
         help="tag for input ntuples",
     )
     parser.add_argument(
@@ -1437,7 +1641,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tag",
         type=str,
-        required=True,
+        default="24May24_v12_private_signal",
         help="tag for input ntuples",
     )
     parser.add_argument(
@@ -1457,20 +1661,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mass",
         type=str,
-        default="H2Msd",
+        default="H2PNetMass",
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
     parser.add_argument(
         "--bdt-model",
         type=str,
-        default="v1_msd30_nomulticlass",
+        default="24May31_lr_0p02_md_8_AK4Away",
         help="BDT model to load",
     )
     parser.add_argument(
         "--bdt-config",
         type=str,
-        default="v1_msd30",
+        default="24May31_lr_0p02_md_8_AK4Away",
         help="BDT model to load",
     )
 
@@ -1478,7 +1682,7 @@ if __name__ == "__main__":
         "--txbb-wps",
         type=float,
         nargs=2,
-        default=[0.985, 0.94],
+        default=[0.975, 0.82],
         help="TXbb Bin 1, Bin 2 WPs",
     )
 
@@ -1486,7 +1690,7 @@ if __name__ == "__main__":
         "--bdt-wps",
         type=float,
         nargs=3,
-        default=[0.95, 0.75, 0.03],
+        default=[0.98, 0.88, 0.03],
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
     parser.add_argument(
@@ -1497,8 +1701,8 @@ if __name__ == "__main__":
         help="method for scanning",
     )
 
-    parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
-    parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
+    parser.add_argument("--vbf-txbb-wp", type=float, default=0.95, help="TXbb VBF WP")
+    parser.add_argument("--vbf-bdt-wp", type=float, default=0.98, help="BDT VBF WP")
 
     parser.add_argument(
         "--weight-ttbar-bdt", type=float, default=1.0, help="Weight TTbar discriminator on VBF BDT"
@@ -1525,7 +1729,7 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
-    run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
+    run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
     )
