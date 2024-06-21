@@ -1331,7 +1331,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5, label=
     plt.rcParams.update({"font.size": 18})
 
     cbar = hep.hist2dplot(
-        h_sb, ax=ax, cmin=np.min(eff[eff > 0])*0.75, cmax=np.max(eff[eff > 0])*1.25, flow="none"
+        h_sb, ax=ax, cmin=np.min(eff[eff > 0]) * 0.75, cmax=np.max(eff[eff > 0]) * 1.25, flow="none"
     )
     cbar.cbar.set_label(label, size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15

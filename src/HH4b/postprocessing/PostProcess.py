@@ -651,7 +651,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             if args.vbf:
                 bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
                 mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
-                   bdt_events["H2TXbb"] > args.vbf_txbb_wp
+                    bdt_events["H2TXbb"] > args.vbf_txbb_wp
                 )
                 # VBF selection from Run-2 (temporary!)
                 # mask_vbf = (
@@ -943,7 +943,7 @@ def scan_fom(
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             if True:
-            # if nevents_sig > 0.5 and nevents_bkg >= 2:
+                # if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
@@ -986,7 +986,17 @@ def scan_fom(
     all_xbb_cuts = np.array(all_xbb_cuts)
     all_bdt_cuts = np.array(all_bdt_cuts)
     # save all arrays to plot_dir
-    np.savez(f"{plot_dir}/{name}_fom_arrays.npz", all_fom=all_fom, all_b=all_b, all_b_unc=all_b_unc, all_s=all_s, all_sideband_events=all_sideband_events, all_xbb_cuts=all_xbb_cuts, all_bdt_cuts=all_bdt_cuts)
+    np.savez(
+        f"{plot_dir}/{name}_fom_arrays.npz",
+        all_fom=all_fom,
+        all_b=all_b,
+        all_b_unc=all_b_unc,
+        all_s=all_s,
+        all_sideband_events=all_sideband_events,
+        all_xbb_cuts=all_xbb_cuts,
+        all_bdt_cuts=all_bdt_cuts,
+    )
+
 
 def get_cuts(args, region: str):
     xbb_cut_bin1 = args.txbb_wps[0]
@@ -1378,7 +1388,11 @@ def postprocess_run3(args):
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
         # get ABCD (warning!: not considering VBF region veto)
-        s_bin1, b_bin1, _, = abcd(
+        (
+            s_bin1,
+            b_bin1,
+            _,
+        ) = abcd(
             events_combined,
             get_cuts(args, "bin1"),
             args.txbb_wps[0],
