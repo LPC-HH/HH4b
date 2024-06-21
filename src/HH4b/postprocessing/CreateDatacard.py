@@ -766,7 +766,9 @@ def fill_regions(
                     syst.convert_shape_to_lnN,
                 )
                 if syst.decorrelate_regions:
-                    sample.setParamEffect(shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down)
+                    sample.setParamEffect(
+                        shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down
+                    )
                 else:
                     sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
