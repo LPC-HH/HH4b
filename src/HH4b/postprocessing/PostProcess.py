@@ -649,22 +649,22 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # define category
             bdt_events[category] = 5  # all events
             if args.vbf:
-                # bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
-                # mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
-                #    bdt_events["H2TXbb"] > args.vbf_txbb_wp
-                # )
-                # VBF selection from Run-2 (temporary!)
-                mask_vbf = (
-                    (bdt_events["VBFjjMass"] > 500)
-                    & (bdt_events["VBFjjDeltaEta"] > 4.0)
-                    & (bdt_events["H1TXbb"] > 0.94)
-                    & (bdt_events["H1TXbb"] <= 0.98)
-                    & (bdt_events["H2TXbb"] > 0.94)
-                    & (bdt_events["H2TXbb"] <= 0.98)
-                    & (bdt_events[h1mass] >= 110)
-                    & (bdt_events[h1mass] <= 150)
-                    & (bdt_events["HHmass"] > 800)
+                bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
+                mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
+                   bdt_events["H2TXbb"] > args.vbf_txbb_wp
                 )
+                # VBF selection from Run-2 (temporary!)
+                # mask_vbf = (
+                #     (bdt_events["VBFjjMass"] > 500)
+                #     & (bdt_events["VBFjjDeltaEta"] > 4.0)
+                #     & (bdt_events["H1TXbb"] > 0.94)
+                #     & (bdt_events["H1TXbb"] <= 0.98)
+                #     & (bdt_events["H2TXbb"] > 0.94)
+                #     & (bdt_events["H2TXbb"] <= 0.98)
+                #     & (bdt_events[h1mass] >= 110)
+                #     & (bdt_events[h1mass] <= 150)
+                #     & (bdt_events["HHmass"] > 800)
+                # )
             else:
                 # if no VBF region, set all events to "fail VBF"
                 mask_vbf = np.zeros(len(bdt_events), dtype=bool)
@@ -907,6 +907,13 @@ def scan_fom(
     )
 
     print(f"Scanning {fom} with {method}")
+    all_s = []
+    all_b = []
+    all_b_unc = []
+    all_sideband_events = []
+    all_xbb_cuts = []
+    all_bdt_cuts = []
+    all_fom = []
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
@@ -934,13 +941,22 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
+            # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
+            if True:
+            # if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
                 h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
                 h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
                 h_sideband.fill(bdt_cut, xbb_cut, weight=nevents_sideband)
+                all_b.append(nevents_bkg)
+                all_b_unc.append(np.sqrt(nevents_bkg))
+                all_s.append(nevents_sig)
+                all_sideband_events.append(nevents_sideband)
+                all_xbb_cuts.append(xbb_cut)
+                all_bdt_cuts.append(bdt_cut)
+                all_fom.append(figure_of_merit)
                 if figure_of_merit < min_fom:
                     min_fom = figure_of_merit
                     min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
@@ -962,6 +978,15 @@ def scan_fom(
     plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
     plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
 
+    all_fom = np.array(all_fom)
+    all_b = np.array(all_b)
+    all_b_unc = np.array(all_b_unc)
+    all_s = np.array(all_s)
+    all_sideband_events = np.array(all_sideband_events)
+    all_xbb_cuts = np.array(all_xbb_cuts)
+    all_bdt_cuts = np.array(all_bdt_cuts)
+    # save all arrays to plot_dir
+    np.savez(f"{plot_dir}/{name}_fom_arrays.npz", all_fom=all_fom, all_b=all_b, all_b_unc=all_b_unc, all_s=all_s, all_sideband_events=all_sideband_events, all_xbb_cuts=all_xbb_cuts, all_bdt_cuts=all_bdt_cuts)
 
 def get_cuts(args, region: str):
     xbb_cut_bin1 = args.txbb_wps[0]
@@ -1353,7 +1378,7 @@ def postprocess_run3(args):
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
         # get ABCD (warning!: not considering VBF region veto)
-        s_bin1, b_bin1, _ = abcd(
+        s_bin1, b_bin1, _, = abcd(
             events_combined,
             get_cuts(args, "bin1"),
             args.txbb_wps[0],
@@ -1366,15 +1391,15 @@ def postprocess_run3(args):
 
         s_binVBF, b_binVBF, _ = abcd(
             events_combined,
-            get_cuts(args, "vbfrun2"),  # temporary!
-            # get_cuts(args, "vbf"),
+            # get_cuts(args, "vbfrun2"),  # temporary!
+            get_cuts(args, "vbf"),
             args.txbb_wps[0],
             args.bdt_wps[0],
             args.mass,
             mass_window,
             bg_keys,
             "hh4b",
-            "run2",
+            "run3",
         )
 
         s_binVBFbin1, b_binVBFbin1, _ = abcd(
