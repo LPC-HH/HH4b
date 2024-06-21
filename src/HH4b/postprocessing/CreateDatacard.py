@@ -311,7 +311,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    "JES_AbsoluteScale": Syst(name="CMS_scale_j_AbsoluteScale", prior="shape", samples=all_mc),
+    "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -353,6 +353,7 @@ corr_year_shape_systs = {
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
+        decorrelate_regions=True,
     ),
     "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     "TXbbSF_correlated": Syst(
@@ -466,9 +467,15 @@ if args.ttbar_rate_param:
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    shape_systs_dict[skey] = rl.NuisanceParameter(
-        syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
-    )
+    if syst.decorrelate_regions:
+        for region in signal_regions + ["fail"]:
+            shape_systs_dict[f"{skey}_{region}"] = rl.NuisanceParameter(
+                f"{syst.name}_{region}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    else:
+        shape_systs_dict[skey] = rl.NuisanceParameter(
+            syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
+        )
 for skey, syst in uncorr_year_shape_systs.items():
     for uncorr_label in syst.uncorr_years:
         shape_systs_dict[f"{skey}_{uncorr_label}"] = rl.NuisanceParameter(
@@ -758,7 +765,10 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
-                sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
+                if syst.decorrelate_regions:
+                    sample.setParamEffect(shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down)
+                else:
+                    sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
             # uncorrelated shape systematics
             for skey, syst in uncorr_year_shape_systs.items():
