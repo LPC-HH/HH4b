@@ -245,7 +245,9 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
             print(random_smear)
-            x_smear = x * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x) / x)
+            x_smear = (
+                x * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x) / x)
+            )
             for i in range(2):
                 events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
                 events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
@@ -356,7 +358,10 @@ def make_rocs(
     for bkg in [*bg_keys, "merged"]:
         if bkg != "merged":
             scores_roc = np.concatenate(
-                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)], events_dict[bkg][scores_key]]
+                [
+                    events_dict[sig_key][check_get_jec_var(scores_key, jshift)],
+                    events_dict[bkg][scores_key],
+                ]
             )
             scores_true = np.concatenate(
                 [

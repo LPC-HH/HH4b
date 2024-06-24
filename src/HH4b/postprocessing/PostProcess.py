@@ -145,7 +145,12 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 
     for sig_key in sig_keys:
         rocs = postprocessing.make_rocs(
-            events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys, jshift,
+            events_combined,
+            scores_keys[sig_key],
+            "weight",
+            sig_key,
+            bkg_keys,
+            jshift,
         )
         bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
         fig, ax = plt.subplots(1, 1, figsize=(18, 12))
