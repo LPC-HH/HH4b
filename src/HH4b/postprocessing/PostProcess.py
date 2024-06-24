@@ -226,7 +226,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )[key]
 
         # inference and assign score
-        jshifts = [""] 
+        jshifts = [""]
         if key in hh_vars.syst_keys:
             jshifts += hh_vars.jec_shifts
         if key in hh_vars.jmsr_keys:
