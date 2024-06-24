@@ -21,6 +21,7 @@ from HH4b.hh_vars import (
     jmsr,
     jmsr_keys,
     jmsr_values,
+    jmsr_res,
     sig_keys,
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
@@ -246,7 +247,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
             random_smear = rng.standard_normal(size=x.shape)
             print(random_smear)
             x_smear = (
-                x * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x) / x)
+                x * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
             )
             for i in range(2):
                 events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
@@ -260,7 +261,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                         jms = jms_nom
                         jmr = jmsr_values["JMR"][year][shift]
                     x_smear = np.zeros_like(x)
-                    x_smear = x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x) / x)
+                    x_smear = x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
                     for i in range(2):
                         events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
                             :, i

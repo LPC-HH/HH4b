@@ -384,6 +384,9 @@ jmsr_values["JMS"] = {
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
 jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_res = {sig_key: 14.4 for sig_key in sig_keys}
+jmsr_res["vhtobb"] = 14.4 * 80. / 125.
+jmsr_res["diboson"] = 14.4 * 80. / 125.
 
 
 ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
