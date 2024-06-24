@@ -179,8 +179,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
             loc="upper left",
         )
         fig.tight_layout()
-        fig.savefig(plot_dir / f"{sig_key}_roc.png")
-        fig.savefig(plot_dir / f"{sig_key}_roc.pdf", bbox_inches="tight")
+        _jshift = f"_{jshift}" if jshift != "" else ""
+        fig.savefig(plot_dir / f"{sig_key}_roc{_jshift}.png")
+        fig.savefig(plot_dir / f"{sig_key}_roc{_jshift}.pdf", bbox_inches="tight")
         plt.close()
 
 
