@@ -182,6 +182,7 @@ samples_run3 = {
     "2022": {
         "qcd": common_samples_bg["qcd"],
         "data": common_samples_bg["data"],
+        "ttbar": common_samples_bg["ttbar"],
         **samples_run3_sig["2022"],
     },
     "2022EE": {
