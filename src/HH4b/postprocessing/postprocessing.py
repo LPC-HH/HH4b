@@ -31,9 +31,7 @@ from HH4b.hh_vars import (
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import ShapeVar, Syst
-
-rng = np.random.default_rng(seed=42)
+from HH4b.utils import ShapeVar, Syst, check_get_jec_var
 
 
 @dataclass
@@ -236,6 +234,7 @@ def load_run3_samples(
 def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
     jms_nom = jmsr_values["JMS"][year]["nom"]
     jmr_nom = jmsr_values["JMR"][year]["nom"]
+    rng = np.random.default_rng(seed=42)
 
     # formula for smearing and scaling
     for key in events_dict:
@@ -244,16 +243,10 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
             print("bbFatJetPNetMassLegacy", events_dict[key]["bbFatJetPNetMassLegacy"])
             x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
+            random_smear = rng.standard_normal(size=x.shape)
+            print(random_smear)
+            x_smear = x * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x) / x)
             for i in range(2):
-                random_smear = rng.standard_normal(size=x.shape[0])
-                x_smear[:, i] = (
-                    x[:, i]
-                    * jms_nom
-                    * (
-                        1
-                        + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x[:, i]) / x[:, i]
-                    )
-                )
                 events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
                 events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
             for skey in jmsr:
@@ -265,16 +258,8 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                         jms = jms_nom
                         jmr = jmsr_values["JMR"][year][shift]
                     x_smear = np.zeros_like(x)
+                    x_smear = x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x) / x)
                     for i in range(2):
-                        random_smear = rng.standard_normal(size=x.shape[0])
-                        x_smear[:, i] = (
-                            x[:, i]
-                            * jms
-                            * (
-                                1
-                                + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x[:, i]) / x[:, i]
-                            )
-                        )
                         events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
                             :, i
                         ]
@@ -365,12 +350,13 @@ def make_rocs(
     weight_key: str,
     sig_key: str,
     bg_keys: list[str],
+    jshift: str,
 ):
     rocs = {}
     for bkg in [*bg_keys, "merged"]:
         if bkg != "merged":
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key], events_dict[bkg][scores_key]]
+                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)], events_dict[bkg][scores_key]]
             )
             scores_true = np.concatenate(
                 [
@@ -384,7 +370,7 @@ def make_rocs(
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key]]
+                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)]]
                 + [events_dict[bg_key][scores_key] for bg_key in bg_keys]
             )
             scores_true = np.concatenate(

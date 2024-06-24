@@ -131,7 +131,7 @@ def add_bdt_scores(
         )
 
 
-def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
+def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
     sig_keys = ["hh4b", "vbfhh4b-k2v0"]
     scores_keys = {
         "hh4b": "bdt_score",
@@ -145,7 +145,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 
     for sig_key in sig_keys:
         rocs = postprocessing.make_rocs(
-            events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
+            events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys, jshift,
         )
         bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
         fig, ax = plt.subplots(1, 1, figsize=(18, 12))
@@ -1171,6 +1171,8 @@ def postprocess_run3(args):
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
+        bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
+        bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
 
     templ_dir = Path("templates") / args.templates_tag
     for year in args.years:
@@ -1198,7 +1200,7 @@ def postprocess_run3(args):
     # individual templates per year
     for year in args.years:
         templates = {}
-        for jshift in [""] + hh_vars.jec_shifts:
+        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
             events_by_year = {}
             for sample, events in events_combined.items():
                 events_by_year[sample] = events[events["year"] == year]
