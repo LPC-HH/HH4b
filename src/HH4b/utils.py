@@ -30,6 +30,7 @@ from .hh_vars import (
     jec_vars,
     jmsr_shifts,
     jmsr_vars,
+    jmsr_keys,
     norm_preserving_weights,
     syst_keys,
     years,
@@ -749,7 +750,9 @@ def _var_selection(
 
     # OR the different vars
     for cutvar in cut_vars:
-        if jshift != "" and sample in syst_keys:
+        if jshift in jmsr_shifts and sample in jmsr_keys:
+            var = check_get_jec_var(cutvar, jshift)
+        elif jshift in jec_shifts and sample in syst_keys:
             var = check_get_jec_var(cutvar, jshift)
         else:
             var = cutvar
