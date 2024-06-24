@@ -385,8 +385,8 @@ jmsr_values["JMS"] = {
 }
 jmsr_keys = sig_keys + ["vhtobb", "diboson"]
 jmsr_res = {sig_key: 14.4 for sig_key in sig_keys}
-jmsr_res["vhtobb"] = 14.4 * 80. / 125.
-jmsr_res["diboson"] = 14.4 * 80. / 125.
+jmsr_res["vhtobb"] = 14.4 * 80.0 / 125.0
+jmsr_res["diboson"] = 14.4 * 80.0 / 125.0
 
 
 ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
