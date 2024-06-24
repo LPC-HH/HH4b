@@ -19,8 +19,8 @@ from HH4b.hh_vars import (
     data_key,
     jec_shifts,
     jmsr,
-    jmsr_values,
     jmsr_keys,
+    jmsr_values,
     sig_keys,
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
@@ -34,6 +34,7 @@ from HH4b.hh_vars import (
 from HH4b.utils import ShapeVar, Syst
 
 rng = np.random.default_rng(seed=42)
+
 
 @dataclass
 class Region:
@@ -228,11 +229,9 @@ def load_run3_samples(
         ),
     }
     events_dict_syst = scale_smear_mass(events_dict_syst, year)
-    events_dict = {
-        **events_dict_nosyst,
-        **events_dict_syst
-    }
+    events_dict = {**events_dict_nosyst, **events_dict_syst}
     return events_dict
+
 
 def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
     jms_nom = jmsr_values["JMS"][year]["nom"]
@@ -246,7 +245,14 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
             x_smear = np.zeros_like(x)
             for i in range(2):
                 random_smear = rng.standard_normal(size=x.shape[0])
-                x_smear[:, i] = x[:, i] * jms_nom * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x[:, i]) / x[:, i])
+                x_smear[:, i] = (
+                    x[:, i]
+                    * jms_nom
+                    * (
+                        1
+                        + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * np.std(x[:, i]) / x[:, i]
+                    )
+                )
             events_dict[key]["bbFatJetPNetMassLegacyRaw"] = x
             events_dict[key]["bbFatJetPNetMassLegacy"] = x_smear
             for skey in jmsr:
@@ -260,7 +266,14 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                     x_smear = np.zeros_like(x)
                     for i in range(2):
                         random_smear = rng.standard_normal(size=x.shape[0])
-                        x_smear[:, i] = x[:, i] * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x[:, i]) / x[:, i])
+                        x_smear[:, i] = (
+                            x[:, i]
+                            * jms
+                            * (
+                                1
+                                + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x[:, i]) / x[:, i]
+                            )
+                        )
                     events_dict[key]["bbFatJetPNetMassLegacy_{skey}_{shift}"] = x_smear
             print(events_dict[key]["bbFatJetPNetMassLegacyRaw"])
             print(events_dict[key]["bbFatJetPNetMassLegacy"])
@@ -269,6 +282,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
             print(events_dict[key]["bbFatJetPNetMassLegacy_JMR_up"])
             print(events_dict[key]["bbFatJetPNetMassLegacy_JMR_down"])
     return events_dict
+
 
 def get_evt_testing(inferences_dir, key):
     evt_file = Path(f"{inferences_dir}/evt_{key}.npy")
