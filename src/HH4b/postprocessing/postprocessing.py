@@ -227,6 +227,15 @@ def load_run3_samples(
             variations=False,
         ),
     }
+    for key in events_dict_nosyst:
+        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    for key in events_dict_syst:
+        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+
     events_dict_syst = scale_smear_mass(events_dict_syst, year)
     events_dict = {**events_dict_nosyst, **events_dict_syst}
     return events_dict

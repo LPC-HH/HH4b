@@ -261,6 +261,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
         bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
         bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
+        for jshift in hh_vars.jmsr_shifts:
+            bdt_events[f"H1PNetMass_{jshift}"] = events_dict[f"bbFatJetPNetMass{legacy_label}_{jshift}"][0]
+            bdt_events[f"H2PNetMass_{jshift}"] = events_dict[f"bbFatJetPNetMass{legacy_label}_{jshift}"][1]
         bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
         bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
 
