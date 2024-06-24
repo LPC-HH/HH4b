@@ -1177,8 +1177,8 @@ def postprocess_run3(args):
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
-        bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
-        bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
 
     templ_dir = Path("templates") / args.templates_tag
     for year in args.years:
