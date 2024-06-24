@@ -275,14 +275,26 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                                 + random_smear * np.sqrt(jmr * jmr - 1) * np.std(x[:, i]) / x[:, i]
                             )
                         )
-                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[:, i]
-            print(events_dict[key].columns)                      
+                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
+                            :, i
+                        ]
+            print(events_dict[key].columns)
             print("bbFatJetPNetMassLegacyRaw", events_dict[key]["bbFatJetPNetMassLegacyRaw"])
             print("bbFatJetPNetMassLegacy", events_dict[key]["bbFatJetPNetMassLegacy"])
-            print("bbFatJetPNetMassLegacy_JMS_up", events_dict[key]["bbFatJetPNetMassLegacy_JMS_up"])
-            print("bbFatJetPNetMassLegacy_JMS_down", events_dict[key]["bbFatJetPNetMassLegacy_JMS_down"])
-            print("bbFatJetPNetMassLegacy_JMR_up", events_dict[key]["bbFatJetPNetMassLegacy_JMR_up"])
-            print("bbFatJetPNetMassLegacy_JMR_down", events_dict[key]["bbFatJetPNetMassLegacy_JMR_down"])
+            print(
+                "bbFatJetPNetMassLegacy_JMS_up", events_dict[key]["bbFatJetPNetMassLegacy_JMS_up"]
+            )
+            print(
+                "bbFatJetPNetMassLegacy_JMS_down",
+                events_dict[key]["bbFatJetPNetMassLegacy_JMS_down"],
+            )
+            print(
+                "bbFatJetPNetMassLegacy_JMR_up", events_dict[key]["bbFatJetPNetMassLegacy_JMR_up"]
+            )
+            print(
+                "bbFatJetPNetMassLegacy_JMR_down",
+                events_dict[key]["bbFatJetPNetMassLegacy_JMR_down"],
+            )
     return events_dict
 
 
