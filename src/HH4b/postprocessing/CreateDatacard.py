@@ -26,7 +26,6 @@ from datacardHelpers import (
     combine_templates,
     get_effect_updown,
     rem_neg,
-    smorph,
     sum_templates,
 )
 from hist import Hist
@@ -45,7 +44,6 @@ from HH4b.hh_vars import (
 from HH4b.hh_vars import (
     years as hh_years,
 )
-from HH4b.utils import blindBins
 
 try:
     rl.util.install_roofit_helpers()
