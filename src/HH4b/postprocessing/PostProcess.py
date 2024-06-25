@@ -1138,16 +1138,7 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(
-    events_dict,
-    get_cut,
-    txbb_cut,
-    bdt_cut,
-    mass,
-    mass_window,
-    bg_keys_all,
-    sig_key="hh4b"
-):
+def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
