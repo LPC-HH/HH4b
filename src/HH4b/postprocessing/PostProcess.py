@@ -134,8 +134,13 @@ def add_bdt_scores(
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
     sig_keys = [
         "hh4b",
+        "hh4b-kl0",
+        "hh4b-kl2p45",
+        "hh4b-kl5",
         "vbfhh4b",
         "vbfhh4b-k2v0",
+        "vbfhh4b-k2v2",
+        "vbfhh4b-kl2",
     ]
     scores_keys = {
         "hh4b": "bdt_score",
