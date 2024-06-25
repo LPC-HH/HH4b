@@ -670,21 +670,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 # if no VBF region, set all events to "fail VBF"
                 mask_vbf = np.zeros(len(bdt_events), dtype=bool)
 
-            mask_vbf_hp = (
-                (bdt_events["VBFjjMass"] > 500)
-                & (bdt_events["VBFjjDeltaEta"] > 4.0)
-                & (bdt_events["H1TXbb"] > 0.98)
-                & (bdt_events["H2TXbb"] > 0.98)
-                & (bdt_events[h1mass] >= 110)
-                & (bdt_events[h1mass] <= 150)
-                & (bdt_events["HHmass"] > 800)
-            )
-            mask_vbf_mp_bin1 = mask_vbf & (bdt_events["HHmass"] <= 1200)
-            mask_vbf_mp_bin2 = (
-                mask_vbf & (bdt_events["HHmass"] > 1200) & (bdt_events["HHmass"] <= 1600)
-            )
-            mask_vbf_mp_bin3 = mask_vbf & (bdt_events["HHmass"] > 1600)
-
             mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
                 bdt_events[bdt_score] > args.bdt_wps[0]
             )
@@ -1003,81 +988,6 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    def get_cut_vbf_run2(events, xbb_cut, bdt_cut):  # noqa: ARG001
-        h1mass = args.mass.replace("H2", "H1")
-        cut_vbf = (
-            (events["VBFjjMass"] > 500)
-            & (events["VBFjjDeltaEta"] > 4.0)
-            & (events["H1TXbb"] > 0.94)
-            & (events["H2TXbb"] > 0.94)
-            & (events[h1mass] >= 110)
-            & (events[h1mass] <= 150)
-            & (events["H1TXbb"] <= 0.98)
-            & (events["H2TXbb"] <= 0.98)
-            & (events["HHmass"] > 800)
-        )
-        return cut_vbf
-
-    def get_cut_vbf_run2_bin1(events, xbb_cut, bdt_cut):  # noqa: ARG001
-        h1mass = args.mass.replace("H2", "H1")
-        cut_vbf = (
-            (events["VBFjjMass"] > 500)
-            & (events["VBFjjDeltaEta"] > 4.0)
-            & (events["H1TXbb"] > 0.94)
-            & (events["H2TXbb"] > 0.94)
-            & (events[h1mass] >= 110)
-            & (events[h1mass] <= 150)
-            & (events["H1TXbb"] <= 0.98)
-            & (events["H2TXbb"] <= 0.98)
-            & (events["HHmass"] > 800)
-            & (events["HHmass"] <= 1200)
-        )
-        return cut_vbf
-
-    def get_cut_vbf_run2_bin2(events, xbb_cut, bdt_cut):  # noqa: ARG001
-        h1mass = args.mass.replace("H2", "H1")
-        cut_vbf = (
-            (events["VBFjjMass"] > 500)
-            & (events["VBFjjDeltaEta"] > 4.0)
-            & (events["H1TXbb"] > 0.94)
-            & (events["H2TXbb"] > 0.94)
-            & (events[h1mass] >= 110)
-            & (events[h1mass] <= 150)
-            & (events["H1TXbb"] <= 0.98)
-            & (events["H2TXbb"] <= 0.98)
-            & (events["HHmass"] > 1200)
-            & (events["HHmass"] <= 1600)
-        )
-        return cut_vbf
-
-    def get_cut_vbf_run2_bin3(events, xbb_cut, bdt_cut):  # noqa: ARG001
-        h1mass = args.mass.replace("H2", "H1")
-        cut_vbf = (
-            (events["VBFjjMass"] > 500)
-            & (events["VBFjjDeltaEta"] > 4.0)
-            & (events["H1TXbb"] > 0.94)
-            & (events["H2TXbb"] > 0.94)
-            & (events[h1mass] >= 110)
-            & (events[h1mass] <= 150)
-            & (events["H1TXbb"] <= 0.98)
-            & (events["H2TXbb"] <= 0.98)
-            & (events["HHmass"] > 1600)
-        )
-        return cut_vbf
-
-    def get_cut_vbf_run2_hp(events, xbb_cut, bdt_cut):  # noqa: ARG001
-        h1mass = args.mass.replace("H2", "H1")
-        cut_vbf = (
-            (events["VBFjjMass"] > 500)
-            & (events["VBFjjDeltaEta"] > 4.0)
-            & (events["H1TXbb"] > 0.98)
-            & (events["H2TXbb"] > 0.98)
-            & (events[h1mass] >= 110)
-            & (events[h1mass] <= 150)
-            & (events["HHmass"] > 800)
-        )
-        return cut_vbf
-
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
@@ -1141,16 +1051,6 @@ def get_cuts(args, region: str):
         else:
             # if no VBF region, set all events to "fail VBF"
             return get_cut_novbf
-    elif region == "vbfrun2":
-        return get_cut_vbf_run2
-    elif region == "vbfrun2bin1":
-        return get_cut_vbf_run2_bin1
-    elif region == "vbfrun2bin2":
-        return get_cut_vbf_run2_bin2
-    elif region == "vbfrun2bin3":
-        return get_cut_vbf_run2_bin3
-    elif region == "vbfrun2hp":
-        return get_cut_vbf_run2_hp
     elif region == "bin1":
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
