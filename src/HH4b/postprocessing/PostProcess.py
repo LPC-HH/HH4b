@@ -821,7 +821,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(
                 bdt_events, mask_bin3, args.mass, mass_window
             )
-
     # end of loop over samples
 
     if control_plots:
@@ -1587,9 +1586,7 @@ def postprocess_run3(args):
             energy=13.6,
             jshift="",
         )
-        postprocessing.save_templates(
-            templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var
-        )
+        postprocessing.save_templates(templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var)
     """
 
 
