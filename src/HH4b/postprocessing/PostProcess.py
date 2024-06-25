@@ -1146,8 +1146,7 @@ def abcd(
     mass,
     mass_window,
     bg_keys_all,
-    sig_key="hh4b",
-    fail_region="run3",
+    sig_key="hh4b"
 ):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
@@ -1172,10 +1171,7 @@ def abcd(
         # region B
         dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
 
-        if fail_region == "run3":
-            cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
-        else:
-            cut = (events["H2TXbb"] < 0.9) & (events["H2TXbb"] > 0.1) & (events["H1TXbb"] < 0.9)
+        cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
 
         # region C
         dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
@@ -1309,7 +1305,6 @@ def postprocess_run3(args):
             mass_window,
             bg_keys,
             "hh4b",
-            "run3",
         )
 
         # note: need to do this since not all the years have all the samples..
