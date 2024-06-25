@@ -131,7 +131,7 @@ def add_bdt_scores(
         )
 
 
-def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
+def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
     sig_keys = [
         "hh4b",
         "vbfhh4b",
@@ -275,11 +275,11 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         )
         fig.tight_layout()
         if vbf_in_sig_key:
-            fig.savefig(plot_dir / "GGF_hh4b_allroc.png", bbox_inches="tight")
-            fig.savefig(plot_dir / "GGF_hh4b_allroc.pdf", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allroc{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allroc{_jshift}.pdf", bbox_inches="tight")
         else:
-            fig.savefig(plot_dir / "VBF_hh4b_allroc.png", bbox_inches="tight")
-            fig.savefig(plot_dir / "VBF_hh4b_allroc.pdf", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allroc{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allroc{_jshift}.pdf", bbox_inches="tight")
         plt.close()
 
         # plot scores too
@@ -300,11 +300,11 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         ax.legend()
         fig.tight_layout()
         if vbf_in_sig_key:
-            fig.savefig(plot_dir / "GGF_hh4b_allbdt.png", bbox_inches="tight")
-            fig.savefig(plot_dir / "GGF_hh4b_allbdt.pdf", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allbdt{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allbdt{_jshift}.pdf", bbox_inches="tight")
         else:
-            fig.savefig(plot_dir / "VBF_hh4b_allbdt.png", bbox_inches="tight")
-            fig.savefig(plot_dir / "VBF_hh4b_allbdt.pdf", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allbdt{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allbdt{_jshift}.pdf", bbox_inches="tight")
         plt.close()
 
 
