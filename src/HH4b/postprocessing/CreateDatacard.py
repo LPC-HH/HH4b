@@ -482,7 +482,6 @@ def get_templates(
         for year in years:
             with Path(f"{templates_dir}/{year}_templates.pkl").open("rb") as f:
                 templates_dict[year] = rem_neg(pickle.load(f))
-                regions = list(templates_dict[year].keys())
     else:
         # signal and background in different hists - need to combine them into one hist
         for year in years:
