@@ -248,13 +248,11 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
 
     # formula for smearing and scaling
     for key in events_dict:
+        print(f"scaling and smearing mass for {key} {year}")
         if key in jmsr_keys:
-            print(key)
-            print("bbFatJetPNetMassLegacy", events_dict[key]["bbFatJetPNetMassLegacy"])
             x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
-            print(random_smear)
             x_smear = (
                 x
                 * jms_nom
@@ -279,23 +277,6 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                         events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
                             :, i
                         ]
-            print(events_dict[key].columns)
-            print("bbFatJetPNetMassLegacyRaw", events_dict[key]["bbFatJetPNetMassLegacyRaw"])
-            print("bbFatJetPNetMassLegacy", events_dict[key]["bbFatJetPNetMassLegacy"])
-            print(
-                "bbFatJetPNetMassLegacy_JMS_up", events_dict[key]["bbFatJetPNetMassLegacy_JMS_up"]
-            )
-            print(
-                "bbFatJetPNetMassLegacy_JMS_down",
-                events_dict[key]["bbFatJetPNetMassLegacy_JMS_down"],
-            )
-            print(
-                "bbFatJetPNetMassLegacy_JMR_up", events_dict[key]["bbFatJetPNetMassLegacy_JMR_up"]
-            )
-            print(
-                "bbFatJetPNetMassLegacy_JMR_down",
-                events_dict[key]["bbFatJetPNetMassLegacy_JMR_down"],
-            )
     return events_dict
 
 
