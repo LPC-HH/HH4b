@@ -131,7 +131,7 @@ def add_bdt_scores(
         )
 
 
-def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool):
+def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
     sig_keys = ["hh4b", "vbfhh4b-k2v0"]
     scores_keys = {
         "hh4b": "bdt_score",
@@ -145,7 +145,12 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 
     for sig_key in sig_keys:
         rocs = postprocessing.make_rocs(
-            events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
+            events_combined,
+            scores_keys[sig_key],
+            "weight",
+            sig_key,
+            bkg_keys,
+            jshift,
         )
         bkg_colors = {**plotting.color_by_sample, "merged": "orange"}
         fig, ax = plt.subplots(1, 1, figsize=(18, 12))
@@ -174,8 +179,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
             loc="upper left",
         )
         fig.tight_layout()
-        fig.savefig(plot_dir / f"{sig_key}_roc.png")
-        fig.savefig(plot_dir / f"{sig_key}_roc.pdf", bbox_inches="tight")
+        _jshift = f"_{jshift}" if jshift != "" else ""
+        fig.savefig(plot_dir / f"{sig_key}_roc{_jshift}.png")
+        fig.savefig(plot_dir / f"{sig_key}_roc{_jshift}.pdf", bbox_inches="tight")
         plt.close()
 
 
@@ -226,7 +232,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )[key]
 
         # inference and assign score
-        jshifts = [""] + hh_vars.jec_shifts if key in hh_vars.syst_keys else [""]
+        jshifts = [""]
+        if key in hh_vars.syst_keys:
+            jshifts += hh_vars.jec_shifts
+        if key in hh_vars.jmsr_keys:
+            jshifts += hh_vars.jmsr_shifts
         print("JEC shifts ", jshifts)
 
         print("perform inference")
@@ -251,6 +261,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
         bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
         bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
+        if key in hh_vars.jmsr_keys:
+            for jshift in hh_vars.jmsr_shifts:
+                bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
+                    f"bbFatJetPNetMass{legacy_label}_{jshift}"
+                ][0]
+                bdt_events[f"H2PNetMass_{jshift}"] = events_dict[
+                    f"bbFatJetPNetMass{legacy_label}_{jshift}"
+                ][1]
         bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
         bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
 
@@ -1167,6 +1185,8 @@ def postprocess_run3(args):
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
 
     templ_dir = Path("templates") / args.templates_tag
     for year in args.years:
@@ -1194,7 +1214,7 @@ def postprocess_run3(args):
     # individual templates per year
     for year in args.years:
         templates = {}
-        for jshift in [""] + hh_vars.jec_shifts:
+        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
             events_by_year = {}
             for sample, events in events_combined.items():
                 events_by_year[sample] = events[events["year"] == year]
