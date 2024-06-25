@@ -376,7 +376,6 @@ jmsr_vars = [
 
 jmsr_values = {}
 jmsr_values["JMR"] = {
-    # "2022": {"nom": 1.00, "down": 1.00, "up": 1.13},  # for testing no BDT effect
     "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
     "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},

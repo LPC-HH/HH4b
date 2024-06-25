@@ -528,7 +528,7 @@ def get_templates(
                 continue
 
             fill_data = _get_fill_data(
-                events, shape_vars, jshift=jshift if sample != data_key else None
+                events, shape_vars, jshift=jshift if sample in jmsr_keys else None
             )
             weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
