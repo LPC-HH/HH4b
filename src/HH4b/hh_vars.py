@@ -361,16 +361,37 @@ jec_vars = [
 
 # variables affected by JMS/JMR
 jmsr_vars = [
-    #    "bbFatJetMsd",
-    #    "bbFatJetPNetMassLegacy",
-    #    "bdt_score",
-    #    "bdt_score_vbf",
-    #    "HHmass",
-    #    "H1Pt_HHmass",
-    #    "H2Pt_HHmass",
-    #    "VBFjjMass",
-    #    "Category",
+    "bbFatJetPNetMassLegacy",
+    "bdt_score",
+    "bdt_score_vbf",
+    "HHmass",
+    "H1Pt_HHmass",
+    "H2Pt_HHmass",
+    "H1Mass",
+    "H2Mass",
+    "H1PNetMass",
+    "H2PNetMass",
+    "Category",
 ]
+
+jmsr_values = {}
+jmsr_values["JMR"] = {
+    "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
+    "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
+    "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
+    "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
+}
+jmsr_values["JMS"] = {
+    "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
+    "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
+    "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
+    "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
+}
+jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_res = {sig_key: 14.4 for sig_key in sig_keys}
+jmsr_res["vhtobb"] = 14.4 * 80.0 / 125.0
+jmsr_res["diboson"] = 14.4 * 80.0 / 125.0
+
 
 ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]

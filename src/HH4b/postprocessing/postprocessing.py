@@ -18,6 +18,10 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     jec_shifts,
+    jmsr,
+    jmsr_keys,
+    jmsr_res,
+    jmsr_values,
     sig_keys,
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
@@ -28,7 +32,7 @@ from HH4b.hh_vars import (
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import ShapeVar, Syst
+from HH4b.utils import ShapeVar, Syst, check_get_jec_var
 
 
 @dataclass
@@ -199,7 +203,7 @@ def load_run3_samples(
     }
 
     # pre-selection
-    events_dict = {
+    events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
             samples_nosyst,
@@ -211,8 +215,7 @@ def load_run3_samples(
             variations=False,
         ),
     }
-    events_dict = {
-        **events_dict,
+    events_dict_syst = {
         **utils.load_samples(
             input_dir,
             samples_syst,
@@ -224,6 +227,56 @@ def load_run3_samples(
             variations=False,
         ),
     }
+    for key in events_dict_nosyst:
+        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    for key in events_dict_syst:
+        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+
+    events_dict_syst = scale_smear_mass(events_dict_syst, year)
+    events_dict = {**events_dict_nosyst, **events_dict_syst}
+    return events_dict
+
+
+def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
+    jms_nom = jmsr_values["JMS"][year]["nom"]
+    jmr_nom = jmsr_values["JMR"][year]["nom"]
+    rng = np.random.default_rng(seed=42)
+
+    # formula for smearing and scaling
+    for key in events_dict:
+        print(f"scaling and smearing mass for {key} {year}")
+        if key in jmsr_keys:
+            x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            x_smear = np.zeros_like(x)
+            random_smear = rng.standard_normal(size=x.shape)
+            x_smear = (
+                x
+                * jms_nom
+                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
+            )
+            for i in range(2):
+                events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
+                events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+            for skey in jmsr:
+                for shift in ["up", "down"]:
+                    if skey == "JMS":
+                        jms = jmsr_values["JMS"][year][shift]
+                        jmr = jmr_nom
+                    else:
+                        jms = jms_nom
+                        jmr = jmsr_values["JMR"][year][shift]
+                    x_smear = np.zeros_like(x)
+                    x_smear = (
+                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
+                    )
+                    for i in range(2):
+                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
+                            :, i
+                        ]
     return events_dict
 
 
@@ -294,12 +347,16 @@ def make_rocs(
     weight_key: str,
     sig_key: str,
     bg_keys: list[str],
+    jshift: str,
 ):
     rocs = {}
     for bkg in [*bg_keys, "merged"]:
         if bkg != "merged":
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key], events_dict[bkg][scores_key]]
+                [
+                    events_dict[sig_key][check_get_jec_var(scores_key, jshift)],
+                    events_dict[bkg][scores_key],
+                ]
             )
             scores_true = np.concatenate(
                 [
@@ -313,7 +370,7 @@ def make_rocs(
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key]]
+                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)]]
                 + [events_dict[bg_key][scores_key] for bg_key in bg_keys]
             )
             scores_true = np.concatenate(
@@ -452,7 +509,7 @@ def get_templates(
                 continue
 
             fill_data = _get_fill_data(
-                events, shape_vars, jshift=jshift if sample != data_key else None
+                events, shape_vars, jshift=jshift if sample in jmsr_keys else None
             )
             weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
