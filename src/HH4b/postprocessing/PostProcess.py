@@ -732,7 +732,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         )
 
         cutflow_dict[key]["BDT > min"] = np.sum(
-           bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+            bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
         )
 
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
