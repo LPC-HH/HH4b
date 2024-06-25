@@ -292,12 +292,12 @@ norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonS
 
 jecs = {
     # "JES": "JES",
-    # "JER": "JER",
+    "JER": "JER",
     # #####
     # # including all sources
     # #####
     # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",
-    # "JES_AbsoluteScale": "JES_AbsoluteScale",
+    "JES_AbsoluteScale": "JES_AbsoluteScale",
     # "JES_AbsoluteStat": "JES_AbsoluteStat",
     # "JES_FlavorQCD": "JES_FlavorQCD",
     # "JES_Fragmentation": "JES_Fragmentation",
