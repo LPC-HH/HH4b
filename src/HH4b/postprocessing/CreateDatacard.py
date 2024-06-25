@@ -122,6 +122,7 @@ add_bool_arg(
     default=False,
 )
 add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
+add_bool_arg(parser, "jesr", "Do JES/JER uncertainties", default=True)
 add_bool_arg(
     parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
 )
@@ -310,7 +311,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    "JES_AbsoluteScale": Syst(name="CMS_scale_j_AbsoluteScale", prior="shape", samples=all_mc),
+    "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -352,6 +353,7 @@ corr_year_shape_systs = {
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
+        decorrelate_regions=True,
     ),
     "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     "TXbbSF_correlated": Syst(
@@ -450,6 +452,10 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
     del uncorr_year_shape_systs["JMS"]
 
+if not args.jesr:
+    del corr_year_shape_systs["JES_AbsoluteScale"]
+    del uncorr_year_shape_systs["JER"]
+
 if args.ttbar_rate_param:
     # remove all ttbarSF systematics
     for key in list(corr_year_shape_systs.keys()):
@@ -461,9 +467,15 @@ if args.ttbar_rate_param:
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    shape_systs_dict[skey] = rl.NuisanceParameter(
-        syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
-    )
+    if syst.decorrelate_regions:
+        for region in signal_regions + ["fail"]:
+            shape_systs_dict[f"{skey}_{region}"] = rl.NuisanceParameter(
+                f"{syst.name}_{region}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    else:
+        shape_systs_dict[skey] = rl.NuisanceParameter(
+            syst.name, "lnN" if syst.convert_shape_to_lnN else "shape"
+        )
 for skey, syst in uncorr_year_shape_systs.items():
     for uncorr_label in syst.uncorr_years:
         shape_systs_dict[f"{skey}_{uncorr_label}"] = rl.NuisanceParameter(
@@ -753,7 +765,12 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
-                sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
+                if syst.decorrelate_regions:
+                    sample.setParamEffect(
+                        shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down
+                    )
+                else:
+                    sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
 
             # uncorrelated shape systematics
             for skey, syst in uncorr_year_shape_systs.items():
@@ -882,6 +899,10 @@ def alphabet_fit(
 
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
+        # qcd_eff = (
+        #     templates_summed[sr][data_key, :].sum().value - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])
+        #     / (templates_summed["fail"][data_key, :].sum().value - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys]))
+        # )
         qcd_eff = (
             templates_summed[sr][qcd_key, :].sum().value
             / templates_summed["fail"][qcd_key, :].sum().value
