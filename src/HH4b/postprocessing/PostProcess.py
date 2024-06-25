@@ -624,7 +624,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
         bdt_events = bdt_events[mask_hlt]
-        # cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
         # Veto VBF (temporary! from Run-2 veto)
         # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
@@ -666,18 +666,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
                     bdt_events["H2TXbb"] > args.vbf_txbb_wp
                 )
-                # VBF selection from Run-2 (temporary!)
-                # mask_vbf = (
-                #     (bdt_events["VBFjjMass"] > 500)
-                #     & (bdt_events["VBFjjDeltaEta"] > 4.0)
-                #     & (bdt_events["H1TXbb"] > 0.94)
-                #     & (bdt_events["H1TXbb"] <= 0.98)
-                #     & (bdt_events["H2TXbb"] > 0.94)
-                #     & (bdt_events["H2TXbb"] <= 0.98)
-                #     & (bdt_events[h1mass] >= 110)
-                #     & (bdt_events[h1mass] <= 150)
-                #     & (bdt_events["HHmass"] > 800)
-                # )
             else:
                 # if no VBF region, set all events to "fail VBF"
                 mask_vbf = np.zeros(len(bdt_events), dtype=bool)
@@ -739,54 +727,41 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events.loc[mask_fail, category] = 4
 
         # save cutflows for nominal variables
-        # cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
-        cutflow_dict[key]["Pt"] = np.sum(bdt_events["weight"].to_numpy())
+        cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
+            np.sum(bdt_events["weight"].to_numpy())
+        )
 
-        # cutflow_dict[key]["BDT > min"] = np.sum(
-        #    bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
-        # )
+        cutflow_dict[key]["BDT > min"] = np.sum(
+           bdt_events["weight"][bdt_events["bdt_score"] > args.bdt_wps[2]].to_numpy()
+        )
 
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
-        # cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
+        cutflow_dict[key]["Bin VBF"] = np.sum(bdt_events["weight"][mask_vbf].to_numpy())
         cutflow_dict[key][f"Bin VBF {mass_str}"] = np.sum(
             bdt_events["weight"][mask_vbf & mask_mass].to_numpy()
         )
 
-        cutflow_dict[key][f"Bin VBF MP Bin1 {mass_str}"] = np.sum(
-            bdt_events["weight"][mask_vbf_mp_bin1 & mask_mass].to_numpy()
-        )
-        cutflow_dict[key][f"Bin VBF MP Bin2 {mass_str}"] = np.sum(
-            bdt_events["weight"][mask_vbf_mp_bin2 & mask_mass].to_numpy()
-        )
-        cutflow_dict[key][f"Bin VBF MP Bin3 {mass_str}"] = np.sum(
-            bdt_events["weight"][mask_vbf_mp_bin3 & mask_mass].to_numpy()
-        )
-
-        cutflow_dict[key][f"Bin VBF HP {mass_str}"] = np.sum(
-            bdt_events["weight"][mask_vbf_hp & mask_mass].to_numpy()
-        )
-
-        # cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
+        cutflow_dict[key]["Bin 1"] = np.sum(bdt_events["weight"][mask_bin1].to_numpy())
         cutflow_dict[key][f"Bin 1 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin1 & mask_mass].to_numpy()
         )
 
-        # cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
-        #     bdt_events["weight"][
-        #         (bdt_events["H2TXbb"] > args.txbb_wps[0])
-        #         & (bdt_events["bdt_score"] > args.bdt_wps[0])
-        #         & mask_vbf
-        #     ].to_numpy()
-        # )
+        cutflow_dict[key]["VBF & Bin 1 overlap"] = np.sum(
+            bdt_events["weight"][
+                (bdt_events["H2TXbb"] > args.txbb_wps[0])
+                & (bdt_events["bdt_score"] > args.bdt_wps[0])
+                & mask_vbf
+            ].to_numpy()
+        )
 
-        # cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
+        cutflow_dict[key]["Bin 2"] = np.sum(bdt_events["weight"][mask_bin2].to_numpy())
         cutflow_dict[key][f"Bin 2 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin2 & mask_mass].to_numpy()
         )
 
-        # cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
+        cutflow_dict[key]["Bin 3"] = np.sum(bdt_events["weight"][mask_bin3].to_numpy())
         cutflow_dict[key][f"Bin 3 {mass_str}"] = np.sum(
             bdt_events["weight"][mask_bin3 & mask_mass].to_numpy()
         )
@@ -811,7 +786,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
-        columns += ["VBFjjMass", "VBFjjDeltaEta", "H1TXbb", "H1PNetMass", "HHmass"]
         columns = list(set(columns))
 
         if control_plots:
@@ -832,11 +806,21 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             events_dict_postprocess[key] = bdt_events[columns]
 
         # blind!!
-        # if key == "data":
-        #    cutflow_dict[key][f"Bin VBF {mass_str}"] = float(0.)
-        #    cutflow_dict[key][f"Bin 1 {mass_str}"] = float(0.)
-        #    cutflow_dict[key][f"Bin 2 {mass_str}"] = float(0.)
-        #    cutflow_dict[key][f"Bin 3 {mass_str}"] = float(0.)
+        if key == "data":
+            # get sideband estimate instead
+            print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
+                bdt_events, mask_vbf, args.mass, mass_window
+            )
+            cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin1, args.mass, mass_window
+            )
+            cutflow_dict[key][f"Bin 2 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin2, args.mass, mass_window
+            )
+            cutflow_dict[key][f"Bin 3 {mass_str}"] = get_nevents_data(
+                bdt_events, mask_bin3, args.mass, mass_window
+            )
 
     # end of loop over samples
 
@@ -956,7 +940,6 @@ def scan_fom(
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             if True:
-                # if nevents_sig > 0.5 and nevents_bkg >= 2:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
@@ -1420,7 +1403,6 @@ def postprocess_run3(args):
 
         s_binVBF, b_binVBF, _ = abcd(
             events_combined,
-            # get_cuts(args, "vbfrun2"),  # temporary!
             get_cuts(args, "vbf"),
             args.txbb_wps[0],
             args.bdt_wps[0],
@@ -1429,54 +1411,6 @@ def postprocess_run3(args):
             bg_keys,
             "hh4b",
             "run3",
-        )
-
-        s_binVBFbin1, b_binVBFbin1, _ = abcd(
-            events_combined,
-            get_cuts(args, "vbfrun2bin1"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
-            mass_window,
-            bg_keys,
-            "hh4b",
-            "run2",
-        )
-
-        s_binVBFbin2, b_binVBFbin2, _ = abcd(
-            events_combined,
-            get_cuts(args, "vbfrun2bin2"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
-            mass_window,
-            bg_keys,
-            "hh4b",
-            "run2",
-        )
-
-        s_binVBFbin3, b_binVBFbin3, _ = abcd(
-            events_combined,
-            get_cuts(args, "vbfrun2bin3"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
-            mass_window,
-            bg_keys,
-            "hh4b",
-            "run2",
-        )
-
-        s_binVBFhp, b_binVBFhp, _ = abcd(
-            events_combined,
-            get_cuts(args, "vbfrun2hp"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
-            mass_window,
-            bg_keys,
-            "hh4b",
-            "run2",
         )
 
         # note: need to do this since not all the years have all the samples..
@@ -1509,14 +1443,6 @@ def postprocess_run3(args):
 
             if "VBF [" in cut:
                 cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
-            if "VBF MP Bin1" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin1:.4f}"
-            if "VBF MP Bin2" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin2:.4f}"
-            if "VBF MP Bin3" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFbin3:.4f}"
-            if "VBF HP" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBFhp:.4f}"
             if "Bin 1 [" in cut and yield_b > 0:
                 cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
@@ -1534,8 +1460,6 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                # np.arange(0.9, 0.999, 0.01),
-                # np.arange(0.9, 0.999, 0.01),
                 np.arange(0.8, 0.999, 0.005),
                 np.arange(0.5, 0.99, 0.01),
                 mass_window,
@@ -1558,10 +1482,6 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
-                # np.arange(0.95, 0.999, 0.005),
-                # np.arange(0.9, 0.999, 0.01),
-                # np.arange(0.95, 0.999, 0.0025),
-                # np.arange(0.9, 0.999, 0.0025),
                 np.arange(0.8, 0.999, 0.0025),
                 np.arange(0.8, 0.999, 0.0025),
                 mass_window,
@@ -1647,6 +1567,7 @@ def postprocess_run3(args):
 
     # combined templates
     # skip for time
+    """
     if len(args.years) > 0:
         (templ_dir / "cutflows" / "2022-2023").mkdir(parents=True, exist_ok=True)
         (templ_dir / "2022-2023").mkdir(parents=True, exist_ok=True)
@@ -1670,6 +1591,7 @@ def postprocess_run3(args):
         postprocessing.save_templates(
             templates, templ_dir / "2022-2023_templates.pkl", fit_shape_var
         )
+    """
 
 
 if __name__ == "__main__":
