@@ -1323,7 +1323,7 @@ def ROCCurve(
         plt.close()
 
 
-def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5):
+def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5, label="Fig Of Merit"):
     """Plot FoM scan"""
 
     eff, bins_x, bins_y = h_sb.to_numpy()
@@ -1331,9 +1331,9 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5):
     plt.rcParams.update({"font.size": 18})
 
     cbar = hep.hist2dplot(
-        h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow="none"
+        h_sb, ax=ax, cmin=np.min(eff[eff > 0]) * 0.75, cmax=np.max(eff[eff > 0]) * 1.25, flow="none"
     )
-    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.set_label(label, size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
     for i in tqdm(range(len(bins_x) - 1)):
         for j in range(len(bins_y) - 1):
