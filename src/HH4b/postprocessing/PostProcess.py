@@ -132,9 +132,24 @@ def add_bdt_scores(
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
-    sig_keys = ["hh4b", "vbfhh4b-k2v0"]
+    sig_keys = [
+        "hh4b",
+        "hh4b-kl0",
+        "hh4b-kl2p45",
+        "hh4b-kl5",
+        "vbfhh4b",
+        "vbfhh4b-k2v0",
+        "vbfhh4b-k2v2",
+        "vbfhh4b-kl2",
+    ]
     scores_keys = {
         "hh4b": "bdt_score",
+        "hh4b-kl0": "bdt_score",
+        "hh4b-kl2p45": "bdt_score",
+        "hh4b-kl5": "bdt_score",
+        "vbfhh4b": "bdt_score_vbf",
+        "vbfhh4b-kl2": "bdt_score_vbf",
+        "vbfhh4b-k2v2": "bdt_score_vbf",
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
@@ -184,6 +199,119 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         fig.savefig(plot_dir / f"{sig_key}_roc{_jshift}.pdf", bbox_inches="tight")
         plt.close()
 
+    bdt_axis = hist.axis.Regular(40, 0, 1, name="bdt", label=r"BDT")
+    cat_axis = hist.axis.StrCategory([], name="cat", label="cat", growth=True)
+    h_bdt = hist.Hist(bdt_axis, cat_axis)
+    for sig_key in sig_keys:
+        h_bdt.fill(
+            events_combined[sig_key][scores_keys[sig_key]],
+            sig_key,
+            weight=events_combined[sig_key]["weight"],
+        )
+
+    def find_nearest(array, value):
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return idx
+
+    th_colours = ["#9381FF", "#1f78b4", "#a6cee3", "cyan", "blue"]
+
+    for vbf_in_sig_key in [True, False]:
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        # add lines at BDT cuts
+        plot_thresholds = [0.88, 0.98] if vbf_in_sig_key else [0.98]
+
+        isig = 0
+        for sig_key in sig_keys:
+            if ("vbf" in sig_key) == vbf_in_sig_key:
+                continue
+            rocs = postprocessing.make_rocs(
+                events_combined, scores_keys[sig_key], "weight", sig_key, bkg_keys
+            )
+            pths = {th: [[], []] for th in plot_thresholds}
+            for th in plot_thresholds:
+                idx = find_nearest(rocs["merged"]["thresholds"], th)
+                pths[th][0].append(rocs["merged"]["tpr"][idx])
+                pths[th][1].append(rocs["merged"]["fpr"][idx])
+            # print(vbf_in_sig_key, " isig ",isig, sig_key, pths)
+            for k, th in enumerate(plot_thresholds):
+                if isig == 0:
+                    ax.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        label=rf"BDT > {th}",
+                        color=th_colours[k],
+                        zorder=100,
+                    )
+                else:
+                    ax.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        color=th_colours[k],
+                        zorder=100,
+                    )
+
+            ax.plot(
+                rocs["merged"]["tpr"],
+                rocs["merged"]["fpr"],
+                linewidth=2,
+                color=plotting.color_by_sample[sig_key],
+                label=plotting.label_by_sample[sig_key],
+            )
+            isig = isig + 1
+        ax.set_xlim([0.0, 0.6])
+        ax.set_ylim([1e-5, 1e-1])
+        ax.set_yscale("log")
+        if vbf_in_sig_key:
+            ax.set_title("ggF BDT ROC Curve")
+        else:
+            ax.set_title("VBF BDT ROC Curve")
+        ax.set_xlabel("Signal efficiency")
+        ax.set_ylabel("Background efficiency")
+        ax.xaxis.grid(True, which="major")
+        ax.yaxis.grid(True, which="major")
+
+        ax.legend(
+            title=legtitle,
+            bbox_to_anchor=(1.03, 1),
+            loc="upper left",
+        )
+        fig.tight_layout()
+        if vbf_in_sig_key:
+            fig.savefig(plot_dir / f"GGF_hh4b_allroc{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allroc{_jshift}.pdf", bbox_inches="tight")
+        else:
+            fig.savefig(plot_dir / f"VBF_hh4b_allroc{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allroc{_jshift}.pdf", bbox_inches="tight")
+        plt.close()
+
+        # plot scores too
+        fig, ax = plt.subplots(1, 1, figsize=(18, 12))
+        for sig_key in sig_keys:
+            if ("vbf" in sig_key) == vbf_in_sig_key:
+                continue
+            hep.histplot(
+                h_bdt[{"cat": sig_key}],
+                ax=ax,
+                label=plotting.label_by_sample[sig_key],
+                color=plotting.color_by_sample[sig_key],
+                histtype="step",
+                linewidth=1.5,
+                density=True,
+                flow="none",
+            )
+        ax.legend()
+        fig.tight_layout()
+        if vbf_in_sig_key:
+            fig.savefig(plot_dir / f"GGF_hh4b_allbdt{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"GGF_hh4b_allbdt{_jshift}.pdf", bbox_inches="tight")
+        else:
+            fig.savefig(plot_dir / f"VBF_hh4b_allbdt{_jshift}.png", bbox_inches="tight")
+            fig.savefig(plot_dir / f"VBF_hh4b_allbdt{_jshift}.pdf", bbox_inches="tight")
+        plt.close()
+
 
 def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window):
     legacy_label = "Legacy" if args.legacy else ""
@@ -204,6 +332,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
+    if not control_plots and not args.bdt_roc:
+        samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
 
@@ -672,7 +802,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
                 bdt_events, mask_vbf, args.mass, mass_window
             )
-
             cutflow_dict[key][f"Bin 1 {mass_str}"] = get_nevents_data(
                 bdt_events, mask_bin1, args.mass, mass_window
             )
@@ -690,7 +819,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
 
     for cut in cutflow_dict["hh4b"]:
-        cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
+        cutflow[cut] = [
+            cutflow_dict[key][cut].round(4) if cut in cutflow_dict[key] else -1.0
+            for key in events_dict_postprocess
+        ]
 
     print("\nCutflow")
     print(cutflow)
@@ -745,7 +877,29 @@ def scan_fom(
         hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
     )
 
+    h_b = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
+    h_b_unc = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
+    h_sideband = hist.Hist(
+        hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
+        hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
+    )
+
     print(f"Scanning {fom} with {method}")
+    all_s = []
+    all_b = []
+    all_b_unc = []
+    all_sideband_events = []
+    all_xbb_cuts = []
+    all_bdt_cuts = []
+    all_fom = []
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
@@ -773,10 +927,21 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
+            # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
+            if True:
                 cuts.append(bdt_cut)
                 figure_of_merits.append(figure_of_merit)
                 h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+                h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
+                h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
+                h_sideband.fill(bdt_cut, xbb_cut, weight=nevents_sideband)
+                all_b.append(nevents_bkg)
+                all_b_unc.append(np.sqrt(nevents_bkg))
+                all_s.append(nevents_sig)
+                all_sideband_events.append(nevents_sideband)
+                all_xbb_cuts.append(xbb_cut)
+                all_bdt_cuts.append(bdt_cut)
+                all_fom.append(figure_of_merit)
                 if figure_of_merit < min_fom:
                     min_fom = figure_of_merit
                     min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
@@ -793,7 +958,29 @@ def scan_fom(
 
     name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
     print(f"Plotting FOM scan: {plot_dir}/{name} \n")
-    plotting.plot_fom(h_sb, plot_dir, name=name)
+    plotting.plot_fom(h_sb, plot_dir, name=name, fontsize=2.0)
+    plotting.plot_fom(h_b, plot_dir, name=f"{name}_bkg", fontsize=2.0)
+    plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
+    plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
+
+    all_fom = np.array(all_fom)
+    all_b = np.array(all_b)
+    all_b_unc = np.array(all_b_unc)
+    all_s = np.array(all_s)
+    all_sideband_events = np.array(all_sideband_events)
+    all_xbb_cuts = np.array(all_xbb_cuts)
+    all_bdt_cuts = np.array(all_bdt_cuts)
+    # save all arrays to plot_dir
+    np.savez(
+        f"{plot_dir}/{name}_fom_arrays.npz",
+        all_fom=all_fom,
+        all_b=all_b,
+        all_b_unc=all_b_unc,
+        all_s=all_s,
+        all_sideband_events=all_sideband_events,
+        all_xbb_cuts=all_xbb_cuts,
+        all_bdt_cuts=all_bdt_cuts,
+    )
 
 
 def get_cuts(args, region: str):
@@ -956,7 +1143,11 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key="hh4b"):
+def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
+    bg_keys = bg_keys_all.copy()
+    if "qcd" in bg_keys:
+        bg_keys.remove("qcd")
+
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     for key in [sig_key, "data"] + bg_keys:
@@ -977,6 +1168,7 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys, si
         dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
 
         cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
+
         # region C
         dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
         # region D
@@ -1045,8 +1237,12 @@ def postprocess_run3(args):
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
+    if not args.control_plots and not args.bdt_roc:
+        processes.remove("qcd")
+        bg_keys.remove("qcd")
+        bg_keys_combined.remove("qcd")
     print("bg keys", bg_keys)
-
+    print("bg_keys_combined ", bg_keys_combined)
     if len(args.years) > 1:
         scaled_by_years = {
             "vbfhh4b-k2v2": ["2022", "2022EE"],
@@ -1069,15 +1265,36 @@ def postprocess_run3(args):
         events_combined = events_dict_postprocess[args.years[0]]
         scaled_by = {}
 
+    if args.bdt_roc:
+        print("Making BDT ROC curve")
+        bdt_roc(events_combined, plot_dir, args.legacy)
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
+        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
+
     # combined cutflow
     cutflow_combined = None
     if len(args.years) > 0:
         cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
 
         # get ABCD (warning!: not considering VBF region veto)
-        s_bin1, b_bin1, _ = abcd(
+        (
+            s_bin1,
+            b_bin1,
+            _,
+        ) = abcd(
             events_combined,
             get_cuts(args, "bin1"),
+            args.txbb_wps[0],
+            args.bdt_wps[0],
+            args.mass,
+            mass_window,
+            bg_keys,
+            "hh4b",
+        )
+
+        s_binVBF, b_binVBF, _ = abcd(
+            events_combined,
+            get_cuts(args, "vbf"),
             args.txbb_wps[0],
             args.bdt_wps[0],
             args.mass,
@@ -1112,16 +1329,18 @@ def postprocess_run3(args):
                 #    yield_s = cutflow_sample
                 if s == "data":
                     yield_b = cutflow_sample
-                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.2f}"
+                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
 
+            if "VBF [" in cut:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
             if "Bin 1 [" in cut and yield_b > 0:
+                cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
                 cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
 
         print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
         print(cutflow_combined)
 
     if args.fom_scan:
-
         if args.fom_scan_vbf and args.vbf:
             if args.vbf_priority:
                 print("Scanning VBF WPs")
@@ -1131,8 +1350,8 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.9, 0.999, 0.01),
-                np.arange(0.9, 0.999, 0.01),
+                np.arange(0.8, 0.999, 0.005),
+                np.arange(0.5, 0.99, 0.01),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
@@ -1153,8 +1372,8 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
-                np.arange(0.95, 0.999, 0.005),
-                np.arange(0.9, 0.999, 0.01),
+                np.arange(0.8, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin1",
@@ -1182,12 +1401,6 @@ def postprocess_run3(args):
                 mass=args.mass,
             )
 
-    if args.bdt_roc:
-        print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.legacy)
-        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
-        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
-
     templ_dir = Path("templates") / args.templates_tag
     for year in args.years:
         (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
@@ -1199,10 +1412,10 @@ def postprocess_run3(args):
         pretty_printer.pprint(vars(args))
 
     for cyear in args.years:
-        cutflows[cyear] = cutflows[cyear].round(2)
+        cutflows[cyear] = cutflows[cyear].round(4)
         cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
     if cutflow_combined is not None:
-        cutflow_combined = cutflow_combined.round(2)
+        cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
     if not args.templates:
@@ -1279,7 +1492,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
+        default="/ceph/cms/store/user/cmantill/bbbb/skimmer/",
         help="tag for input ntuples",
     )
     parser.add_argument(
@@ -1292,7 +1505,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tag",
         type=str,
-        required=True,
+        default="24May24_v12_private_signal",
         help="tag for input ntuples",
     )
     parser.add_argument(
@@ -1312,20 +1525,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mass",
         type=str,
-        default="H2Msd",
+        default="H2PNetMass",
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
     )
     parser.add_argument(
         "--bdt-model",
         type=str,
-        default="v1_msd30_nomulticlass",
+        default="24May31_lr_0p02_md_8_AK4Away",
         help="BDT model to load",
     )
     parser.add_argument(
         "--bdt-config",
         type=str,
-        default="v1_msd30",
+        default="24May31_lr_0p02_md_8_AK4Away",
         help="BDT model to load",
     )
 
@@ -1333,7 +1546,7 @@ if __name__ == "__main__":
         "--txbb-wps",
         type=float,
         nargs=2,
-        default=[0.985, 0.94],
+        default=[0.975, 0.82],
         help="TXbb Bin 1, Bin 2 WPs",
     )
 
@@ -1341,7 +1554,7 @@ if __name__ == "__main__":
         "--bdt-wps",
         type=float,
         nargs=3,
-        default=[0.95, 0.75, 0.03],
+        default=[0.98, 0.88, 0.03],
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
     parser.add_argument(
@@ -1352,8 +1565,8 @@ if __name__ == "__main__":
         help="method for scanning",
     )
 
-    parser.add_argument("--vbf-txbb-wp", type=float, default=0.97, help="TXbb VBF WP")
-    parser.add_argument("--vbf-bdt-wp", type=float, default=0.97, help="BDT VBF WP")
+    parser.add_argument("--vbf-txbb-wp", type=float, default=0.95, help="TXbb VBF WP")
+    parser.add_argument("--vbf-bdt-wp", type=float, default=0.98, help="BDT VBF WP")
 
     parser.add_argument(
         "--weight-ttbar-bdt", type=float, default=1.0, help="Weight TTbar discriminator on VBF BDT"
@@ -1380,7 +1593,7 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
-    run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
+    run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
     )
