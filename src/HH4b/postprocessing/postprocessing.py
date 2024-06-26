@@ -632,7 +632,9 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar, blind: bool = True):
+def save_templates(
+    templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar, blind: bool = True
+):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
