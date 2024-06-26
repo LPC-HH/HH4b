@@ -1448,11 +1448,12 @@ def postprocess_run3(args):
                 show=False,
                 energy=13.6,
                 jshift=jshift,
+                blind=args.blind,
             )
             templates = {**templates, **ttemps}
 
         # save templates per year
-        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var)
+        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind)
 
     # combined templates
     # skip for time
@@ -1597,6 +1598,7 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
     )
+    run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
 
     args = parser.parse_args()
 
