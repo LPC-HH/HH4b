@@ -1,62 +1,104 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import correctionlib
 import hist
 import numpy as np
 import pandas as pd
+from coffea.lookup_tools.dense_lookup import dense_lookup
 from numpy.typing import ArrayLike
 
+package_path = Path(__file__).parent.parent.resolve()
 
-def ttbar_SF(
-    year: str,
-    events_dict: dict[str, pd.DataFrame],
-    corr: str,
-    branch: str,
-    input_range: ArrayLike | None = None,
+
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: list):
+    """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
+
+    with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
+        txbb_sf = json.load(f)
+
+    txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
+    pt_bins = np.array(pt_bins)
+    edges = (txbb_bins, pt_bins)
+    keys = [
+        ("final", "central"),
+        ("final", "high"),
+        ("final", "low"),
+        ("stats", "high"),
+        ("stats", "low"),
+    ]
+    vals = {key: [] for key in keys}
+
+    for key1, key2 in keys:
+        for wp in txbb_wps:
+            wval = []
+            for low, high in zip(pt_bins[:-1], pt_bins[1:]):
+                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+            vals[key1, key2].append(wval)
+    vals = {key: np.array(val) for key, val in list(vals.items())}
+
+    corr_err_high = np.sqrt(np.maximum(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2, 0))
+    corr_err_low = np.sqrt(np.maximum(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2, 0))
+
+    txbb_sf = {
+        "nominal": dense_lookup(vals["final", "central"], edges),
+        "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"], edges),
+        "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"], edges),
+        "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
+        "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
+    }
+
+    return txbb_sf
+
+
+def restrict_SF(
+    lookup: dense_lookup,
+    txbb: ArrayLike,
+    pt: ArrayLike,
+    txbb_input_range: ArrayLike | None = None,
+    pt_input_range: ArrayLike | None = None,
 ):
-    # corr: PTJJ, Tau3OverTau2, Xbb
-    # branch: HHPt, H1T32, H2T32, H1TXbb, H2TXbb
-    # if input is outside of input_range, set correction to 1
-    """Apply ttbar scale factors"""
+    """Apply txbb scale factors"""
+    sf = lookup(txbb, pt)
+    if txbb_input_range is not None:
+        sf[txbb < txbb_input_range[0]] = 1.0
+        sf[txbb > txbb_input_range[1]] = 1.0
+    if pt_input_range is not None:
+        sf[pt < pt_input_range[0]] = 1.0
+        sf[pt > pt_input_range[1]] = 1.0
+    return sf
+
+
+def _load_ttbar_sfs(year: str, corr: str):
     year_ = None
     if "2022" in year:
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    tt_sf = correctionlib.CorrectionSet.from_file(f"../corrections/data/ttbarcorr_{year_}.json")[
-        f"ttbar_corr_{corr}_{year_}"
-    ]
-    input_var = events_dict[branch]
-
-    sfs = {}
-    for syst in ["nominal", "stat_up", "stat_dn"]:
-        sfs[syst] = tt_sf.evaluate(input_var, "nominal")
-        if syst == "stat_up":
-            sfs[syst] += tt_sf.evaluate(input_var, syst)
-        elif syst == "stat_dn":
-            sfs[syst] -= tt_sf.evaluate(input_var, syst)
-        # replace zeros or negatives with 1
-        sfs[syst][sfs[syst] <= 0] = 1.0
-        # if input is outside of (defined) input_range, set to 1
-        if input_range is not None:
-            sfs[syst][input_var < input_range[0]] = 1.0
-            sfs[syst][input_var > input_range[1]] = 1.0
-
-    return sfs["nominal"], sfs["stat_up"], sfs["stat_dn"]
+    return correctionlib.CorrectionSet.from_file(
+        f"{package_path}/corrections/data/ttbarcorr_{year_}.json"
+    )[f"ttbar_corr_{corr}_{year_}"]
 
 
-def ttbar_bdtshape(
-    bdt_model: str,
-    cat: str,
+def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str):
+    return correctionlib.CorrectionSet.from_file(
+        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
+    )["ttbar_corr_bdtshape_2022-2023"]
+
+
+def ttbar_SF(
+    tt_sf: correctionlib.CorrectionSet,
     events_dict: dict[str, pd.DataFrame],
     branch: str,
     input_range: ArrayLike | None = None,
 ):
-    tt_sf = correctionlib.CorrectionSet.from_file(
-        f"../corrections/data/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
-    )["ttbar_corr_bdtshape_2022-2023"]
-    sfs = {}
+    # if input is outside of input_range, set correction to 1
+    """Apply ttbar scale factors"""
     input_var = events_dict[branch]
+
+    sfs = {}
     for syst in ["nominal", "stat_up", "stat_dn"]:
         sfs[syst] = tt_sf.evaluate(input_var, "nominal")
         if syst == "stat_up":
@@ -75,7 +117,7 @@ def ttbar_bdtshape(
 
 def _load_trig_effs(year: str, label: str, region: str):
     return correctionlib.CorrectionSet.from_file(
-        f"../corrections/data/fatjet_triggereff_{year}_{label}_{region}.json"
+        f"{package_path}/corrections/data/fatjet_triggereff_{year}_{label}_{region}.json"
     )
 
 
@@ -248,14 +290,9 @@ def trigger_SF(
         350.0,
     ]
 
-    xbb_axis = (
-        hist.axis.Variable(xbbv11_range, name="xbb")
-        if legacy
-        else hist.axis.Variable(xbb_range, name="xbb")
-    )
+    xbb_axis = hist.axis.Variable(xbbv11_range if legacy else xbb_range, name="xbb")
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")
-
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
     txbb = "txbbv11" if legacy else "txbb"

@@ -18,12 +18,21 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     jec_shifts,
+    jmsr,
+    jmsr_keys,
+    jmsr_res,
+    jmsr_values,
+    sig_keys,
     syst_keys,
+    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_txbb_bins,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
     years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import ShapeVar, Syst
+from HH4b.utils import ShapeVar, Syst, check_get_jec_var
 
 
 @dataclass
@@ -126,10 +135,14 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 
+
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    # "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    "TXbbSF_correlated": Syst(
+        samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
+    ),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
@@ -137,22 +150,33 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
 
-decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
-decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
-
-for i in range(len(decorr_txbb_bins) - 1):
-    weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(
+for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
+    weight_shifts[
+        f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
+    ] = Syst(
         samples=["ttbar"],
-        label=f"ttbar SF Xbb bin [{decorr_txbb_bins[i]}, {decorr_txbb_bins[i+1]}]",
+        label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[i]}, {ttbarsfs_decorr_txbb_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
 
-for i in range(len(decorr_bdt_bins) - 1):
-    weight_shifts[f"ttbarSF_BDT_bin_{decorr_bdt_bins[i]}_{decorr_bdt_bins[i+1]}"] = Syst(
+for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
+    weight_shifts[
+        f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"
+    ] = Syst(
         samples=["ttbar"],
-        label=f"ttbar SF BDT bin [{decorr_bdt_bins[i]}, {decorr_bdt_bins[i+1]}]",
+        label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
+
+for wp in txbbsfs_decorr_txbb_wps:
+    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+        weight_shifts[
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
+            samples=sig_keys,
+            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[j]}, {txbbsfs_decorr_pt_bins[j+1]}]",
+            years=years + ["2022-2023"],
+        )
 
 
 def load_run3_samples(
@@ -179,7 +203,7 @@ def load_run3_samples(
     }
 
     # pre-selection
-    events_dict = {
+    events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
             samples_nosyst,
@@ -191,8 +215,7 @@ def load_run3_samples(
             variations=False,
         ),
     }
-    events_dict = {
-        **events_dict,
+    events_dict_syst = {
         **utils.load_samples(
             input_dir,
             samples_syst,
@@ -204,6 +227,56 @@ def load_run3_samples(
             variations=False,
         ),
     }
+    for key in events_dict_nosyst:
+        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    for key in events_dict_syst:
+        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+
+    events_dict_syst = scale_smear_mass(events_dict_syst, year)
+    events_dict = {**events_dict_nosyst, **events_dict_syst}
+    return events_dict
+
+
+def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
+    jms_nom = jmsr_values["JMS"][year]["nom"]
+    jmr_nom = jmsr_values["JMR"][year]["nom"]
+    rng = np.random.default_rng(seed=42)
+
+    # formula for smearing and scaling
+    for key in events_dict:
+        print(f"scaling and smearing mass for {key} {year}")
+        if key in jmsr_keys:
+            x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            x_smear = np.zeros_like(x)
+            random_smear = rng.standard_normal(size=x.shape)
+            x_smear = (
+                x
+                * jms_nom
+                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
+            )
+            for i in range(2):
+                events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
+                events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+            for skey in jmsr:
+                for shift in ["up", "down"]:
+                    if skey == "JMS":
+                        jms = jmsr_values["JMS"][year][shift]
+                        jmr = jmr_nom
+                    else:
+                        jms = jms_nom
+                        jmr = jmsr_values["JMR"][year][shift]
+                    x_smear = np.zeros_like(x)
+                    x_smear = (
+                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
+                    )
+                    for i in range(2):
+                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
+                            :, i
+                        ]
     return events_dict
 
 
@@ -274,12 +347,16 @@ def make_rocs(
     weight_key: str,
     sig_key: str,
     bg_keys: list[str],
+    jshift: str = "",
 ):
     rocs = {}
     for bkg in [*bg_keys, "merged"]:
         if bkg != "merged":
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key], events_dict[bkg][scores_key]]
+                [
+                    events_dict[sig_key][check_get_jec_var(scores_key, jshift)],
+                    events_dict[bkg][scores_key],
+                ]
             )
             scores_true = np.concatenate(
                 [
@@ -293,7 +370,7 @@ def make_rocs(
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key]]
+                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)]]
                 + [events_dict[bg_key][scores_key] for bg_key in bg_keys]
             )
             scores_true = np.concatenate(
@@ -398,21 +475,9 @@ def get_templates(
             print("cutflow ", rname, cf)
             cf.to_csv(f"{template_dir}/cutflows/{year}/{rname}_cutflow{jlabel}.csv")
 
-        # # TODO: trigger uncertainties
-        # if not do_jshift:
-        #     systematics[year][rname] = {}
-        #     total, total_err = corrections.get_uncorr_trig_eff_unc(events_dict, bb_masks, year, sel)
-        #     systematics[year][rname]["trig_total"] = total
-        #     systematics[year][rname]["trig_total_err"] = total_err
-        #     print(f"Trigger SF Unc.: {total_err / total:.3f}\n")
-
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
-
-            # # TODO: ParticleNetMD Txbb
-            # if pass_region:
-            #     corrections.apply_txbb_sfs(sig_events[sig_key], year, weight_key)
 
         # set up samples
         hist_samples = list(events_dict.keys())
@@ -444,7 +509,7 @@ def get_templates(
                 continue
 
             fill_data = _get_fill_data(
-                events, shape_vars, jshift=jshift if sample != data_key else None
+                events, shape_vars, jshift=jshift if sample in jmsr_keys else None
             )
             weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
