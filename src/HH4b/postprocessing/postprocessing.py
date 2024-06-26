@@ -347,7 +347,7 @@ def make_rocs(
     weight_key: str,
     sig_key: str,
     bg_keys: list[str],
-    jshift: str,
+    jshift: str = "",
 ):
     rocs = {}
     for bkg in [*bg_keys, "merged"]:
