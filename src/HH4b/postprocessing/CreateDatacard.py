@@ -348,10 +348,24 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
+    "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys),
+    "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys),
+    "scale": Syst(
+        name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
+        prior="shape",
+        samples=sig_keys + ["ttbar"],
+        samples_corr=False,
+    ),
+    "pdf": Syst(
+        name=f"{CMS_PARAMS_LABEL}_PDFacc",
+        prior="shape",
+        samples=sig_keys,
+        samples_corr=False,
+    ),
 }
 
 uncorr_year_shape_systs = {
-    # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(
         name="CMS_res_j",
         prior="shape",

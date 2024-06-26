@@ -135,19 +135,22 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 
+# only the BG MC samples that are used in the fits
+fit_bgs = ["ttbar", "vhtobb", "diboson", "vjets", "tthtobb"]
+fit_mcs = sig_keys + fit_bgs
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    "trigger": Syst(samples=fit_mcs, label="Trigger", years=years + ["2022-2023"]),
     "TXbbSF_correlated": Syst(
         samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
     ),
-    # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
-    # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
-    # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
-    # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
-    # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
+    "pileup": Syst(samples=fit_mcs, label="Pileup"),
+    "scale": Syst(samples=sig_keys + ["ttbar"], label="QCDScaleAcc"),
+    "pdf": Syst(samples=sig_keys, label="PDFAcc"),
+    "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower"),
+    "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower"),
 }
 
 for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
@@ -409,6 +412,27 @@ def _get_fill_data(
     }
 
 
+def _get_qcdvar_hists(
+    events: pd.DataFrame, shape_vars: list[ShapeVar], fill_data: dict, wshift: str
+):
+    """Get histograms for QCD scale and PDF variations"""
+    wkey = f"{wshift}_weights"
+    cols = list(events[wkey].columns)
+    h = Hist(
+        hist.axis.StrCategory([str(i) for i in cols], name="Sample"),
+        *[shape_var.axis for shape_var in shape_vars],
+        storage="weight",
+    )
+
+    for i in cols:
+        h.fill(
+            Sample=str(i),
+            **fill_data,
+            weight=events[wkey][i],
+        )
+    return h
+
+
 def get_templates(
     events_dict: dict[str, pd.DataFrame],
     year: str,
@@ -518,13 +542,39 @@ def get_templates(
                 # add weight variations
                 for wshift, wsyst in weight_shifts.items():
                     if sample in wsyst.samples and year in wsyst.years:
-                        for skey, shift in [("Down", "down"), ("Up", "up")]:
-                            # reweight based on diff between up/down and nominal weights
-                            h.fill(
-                                Sample=f"{sample}_{wshift}_{shift}",
-                                **fill_data,
-                                weight=events[f"weight_{wshift}{skey}"].to_numpy().squeeze(),
-                            )
+                        if wshift not in ["scale", "pdf"]:
+                            # fill histogram with weight variations
+                            for skey, shift in [("Down", "down"), ("Up", "up")]:
+                                h.fill(
+                                    Sample=f"{sample}_{wshift}_{shift}",
+                                    **fill_data,
+                                    weight=events[f"weight_{wshift}{skey}"].to_numpy().squeeze(),
+                                )
+                        else:
+                            # get histograms for all QCD scale and PDF variations
+                            whists = _get_qcdvar_hists(events, shape_vars, fill_data, wshift)
+
+                            if wshift == "scale":
+                                # renormalization / factorization scale uncertainty is the max/min envelope of the variations
+                                shape_up = np.max(whists.values(), axis=0)
+                                shape_down = np.min(whists.values(), axis=0)
+                            else:
+                                # pdf uncertainty is the norm of each variation (corresponding to 103 eigenvectors) - nominal
+                                nom_vals = h[sample, :].values()
+                                abs_unc = np.linalg.norm(
+                                    (whists.values() - nom_vals), axis=0
+                                )  # / np.sqrt(103)
+                                # cap at 100% uncertainty
+                                rel_unc = np.clip(abs_unc / nom_vals, 0, 1)
+                                shape_up = nom_vals * (1 + rel_unc)
+                                shape_down = nom_vals * (1 - rel_unc)
+
+                            h.values()[
+                                utils.get_key_index(h, f"{sample}_{wshift}_up"), :
+                            ] = shape_up
+                            h.values()[
+                                utils.get_key_index(h, f"{sample}_{wshift}_down"), :
+                            ] = shape_down
 
         if pass_region:
             # blind signal mass windows in pass region in data
