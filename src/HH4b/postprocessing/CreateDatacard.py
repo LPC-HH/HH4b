@@ -83,7 +83,9 @@ parser.add_argument(
 )
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
-parser.add_argument("--sig-samples", default=["hh4b", "vbfhh4b"], nargs="*", type=str, help="specify signals")
+parser.add_argument(
+    "--sig-samples", default=["hh4b", "vbfhh4b"], nargs="*", type=str, help="specify signals"
+)
 
 parser.add_argument(
     "--nTF",
@@ -815,7 +817,13 @@ def alphabet_fit(
 
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
-        qcd_eff = (templates_summed[sr][data_key, :].sum().value - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])) / (templates_summed["fail"][data_key, :].sum().value - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys]))
+        qcd_eff = (
+            templates_summed[sr][data_key, :].sum().value
+            - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])
+        ) / (
+            templates_summed["fail"][data_key, :].sum().value
+            - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys])
+        )
         # qcd_eff = (
         #     templates_summed[sr][qcd_key, :].sum().value
         #     / templates_summed["fail"][qcd_key, :].sum().value
