@@ -1453,7 +1453,9 @@ def postprocess_run3(args):
             templates = {**templates, **ttemps}
 
         # save templates per year
-        postprocessing.save_templates(templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind)
+        postprocessing.save_templates(
+            templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
+        )
 
     # combined templates
     # skip for time
