@@ -4,8 +4,10 @@ card_dir=./
 if [ -f "passvbf.txt" ]; then
     datacards=$card_dir/passbin3_nomasks.root:$card_dir/passbin2_nomasks.root:$card_dir/passbin1_nomasks.root:$card_dir/passvbf_nomasks.root:$card_dir/combined_nomasks.root
     datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
-    xmin="0.03"
-    parameters="C2V=0"
+    # xmin="0.03"
+    # parameters="C2V=0"
+    xmin="0.75"
+    parameters="C2V=1"
 else
     datacards=$card_dir/passbin3_nomasks.root:$card_dir/passbin2_nomasks.root:$card_dir/passbin1_nomasks.root:$card_dir/combined_nomasks.root
     datacard_names="Category 3,Category 2,Category 1,Combined"

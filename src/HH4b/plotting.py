@@ -87,6 +87,8 @@ color_by_sample = {
     "hh4b-kl5": "cyan",
     "vbfhh4b": "fuchsia",
     "vbfhh4b-k2v0": "purple",
+    "vbfhh4b-k2v2": "thistle",
+    "vbfhh4b-kl2": "deeppink",
     "ttbar": colours["darkblue"],
     "ttlep": "cadetblue",
     "qcd": colours["canary"],
@@ -118,6 +120,8 @@ label_by_sample = {
     "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
     "vbfhh4b": r"VBF HH4b",
     "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
+    "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
+    "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -381,6 +385,7 @@ def ratioHistPlot(
     energy: str = "13.6",
     add_pull: bool = False,
     reweight_qcd: bool = False,
+    save_pdf: bool = True,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -862,7 +867,8 @@ def ratioHistPlot(
 
     if axrax is None and len(name):
         if not name.endswith((".pdf", ".png")):
-            plt.savefig(f"{name}.pdf", bbox_inches="tight")
+            if save_pdf:
+                plt.savefig(f"{name}.pdf", bbox_inches="tight")
             plt.savefig(f"{name}.png", bbox_inches="tight")
         else:
             plt.savefig(name, bbox_inches="tight")
@@ -1317,7 +1323,7 @@ def ROCCurve(
         plt.close()
 
 
-def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
+def plot_fom(h_sb, plot_dir, name="figofmerit", show=False, fontsize=3.5, label="Fig Of Merit"):
     """Plot FoM scan"""
 
     eff, bins_x, bins_y = h_sb.to_numpy()
@@ -1325,9 +1331,9 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     plt.rcParams.update({"font.size": 18})
 
     cbar = hep.hist2dplot(
-        h_sb, ax=ax, cmin=np.min(eff[eff > 0]), cmax=np.max(eff[eff > 0]), flow="none"
+        h_sb, ax=ax, cmin=np.min(eff[eff > 0]) * 0.75, cmax=np.max(eff[eff > 0]) * 1.25, flow="none"
     )
-    cbar.cbar.set_label(r"Fig Of Merit", size=18)
+    cbar.cbar.set_label(label, size=18)
     cbar.cbar.ax.get_yaxis().labelpad = 15
     for i in tqdm(range(len(bins_x) - 1)):
         for j in range(len(bins_y) - 1):
@@ -1339,7 +1345,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
                     color="black",
                     ha="center",
                     va="center",
-                    fontsize=10,
+                    fontsize=fontsize,
                 )
 
     ax.set_xlabel("BDT Cut")
@@ -1347,7 +1353,7 @@ def plot_fom(h_sb, plot_dir, name="figofmerit", show=False):
     ax.set_ylim(bins_y[0], bins_y[-1])
     ax.set_xlim(bins_x[0], bins_x[-1])
     fig.tight_layout()
-    plt.savefig(f"{plot_dir}/{name}.png")
+    plt.savefig(f"{plot_dir}/{name}.png", bbox_inches="tight")
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
     if show:

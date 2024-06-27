@@ -31,9 +31,29 @@ def plot_fits(args):
         ]
     )
 
+    hist_label_map_inverse_sig = OrderedDict(
+        [
+            ("hh4b", "ggHH_kl_1_kt_1_hbbhbb"),
+            ("hh4b-kl0", "ggHH_kl_0_kt_1_hbbhbb"),
+            ("hh4b-kl2p45", "ggHH_kl_2p45_kt_1_hbbhbb"),
+            ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
+            ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
+            ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
+            ("vbfhh4b-k2v2", "qqHH_CV_1_C2V_2_kl_1_hbbhbb"),
+            ("vbfhh4b-kl2", "qqHH_CV_1_C2V_1_kl_2_hbbhbb"),
+            ("vbfhh4b-kv1p74-k2v1p37-kl14p4", "qqHH_CV_1p74_C2V_1p37_kl_14p4_hbbhbb"),
+            ("vbfhh4b-kvm0p012-k2v0p03-kl10p2", "qqHH_CV_m0p012_C2V_0p03_kl_10p2_hbbhbb"),
+            ("vbfhh4b-kvm0p758-k2v1p44-klm19p3", "qqHH_CV_m0p758_C2V_1p44_kl_m19p3_hbbhbb"),
+            ("vbfhh4b-kvm0p962-k2v0p959-klm1p43", "qqHH_CV_m0p962_C2V_0p959_kl_m1p43_hbbhbb"),
+            ("vbfhh4b-kvm1p21-k2v1p94-klm0p94", "qqHH_CV_m1p21_C2V_1p94_kl_m0p94_hbbhbb"),
+            ("vbfhh4b-kvm1p6-k2v2p72-klm1p36", "qqHH_CV_m1p60_C2V_2p72_kl_m1p36_hbbhbb"),
+            ("vbfhh4b-kvm1p83-k2v3p57-klm3p39", "qqHH_CV_m1p83_C2V_3p57_kl_m3p39_hbbhbb"),
+            ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_hbbhbb"),
+        ]
+    )
     sig_keys = ["hh4b", "vbfhh4b"] if not args.vbf_k2v0_signal else ["hh4b", "vbfhh4b-k2v0"]
     for key in sig_keys:
-        hist_label_map_inverse[key] = key
+        hist_label_map_inverse[key] = hist_label_map_inverse_sig[key]
 
     bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
     bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
@@ -76,8 +96,8 @@ def plot_fits(args):
     ylims = {
         "passvbf": 10,
         "passbin1": 10,
-        "passbin2": 40,
-        "passbin3": 1500,
+        "passbin2": 60,
+        "passbin3": 2000,
         "fail": 300000,
     }
 

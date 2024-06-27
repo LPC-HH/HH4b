@@ -17,13 +17,22 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
+    jec_shifts,
+    jmsr,
+    jmsr_keys,
+    jmsr_res,
+    jmsr_values,
     sig_keys,
     syst_keys,
+    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_txbb_bins,
+    txbbsfs_decorr_pt_bins,
+    txbbsfs_decorr_txbb_wps,
     years,
 )
 
 # define ShapeVar (label and bins for a given variable)
-from HH4b.utils import ShapeVar, Syst
+from HH4b.utils import ShapeVar, Syst, check_get_jec_var
 
 
 @dataclass
@@ -46,8 +55,8 @@ filters_legacy = [
 
 filters_v12 = [
     [
-        ("('bbFatJetPt', '0')", ">=", 300),
-        ("('bbFatJetPt', '1')", ">=", 300),
+        ("('bbFatJetPt', '0')", ">=", 250),
+        ("('bbFatJetPt', '1')", ">=", 250),
         ("('bbFatJetMsd', '0')", "<=", 250),
         ("('bbFatJetMsd', '1')", "<=", 250),
         ("('bbFatJetMsd', '0')", ">=", 30),
@@ -68,12 +77,12 @@ HLTs = {
     "2023": [
         "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
     "2023BPix": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        # "AK8PFJet400_SoftDropMass40", #TODO: add to ntuples
+        "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
 }
@@ -94,6 +103,10 @@ load_columns = [
     ("VBFJetEta", 2),
     ("VBFJetPhi", 2),
     ("VBFJetMass", 2),
+    ("AK4JetAwayPt", 2),
+    ("AK4JetAwayEta", 2),
+    ("AK4JetAwayPhi", 2),
+    ("AK4JetAwayMass", 2),
 ]
 
 load_columns_legacy = load_columns + [
@@ -112,36 +125,26 @@ load_columns_legacy = load_columns + [
 
 load_columns_v12 = load_columns + [
     ("bbFatJetPNetTXbb", 2),
-    # ("bbFatJetPNetXbb", 2),
     ("bbFatJetPNetMass", 2),
     ("bbFatJetPNetQCD0HF", 2),
     ("bbFatJetPNetQCD1HF", 2),
     ("bbFatJetPNetQCD2HF", 2),
 ]
+load_columns_syst = []
+for jshift in jec_shifts:
+    load_columns_syst += [
+        (f"bbFatJetPt_{jshift}", 2),
+        (f"VBFJetPt_{jshift}", 2),
+    ]
 
-load_columns_syst = [
-    ("bbFatJetPt_JES_up", 2),
-    ("bbFatJetPt_JES_down", 2),
-    ("VBFJetPt_JES_up", 2),
-    ("VBFJetPt_JES_down", 2),
-    # ("bbFatJetPt_JER_up", 2),  # TODO: load once present
-    # ("bbFatJetPt_JER_down", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_up", 2),  # TODO: load once present
-    # ("VBFJetPt_JER_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMS_down", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMS_up", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMS_down", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_up", 2),  # TODO: load once present
-    # ("bbFatJetMsd_JMR_down", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMR_up", 2),  # TODO: load once present
-    # ("bbFatJetPNetMass_JMR_down", 2),  # TODO: load once present
-]
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
     "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
     "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+    "TXbbSF_correlated": Syst(
+        samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
+    ),
     # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
     # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
     # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
@@ -149,14 +152,33 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
 
-decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
-
-for i in range(len(decorr_txbb_bins) - 1):
-    weight_shifts[f"ttbarSF_Xbb_bin_{decorr_txbb_bins[i]}_{decorr_txbb_bins[i+1]}"] = Syst(
+for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
+    weight_shifts[
+        f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
+    ] = Syst(
         samples=["ttbar"],
-        label=f"ttbar SF Xbb bin [{decorr_txbb_bins[i]}, {decorr_txbb_bins[i+1]}]",
+        label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[i]}, {ttbarsfs_decorr_txbb_bins[i+1]}]",
         years=years + ["2022-2023"],
     )
+
+for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
+    weight_shifts[
+        f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"
+    ] = Syst(
+        samples=["ttbar"],
+        label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
+        years=years + ["2022-2023"],
+    )
+
+for wp in txbbsfs_decorr_txbb_wps:
+    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+        weight_shifts[
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+        ] = Syst(
+            samples=sig_keys,
+            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[j]}, {txbbsfs_decorr_pt_bins[j+1]}]",
+            years=years + ["2022-2023"],
+        )
 
 
 def load_run3_samples(
@@ -183,7 +205,7 @@ def load_run3_samples(
     }
 
     # pre-selection
-    events_dict = {
+    events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
             samples_nosyst,
@@ -194,6 +216,8 @@ def load_run3_samples(
             txbb=txbb,
             variations=False,
         ),
+    }
+    events_dict_syst = {
         **utils.load_samples(
             input_dir,
             samples_syst,
@@ -205,6 +229,56 @@ def load_run3_samples(
             variations=False,
         ),
     }
+    for key in events_dict_nosyst:
+        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    for key in events_dict_syst:
+        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+
+    events_dict_syst = scale_smear_mass(events_dict_syst, year)
+    events_dict = {**events_dict_nosyst, **events_dict_syst}
+    return events_dict
+
+
+def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
+    jms_nom = jmsr_values["JMS"][year]["nom"]
+    jmr_nom = jmsr_values["JMR"][year]["nom"]
+    rng = np.random.default_rng(seed=42)
+
+    # formula for smearing and scaling
+    for key in events_dict:
+        print(f"scaling and smearing mass for {key} {year}")
+        if key in jmsr_keys:
+            x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            x_smear = np.zeros_like(x)
+            random_smear = rng.standard_normal(size=x.shape)
+            x_smear = (
+                x
+                * jms_nom
+                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
+            )
+            for i in range(2):
+                events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
+                events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+            for skey in jmsr:
+                for shift in ["up", "down"]:
+                    if skey == "JMS":
+                        jms = jmsr_values["JMS"][year][shift]
+                        jmr = jmr_nom
+                    else:
+                        jms = jms_nom
+                        jmr = jmsr_values["JMR"][year][shift]
+                    x_smear = np.zeros_like(x)
+                    x_smear = (
+                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
+                    )
+                    for i in range(2):
+                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
+                            :, i
+                        ]
     return events_dict
 
 
@@ -227,6 +301,9 @@ def combine_run3_samples(
 ):
     # create combined datasets
     lumi_total = np.sum([LUMI[year] for year in years_run3])
+
+    if scale_processes is None:
+        scale_processes = {}
 
     events_combined = {}
     scaled_by = {}
@@ -263,17 +340,6 @@ def combine_run3_samples(
         if bg_keys:
             bg_keys.remove("ttlep")
 
-    # combine others
-    # others = ["diboson", "vjets", "gghtobb", "vbfhtobb"]
-    # if np.all([key in processes for key in others]):
-    #     events_combined["others"] = pd.concat([events_combined[key] for key in others])
-    #     for key in others:
-    #         events_combined.pop(key)
-    #         if bg_keys:
-    #             bg_keys.remove(key)
-    #     if bg_keys:
-    #         bg_keys.append("others")
-
     return events_combined, scaled_by
 
 
@@ -283,12 +349,16 @@ def make_rocs(
     weight_key: str,
     sig_key: str,
     bg_keys: list[str],
+    jshift: str = "",
 ):
     rocs = {}
     for bkg in [*bg_keys, "merged"]:
         if bkg != "merged":
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key], events_dict[bkg][scores_key]]
+                [
+                    events_dict[sig_key][check_get_jec_var(scores_key, jshift)],
+                    events_dict[bkg][scores_key],
+                ]
             )
             scores_true = np.concatenate(
                 [
@@ -302,7 +372,7 @@ def make_rocs(
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
             scores_roc = np.concatenate(
-                [events_dict[sig_key][scores_key]]
+                [events_dict[sig_key][check_get_jec_var(scores_key, jshift)]]
                 + [events_dict[bg_key][scores_key] for bg_key in bg_keys]
             )
             scores_true = np.concatenate(
@@ -341,25 +411,6 @@ def _get_fill_data(
     }
 
 
-def bb_assignment(events_dict: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """
-    Creates a dataframe of masks for getting leading and sub-leading jets in Txbb score.
-
-    Returns:
-        Dict[str, pd.DataFrame]: ``bb_masks`` dict of boolean masks for each sample,
-          of shape ``[num_events, 2]``.
-
-    """
-    bb_masks = {}
-
-    for sample, events in events_dict.items():
-        txbb = events["ak8FatJetPNetXbb"]
-        bb_mask = txbb[0] >= txbb[1]
-        bb_masks[sample] = pd.concat((bb_mask, ~bb_mask), axis=1)
-
-    return bb_masks
-
-
 def get_templates(
     events_dict: dict[str, pd.DataFrame],
     year: str,
@@ -381,7 +432,8 @@ def get_templates(
     fail_ylim: int | None = None,
     blind_pass: bool = False,
     show: bool = False,
-    energy=13.6,
+    energy: float = 13.6,
+    blind: bool = True,
 ) -> dict[str, Hist]:
     """
     (1) Makes histograms for each region in the ``selection_regions`` dictionary,
@@ -426,21 +478,9 @@ def get_templates(
             print("cutflow ", rname, cf)
             cf.to_csv(f"{template_dir}/cutflows/{year}/{rname}_cutflow{jlabel}.csv")
 
-        # # TODO: trigger uncertainties
-        # if not do_jshift:
-        #     systematics[year][rname] = {}
-        #     total, total_err = corrections.get_uncorr_trig_eff_unc(events_dict, bb_masks, year, sel)
-        #     systematics[year][rname]["trig_total"] = total
-        #     systematics[year][rname]["trig_total_err"] = total_err
-        #     print(f"Trigger SF Unc.: {total_err / total:.3f}\n")
-
         sig_events = {}
         for sig_key in sig_keys:
             sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
-
-            # # TODO: ParticleNetMD Txbb
-            # if pass_region:
-            #     corrections.apply_txbb_sfs(sig_events[sig_key], year, weight_key)
 
         # set up samples
         hist_samples = list(events_dict.keys())
@@ -472,7 +512,7 @@ def get_templates(
                 continue
 
             fill_data = _get_fill_data(
-                events, shape_vars, jshift=jshift if sample != data_key else None
+                events, shape_vars, jshift=jshift if sample in jmsr_keys else None
             )
             weight = events[weight_key].to_numpy().squeeze()
             h.fill(Sample=sample, **fill_data, weight=weight)
@@ -489,7 +529,7 @@ def get_templates(
                                 weight=events[f"weight_{wshift}{skey}"].to_numpy().squeeze(),
                             )
 
-        if pass_region:
+        if pass_region and blind:
             # blind signal mass windows in pass region in data
             for i, shape_var in enumerate(shape_vars):
                 if shape_var.blind_window is not None:
@@ -526,6 +566,18 @@ def get_templates(
                     "hists": h,
                     "sig_keys": sig_keys if plot_sig_keys is None else plot_sig_keys,
                     "bg_keys": bg_keys,
+                    "bg_order": [
+                        "vbfhtobb",
+                        "gghtobb",
+                        "tthtobb",
+                        "vhtobb",
+                        "singletop",
+                        "diboson",
+                        "vjets",
+                        "vjetslnu",
+                        "ttbar",
+                        "qcd",
+                    ],
                     "sig_scale_dict": sig_scale_dict if pass_region else None,
                     "show": show,
                     "year": year,
@@ -582,14 +634,16 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar):
+def save_templates(
+    templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar, blind: bool = True
+):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
 
     blind_window = shape_var.blind_window
 
-    if blind_window is not None:
+    if blind_window is not None and blind:
         for label, template in list(templates.items()):
             blinded_template = deepcopy(template)
             utils.blindBins(blinded_template, blind_window)

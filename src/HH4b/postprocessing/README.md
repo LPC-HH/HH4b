@@ -35,9 +35,23 @@ Frozen for ANv2
 python3 PostProcess.py --templates-tag 24May9v2Msd40 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars  --bdt-model 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE --no-vbf
 ```
 
+### ANv9
+```
+python3 PostProcess.py --templates-tag 24June3NewBDTNewSamplesPtSecond250 --tag 24May24_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24May31_lr_0p02_md_8_AK4Away --bdt-model 24May31_lr_0p02_md_8_AK4Away --txbb-wps 0.975 0.92 --bdt-wps 0.98 0.88 0.03 --vbf-txbb-wp 0.95 --vbf-bdt-wp 0.98 --no-bdt-roc --no-fom-scan --no-fom-scan-bin2 --no-fom-scan-bin1 --data-dir /ceph/cms/store/user/cmantill/bbbb/skimmer/ --method abcd --no-vbf-priority --vbf --no-fom-scan-vbf --templates --pt-second 250
+```
+
+```
+python3 PostProcess.py --templates-tag 24June10NewBDTNewSamplesPtSecond300 -tag 24May24_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24May31_lr_0p02_md_8_AK4Away --bdt-model 24May31_lr_0p02_md_8_AK4Away --txbb-wps 0.975 0.92 --bdt-wps 0.98 0.88 0.03 --vbf-txbb-wp 0.95 --vbf-bdt-wp 0.98 --no-bdt-roc --no-fom-scan --no-fom-scan-bin2 --no-fom-scan-bin1 --data-dir /ceph/cms/store/user/cmantill/bbbb/skimmer/ --method abcd --no-vbf-priority --vbf --no-fom-scan-vbf --templates --pt-second 300
+```
+
 To scan:
 ```bash
 python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --fom-scan --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-control-plots --no-bdt-roc --no-templates --no-fom-scan-vbf --years 2022EE --method sideband
+```
+
+For tt corrections:
+```bash
+python PostProcessTT.py --templates-tag 24May24 --tag 24May25_v12_private_had-tt --data-dir ../../../../data/skimmer/ --mass H2PNetMass --legacy --control-plots --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --year 2022 2022EE 2023 2023BPix
 ```
 
 # Run-2

@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 import hist
 import numpy as np
 from hist import Hist
+from rhalphalib import MorphHistW2
 
+from HH4b.hh_vars import sig_keys_ggf, sig_keys_vbf
 from HH4b.hh_vars import years as all_years
 
 #################################################
@@ -38,6 +40,7 @@ class Syst:
     )
     pass_only: bool = False  # is it applied only in the pass regions
     convert_shape_to_lnN: bool = False  # take shape uncertainty and convert to lnN
+    decorrelate_regions: bool = False  # decorrelate in each region
 
     def __post_init__(self):
         if isinstance(self.value, dict) and not (self.diff_regions or self.diff_samples):
@@ -216,3 +219,26 @@ def get_effect_updown(
     logging.debug(f"effect_down: {effect_down}")
 
     return effect_up, effect_down
+
+
+def smass(sName):
+    if sName in sig_keys_ggf + sig_keys_vbf:
+        _mass = 125.0
+    elif sName in ["vhtobb", "diboson"]:
+        _mass = 80.379  # use W mass instead of Z mass = 91.
+        # TODO: split W/Z processes?
+    else:
+        raise ValueError(f"What is {sName}")
+    return _mass
+
+
+def smorph(templ, sample_name, jms_value, jmr_value):
+    if templ is None:
+        return None
+
+    for sample_check in sig_keys_ggf + sig_keys_vbf + ["vhtobb", "diboson"]:
+        if sample_check in sample_name:
+            return MorphHistW2(templ).get(
+                shift=(jms_value - 1.0) * smass(sample_check), smear=jmr_value
+            )
+    return templ
