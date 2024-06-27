@@ -454,7 +454,8 @@ def get_templates(
     fail_ylim: int | None = None,
     blind_pass: bool = False,
     show: bool = False,
-    energy=13.6,
+    energy: float = 13.6,
+    blind: bool = True,
 ) -> dict[str, Hist]:
     """
     (1) Makes histograms for each region in the ``selection_regions`` dictionary,
@@ -576,7 +577,7 @@ def get_templates(
                                 utils.get_key_index(h, f"{sample}_{wshift}_down"), :
                             ] = shape_down
 
-        if pass_region:
+        if pass_region and blind:
             # blind signal mass windows in pass region in data
             for i, shape_var in enumerate(shape_vars):
                 if shape_var.blind_window is not None:
@@ -681,14 +682,16 @@ def get_templates(
     return templates
 
 
-def save_templates(templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar):
+def save_templates(
+    templates: dict[str, Hist], template_file: Path, shape_var: ShapeVar, blind: bool = True
+):
     """Creates blinded copies of each region's templates and saves a pickle of the templates"""
 
     from copy import deepcopy
 
     blind_window = shape_var.blind_window
 
-    if blind_window is not None:
+    if blind_window is not None and blind:
         for label, template in list(templates.items()):
             blinded_template = deepcopy(template)
             utils.blindBins(blinded_template, blind_window)
