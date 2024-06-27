@@ -128,7 +128,6 @@ cards_dir="./"
 ws=${cards_dir}/combined
 wsm=${ws}
 wsm_snapshot=higgsCombineSnapshot.MultiDimFit.mH125
-CMS_PARAMS_LABEL="CMS_bbbb_hadronic"
 
 outsdir=${cards_dir}/outs
 mkdir -p $outsdir
@@ -266,9 +265,7 @@ if [ "$impactsi" = 1 ]; then
     # --robustFit 1 --cminDefaultMinimizerStrategy=1 -v 9 2>&1 | tee $outsdir/Impacts_init.txt
 
     combineTool.py -M Impacts --snapshotName MultiDimFit -m 125 -n "impacts" \
-    -t -1 --bypassFrequentistFit --toysFrequentist --expectSignal 1 \
-    -d ${wsm_snapshot}.root --doInitialFit --robustFit 1 \
-    ${unblindedparams} --floatParameters ${freezeparamsblinded} \
+    -d ${wsm_snapshot}.root --doInitialFit --robustFit 1 ${unblindedparams} \
      --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_init.txt
 fi
 
@@ -280,8 +277,7 @@ if [ "$impactsf" != 0 ]; then
     # (also need to do this for submitting to condor anywhere other than lxplus)
     combine -M MultiDimFit -n _paramFit_impacts_"$impactsf" --algo impact --redefineSignalPOIs r -P "$impactsf" \
     --floatOtherPOIs 1 --saveInactivePOI 1 --snapshotName MultiDimFit -d ${wsm_snapshot}.root \
-    -t -1 --bypassFrequentistFit --toysFrequentist --expectSignal 1 --robustFit 1 \
-    ${unblindedparams} --floatParameters ${freezeparamsblinded} \
+    --robustFit 1 ${unblindedparams} \
     --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 -m 125 | tee $outsdir/Impacts_"$impactsf".txt
 
     # Old Impacts command:
@@ -297,9 +293,7 @@ fi
 if [ "$impactsc" != 0 ]; then
     echo "Collecting impacts"
     combineTool.py -M Impacts --snapshotName MultiDimFit \
-    -m 125 -n "impacts" -d ${wsm_snapshot}.root \
-    --setParameters ${maskblindedargs} --floatParameters ${freezeparamsblinded} \
-    -t -1 --named $impactsc \
+    -m 125 -n "impacts" -d ${wsm_snapshot}.root --named $impactsc \
     --setParameterRanges r=-0.5,20 -v 1 -o impacts.json 2>&1 | tee $outsdir/Impacts_collect.txt
 
     plotImpacts.py -i impacts.json -o impacts
