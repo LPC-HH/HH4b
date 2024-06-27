@@ -82,15 +82,17 @@ parser.add_argument(
     "--min-qcd-val", default=1e-3, type=float, help="clip the pass QCD to above a minimum value"
 )
 
-add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
-parser.add_argument("--sig-samples", default="hh4b", nargs="*", type=str, help="specify signals")
+add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
+parser.add_argument(
+    "--sig-samples", default=["hh4b", "vbfhh4b"], nargs="*", type=str, help="specify signals"
+)
 
 parser.add_argument(
     "--nTF",
     default=None,
     nargs="*",
     type=int,
-    help="order of polynomial for TF in [cat 1, cat 2, cat 3]. Default is [0, 1, 2]",
+    help="order of polynomial for TF in [vbf cat, cat 1, cat 2, cat 3]. Default is [0, 0, 1, 1]",
 )
 parser.add_argument(
     "--regions",
@@ -110,7 +112,6 @@ parser.add_argument(
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
 add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
-add_bool_arg(parser, "vbf-region", "Add VBF region", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 add_bool_arg(
@@ -119,7 +120,7 @@ add_bool_arg(
     "Perform MC closure test (fill data_obs with sum of MC bkg.",
     default=False,
 )
-add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=False)
+add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=True)
 add_bool_arg(parser, "jesr", "Do JES/JER uncertainties", default=True)
 add_bool_arg(
     parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
@@ -134,18 +135,14 @@ blind_window = [110, 140]
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 1, 1]
-        if args.vbf_region:
-            args.nTF = [0] + args.nTF
+        args.nTF = [0, 0, 1, 1]
     else:
         args.nTF = [0]
 
 print("Transfer factors:", args.nTF)
 
 if args.regions == "all":
-    signal_regions = ["pass_bin1", "pass_bin2", "pass_bin3"]
-    if args.vbf_region:
-        signal_regions = ["pass_vbf"] + signal_regions
+    signal_regions = ["pass_vbf", "pass_bin1", "pass_bin2", "pass_bin3"]
 else:
     signal_regions = [args.regions]
 
@@ -739,7 +736,7 @@ def fill_regions(
 
         # data observed
         if args.mc_closure:
-            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + ["qcd"]])
+            all_bg = sum([region_templates[bg_key, :] for bg_key in bg_keys + [qcd_key]])
             ch.setObservation(all_bg)
         else:
             ch.setObservation(region_templates[data_key, :])
@@ -820,14 +817,17 @@ def alphabet_fit(
 
     for sr in signal_regions:
         # QCD overall pass / fail efficiency
-        # qcd_eff = (
-        #     templates_summed[sr][data_key, :].sum().value - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])
-        #     / (templates_summed["fail"][data_key, :].sum().value - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys]))
-        # )
         qcd_eff = (
-            templates_summed[sr][qcd_key, :].sum().value
-            / templates_summed["fail"][qcd_key, :].sum().value
+            templates_summed[sr][data_key, :].sum().value
+            - np.sum([templates_summed[sr][bg_key, :].sum().value for bg_key in bg_keys])
+        ) / (
+            templates_summed["fail"][data_key, :].sum().value
+            - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys])
         )
+        # qcd_eff = (
+        #     templates_summed[sr][qcd_key, :].sum().value
+        #     / templates_summed["fail"][qcd_key, :].sum().value
+        # )
         logging.info(f"qcd eff {qcd_eff:.5f}")
 
         # transfer factor
