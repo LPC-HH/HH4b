@@ -102,12 +102,14 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
         "skimmer": True,
         "ttSkimmer": True,
         "vpt": False,
+        "simple": True,
     }[args.processor]
     save_root = {
         "matching": False,
         "skimmer": True,
         "ttSkimmer": True,
         "vpt": False,
+        "simple": True,
     }[args.processor]
 
     if save_parquet or save_root:

@@ -171,6 +171,12 @@ def get_processor(
 
         return vptProc()
 
+    if processor == "simple":
+        from HH4b.processors import simpleSkimmer
+        return simpleSkimmer(
+            xsecs=xsecs,
+        )
+
 
 def parse_common_args(parser):
     parser.add_argument(
@@ -178,7 +184,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching", "ttSkimmer", "vpt"],
+        choices=["skimmer", "matching", "ttSkimmer", "vpt", "simple"],
     )
 
     parser.add_argument(
