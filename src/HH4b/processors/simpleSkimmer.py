@@ -184,9 +184,6 @@ class simpleSkimmer(SkimmerABC):
         #########################
         # Selection Starts
         #########################
-        # at least one good reconstructed primary vertex
-        add_selection("npvsGood", events.PV.npvsGood >= 1, *selection_args)
-
         # AK8 jet
         fatjet_selector = (
             (fatjets.pt > 250)
