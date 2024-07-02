@@ -342,7 +342,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
     # load TXbb SFs
     txbb_sf = corrections._load_txbb_sfs(
-        year, "sf_txbbv11_Jul1_freezeSFs_combinedWPs", txbbsfs_decorr_txbb_wps, txbbsfs_decorr_pt_bins
+        year,
+        "sf_txbbv11_Jul1_freezeSFs_combinedWPs",
+        txbbsfs_decorr_txbb_wps,
+        txbbsfs_decorr_pt_bins,
     )
 
     events_dict_postprocess = {}
