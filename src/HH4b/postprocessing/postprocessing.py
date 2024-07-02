@@ -248,8 +248,8 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
 
     # formula for smearing and scaling
     for key in events_dict:
-        print(f"scaling and smearing mass for {key} {year}")
         if key in jmsr_keys:
+            print(f"scaling and smearing mass for {key} {year}")
             x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
