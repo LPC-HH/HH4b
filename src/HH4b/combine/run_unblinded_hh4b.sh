@@ -308,7 +308,7 @@ if [ "$bias" != -1 ]; then
     combine -M FitDiagnostics --trackParameters r --trackErrors r --justFit \
     -m 125 -n "bias${bias}_passbin${passbin}" -d ${wsm_snapshot}.root --rMin ${rmin} --rMax ${rmax} \
     --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal "$bias" \
-    ${unblindedparams},r=$bias \
+    ${unblindedparams} \
     --robustFit=1 -t "$numtoys" -s "$seed" \
     --X-rtd MINIMIZER_MaxCalls=1000000 --cminDefaultMinimizerTolerance 0.1 2>&1 | tee "$outsdir/bias${bias}seed${seed}.txt"
 fi
