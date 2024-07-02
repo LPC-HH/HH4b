@@ -397,6 +397,6 @@ ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
 txbbsfs_decorr_txbb_wps = OrderedDict(
-    [("WP3", [0.92, 0.95]), ("WP2", [0.95, 0.975]), ("WP1", [0.975, 1])]
+    [("WP5", [0.92, 0.95]), ("WP4", [0.95, 0.975]), ("WP3", [0.975, 0.99]), ("WP2", [0.99, 0.995]), ("WP1", [0.995, 1])]
 )
 txbbsfs_decorr_pt_bins = [250, 300, 400, 500, 100000]
