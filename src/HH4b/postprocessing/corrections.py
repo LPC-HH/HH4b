@@ -46,8 +46,12 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: lis
         "nominal": dense_lookup(vals["final", "central"], edges),
         "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"], edges),
         "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"], edges),
+        "stat3x_up": dense_lookup(vals["final", "central"] + 3 * vals["stats", "high"], edges),
+        "stat3x_dn": dense_lookup(vals["final", "central"] - 3 * vals["stats", "low"], edges),
         "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
         "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
+        "corr3x_up": dense_lookup(vals["final", "central"] + 3 * corr_err_high, edges),
+        "corr3x_dn": dense_lookup(vals["final", "central"] - 3 * corr_err_low, edges),
     }
 
     return txbb_sf
@@ -59,6 +63,8 @@ def restrict_SF(
     pt: ArrayLike,
     txbb_input_range: ArrayLike | None = None,
     pt_input_range: ArrayLike | None = None,
+    lookup_right: dense_lookup | None = None,
+    txbb_interp_range: ArrayLike | None = None,
 ):
     """Apply txbb scale factors"""
     sf = lookup(txbb, pt)
@@ -68,6 +74,11 @@ def restrict_SF(
     if pt_input_range is not None:
         sf[pt < pt_input_range[0]] = 1.0
         sf[pt > pt_input_range[1]] = 1.0
+    if lookup_right is not None:
+        sf_left = sf
+        sf_right = lookup_right(txbb, pt)
+        mask = (txbb > txbb_interp_range[0]) & (txbb < txbb_interp_range[1])
+        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (txbb[mask] - txbb_interp_range[0]) / (txbb_interp_range[1] - txbb_interp_range[0])
     return sf
 
 

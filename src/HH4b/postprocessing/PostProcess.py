@@ -518,16 +518,20 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             pt_range = [250, 100000]
             # correlated signal xbb up/dn variations
             corr_up1 = corrections.restrict_SF(
-                txbb_sf["corr_up"], h1txbb, h1pt, txbb_range, pt_range
+                txbb_sf["corr_up"], h1txbb, h1pt, txbb_range, pt_range,
+                txbb_sf["corr3x_up"], txbbsfs_decorr_txbb_wps["WP1"]
             )
             corr_up2 = corrections.restrict_SF(
-                txbb_sf["corr_up"], h2txbb, h2pt, txbb_range, pt_range
+                txbb_sf["corr_up"], h2txbb, h2pt, txbb_range, pt_range,
+                txbb_sf["corr3x_up"], txbbsfs_decorr_txbb_wps["WP1"]
             )
             corr_dn1 = corrections.restrict_SF(
-                txbb_sf["corr_dn"], h1txbb, h1pt, txbb_range, pt_range
+                txbb_sf["corr_dn"], h1txbb, h1pt, txbb_range, pt_range,
+                txbb_sf["corr3x_dn"], txbbsfs_decorr_txbb_wps["WP1"]
             )
             corr_dn2 = corrections.restrict_SF(
-                txbb_sf["corr_dn"], h2txbb, h2pt, txbb_range, pt_range
+                txbb_sf["corr_dn"], h2txbb, h2pt, txbb_range, pt_range,
+                txbb_sf["corr3x_dn"], txbbsfs_decorr_txbb_wps["WP1"]
             )
             bdt_events["weight_TXbbSF_correlatedUp"] = (
                 bdt_events["weight"] * corr_up1 * corr_up2 / txbb_sf_weight
@@ -559,6 +563,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbb_sf["stat3x_up"],
+                        txbbsfs_decorr_txbb_wps["WP1"]
                     )
                     stat_up2 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
@@ -566,6 +572,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbb_sf["stat3x_up"],
+                        txbbsfs_decorr_txbb_wps["WP1"]
                     )
                     stat_dn1 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
@@ -573,6 +581,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbb_sf["stat3x_dn"],
+                        txbbsfs_decorr_txbb_wps["WP1"]
                     )
                     stat_dn2 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
@@ -580,6 +590,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbb_sf["stat3x_dn"],
+                        txbbsfs_decorr_txbb_wps["WP1"]
                     )
                     bdt_events[
                         f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Up"
