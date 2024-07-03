@@ -78,7 +78,9 @@ def restrict_SF(
         sf_left = sf
         sf_right = lookup_right(txbb, pt)
         mask = (txbb > txbb_interp_range[0]) & (txbb < txbb_interp_range[1])
-        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (txbb[mask] - txbb_interp_range[0]) / (txbb_interp_range[1] - txbb_interp_range[0])
+        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (
+            txbb[mask] - txbb_interp_range[0]
+        ) / (txbb_interp_range[1] - txbb_interp_range[0])
     return sf
 
 
