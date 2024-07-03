@@ -68,19 +68,19 @@ def restrict_SF(
 ):
     """Apply txbb scale factors"""
     sf = lookup(txbb, pt)
+    if lookup_right is not None and txbb_interp_range is not None:
+        sf_left = lookup(txbb, pt)
+        sf_right = lookup_right(txbb, pt)
+        mask = (txbb > txbb_interp_range[0]) & (txbb < txbb_interp_range[1])
+        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (
+            txbb[mask] - txbb_interp_range[0]
+        ) / (txbb_interp_range[1] - txbb_interp_range[0])
     if txbb_input_range is not None:
         sf[txbb < txbb_input_range[0]] = 1.0
         sf[txbb > txbb_input_range[1]] = 1.0
     if pt_input_range is not None:
         sf[pt < pt_input_range[0]] = 1.0
         sf[pt > pt_input_range[1]] = 1.0
-    if lookup_right is not None:
-        sf_left = sf
-        sf_right = lookup_right(txbb, pt)
-        mask = (txbb > txbb_interp_range[0]) & (txbb < txbb_interp_range[1])
-        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (
-            txbb[mask] - txbb_interp_range[0]
-        ) / (txbb_interp_range[1] - txbb_interp_range[0])
     return sf
 
 

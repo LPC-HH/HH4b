@@ -559,7 +559,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight_TXbbSF_correlatedDown"] = (
                 bdt_events["weight"] * corr_dn1 * corr_dn2 / txbb_sf_weight
             )
-
             # uncorrelated signal xbb up/dn variations in bins
             for wp in txbbsfs_decorr_txbb_wps:
                 for j in range(len(txbbsfs_decorr_pt_bins) - 1):
@@ -583,8 +582,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
-                        txbb_sf["stat3x_up"],
-                        txbbsfs_decorr_txbb_wps["WP1"],
+                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_up2 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
@@ -592,8 +591,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
-                        txbb_sf["stat3x_up"],
-                        txbbsfs_decorr_txbb_wps["WP1"],
+                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_dn1 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
@@ -601,8 +600,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
-                        txbb_sf["stat3x_dn"],
-                        txbbsfs_decorr_txbb_wps["WP1"],
+                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_dn2 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
@@ -610,8 +609,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
                         txbbsfs_decorr_pt_bins[j : j + 2],
-                        txbb_sf["stat3x_dn"],
-                        txbbsfs_decorr_txbb_wps["WP1"],
+                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     bdt_events[
                         f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Up"
