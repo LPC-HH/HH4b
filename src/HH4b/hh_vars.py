@@ -406,7 +406,7 @@ txbbsfs_decorr_txbb_wps = OrderedDict(
     ]
 )
 
-txbbsfs_decorr_pt_bins  = OrderedDict(
+txbbsfs_decorr_pt_bins = OrderedDict(
     [
         ("WP5", [200, 250, 300, 400, 500, 100000]),
         ("WP4", [200, 250, 300, 400, 500, 100000]),
