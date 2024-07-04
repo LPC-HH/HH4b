@@ -13,15 +13,15 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: list):
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list]):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
-    pt_bins = np.array(pt_bins)
-    edges = (txbb_bins, pt_bins)
+    pt_fine_bins = np.unique(np.concatenate([pt_bins[wp] for wp in pt_bins]))
+    edges = (txbb_bins, pt_fine_bins)
     keys = [
         ("final", "central"),
         ("final", "high"),
@@ -34,8 +34,11 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: lis
     for key1, key2 in keys:
         for wp in txbb_wps:
             wval = []
-            for low, high in zip(pt_bins[:-1], pt_bins[1:]):
-                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+            for low_fine, high_fine in zip(pt_fine_bins[:-1], pt_fine_bins[1:]):
+                for low, high in zip(pt_bins[wp][:-1], pt_bins[wp][1:]):
+                    if low_fine >= low and high_fine <= high:
+                        wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+                        break
             vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 

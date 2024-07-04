@@ -180,7 +180,7 @@ samples_run3_sig = {
 
 samples_run3 = {
     "2022": {
-        **common_samples_bg,
+        # **common_samples_bg,
         **samples_run3_sig["2022"],
     },
     "2022EE": {
@@ -405,4 +405,13 @@ txbbsfs_decorr_txbb_wps = OrderedDict(
         ("WP1", [0.995, 1]),
     ]
 )
-txbbsfs_decorr_pt_bins = [250, 300, 400, 500, 100000]
+
+txbbsfs_decorr_pt_bins  = OrderedDict(
+    [
+        ("WP5", [200, 250, 300, 400, 500, 100000]),
+        ("WP4", [200, 250, 300, 400, 500, 100000]),
+        ("WP3", [200, 250, 300, 400, 500, 100000]),
+        ("WP2", [200, 400, 100000]),
+        ("WP1", [200, 400, 100000]),
+    ]
+)

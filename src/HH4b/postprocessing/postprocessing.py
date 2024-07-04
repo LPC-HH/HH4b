@@ -169,12 +169,12 @@ for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
     )
 
 for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
         weight_shifts[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
         ] = Syst(
             samples=sig_keys,
-            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[j]}, {txbbsfs_decorr_pt_bins[j+1]}]",
+            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[wp][j]}, {txbbsfs_decorr_pt_bins[wp][j+1]}]",
             years=years + ["2022-2023"],
         )
 
