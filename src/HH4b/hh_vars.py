@@ -180,7 +180,7 @@ samples_run3_sig = {
 
 samples_run3 = {
     "2022": {
-        # **common_samples_bg,
+        **common_samples_bg,
         **samples_run3_sig["2022"],
     },
     "2022EE": {
