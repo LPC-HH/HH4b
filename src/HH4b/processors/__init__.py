@@ -5,3 +5,4 @@ from .matchingSkimmer import *  # noqa: F403
 from .ttSkimmer import *  # noqa: F403
 from .vptProc import *  # noqa: F403
 from .simpleSkimmer import *  # noqa: F403
+from .etaSkimmer import * # noqa: F403

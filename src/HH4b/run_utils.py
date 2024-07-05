@@ -177,6 +177,10 @@ def get_processor(
             xsecs=xsecs,
         )
 
+    if processor == "eta":
+        from HH4b.processors import etaSkimmer
+        return etaSkimmer()
+
 
 def parse_common_args(parser):
     parser.add_argument(
@@ -184,7 +188,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching", "ttSkimmer", "vpt", "simple"],
+        choices=["skimmer", "matching", "ttSkimmer", "vpt", "simple", "eta"],
     )
 
     parser.add_argument(
@@ -207,6 +211,7 @@ def parse_common_args(parser):
             "v11_private",
             "v12",
             "v12_private",
+            "llp_private",
         ],
         help="NanoAOD version",
     )

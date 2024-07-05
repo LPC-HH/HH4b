@@ -120,6 +120,14 @@ def get_v9():
         }
     }
 
+def get_llp_private():
+    return {
+        "2022": {
+            "EtaToGammaTM": {
+                "EtaToGammaTM_TMToEE": "/store/user/lpcdihiggsboost/cmantill/nanoaod_llp/2022_EtaToGammaTM_TMToEE",
+            }
+        },
+    }
 
 path_hqu = "/store/group/lpcjme/NanoAOD/NanoAODv9-ParticleNetAK4/2018"
 
@@ -1564,7 +1572,8 @@ def get_files(dataset, version):
 
 # for version in ["v12"]:
 # for version in ["v9", "v9_private", "v9_hh_private", "v11", "v11_private"]:
-for version in ["v12_private"]:
+# for version in ["v12_private"]:
+for version in ["llp_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
     for year, ydict in datasets.items():

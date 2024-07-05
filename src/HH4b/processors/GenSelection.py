@@ -303,3 +303,25 @@ def gen_selection_V(
     }
 
     return {**GenVVars, **fatJetVars}
+
+
+def gen_selection_Eta(
+    events: NanoEventsArray,
+    skim_vars: dict
+):
+    """Get Eta meson"""
+    electron = events.GenPart[events.GenPart.pdgId==11]
+    positron = events.GenPart[events.GenPart.pdgId==-11]
+    photon = events.GenPart[events.GenPart.pdgId==22]
+
+    eta_meson = electron+positron+photon
+
+    GenVars = {
+        **{f"GenEtaMeson{key}": getattr(eta_meson,var).to_numpy() for (var, key) in skim_vars.items()},
+        **{f"GenElectron{key}": electron[var].to_numpy() for (var, key) in skim_vars.items()},
+	**{f"GenPositron{key}": positron[var].to_numpy() for (var, key) in skim_vars.items()},
+	**{f"GenPhoton{key}": photon[var].to_numpy() for (var, key) in skim_vars.items()},
+    }
+    
+    return {**GenVars}
+    
