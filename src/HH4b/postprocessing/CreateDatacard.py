@@ -84,7 +84,11 @@ parser.add_argument(
 
 add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
 parser.add_argument(
-    "--sig-samples", default=sig_keys_ggf + sig_keys_vbf, nargs="*", type=str, help="specify signals"
+    "--sig-samples",
+    default=sig_keys_ggf + sig_keys_vbf,
+    nargs="*",
+    type=str,
+    help="specify signals",
 )
 
 parser.add_argument(
