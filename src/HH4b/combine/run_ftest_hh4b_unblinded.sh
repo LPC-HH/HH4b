@@ -148,7 +148,7 @@ do
 
     # make workspace, background-only fit, GoF on data if they don't already exist
     if [ ! -f "./higgsCombineData.GoodnessOfFit.mH125.root" ]; then
-        echo "Making workspace, doing b-only fit and gof on data"
+        echo "Making workspace, doing s+b fit and gof on data"
 	run_unblinded_hh4b.sh -wbg --passbin=${passbin}
     fi
 
@@ -180,6 +180,9 @@ if [ $goftoys = 1 ]; then
     ulimit -s unlimited
 
     echo "Toys for $order order fit"
+
+    echo "Get expected r value"
+    rexp=`python3 -c 'import uproot; print(uproot.open("'${wsm_snapshot}'.root")["limit"].arrays("r")[b"r"][0])'`
 
     combine -M GenerateOnly -m 125 -d ${wsm_snapshot}.root --rMin $rmin --rMax $rmax \
     --snapshotName MultiDimFit --bypassFrequentistFit --trackParameters r --expectSignal $rexp \

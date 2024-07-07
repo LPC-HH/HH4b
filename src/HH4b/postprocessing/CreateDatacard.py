@@ -82,9 +82,9 @@ parser.add_argument(
     "--min-qcd-val", default=1e-3, type=float, help="clip the pass QCD to above a minimum value"
 )
 
-add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
+add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
 parser.add_argument(
-    "--sig-samples", default=["hh4b", "vbfhh4b"], nargs="*", type=str, help="specify signals"
+    "--sig-samples", default=sig_keys_ggf + sig_keys_vbf, nargs="*", type=str, help="specify signals"
 )
 
 parser.add_argument(
