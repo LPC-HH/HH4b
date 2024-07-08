@@ -208,6 +208,10 @@ if [ $bfit = 1 ]; then
     combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 --rMin $rmin --rMax $rmax \
     --cminDefaultMinimizerStrategy 1 --cminDefaultMinimizerTolerance "$mintol" --X-rtd MINIMIZER_MaxCalls=400000 \
     -n Snapshot 2>&1 | tee $outsdir/MultiDimFit.txt
+    combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 --rMin $rmin --rMax $rmax \
+    --freezeParameters r --setParameters r=0 \
+    --cminDefaultMinimizerStrategy 1 --cminDefaultMinimizerTolerance "$mintol" --X-rtd MINIMIZER_MaxCalls=400000 \
+    -n SnapshotBOnly 2>&1 | tee $outsdir/MultiDimFit.txt
 fi
 
 if [ $limits = 1 ]; then
@@ -226,7 +230,7 @@ fi
 
 if [ $dfit = 1 ]; then
     echo "Fit Diagnostics"
-    combine -M FitDiagnostics -m 125 -d ${wsm}.root --rMax $rmax \
+    combine -M FitDiagnostics -m 125 -d ${wsm}.root --rMin $rmin --rMax $rmax \
     --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance "$mintol" --X-rtd MINIMIZER_MaxCalls=400000 \
     -n Unblinded --ignoreCovWarning -v 9 2>&1 | tee $outsdir/FitDiagnostics.txt
 
@@ -242,16 +246,20 @@ fi
 
 if [ $gofdata = 1 ]; then
     echo "GoF on data"
-    combine -M GoodnessOfFit -d $wsm.root --algo saturated -m 125 --rMax $rmax \
+    combine -M GoodnessOfFit -d $wsm.root --algo saturated -m 125 --rMin $rmin --rMax $rmax \
     -n Data -v 9 2>&1 | tee $outsdir/GoF_data.txt
 fi
 
 
 if [ "$goftoys" = 1 ]; then
     echo "GoF on toys"
-    combine -M GoodnessOfFit -d $wsm.root --algo saturated -m 125 --rMax $rmax \
-    --snapshotName MultiDimFit --bypassFrequentistFit \
-    -n Toys -v 9 -s "$seed" -t "$numtoys" --toysFrequentist 2>&1 | tee $outsdir/GoF_toys.txt
+
+    echo "Get expected r value"
+    rexp=$(python3 -c 'import uproot; print(uproot.open("'${wsm_snapshot}'.root")["limit"].arrays("r")[b"r"][0])')
+
+    combine -M GoodnessOfFit -d $wsm_snapshot.root --algo saturated -m 125 --rMin $rmin --rMax $rmax \
+    --snapshotName MultiDimFit  --bypassFrequentistFit --trackParameters r --expectSignal $rexp \
+    -n Toys -v 9 -s "$seed" -t "$numtoys" --saveToys --toysFrequentist 2>&1 | tee $outsdir/GoF_toys.txt
 fi
 
 

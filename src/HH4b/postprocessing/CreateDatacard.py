@@ -82,9 +82,13 @@ parser.add_argument(
     "--min-qcd-val", default=1e-3, type=float, help="clip the pass QCD to above a minimum value"
 )
 
-add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=True)
+add_bool_arg(parser, "only-sm", "Only add SM HH samples", default=False)
 parser.add_argument(
-    "--sig-samples", default=["hh4b", "vbfhh4b"], nargs="*", type=str, help="specify signals"
+    "--sig-samples",
+    default=sig_keys_ggf + sig_keys_vbf,
+    nargs="*",
+    type=str,
+    help="specify signals",
 )
 
 parser.add_argument(
@@ -120,7 +124,7 @@ add_bool_arg(
     "Perform MC closure test (fill data_obs with sum of MC bkg.",
     default=False,
 )
-add_bool_arg(parser, "jmsr", "Do JMS/JMR shift and smearing", default=True)
+add_bool_arg(parser, "jmsr", "Do JMS/JMR uncertainties", default=True)
 add_bool_arg(parser, "jesr", "Do JES/JER uncertainties", default=True)
 add_bool_arg(
     parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
@@ -414,11 +418,11 @@ uncorr_year_shape_systs = {
 }
 
 for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
         uncorr_year_shape_systs[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
         ] = Syst(
-            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}",
+            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}",
             prior="shape",
             samples=sig_keys,
             convert_shape_to_lnN=True,

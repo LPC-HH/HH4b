@@ -13,15 +13,15 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: list):
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list]):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
-    pt_bins = np.array(pt_bins)
-    edges = (txbb_bins, pt_bins)
+    pt_fine_bins = np.unique(np.concatenate([pt_bins[wp] for wp in pt_bins]))
+    edges = (txbb_bins, pt_fine_bins)
     keys = [
         ("final", "central"),
         ("final", "high"),
@@ -34,8 +34,11 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: lis
     for key1, key2 in keys:
         for wp in txbb_wps:
             wval = []
-            for low, high in zip(pt_bins[:-1], pt_bins[1:]):
-                wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+            for low_fine, high_fine in zip(pt_fine_bins[:-1], pt_fine_bins[1:]):
+                for low, high in zip(pt_bins[wp][:-1], pt_bins[wp][1:]):
+                    if low_fine >= low and high_fine <= high:
+                        wval.append(txbb_sf[f"{wp}_pt{low}to{high}"][key1][key2])
+                        break
             vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 
@@ -46,8 +49,12 @@ def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: lis
         "nominal": dense_lookup(vals["final", "central"], edges),
         "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"], edges),
         "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"], edges),
+        "stat3x_up": dense_lookup(vals["final", "central"] + 3 * vals["stats", "high"], edges),
+        "stat3x_dn": dense_lookup(vals["final", "central"] - 3 * vals["stats", "low"], edges),
         "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
         "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
+        "corr3x_up": dense_lookup(vals["final", "central"] + 3 * corr_err_high, edges),
+        "corr3x_dn": dense_lookup(vals["final", "central"] - 3 * corr_err_low, edges),
     }
 
     return txbb_sf
@@ -59,9 +66,18 @@ def restrict_SF(
     pt: ArrayLike,
     txbb_input_range: ArrayLike | None = None,
     pt_input_range: ArrayLike | None = None,
+    lookup_right: dense_lookup | None = None,
+    txbb_interp_range: ArrayLike | None = None,
 ):
     """Apply txbb scale factors"""
     sf = lookup(txbb, pt)
+    if lookup_right is not None and txbb_interp_range is not None:
+        sf_left = lookup(txbb, pt)
+        sf_right = lookup_right(txbb, pt)
+        mask = (txbb > txbb_interp_range[0]) & (txbb < txbb_interp_range[1])
+        sf[mask] = sf_left[mask] + (sf_right[mask] - sf_left[mask]) * (
+            txbb[mask] - txbb_interp_range[0]
+        ) / (txbb_interp_range[1] - txbb_interp_range[0])
     if txbb_input_range is not None:
         sf[txbb < txbb_input_range[0]] = 1.0
         sf[txbb > txbb_input_range[1]] = 1.0
