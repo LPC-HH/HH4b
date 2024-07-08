@@ -182,7 +182,7 @@ if [ $goftoys = 1 ]; then
     echo "Toys for $order order fit"
 
     echo "Get expected r value"
-    rexp=`python3 -c 'import uproot; print(uproot.open("'${wsm_snapshot}'.root")["limit"].arrays("r")[b"r"][0])'`
+    rexp=$(python3 -c 'import uproot; print(uproot.open("'${wsm_snapshot}'.root")["limit"].arrays("r")[b"r"][0])')
 
     combine -M GenerateOnly -m 125 -d ${wsm_snapshot}.root --rMin $rmin --rMax $rmax \
     --snapshotName MultiDimFit --bypassFrequentistFit --trackParameters r --expectSignal $rexp \

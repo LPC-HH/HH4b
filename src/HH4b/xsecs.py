@@ -177,24 +177,24 @@ xsecs["VBFHHto4B_CV-1_C2V-0_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 
 xsecs["VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  # 0.03834
+)  # 0.0015446
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
 )
 
 xsecs["VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
+)  # 0.0154350
 xsecs["VBFHHto4B_CV_1_C2V_2_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
 )
 
 xsecs["VBFHHto4B_CV-1_C2V-1_C3-0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
+)  # 0.0050035
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
+)  
 
 # From Javier (interpolating)
 """
