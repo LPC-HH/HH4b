@@ -194,7 +194,7 @@ xsecs["VBFHHto4B_CV-1_C2V-1_C3-0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
 )  # 0.0050035
 xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
     4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  
+)
 
 # From Javier (interpolating)
 """
