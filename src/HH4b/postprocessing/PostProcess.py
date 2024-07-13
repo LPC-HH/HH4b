@@ -580,6 +580,176 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & ~cut_mass])
 
 
+def scan_fom_4d(
+    method: str,
+    events_combined: pd.DataFrame,
+    xbb_cuts: np.ArrayLike,
+    bdt_cuts: np.ArrayLike,
+    xbb_cuts_bin1: np.ArrayLike,
+    bdt_cuts_bin1: np.ArrayLike,
+    mass_window: list[float],
+    bg_keys: list[str],
+    fom: str = "2sqrt(b)/s",
+    mass: str = "H2Msd",
+):
+    """Generic FoM scan for given region, defined in the ``get_cut`` function."""
+
+    import collections
+    import pickle
+
+    print("bin1 xbb ", list(xbb_cuts_bin1) + [1.0])
+    print("bin1 bdt ", list(bdt_cuts_bin1) + [1.0])
+    print("VBF xbb ", list(xbb_cuts) + [1.0])
+    print("VBF bdt ", list(bdt_cuts) + [1.0])
+
+    results = collections.defaultdict(dict)
+
+    get_cut_vbf = get_cuts(args, "vbf_joint")
+    get_cut_ggF = get_cuts(args, "bin1_joint")
+    # this is only correct if args.vbf == False! (args.fom_scan and vbf_bin1 are true) why???
+
+    # here we need it to loop over all 4 anc compute ggF for bin1_novbf basically and vbfhh4b-k2v0" for bin vbf but also with new bin1
+
+    print(f"Scanning {fom} with {method} 4d...")
+    for xbb_cut_bin1 in xbb_cuts_bin1:
+        for bdt_cut_bin1 in bdt_cuts_bin1:
+            nevents_sig_ggF, nevents_bkg_ggF, _ = (
+                abcd(  # ggF for bin1 is not dependent on the vbf cut so we can compute it here.
+                    events_combined,
+                    get_cut_ggF,
+                    [0, xbb_cut_bin1],
+                    [0, bdt_cut_bin1],
+                    mass,
+                    mass_window,
+                    bg_keys,
+                    sig_key="hh4b",
+                )
+            )
+            for xbb_cut in xbb_cuts:
+                for bdt_cut in bdt_cuts:
+                    if method == "abcd":
+                        nevents_sig_vbf, nevents_bkg_vbf, _ = abcd(
+                            events_combined,
+                            get_cut_vbf,
+                            [xbb_cut, xbb_cut_bin1],
+                            [bdt_cut, bdt_cut_bin1],
+                            mass,
+                            mass_window,
+                            bg_keys,
+                            sig_key="vbfhh4b-k2v0",
+                        )
+
+                        # print("abcd ", nevents_sig, nevents_bkg)
+                    else:
+                        raise ValueError("Invalid Method")
+                        # print("sideband ",  nevents_sig, nevents_bkg)
+                        # print("\n")
+
+                    if fom == "s/sqrt(s+b)":
+                        figure_of_merit_vbf = nevents_sig_vbf / np.sqrt(
+                            nevents_sig_vbf + nevents_bkg_vbf
+                        )
+                        figure_of_merit_ggF = nevents_sig_ggF / np.sqrt(
+                            nevents_sig_ggF + nevents_bkg_ggF
+                        )
+                    elif fom == "2sqrt(b)/s":
+                        figure_of_merit_vbf = 2 * np.sqrt(nevents_bkg_vbf) / nevents_sig_vbf
+                        figure_of_merit_ggF = 2 * np.sqrt(nevents_bkg_ggF) / nevents_sig_ggF
+                    else:
+                        raise ValueError("Invalid FOM")
+
+                    # number of events in data in sideband
+                    cut_vbf = get_cut_vbf(
+                        events_combined["data"], [xbb_cut, xbb_cut_bin1], [bdt_cut, bdt_cut_bin1]
+                    )
+                    cut_ggF = get_cut_ggF(
+                        events_combined["data"], [xbb_cut, xbb_cut_bin1], [bdt_cut, bdt_cut_bin1]
+                    )
+
+                    nevents_sideband_vbf = get_nevents_nosignal(
+                        events_combined["data"], cut_vbf, mass, mass_window
+                    )
+                    nevents_sideband_ggF = get_nevents_nosignal(
+                        events_combined["data"], cut_ggF, mass, mass_window
+                    )
+                    # print("completed computation of wp ", xbb_cut, bdt_cut, xbb_cut_bin1, bdt_cut_bin1, " and now saving results",
+                    #     figure_of_merit_vbf, figure_of_merit_ggF, nevents_sig_vbf, nevents_bkg_vbf, nevents_sideband_vbf, nevents_sig_ggF,
+                    #     nevents_bkg_ggF, nevents_sideband_ggF)
+                    if (
+                        nevents_sig_vbf > 0.5
+                        and nevents_bkg_vbf >= 2
+                        and nevents_sideband_vbf >= 12
+                        and nevents_sig_ggF > 0.5
+                        and nevents_bkg_ggF >= 2
+                        and nevents_sideband_ggF >= 12
+                    ):
+                        # cuts.append(bdt_cut)
+                        # figure_of_merits.append(figure_of_merit)
+                        # h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+                        # if figure_of_merit < min_fom:
+                        #     min_fom = figure_of_merit
+                        #     min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
+                        results[(xbb_cut, bdt_cut, xbb_cut_bin1, bdt_cut_bin1)] = {
+                            "figure_of_merit_vbf": figure_of_merit_vbf,
+                            "nevents_sig_vbf": nevents_sig_vbf,
+                            "nevents_bkg_vbf": nevents_bkg_vbf,
+                            "nevents_sideband_vbf": nevents_sideband_vbf,
+                            "figure_of_merit_ggF": figure_of_merit_ggF,
+                            "nevents_sig_ggF": nevents_sig_ggF,
+                            "nevents_bkg_ggF": nevents_bkg_ggF,
+                            "nevents_sideband_ggF": nevents_sideband_ggF,
+                        }
+
+        if len(results.keys()) > 0:  # printing all time best instead of this row's best!
+            figure_of_merits_vbf = np.array(
+                [result["figure_of_merit_vbf"] for result in results.values()]
+            )
+            figure_of_merits_ggF = np.array(
+                [result["figure_of_merit_ggF"] for result in results.values()]
+            )
+
+            smallest_vbf_index = np.argmin(figure_of_merits_vbf)
+            smallest_ggF_index = np.argmin(figure_of_merits_ggF)
+
+            smallest_vbf_key = list(results.keys())[smallest_vbf_index]
+            smallest_ggF_key = list(results.keys())[smallest_ggF_index]
+
+            min_nevents_vbf = [
+                results[smallest_vbf_key]["nevents_bkg_vbf"],
+                results[smallest_vbf_key]["nevents_sig_vbf"],
+                results[smallest_vbf_key]["nevents_sideband_vbf"],
+            ]
+
+            min_nevents_ggF = [
+                results[smallest_ggF_key]["nevents_bkg_ggF"],
+                results[smallest_ggF_key]["nevents_sig_ggF"],
+                results[smallest_ggF_key]["nevents_sideband_ggF"],
+            ]
+
+            print(
+                f"{smallest_vbf_key} VBF FigureOfMerit: {figure_of_merits_vbf[smallest_vbf_index]:.2f} "
+                f"BG: {min_nevents_vbf[0]:.2f} S: {min_nevents_vbf[1]:.2f} S/B: {min_nevents_vbf[1]/min_nevents_vbf[0]:.2f} Sideband: {min_nevents_vbf[2]:.2f}"
+            )
+            print(
+                f"{smallest_ggF_key} ggF FigureOfMerit: {figure_of_merits_ggF[smallest_ggF_index]:.2f} "
+                f"BG: {min_nevents_ggF[0]:.2f} S: {min_nevents_ggF[1]:.2f} S/B: {min_nevents_ggF[1]/min_nevents_ggF[0]:.2f} Sideband: {min_nevents_ggF[2]:.2f}"
+            )
+
+            # cuts = np.array(cuts)
+            # figure_of_merits = np.array(figure_of_merits)
+            # smallest = np.argmin(figure_of_merits)
+
+            # print(
+            #     f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
+            #     f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
+            # )
+
+    num_iters = len(xbb_cuts) * len(bdt_cuts) * len(xbb_cuts_bin1) * len(bdt_cuts_bin1)
+    file_path = Path(f"results_vbf_bin1_updated_{num_iters}.pkl")
+    with file_path.open("wb") as f:
+        pickle.dump(results, f)
+
+
 def scan_fom(
     method: str,
     events_combined: pd.DataFrame,
@@ -718,6 +888,25 @@ def get_cuts(args, region: str):
 
         return cut_bin2
 
+    # VBF region with custom veto bin1
+    def get_cut_vbf_vetobin1_joint(events, xbb_cut, bdt_cut):
+        cut_xbb = events["H2TXbb"] > xbb_cut[0]
+        cut_bdt = events["bdt_score_vbf"] > bdt_cut[0]
+
+        cut_bin1 = (events["H2TXbb"] > xbb_cut[1]) & (events["bdt_score"] > bdt_cut[1])
+        return cut_xbb & cut_bdt & ~(cut_bin1)
+
+    # bin1 with custom no veto VBF since vbf not priority for joint NOT NEEDED>>>> ITS THE SAME AS THE OTHER THINGY!!!
+    def get_cut_bin1_vetovbf_joint(events, xbb_cut, bdt_cut):
+        # print("debugging",xbb_cut, bdt_cut)
+        cut_xbb = events["H2TXbb"] > xbb_cut[1]
+        cut_bdt = events["bdt_score"] > bdt_cut[1]
+
+        # vbf_cut = (events["bdt_score_vbf"] >= bdt_cut[0]) & (
+        #     events["H2TXbb"] >= xbb_cut[0]
+        # )
+        return cut_xbb & cut_bdt  # & ~(vbf_cut)
+
     if region == "vbf":
         if args.vbf and args.vbf_priority:
             return get_cut_vbf
@@ -730,6 +919,14 @@ def get_cuts(args, region: str):
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
         return get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
+    elif region == "vbf_joint":  # assumes vbf priority is false
+        print(
+            "vbf and bin1 joint cuts asked for (vbf)."
+        )  # this should return the same as bin1_vetovbf but with new vbf def if we want hh4b...
+        return get_cut_vbf_vetobin1_joint
+    elif region == "bin1_joint":  # assumes vbf priority is false
+        print("vbf and bin1 joint cuts asked for (bin1).")
+        return get_cut_bin1_vetovbf_joint
     else:
         raise ValueError("Invalid region")
 
@@ -1021,6 +1218,45 @@ def postprocess_run3(args):
                 mass=args.mass,
             )
 
+        if args.fom_scan_vbf_bin1 and args.vbf:  # maybe get rid of the vbf requirement.
+            print("Scanning VBF WPs and bin 1 joint without vbf priority.")
+            scan_fom_4d(
+                method=args.method,
+                events_combined=events_combined,
+                # xbb_cuts = np.arange(0.94, 0.9999, 0.005),
+                # bdt_cuts= np.arange(0.94, 0.9999, 0.005),
+                # xbb_cuts_bin1= np.arange(0.95, 0.999, 0.005),
+                # bdt_cuts_bin1= np.arange(0.9, 0.999, 0.01),
+                # xbb_cuts=np.linspace(0.95, 0.985, 15),
+                # bdt_cuts=np.linspace(0.955, 0.995, 15),
+                # xbb_cuts_bin1=np.linspace(0.97, 0.985, 15),
+                # bdt_cuts_bin1=np.linspace(0.93, 0.9800000000000001, 15),
+                # xbb_cuts=np.arange(0.9, 0.999, 0.01), # vbf verification
+                # bdt_cuts=np.arange(0.9, 0.999, 0.01),
+                # xbb_cuts_bin1=np.array([0.985]),
+                # bdt_cuts_bin1=np.array([0.96]),
+                # xbb_cuts=np.array([0.94,0.98]), # bin1 ggf verification
+                # bdt_cuts=np.array([0.99, 0.93]),
+                # xbb_cuts_bin1=np.arange(0.95, 0.999, 0.005),
+                # bdt_cuts_bin1=np.arange(0.9, 0.999, 0.01),
+                # xbb_cuts=np.arange(0.9, 0.999, 0.01), # original
+                # bdt_cuts=np.arange(0.9, 0.999, 0.01),
+                # xbb_cuts_bin1=np.arange(0.95, 0.999, 0.005),
+                # bdt_cuts_bin1=np.arange(0.9, 0.999, 0.01),
+                # xbb_cuts=np.arange(0.9, 0.999, 0.01), # original 2x resolution for BDT
+                # bdt_cuts=np.arange(0.9, 0.999, 0.005),
+                # xbb_cuts_bin1=np.arange(0.95, 0.999, 0.005),
+                # bdt_cuts_bin1=np.arange(0.9, 0.999, 0.005),
+                xbb_cuts=np.arange(0.9, 0.999, 0.01),  # after observing plots
+                bdt_cuts=np.arange(0.96, 0.9999, 0.002),
+                xbb_cuts_bin1=np.arange(0.95, 0.999, 0.005),
+                bdt_cuts_bin1=np.arange(0.96, 0.9999, 0.002),
+                mass_window=mass_window,
+                bg_keys=bg_keys,
+                # fom="s/sqrt(s+b)",
+                mass=args.mass,
+            )
+
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.legacy)
@@ -1213,6 +1449,13 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "vbf", default=False, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
+
+    run_utils.add_bool_arg(
+        parser,
+        "fom-scan-vbf-bin1",
+        default=False,
+        help="FOM scan for bin 1 and VBF bin simultaneously",
     )
 
     args = parser.parse_args()
