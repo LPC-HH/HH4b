@@ -31,3 +31,4 @@ python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimm
 ```
 python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr23LegacyLowerThresholds_v12_private_signal/ --model-name 24May1_legacy_vbf_vars --xbb bbFatJetPNetTXbbLegacy --mass bbFatJetPNetMassLegacy --legacy --pnet-plots --apply-cuts --config 24Apr21_legacy_vbf_vars --year 2022 2022EE 2023 2023BPix --sig-keys hh4b vbfhh4b-k2v0
 ```
+To evaluate BDTs, run TrainBDT.py with --evaluate-only flag
