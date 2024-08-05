@@ -35,6 +35,9 @@ from HH4b.postprocessing import (
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
+# get top-level HH4b directory
+HH4B_DIR = Path(__file__).resolve().parents[3]
+
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
 
@@ -102,7 +105,9 @@ label_by_mass = {
 
 
 def get_bdt_training_keys(bdt_model: str):
-    inferences_dir = Path(f"../boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE")
+    inferences_dir = Path(
+        f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{bdt_model}/inferences/2022EE"
+    )
 
     training_keys = []
     for child in inferences_dir.iterdir():
@@ -318,7 +323,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
-    bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+    bdt_model.load_model(
+        fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
+    )
 
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb")
@@ -419,6 +426,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        # add event, run, lumi
+        bdt_events["run"] = events_dict["run"].to_numpy()
+        bdt_events["event"] = events_dict["event"].to_numpy()
+        bdt_events["luminosityBlock"] = events_dict["luminosityBlock"].to_numpy()
 
         # triggerWeight
         nevents = len(bdt_events["H1Pt"])
@@ -794,7 +805,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["year"] = year
 
         # keep some (or all) columns
-        columns = ["year", "H2TXbb", "weight"]
+        columns = [
+            "Category",
+            "H2Msd",
+            "bdt_score",
+            "H2TXbb",
+            "H2PNetMass",
+            "weight",
+            "event",
+            "run",
+            "luminosityBlock",
+        ]
         for jshift in jshifts:
             columns += [
                 check_get_jec_var("Category", jshift),
@@ -1247,7 +1268,7 @@ def postprocess_run3(args):
         blind_window=blind_window_by_mass[args.mass],
     )
 
-    plot_dir = Path(f"../../../plots/PostProcess/{args.templates_tag}")
+    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
     plot_dir.mkdir(exist_ok=True, parents=True)
 
     # load samples
