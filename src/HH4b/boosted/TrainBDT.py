@@ -99,7 +99,7 @@ def get_legtitle(legacy, pnet_xbb_str):
     if legacy:
         title += "$T_{Xbb}^{0}$>0.8"
     else:
-        title += "$T_{Xbb}^{0}$>0.5"
+        title += "$T_{Xbb}^{0}$>0.7"
 
     title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
     if "Legacy" in pnet_xbb_str:
@@ -108,7 +108,7 @@ def get_legtitle(legacy, pnet_xbb_str):
     if legacy:
         title += "\n" + r"m$_{reg Legacy}$ > 50 GeV"
     else:
-        title += "\n" + r"m > 50 GeV & m$_{SD}$ > 30 GeV"
+        title += "\n" + r"m > 50 GeV & m$_{SD}$ > 40 GeV"
 
     return title
 
@@ -123,6 +123,7 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str, legacy):
     """
     for key in events_dict:
         msd1 = events_dict[key]["bbFatJetMsd"][0]
+        msd2 = events_dict[key]["bbFatJetMsd"][1]
         pt1 = events_dict[key]["bbFatJetPt"][0]
         pt2 = events_dict[key]["bbFatJetPt"][1]
         xbb1 = events_dict[key][pnet_xbb_str][0]
@@ -132,12 +133,20 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str, legacy):
         # add regressed mass cut above 50
         # FIXME: replace this by the trigobj matched jet
         if legacy:
+            print("Using legacy ntuples")
             events_dict[key] = events_dict[key][
                 (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
             ].copy()
         else:
+            print("Legacy == False, using v12")
             events_dict[key] = events_dict[key][
-                (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.5) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+                (pt1 > 250)
+                & (pt2 > 250)
+                & (xbb1 > 0.7)
+                & (msd1 > 40)
+                & (mass1 > 50)
+                & (mass2 > 50)
+                & (msd2 > 40)
             ].copy()
 
     return events_dict

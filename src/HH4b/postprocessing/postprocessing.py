@@ -229,21 +229,31 @@ def load_run3_samples(
             variations=False,
         ),
     }
-    for key in events_dict_nosyst:
-        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
-        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
-        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
-    for key in events_dict_syst:
-        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
-        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
-        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    if legacy:
+        for key in events_dict_nosyst:
+            x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+            events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+        for key in events_dict_syst:
+            x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
+            events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
+    else:
+        for key in events_dict_nosyst:
+            x = events_dict_nosyst[key]["bbFatJetPNetMass"].to_numpy(copy=True)
+            events_dict_nosyst[key][("bbFatJetPNetMass", 0)] = x[:, 0]
+            events_dict_nosyst[key][("bbFatJetPNetMass", 1)] = x[:, 1]
+        for key in events_dict_syst:
+            x = events_dict_syst[key]["bbFatJetPNetMass"].to_numpy(copy=True)
+            events_dict_syst[key][("bbFatJetPNetMass", 0)] = x[:, 0]
+            events_dict_syst[key][("bbFatJetPNetMass", 1)] = x[:, 1]
 
     events_dict_syst = scale_smear_mass(events_dict_syst, year)
     events_dict = {**events_dict_nosyst, **events_dict_syst}
     return events_dict
 
 
-def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
+def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, legacy=False):
     jms_nom = jmsr_values["JMS"][year]["nom"]
     jmr_nom = jmsr_values["JMR"][year]["nom"]
     rng = np.random.default_rng(seed=42)
@@ -252,7 +262,10 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
     for key in events_dict:
         if key in jmsr_keys:
             print(f"scaling and smearing mass for {key} {year}")
-            x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            if legacy:
+                x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            else:
+                x = events_dict[key]["bbFatJetPNetMass"].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
             x_smear = (
@@ -260,9 +273,17 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                 * jms_nom
                 * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
             )
+
             for i in range(2):
-                events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
-                events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+                if legacy:
+                    events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
+                    events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+                else:
+                    events_dict[key][("bbFatJetPNetMassRaw", i)] = x[:, i]
+                    events_dict[key][("bbFatJetPNetMass", i)] = x_smear[
+                        :, i
+                    ]  # TODO: check if this is correct
+
             for skey in jmsr:
                 for shift in ["up", "down"]:
                     if skey == "JMS":
