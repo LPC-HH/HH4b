@@ -219,7 +219,7 @@ fi
 if [ $bfit = 1 ]; then
     echo "Blinded background-only fit"
     combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 \
-    --cminDefaultMinimizerStrategy 1 \
+    --cminDefaultMinimizerStrategy 0 \
     --setParameters ${maskunblindedargs},${setparamsblinded},r=0  \
     --freezeParameters r,${freezeparamsblinded} \
     -n Snapshot 2>&1 | tee $outsdir/MultiDimFit.txt
@@ -254,7 +254,7 @@ if [ $dfit = 1 ]; then
     combine -M FitDiagnostics -m 125 -d ${wsm}.root \
     --setParameters ${maskunblindedargs},${setparamsblinded} \
     --freezeParameters ${freezeparamsblinded} \
-    --cminDefaultMinimizerStrategy 1 \
+    --cminDefaultMinimizerStrategy 0 \
     -n Blinded --ignoreCovWarning -v 9 2>&1 | tee $outsdir/FitDiagnostics.txt
     # --saveShapes --saveNormalizations --saveWithUncertainties --saveOverallShapes \
 

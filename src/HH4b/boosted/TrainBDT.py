@@ -45,7 +45,7 @@ cut_axis = hist.axis.StrCategory([], name="cut", label="cut", growth=True)
 h2_msd_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{SD}$ [GeV]")
 h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{reg}$ [GeV]")
 
-bdt_cuts = [0, 0.03, 0.9, 0.95, 0.98]
+bdt_cuts = [0, 0.03, 0.88, 0.95, 0.98]
 xbb_cuts = [0, 0.8, 0.9, 0.98]
 
 control_plot_vars = [
@@ -95,7 +95,7 @@ for year in samples_run3:
 
 
 def get_legtitle(legacy, pnet_xbb_str):
-    title = r"FatJet p$_T^{(0,1)}$ > 300 GeV" + "\n"
+    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
     if legacy:
         title += "$T_{Xbb}^{0}$>0.8"
     else:
@@ -663,7 +663,7 @@ def evaluate_model(
             plt.close()
 
         print("Making mass sculpting plots")
-
+        """
         # look into mass sculpting
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
@@ -700,7 +700,7 @@ def evaluate_model(
                 fig.savefig(plot_dir / sig_key / f"{hkey}2_{key}.png")
                 fig.savefig(plot_dir / sig_key / f"{hkey}2_{key}.pdf", bbox_inches="tight")
                 plt.close()
-
+        """
     if not pnet_plots:
         return
 
