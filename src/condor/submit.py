@@ -33,7 +33,7 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 
 def main(args):
     # check that branch exists
-    run_utils.check_branch(args.git_branch, args.allow_diff_local_repo)
+    run_utils.check_branch(args.git_branch, args.git_user, args.allow_diff_local_repo)
 
     if args.site == "lpc":
         try:
