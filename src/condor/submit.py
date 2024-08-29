@@ -35,7 +35,7 @@ def main(args):
     # check that branch exists
     run_utils.check_branch(args.git_branch, args.git_user, args.allow_diff_local_repo)
     username = os.environ["USER"]
-    
+
     if args.site == "lpc":
         try:
             proxy = os.environ["X509_USER_PROXY"]
