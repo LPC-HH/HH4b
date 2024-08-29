@@ -34,7 +34,8 @@ def write_template(templ_file: str, out_file: str, templ_args: dict):
 def main(args):
     # check that branch exists
     run_utils.check_branch(args.git_branch, args.git_user, args.allow_diff_local_repo)
-
+    username = os.environ["USER"]
+    
     if args.site == "lpc":
         try:
             proxy = os.environ["X509_USER_PROXY"]
@@ -42,7 +43,11 @@ def main(args):
             print("No valid proxy. Exiting.")
             exit(1)
     elif args.site == "ucsd":
-        proxy = "/home/users/rkansal/x509up_u31735"
+        if username == "rkansal":
+            proxy = "/home/users/rkansal/x509up_u31735"
+        elif username == "dprimosch":
+            # TODO: add path to proxy
+            pass
     else:
         raise ValueError(f"Invalid site {args.site}")
 
@@ -52,8 +57,6 @@ def main(args):
         )
 
     t2_prefixes = [t2_redirectors[site] for site in args.save_sites]
-
-    username = os.environ["USER"]
 
     tag = f"{args.tag}_{args.nano_version}_{args.region}"
 
