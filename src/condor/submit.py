@@ -45,9 +45,8 @@ def main(args):
     elif args.site == "ucsd":
         if username == "rkansal":
             proxy = "/home/users/rkansal/x509up_u31735"
-        elif username == "dprimosch":
-            # TODO: add path to proxy
-            pass
+        elif username == "dprimosc":
+            proxy = "/home/users/dprimosc/x509up_u150012"
     else:
         raise ValueError(f"Invalid site {args.site}")
 
