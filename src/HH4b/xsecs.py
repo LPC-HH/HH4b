@@ -154,22 +154,24 @@ vbfhh_sm = 1.873758517 / 1000
 # k-factor from 13.6 / 13
 vbfhh_sm_prev = 1.726 / 1000
 vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev  # 1.0856
+# c3 is kl
 vbfhh = {
     "VBFHHto4B_CV-1_C2V-1_C3-1": vbfhh_sm * BR_HBB * BR_HBB, # 0.000635 (0.001904 from xsecdb, 0.001904*BR_HBB*BR_HBB=0.00064)
     # these numbers are from 13 TeV and re-scaled to 13.6 TeV
-    "VBFHHto4B_CV-1_C2V-0_C3-1": 27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0293112 * BR = 0.00989 
-    "VBFHHto4B_CV-1_C2V-1_C3-0": 4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0050035 * BR = 0.00168
-    "VBFHHto4B_CV-1_C2V-1_C3-2": 1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0015446 * BR = 0.000521
-    "VBFHHto4B_CV-1_C2V-2_C3-1": 14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0154350 * BR = 0.00528
+    "VBFHHto4B_CV-1_C2V-0_C3-1": 27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0293112 * BR = 0.00989 (0.02936 from xsecdb)
+    "VBFHHto4B_CV-1_C2V-1_C3-0": 4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0050035 * BR = 0.00168 (not in xsecdb)
+    "VBFHHto4B_CV-1_C2V-1_C3-2": 1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0015446 * BR = 0.000521 (0.001588 from xsecdb)
+    "VBFHHto4B_CV-1_C2V-2_C3-1": 14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0154350 * BR = 0.00528 (0.0156 from xsecdb)
     # from Javier (interpolating): https://github.com/LPC-HH/HH4b/blob/main/src/HH4b/combine/binder/VBFXsec.ipynb
-    "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4": 0.398705 * BR_HBB * BR_HBB, # 0.1345 (0.3952 from xsecdb w/o BR) 
-    "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2": 0.0000118 * BR_HBB * BR_HBB, # 3.98e-6 (0.00001256 from xsecdb)
-    "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3": 0.36648 * BR_HBB * BR_HBB, # 0.1236 (0.355 from xsecdb)
-    "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43": 0.001088 * BR_HBB * BR_HBB, # 0.000367 (0.001113 from xsecdb)
-    "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94": 0.003614 * BR_HBB * BR_HBB, # 0.001219 (0.003757 from xsecdb)
-    "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36": 0.01139 * BR_HBB * BR_HBB, # 0.00384 (0.01155 from xsecdb)
-    "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39": 0.02165 * BR_HBB * BR_HBB, # 0.00730 (0.01663 from xsecdb !!)
-    "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.056818 * BR_HBB * BR_HBB, # 0.01917 (0.672 from xsecbd !!)
+    "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4": 0.398705 * BR_HBB * BR_HBB, # 0.1345 (0.3952 from xsecdb w/o BR, i.e. compare to 0.398705) 
+    "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2": 0.0000118 * BR_HBB * BR_HBB, # 3.98e-6 (0.00001256 from xsecdbm i.e. compare to 0.0000118)
+    "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3": 0.36648 * BR_HBB * BR_HBB, # 0.1236 (0.355 from xsecdb i.e. compare to 0.36648)
+    "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43": 0.001088 * BR_HBB * BR_HBB, # 0.000367 (0.001113 from xsecdb i.e. compare to 0.001088)
+    "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94": 0.003614 * BR_HBB * BR_HBB, # 0.001219 (0.003757 from xsecdb i..e compare to 0.003614)
+    "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36": 0.01139 * BR_HBB * BR_HBB, # 0.00384 (0.01155 from xsecdb i.e. compare to 0.01139)
+    "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39": 0.01646 * BR_HBB * BR_HBB, # 0.00558 (0.01663 from xsecdb i.e. compare to 0.01646)
+    # TODO: FIX OR CONFIRM THIS?
+    "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.672 * BR_HBB * BR_HBB, # 0.2279 (0.672 from xsecdb i.e. compare to 0.056818 from interpolation (and 0.01917 when multiplied by BR)!!!!!!!!!)
 }
 for key, value in vbfhh.items():
     key_nounderscore = key.replace('-','_')
