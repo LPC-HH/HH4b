@@ -200,8 +200,12 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["PQCDbb_legacy"] = fatjets.particleNetLegacy_QCDbb
         fatjets["PQCD0HF_legacy"] = fatjets.particleNetLegacy_QCDothers
         if "particleNetLegacy_QCDc" in fatjets_fields:
-            fatjets["PQCD1HF_legacy"] = fatjets.particleNetLegacy_QCDb + fatjets.particleNetLegacy_QCDc
-            fatjets["PQCD2HF_legacy"] = fatjets.particleNetLegacy_QCDbb + fatjets.particleNetLegacy_QCDcc
+            fatjets["PQCD1HF_legacy"] = (
+                fatjets.particleNetLegacy_QCDb + fatjets.particleNetLegacy_QCDc
+            )
+            fatjets["PQCD2HF_legacy"] = (
+                fatjets.particleNetLegacy_QCDbb + fatjets.particleNetLegacy_QCDcc
+            )
         else:
             fatjets["PQCD1HF_legacy"] = fatjets.particleNetLegacy_QCDb
             fatjets["PQCD2HF_legacy"] = fatjets.particleNetLegacy_QCDbb
@@ -220,7 +224,7 @@ def get_ak8jets(fatjets: FatJetArray):
     fatjets["particleNet_mass_legacy"] = fatjets["particleNet_mass"]
     if "particleNetLegacy_mass" in fatjets_fields:
         fatjets["particleNet_mass_legacy"] = fatjets.particleNetLegacy_mass
-        
+
     # individual probabilities
     if "ParticleNetMD_probQCDb" in fatjets_fields:
         fatjets["PQCD1HF"] = fatjets.ParticleNetMD_probQCDb
@@ -266,7 +270,14 @@ def get_ak8jets(fatjets: FatJetArray):
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray, pt: float, eta: float, msd: float, mreg: float, mreg_str = "particleNet_mass_legacy"):
+def good_ak8jets(
+    fatjets: FatJetArray,
+    pt: float,
+    eta: float,
+    msd: float,
+    mreg: float,
+    mreg_str="particleNet_mass_legacy",
+):
     fatjet_sel = (
         fatjets.isTight
         & (fatjets.pt > pt)

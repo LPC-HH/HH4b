@@ -15,14 +15,12 @@ import gzip
 import pathlib
 import pickle
 import random
-from pathlib import Path
 
 import awkward as ak
 import correctionlib
 import numpy as np
 import uproot
 from coffea.analysis_tools import Weights
-from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
