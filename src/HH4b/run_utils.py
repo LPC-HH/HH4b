@@ -160,7 +160,6 @@ def get_processor(
             xsecs=xsecs,
             save_systematics=save_systematics,
             region=region,
-            save_array=save_array,
             nano_version=nano_version,
         )
 

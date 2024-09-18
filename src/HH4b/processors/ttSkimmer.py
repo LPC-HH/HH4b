@@ -140,7 +140,6 @@ class ttSkimmer(SkimmerABC):
         xsecs=None,
         save_systematics=False,
         region="signal",
-        save_array=False,
         nano_version="v12",
     ):
         super().__init__()

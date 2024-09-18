@@ -341,7 +341,7 @@ xsecs["ZZ_TuneCP5_13TeV-pythia8"] = 16.91
 def main():
     import json
 
-    with open("xsecs.json", "w") as outfile:
+    with open("xsecs.json", "w") as outfile:  # noqa: PTH123
         json.dump(xsecs, outfile)
 
 

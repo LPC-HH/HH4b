@@ -190,7 +190,6 @@ def main(args):
     p = run_utils.get_processor(
         args.processor,
         args.save_systematics,
-        args.save_array,
         args.region,
         args.apply_selection,
         args.nano_version,
