@@ -18,7 +18,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import pandas as pd
 import xgboost as xgb
-        
+
 import HH4b
 
 from . import objects, utils
@@ -253,7 +253,7 @@ class bbbbSkimmer(SkimmerABC):
         self._systematics = save_systematics
 
         self.jecs = utils.jecs
-            
+
         self._nano_version = nano_version
 
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
@@ -299,7 +299,7 @@ class bbbbSkimmer(SkimmerABC):
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
         )
-        
+
         logger.info(f"Running skimmer with systematics {self._systematics}")
 
     @property
@@ -402,11 +402,11 @@ class bbbbSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
-        
+
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
         legacy = "particleNetLegacy_mass" in fatjets.fields
 
-        # fatjets ordered by xbb 
+        # fatjets ordered by xbb
         if not legacy:
             fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
         else:
@@ -688,7 +688,7 @@ class bbbbSkimmer(SkimmerABC):
                 **skimmed_events,
                 **bdtVars,
             }
-        
+
         if self._region == "semilep-tt":
             # concatenate leptons
             leptons = ak.concatenate([muons, electrons], axis=1)
@@ -1038,5 +1038,5 @@ class bbbbSkimmer(SkimmerABC):
             bdtVars[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (
                 preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3]
             )
-        
+
         return bdtVars

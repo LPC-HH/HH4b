@@ -822,6 +822,7 @@ def get_v12_private():
         },
     }
 
+
 def get_v12v2_private():
     return {
         "2022": {
@@ -1018,7 +1019,7 @@ def get_v12v2_private():
                 "JetMET_Run2022G": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2022EE/JetMET/JetMET/JetMET_Run2022G/",
             },
         },
-        "2023": {        
+        "2023": {
             "HH": {
                 "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/cmantill/2023/HH4b/GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/",
                 "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/cmantill/2023/HH4b/GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_LHEweights_TuneCP5_13p6TeV_powheg-pythia8/",
@@ -1226,6 +1227,7 @@ def get_v12v2_private():
             },
         },
     }
+
 
 def get_v12():
     return {
@@ -1866,7 +1868,7 @@ def get_v12():
 
 
 def eos_rec_search(startdir, suffix, dirs):
-    #print(f"EOS Recursive search in {startdir}.")
+    # print(f"EOS Recursive search in {startdir}.")
     eosbase = "root://cmseos.fnal.gov/"
     try:
         dirlook = (
