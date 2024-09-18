@@ -185,9 +185,6 @@ class ttSkimmer(SkimmerABC):
 
         self._accumulator = processor.dict_accumulator({})
 
-        # save arrays (for dask accumulator)
-        self._save_array = save_array
-
         logger.info(f"Running skimmer with systematics {self._systematics}")
 
     @property
