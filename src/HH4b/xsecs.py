@@ -7,11 +7,11 @@ from __future__ import annotations
 BR_WQQ = 0.676
 BR_WLNU = 0.324
 BR_ZQQ = 0.69911
-BR_ZLNU = 0.27107
+BR_ZNUNU = 0.27107
 BR_ZLL = 0.02982
-
-BR_HBB = 0.5809
-# BR_HBB = 0.5824
+# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR
+BR_HBB = 0.5824
+BR_HCC = 0.02891
 
 xsecs = {}
 
@@ -34,9 +34,7 @@ xsecs["QCD_PT-3200"] = 0.0002331
 
 xsecs["QCD_PT-15to7000"] = 1440000000.0
 
-# QCD-HT (obtained by Cristina manually with genXsecAnalyzer
-# QCDB-4Jets_HT*
-# these numbers seem unusually high - xcheck
+# xsdb
 xsecs["QCDB_HT-40to100"] = 12950000.0
 xsecs["QCDB_HT-100to200"] = 1195000.0
 xsecs["QCDB_HT-200to400"] = 100600.0
@@ -47,6 +45,7 @@ xsecs["QCDB_HT-1000to1500"] = 55.15
 xsecs["QCDB_HT-1500to2000"] = 4729
 xsecs["QCDB_HT-2000"] = 0.8673
 
+# got using genXsecAnalyzer
 xsecs["QCD_HT-40to70"] = 311600000.0
 xsecs["QCD_HT-70to100"] = 58520000.0
 xsecs["QCD_HT-100to200"] = 25220000.0
@@ -59,6 +58,7 @@ xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
 xsecs["QCD_HT-2000"] = 25.78
 
+# xsdb
 xsecs["QCD_PT-120to170_MuEnrichedPt5"] = 22980.0
 xsecs["QCD_PT-170to300_MuEnrichedPt5"] = 7763.0
 xsecs["QCD_PT-300to470_MuEnrichedPt5"] = 699.1
@@ -88,8 +88,6 @@ xsecs["WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8"] = 1.786
 xsecs["WWto4Q_TuneCP5_13p6TeV_powheg-pythia8"] = 78.79
 xsecs["WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 76.16
 xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
-# xsecs["WWto4Q_1Jets-4FS"]
-# xsecs["WZto4Q-1Jets-4FS"]
 
 # SingleTop
 xsecs["TbarBQ_t-channel_4FS"] = 87.2
@@ -102,46 +100,39 @@ xsecs["TbarWplusto2L2Nu"] = 2.62
 xsecs["TWminusto2L2Nu"] = 2.62
 
 # Higgs
-xsecs["GluGluHto2B_M-125"] = 51.53 * BR_HBB  # 29.93
-# SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV
+# SX: took XSDB NLO number (0.5246) and multiplied it by the NNLO/NLO ratio for inclusive ggH from 13 TeV 
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
-# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
-xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.023 * BR_HBB  # 2.34
-xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB  # 0.349
-xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB  # 0.167
-xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB  # 0.222
-xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  # 0.106
-xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB
-xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.8079 * BR_ZQQ * BR_HBB
-xsecs["ggZH_Hto2B_Zto2L_M-125"] = 0.1360 * BR_ZLL * BR_HBB
-xsecs["ggZH_Hto2B_Zto2Nu_M-125"] = 0.1360 * BR_ZLNU * BR_HBB
-xsecs["ggZH_Hto2B_Zto2Q_M-125"] = 0.1360 * BR_ZQQ * BR_HBB
-xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB
+# https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap (updated 2024-03 for mH=125.0)
+xsecs["GluGluHto2B_M-125"] = 52.23 * BR_HBB  # 30.34
+xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB  # 2.368
+xsecs["VBFHto2B_M-125"] = xsecs["VBFHto2B_M-125_dipoleRecoilOn"]
+xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB  # 0.2229 (0.3916 from xsecdb, but missing Hdecay, 0.3916*BR_HBB=0.227)
+xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  # 0.1068 (0.1887 from xsecdb, but missing Hdecay, 0.1887*BR_HBB=0.1096)
+xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB  # 0.349 (0.623 from xsecdb, but missing Hdecay, 0.623*BR_HBB=0.3619)
+xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB  # 0.1673 (0.3001 from xsecdb, but missing Hdecay, 0.3001*BR_HBB=0.1743)
+xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.9439 * BR_ZLL * BR_HBB # 0.01635 (0.08545 from xsecdb, 0.08545*BR_HBB=0.049)
+xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.9439 * BR_ZQQ * BR_HBB # 0.3833 (0.5958 from xsecdb, 0.5958*BR_HBB=0.346)
+xsecs["ZH_Hto2B_Zto2Nu_M-125"] = 0.9439 * BR_ZNUNU * BR_HBB # 0.1486 (0.01351 from xsecdb, 0.01351*BR_HBB=0.00784)
+xsecs["ZH_Hto2C_Zto2Q_M-125"] = 0.9439 * BR_ZQQ * BR_HCC # 0.019 (0.5958 from xsecdb, 0.5958*BR_HCC=0.0172)
+xsecs["ggZH_Hto2B_Zto2L_M-125"] = 0.1360 * BR_ZLL * BR_HBB # 0.00235 (0.006838 from xsecdb, 0.006838*BR_HBB=0.00397)
+xsecs["ggZH_Hto2B_Zto2Nu_M-125"] = 0.1360 * BR_ZNUNU * BR_HBB # 0.0214 (0.01351 from xsecdb, 0.01351*BR_HBB=0.00784)
+xsecs["ggZH_Hto2B_Zto2Q_M-125"] = 0.1360 * BR_ZQQ * BR_HBB # 0.055 (0.04776 from xsecdb, 0.04776*BR_HBB=0.0277)
+xsecs["ggZH_Hto2C_Zto2Q_M-125"] = 0.1360 * BR_ZQQ * BR_HCC # 0.0027 (0.04776 from xsecdb, 0.04776*BR_HCC=0.00138)
+xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB # 0.3319 (0.5742 from xsecdb, 0.5742*BR_HBB=0.334)
 
 # Triple-higgs
-# ggHHHto6B_13TeV         0.0894e-3 (not including BR_HBB)
-xsecs["HHHTo6B_c3_0_d4_0"] = 3.707e-05 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_0_d4_99"] = 0.005855 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_0_d4_minus1"] = 4.117e-05 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_19_d4_19"] = 0.1476 * BR_HBB * BR_HBB * BR_HBB
 # SM sample
-xsecs["HHHTo6B_c3_1_d4_0"] = 2.908e-05 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_1_d4_2"] = 1.616e-05 * BR_HBB * BR_HBB * BR_HBB
-# xsecs["HHHTo6B_c3_2_d4_minus1"] =
-# xsecs["HHHTo6B_c3_4_d4_9"] =
-xsecs["HHHTo6B_c3_minus1_d4_0"] = 0.0001127 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_minus1_d4_minus1"] = 0.0001087 * BR_HBB * BR_HBB * BR_HBB
-xsecs["HHHTo6B_c3_minus1p5_d4_minus0p5"] = 0.0001941 * BR_HBB * BR_HBB * BR_HBB
+xsecs["HHHTo6B_c3_1_d4_0"] = 2.908e-05 * BR_HBB * BR_HBB * BR_HBB # (from xsecdb)
 
 # Di-Higgs
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH?redirectedfrom=LHCPhysics.LHCHXSWGHH
 # ggHH xsec 13.6: = 76.4346-53.7587*kl+11.7158*kl2 in fb
 hh = {
     # kl scan
-    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV": 76.43e-3 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 34.43e-3 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 100.5e-3 * BR_HBB * BR_HBB,
-    "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 15.049e-3 * BR_HBB * BR_HBB,
+    "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 76.43e-3 * BR_HBB * BR_HBB, # 0.0259 (0.06648 from xsecdb, 0.06648*BR_HBB*BR_HBB=0.0225)
+    "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 34.43e-3 * BR_HBB * BR_HBB, # 0.01167 (0.02964 from xsecdb, 0.02964*BR_HBB*BR_HBB=0.01005)
+    "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 100.5e-3 * BR_HBB * BR_HBB, # 0.034 (0.08664 from xsecdb, 0.08664*BR_HBB*BR_HBB=0.0293)
+    "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 15.049e-3 * BR_HBB * BR_HBB, # 0.0051 (0.01252 from xsecdb, 0.01252*BR_HBB*BR_HBB=0.0042)
     # from xsecdb
     "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": 0.06648 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p10_TuneCP5_13p6TeV": 0.01493 * BR_HBB * BR_HBB,
@@ -163,114 +154,29 @@ vbfhh_sm = 1.873758517 / 1000
 # k-factor from 13.6 / 13
 vbfhh_sm_prev = 1.726 / 1000
 vbfhh_kfactor = vbfhh_sm / vbfhh_sm_prev  # 1.0856
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    vbfhh_sm * BR_HBB * BR_HBB
-)  # 0.001837
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = vbfhh_sm * BR_HBB * BR_HBB
+vbfhh = {
+    "VBFHHto4B_CV-1_C2V-1_C3-1": vbfhh_sm * BR_HBB * BR_HBB, # 0.000635 (0.001904 from xsecdb, 0.001904*BR_HBB*BR_HBB=0.00064)
+    # these numbers are from 13 TeV and re-scaled to 13.6 TeV
+    "VBFHHto4B_CV-1_C2V-0_C3-1": 27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0293112 * BR = 0.00989 
+    "VBFHHto4B_CV-1_C2V-1_C3-0": 4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0050035 * BR = 0.00168
+    "VBFHHto4B_CV-1_C2V-1_C3-2": 1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0015446 * BR = 0.000521
+    "VBFHHto4B_CV-1_C2V-2_C3-1": 14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB, # 0.0154350 * BR = 0.00528
+    # from Javier (interpolating): https://github.com/LPC-HH/HH4b/blob/main/src/HH4b/combine/binder/VBFXsec.ipynb
+    "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4": 0.398705 * BR_HBB * BR_HBB, # 0.1345 (0.3952 from xsecdb w/o BR) 
+    "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2": 0.0000118 * BR_HBB * BR_HBB, # 3.98e-6 (0.00001256 from xsecdb)
+    "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3": 0.36648 * BR_HBB * BR_HBB, # 0.1236 (0.355 from xsecdb)
+    "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43": 0.001088 * BR_HBB * BR_HBB, # 0.000367 (0.001113 from xsecdb)
+    "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94": 0.003614 * BR_HBB * BR_HBB, # 0.001219 (0.003757 from xsecdb)
+    "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36": 0.01139 * BR_HBB * BR_HBB, # 0.00384 (0.01155 from xsecdb)
+    "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39": 0.02165 * BR_HBB * BR_HBB, # 0.00730 (0.01663 from xsecdb !!)
+    "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.056818 * BR_HBB * BR_HBB, # 0.01917 (0.672 from xsecbd !!)
+}
+for key, value in vbfhh.items():
+    key_nounderscore = key.replace('-','_')
+    xsecs[f"{key}_TuneCP5_13p6TeV_madgraph-pythia8"] = value
+    xsecs[f"{key_nounderscore}_TuneCP5_13p6TeV_madgraph-pythia8"] = value
 
-xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  # 0.0293112
-xsecs["VBFHHto4B_CV-1_C2V-0_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    27.0e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  # 0.0015446
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    1.42e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  # 0.0154350
-xsecs["VBFHHto4B_CV_1_C2V_2_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    14.2e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-1_C2V-1_C3-0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)  # 0.0050035
-xsecs["VBFHHto4B_CV_1_C2V_1_C3_0_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    4.59e-3 * vbfhh_kfactor * BR_HBB * BR_HBB
-)
-
-# From Javier (interpolating)
-"""
-(CV=1, C2V=0, kl=1) -> 13.6 TeV xsec=0.0293982506606955
-(CV=1, C2V=1, kl=0) -> 13.6 TeV xsec=0.00500345633198256
-(CV=1, C2V=1, kl=1) -> 13.6 TeV xsec=0.00187375851700032
-(CV=1, C2V=1, kl=2) -> 13.6 TeV xsec=0.00154460232791894
-(CV=1, C2V=2, kl=1) -> 13.6 TeV xsec=0.0154349500828524
-(CV=1.74, C2V=1.37, kl=14.4) -> 13.6 TeV xsec=0.398705299546498
-(CV=-0.012, C2V=0.03, kl=10.2) -> 13.6 TeV xsec=0.0000118762250272907
-(CV=-0.758, C2V=1.44, kl=-19.3) -> 13.6 TeV xsec=0.366479977711258
-(CV=-0.962, C2V=0.959, kl=-1.43) -> 13.6 TeV xsec=0.00108776137063828
-(CV=-1.21, C2V=1.94, kl=-0.94) -> 13.6 TeV xsec=0.00361415360567159
-(CV=-1.6, C2V=2.72, kl=-1.36) -> 13.6 TeV xsec=0.0113914533996631
-(CV=-1.83, C2V=3.57, kl=-3.93) -> 13.6 TeV xsec=0.0216500238682384
-(CV=-2.12, C2V=3.87, kl=-5.96) -> 13.6 TeV xsec=0.0568180849835668
-"""
-xsecs["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.398705 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_1p74_C2V_1p37_C3_14p4_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.398705 * BR_HBB * BR_HBB
-)
-
-
-xsecs["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.0000118 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m0p012_C2V_0p030_C3_10p2_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.0000118 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.36648 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m0p758_C2V_1p44_C3_m19p3_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.36648 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.001088 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m0p962_C2V_0p959_C3_m1p43_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.001088 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.003614 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m1p21_C2V_1p94_C3_m0p94_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.003614 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.01139 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.01139 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.02165 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m1p83_C2V_3p57_C3_m3p39_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.02165 * BR_HBB * BR_HBB
-)
-
-xsecs["VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.056818 * BR_HBB * BR_HBB
-)
-xsecs["VBFHHto4B_CV_m2p12_C2V_3p87_C3_m5p96_TuneCP5_13p6TeV_madgraph-pythia8"] = (
-    0.056818 * BR_HBB * BR_HBB
-)
-
-
-# V+Jets
+# V+Jets (xsdb)
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
 xsecs["Wto2Q-3Jets_HT-400to600"] = 299.8
 xsecs["Wto2Q-3Jets_HT-600to800"] = 63.9
@@ -308,9 +214,13 @@ xsecs["WtoLNu-4Jets_3J"] = 1468.0
 
 xsecs["DYto2L-4Jets_MLL-50"] = 5467.0
 xsecs["DYto2L-2Jets_MLL-50"] = 6688.0
-"""
-Cross Sections for 13 TeV.
-"""
+xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
+xsecs["DYto2L-2Jets_MLL-50_1J"] = 1017.0
+xsecs["DYto2L-2Jets_MLL-50_2J"] = 385.5
+
+########################################################
+# Cross Sections for 13 TeV.
+########################################################
 xsecs["QCD_HT-50to100-13TeV"] = 2.486e08
 xsecs["QCD_HT-100to200-13TeV"] = 27990000.0
 xsecs["QCD_HT-200to300-13TeV"] = 1712000
@@ -363,3 +273,11 @@ xsecs["ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8"] = 0.2912
 
 xsecs["ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8"] = 0.3707
 xsecs["ZZ_TuneCP5_13TeV-pythia8"] = 16.91
+
+def main():
+    import json
+    with open("xsecs.json", "w") as outfile:
+        json.dump(xsecs, outfile)
+
+if __name__ == "__main__":
+    main()
