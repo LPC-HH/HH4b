@@ -288,6 +288,7 @@ def load_samples(
     year: str,
     filters: list = None,
     columns: list = None,
+    signal_exclusive_columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
     reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
@@ -323,6 +324,9 @@ def load_samples(
         load_columns = columns
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
+
+        if label == "hh4b":
+            load_columns = columns + signal_exclusive_columns
 
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
