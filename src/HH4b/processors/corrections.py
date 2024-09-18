@@ -490,35 +490,3 @@ def get_jetveto_event(jets: JetArray, year: str):
 
     event_sel = ~(ak.any((jets.pt > 15) & jet_veto, axis=1))
     return event_sel
-
-
-def get_trig_weights(fatjets: FatJetArray, year: str, num_jets: int = 2):
-    """
-    Get the trigger scale factor weights and uncertainties
-
-    Give number of jets in pre-selection to obtain event weight
-    """
-    if year == "2018":
-        raise NotImplementedError("Trig weights function needs to be updated for 2018")
-        with Path(f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl").open(
-            "rb"
-        ) as filehandler:
-            combined = pickle.load(filehandler)
-
-        # sum over TH4q bins
-        effs_txbb = combined["num"][:, sum, :, :] / combined["den"][:, sum, :, :]
-
-        ak8TrigEffsLookup = dense_lookup(
-            np.nan_to_num(effs_txbb.view(flow=False), 0), np.squeeze(effs_txbb.axes.edges)
-        )
-
-        fj_trigeffs = ak8TrigEffsLookup(
-            pad_val(fatjets.Txbb, num_jets, axis=1),
-            pad_val(fatjets.pt, num_jets, axis=1),
-            pad_val(fatjets.msoftdrop, num_jets, axis=1),
-        )
-
-        combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
-
-        weights.add("trig_effs", combined_trigEffs)  # noqa: F821
-        return
