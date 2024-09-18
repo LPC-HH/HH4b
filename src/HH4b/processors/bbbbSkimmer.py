@@ -6,18 +6,18 @@ Author(s): Raghav Kansal, Cristina Suarez
 from __future__ import annotations
 
 import logging
+import pathlib
 import time
 from collections import OrderedDict
 from copy import deepcopy
 
 import awkward as ak
 import numpy as np
+import pandas as pd
 import vector
+import xgboost as xgb
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
-
-import pandas as pd
-import xgboost as xgb
 
 import HH4b
 
@@ -43,14 +43,10 @@ from .objects import (
     good_electrons,
     good_muons,
     veto_electrons,
-    veto_electrons_run2,
     veto_muons,
-    veto_muons_run2,
 )
 from .SkimmerABC import SkimmerABC
-from .utils import P4, PAD_VAL, add_selection, pad_val, get_var_mapping
-import pathlib
-from pathlib import Path
+from .utils import P4, PAD_VAL, add_selection, get_var_mapping, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
@@ -68,6 +64,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
+
 
 class bbbbSkimmer(SkimmerABC):
     """
@@ -520,7 +517,16 @@ class bbbbSkimmer(SkimmerABC):
                 "pt_gen": "MatchedGenJetPt",
             }
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
-            extra_vars = ["TXbb", "PXbb", "PQCD", "PQCDb", "PQCDbb", "PQCD0HF", "PQCD1HF", "PQCD2HF"]
+            extra_vars = [
+                "TXbb",
+                "PXbb",
+                "PQCD",
+                "PQCDb",
+                "PQCDbb",
+                "PQCD0HF",
+                "PQCD1HF",
+                "PQCD2HF",
+            ]
             fatjet_skimvars = {
                 **fatjet_skimvars,
                 "particleNet_mass_legacy": "PNetMassLegacy",
@@ -532,11 +538,19 @@ class bbbbSkimmer(SkimmerABC):
                 "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
             }
         if self._nano_version == "v12v2_private":
-            extra_vars = ["ParTPQCD1HF", "ParTPQCD0HF", "ParTPQCD2HF", "ParTPTopW", "ParTPTopbW", "ParTPXbb", "ParTPXqq", "ParTTXbb", "ParTmassRes", "ParTmassVis"]
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                **{var: var for var in extra_vars}
-            }
+            extra_vars = [
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+            ]
+            fatjet_skimvars = {**fatjet_skimvars, **{var: var for var in extra_vars}}
 
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
@@ -678,7 +692,7 @@ class bbbbSkimmer(SkimmerABC):
             **ak8FatJetVars,
             **bbFatJetVars,
             **trigObjFatJetVars,
-            **vbfJetVars
+            **vbfJetVars,
         }
 
         if self._region == "signal":
@@ -766,14 +780,17 @@ class bbbbSkimmer(SkimmerABC):
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
                 if not legacy:
                     cut_txbb = (
-                        np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1)
+                        np.sum(
+                            bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1
+                        )
                         >= 1
                     )
                 else:
                     # using an OR of legacy and v12 TXbb
                     cut_txbb = (np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1) >= 1) | (
                         np.sum(
-                            bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"], axis=1
+                            bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"],
+                            axis=1,
                         )
                         >= 1
                     )
@@ -943,7 +960,7 @@ class bbbbSkimmer(SkimmerABC):
         return weights_dict, totals_dict
 
     def getBDT(
-            self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
+        self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
     ):
         """Calculates BDT"""
         key_map = get_var_mapping(jshift)
@@ -951,10 +968,10 @@ class bbbbSkimmer(SkimmerABC):
         # makedataframe from 24May31_lr_0p02_md_8_AK4Away
         jets = vector.array(
             {
-                "pt": bbFatJetVars[f"bbFatJetPt"],
+                "pt": bbFatJetVars["bbFatJetPt"],
                 "phi": bbFatJetVars["bbFatJetPhi"],
                 "eta": bbFatJetVars["bbFatJetEta"],
-                "M": bbFatJetVars[f"bbFatJetPNetMassLegacy"],
+                "M": bbFatJetVars["bbFatJetPNetMassLegacy"],
             }
         )
         h1 = jets[:, 0]
@@ -962,7 +979,7 @@ class bbbbSkimmer(SkimmerABC):
         hh = jets[:, 0] + jets[:, 1]
         vbfjets = vector.array(
             {
-                "pt": vbfJetVars[f"VBFJetPt"],
+                "pt": vbfJetVars["VBFJetPt"],
                 "phi": vbfJetVars["VBFJetPhi"],
                 "eta": vbfJetVars["VBFJetEta"],
                 "M": vbfJetVars["VBFJetMass"],
@@ -973,7 +990,7 @@ class bbbbSkimmer(SkimmerABC):
         jj = vbfjets[:, 0] + vbfjets[:, 1]
         ak4away = vector.array(
             {
-                "pt": ak4JetAwayVars[f"AK4JetAwayPt"],
+                "pt": ak4JetAwayVars["AK4JetAwayPt"],
                 "phi": ak4JetAwayVars["AK4JetAwayPhi"],
                 "eta": ak4JetAwayVars["AK4JetAwayEta"],
                 "M": ak4JetAwayVars["AK4JetAwayMass"],
