@@ -647,7 +647,7 @@ class bbbbSkimmer(SkimmerABC):
         trigObjFatJetVars["TriggerObjectMatched_ak8FatJet0"] = pad_val(
             ak.flatten(fatjet_objs["matched_ak8FatJet0"], axis=-1), num_trigobjs, axis=1
         ).astype(int)
-	trigObjFatJetVars["TriggerObjectMatched_ak8FatJet1"] = pad_val(
+        trigObjFatJetVars["TriggerObjectMatched_ak8FatJet1"] = pad_val(
             ak.flatten(fatjet_objs["matched_ak8FatJet1"], axis=-1), num_trigobjs, axis=1
         ).astype(int)
         print("TrigObj vars", f"{time.time() - start:.2f}")
