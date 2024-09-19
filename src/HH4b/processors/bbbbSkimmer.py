@@ -457,7 +457,9 @@ class bbbbSkimmer(SkimmerABC):
                 # match fatjets_xbb
                 # vars_dict = gen_selection_dict[d](events, jets, fatjets_xbb, selection_args, P4, "bbFatJet")
                 # match fatjets
-                vars_dict = gen_selection_dict[d](events, jets, fatjets, selection_args, P4, "ak8FatJet")
+                vars_dict = gen_selection_dict[d](
+                    events, jets, fatjets, selection_args, P4, "ak8FatJet"
+                )
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
