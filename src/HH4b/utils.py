@@ -326,7 +326,10 @@ def load_samples(
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
         if label == "hh4b":
-            load_columns = columns + signal_exclusive_columns
+            load_columns = columns
+            for col in signal_exclusive_columns:
+                print(col)
+                columns = columns + format_columns([col])
 
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
