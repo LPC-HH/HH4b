@@ -65,7 +65,7 @@ def gen_selection_HHbbbb(
     fatjets: FatJetArray,
     selection_args: list,
     skim_vars: dict,
-    fatjet_str:	"bbFatJet",
+    fatjet_str:	str = "bbFatJet",
 ):
     """Gets HH, bb 4-vectors"""
     # finding the two gen higgs
@@ -157,7 +157,7 @@ def gen_selection_Hbb(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
-    fatjet_str: "bbFatJet",
+    fatjet_str: str = "bbFatJet",
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
 
