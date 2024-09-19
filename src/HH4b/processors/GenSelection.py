@@ -44,6 +44,7 @@ def gen_selection_HHbbbb_simplified(
     fatjets: FatJetArray,  # noqa: ARG001
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str, # noqa: ARG001 
 ):
     """Simplified gen selection"""
     higgs = events.GenPart[
@@ -64,6 +65,7 @@ def gen_selection_HHbbbb(
     fatjets: FatJetArray,
     selection_args: list,
     skim_vars: dict,
+    fatjet_str:	"bbFatJet",
 ):
     """Gets HH, bb 4-vectors"""
     # finding the two gen higgs
@@ -134,8 +136,8 @@ def gen_selection_HHbbbb(
     fatjets["MaxdRH2"] = ak.max(fatjets.metric_table(b_h2), axis=2)
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -146,7 +148,7 @@ def gen_selection_HHbbbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **bbFatJetVars}
+    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **FatJetVars}
 
 
 def gen_selection_Hbb(
@@ -155,6 +157,7 @@ def gen_selection_Hbb(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: "bbFatJet",
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
 
@@ -187,8 +190,8 @@ def gen_selection_Hbb(
     fatjets["NumBMatchedH2"] = ak.sum(fatjets.metric_table(b_h2) < 0.8, axis=2)
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -197,7 +200,7 @@ def gen_selection_Hbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars, **bbFatJetVars}
+    return {**GenHiggsVars, **GenbVars, **FatJetVars}
 
 
 def gen_selection_Top(
@@ -206,6 +209,7 @@ def gen_selection_Top(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str, # noqa: ARG001
 ):
     """Get Hadronic Top and children information"""
 
@@ -260,8 +264,8 @@ def gen_selection_Top(
     fatjets["NumQMatchedTop2"] = numtop2
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "TopMatch",
             "TopMatchIndex",
@@ -272,7 +276,7 @@ def gen_selection_Top(
         ]
     }
 
-    return {**GenTopVars, **bbFatJetVars}
+    return {**GenTopVars, **FatJetVars}
 
 
 def gen_selection_V(
@@ -281,6 +285,7 @@ def gen_selection_V(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str, # noqa: ARG001
 ):
     """Get W/Z and children information"""
     vs = events.GenPart[
@@ -295,11 +300,11 @@ def gen_selection_V(
     fatjets["VMatch"] = is_fatjet_matched
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "VMatch",
         ]
     }
 
-    return {**GenVVars, **bbFatJetVars}
+    return {**GenVVars, **FatJetVars}
