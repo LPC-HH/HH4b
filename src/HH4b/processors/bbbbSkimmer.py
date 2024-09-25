@@ -114,7 +114,10 @@ class bbbbSkimmer(SkimmerABC):
     }
 
     preselection = {  # noqa: RUF012
-        "Txbb0": 0.8,
+        # roughly, 85% signal efficiency, 2% QCD efficiency (pT: 250-400, mSD:0-250, mRegLegacy:40-250)
+        "legacy": 0.8,
+        "v12": 0.3,
+        "part": 0.3,
     }
 
     fatjet_selection = {  # noqa: RUF012
@@ -156,11 +159,13 @@ class bbbbSkimmer(SkimmerABC):
         save_systematics=False,
         region="signal",
         nano_version="v12",
+        pnet_txbb="legacy", #options: "legacy", "v12", "part"
     ):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
-
+        self.pnet_txbb = pnet_txbb
+        
         # HLT selection
         HLTs = {
             "signal": {
@@ -400,13 +405,19 @@ class bbbbSkimmer(SkimmerABC):
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
-        legacy = "particleNetLegacy_mass" in fatjets.fields
 
         # fatjets ordered by xbb
-        if not legacy:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.Txbb, ascending=False)]
-        else:
-            fatjets_xbb = fatjets[ak.argsort(fatjets.TXbb_legacy, ascending=False)]
+        txbb_order = {
+            "legacy": "TXbb_legacy"
+            "v12": "Txbb",
+            "part": "ParTTXbb",
+        }[self.pnet_txbb]
+        pnet_txbb = {
+            "legacy": "PNetTXbbLegacy"
+            "v12": "PNetTXbb",
+            "part": "ParTTXbb",
+        }[self.pnet_txbb]
+        fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
         # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
@@ -782,22 +793,7 @@ class bbbbSkimmer(SkimmerABC):
 
             if self._region == "signal":
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
-                if not legacy:
-                    cut_txbb = (
-                        np.sum(
-                            bbFatJetVars["bbFatJetPNetTXbb"] >= self.preselection["Txbb0"], axis=1
-                        )
-                        >= 1
-                    )
-                else:
-                    # using an OR of legacy and v12 TXbb
-                    cut_txbb = (np.sum(bbFatJetVars["bbFatJetPNetTXbb"] >= 0.5, axis=1) >= 1) | (
-                        np.sum(
-                            bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection["Txbb0"],
-                            axis=1,
-                        )
-                        >= 1
-                    )
+                cut_txbb = (np.sum(bbFatJetVars["bbFatJet{pnet_txbb}"] >= self.preselection[self.pnet_txbb], axis=1) >= 1)
                 add_selection("ak8bb_txbb0", cut_txbb, *selection_args)
 
         elif self._region == "semilep-tt":
