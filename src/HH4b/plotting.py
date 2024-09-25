@@ -1188,6 +1188,11 @@ def multiROCCurveGrey(
     plot_dir: Path = None,
     name: str = "",
     show: bool = False,
+    add_cms_label = False,
+    legtitle: str = None,
+    title: str = None,
+    plot_thresholds: dict = None, # plot signal and bkg efficiency for a given discriminator threshold
+    find_from_sigeff: dict = None, # find discriminator threshold that matches signal efficiency
 ):
     """Plot multiple ROC curves (e.g. train and test) + multiple signals"""
     if ylim is None:
@@ -1195,14 +1200,18 @@ def multiROCCurveGrey(
     if xlim is None:
         xlim = [0, 1]
     line_style = {"colors": "lightgrey", "linestyles": "dashed"}
+    th_colours = ["cornflowerblue", "deepskyblue", "mediumblue", "cyan", "cadetblue"]
+    eff_colours = ["lime", "aquamarine", "greenyellow"]
 
-    plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.gca()
     for roc_sigs in rocs.values():
-        for roc in roc_sigs.values():
+        for rockey, roc in roc_sigs.items():
             plt.plot(
                 roc["tpr"],
                 roc["fpr"],
                 label=roc["label"],
+                color=roc["color"],
                 linewidth=2,
             )
 
@@ -1210,17 +1219,58 @@ def multiROCCurveGrey(
                 y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
                 plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
                 plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
+                
+    for roc_sigs in rocs.values():
+        i_sigeff = 0
+        i_th = 0
+        for rockey, roc in roc_sigs.items():
+            if plot_thresholds:
+                if rockey in plot_thresholds:
+                    pths = {th: [[], []] for th in plot_thresholds[rockey]}
+                    for th in plot_thresholds[rockey]:
+                        idx = _find_nearest(roc["thresholds"], th)
+                        pths[th][0].append(roc["tpr"][idx])
+                        pths[th][1].append(roc["fpr"][idx])
+                    for th in plot_thresholds[rockey]:
+                        plt.scatter(*pths[th],marker="o",s=40,label=rf"{rockey} > {th:.2f}",zorder=100,color=th_colours[i_th])
+                        plt.vlines(x=pths[th][0],ymin=0,ymax=pths[th][1],color=th_colours[i_th],linestyles="dashed",alpha=0.5)
+                        plt.hlines(y=pths[th][1],xmin=0,xmax=pths[th][0],color=th_colours[i_th],linestyles="dashed",alpha=0.5)
+                        i_th += 1
 
-    hep.cms.label(data=False, rlabel="")
+            if find_from_sigeff:
+                if rockey in find_from_sigeff:
+                    pths = {sig_eff: [[], []] for sig_eff in find_from_sigeff[rockey]}
+                    thrs = {}
+                    for sig_eff in find_from_sigeff[rockey]:
+                        idx = _find_nearest(roc["tpr"], sig_eff)
+                        thrs[sig_eff] = roc["thresholds"][idx]
+                        pths[sig_eff][0].append(roc["tpr"][idx])
+                        pths[sig_eff][1].append(roc["fpr"][idx])
+                    for sig_eff in find_from_sigeff[rockey]:
+                        plt.scatter(*pths[sig_eff],marker="o",s=40,label=rf"{rockey} > {thrs[sig_eff]:.2f}",zorder=100,color=eff_colours[i_sigeff])
+                        plt.vlines(x=pths[sig_eff][0],ymin=0,ymax=pths[sig_eff][1],color=eff_colours[i_sigeff],linestyles="dashed",alpha=0.5)
+                        plt.hlines(y=pths[sig_eff][1],xmin=0,xmax=pths[sig_eff][0],color=eff_colours[i_sigeff],linestyles="dashed",alpha=0.5)
+                        i_sigeff += 1    
+                
+
+    if add_cms_label:
+        hep.cms.label(data=False, rlabel="")
+    if title:
+        plt.title(title)
     plt.yscale("log")
     plt.xlabel("Signal efficiency")
     plt.ylabel("Background efficiency")
     plt.xlim(*xlim)
     plt.ylim(*ylim)
-    plt.legend(loc="upper left")
+    ax.xaxis.grid(True, which="major")
+    ax.yaxis.grid(True, which="major")
+    if legtitle:
+        plt.legend(title=legtitle,loc="upper left")
+    else:
+        plt.legend(loc="upper left")
 
     if len(name):
-        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+        plt.savefig(plot_dir / f"{name}.png", bbox_inches="tight")
 
     if show:
         plt.show()
