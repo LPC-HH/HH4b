@@ -1,6 +1,7 @@
 """
 Validate AK8 Jet bb Taggers
 """
+
 from __future__ import annotations
 
 import argparse

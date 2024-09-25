@@ -159,7 +159,7 @@ class bbbbSkimmer(SkimmerABC):
         save_systematics=False,
         region="signal",
         nano_version="v12",
-        pnet_txbb="legacy", #options: "legacy", "v12", "part"
+        pnet_txbb="legacy",  # options: "legacy", "v12", "part"
     ):
         super().__init__()
 
@@ -793,7 +793,13 @@ class bbbbSkimmer(SkimmerABC):
 
             if self._region == "signal":
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
-                cut_txbb = (np.sum(bbFatJetVars[f"bbFatJet{pnet_txbb}"] >= self.preselection[self.pnet_txbb], axis=1) >= 1)
+                cut_txbb = (
+                    np.sum(
+                        bbFatJetVars[f"bbFatJet{pnet_txbb}"] >= self.preselection[self.pnet_txbb],
+                        axis=1,
+                    )
+                    >= 1
+                )
                 add_selection("ak8bb_txbb0", cut_txbb, *selection_args)
 
         elif self._region == "semilep-tt":
