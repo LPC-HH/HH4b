@@ -66,7 +66,7 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
             (f"{jet_collection}ParTTXbb", 2),  # GloParTv2 bb vs QCD discriminator
         ]
 
-    # additional columns for mathching hh4b jets
+    # additional columns for matching hh4b jets
     signal_exclusive_columns = (
         [
             (f"{jet_collection}HiggsMatchIndex", 2),  # index of higgs matched to jet
@@ -111,7 +111,7 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
             ),  # columns to load from parquet (to not load all columns), IMPORTANT columns must be formatted: ("column name", "idx")
             reorder_txbb=reorder_txbb,  # whether to reorder bbFatJet collection
             txbb=txbb,
-            variations=False,  # do not load systematic variations of weigths
+            variations=False,  # do not load systematic variations of weights
         ),
         **utils.load_samples(
             path_to_dir,
