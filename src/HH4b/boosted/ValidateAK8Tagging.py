@@ -149,10 +149,13 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
 
 
 def get_roc_inputs(
-    events_dict, jet_collection, discriminator_name, jet_index,
+    events_dict,
+    jet_collection,
+    discriminator_name,
+    jet_index,
 ):
-    sig_key="hh4b"
-    bg_keys=["qcd"]
+    sig_key = "hh4b"
+    bg_keys = ["qcd"]
     discriminator = f"{jet_collection}{discriminator_name}"
 
     # 1 for signal, 0 for background
