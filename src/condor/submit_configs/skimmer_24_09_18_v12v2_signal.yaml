@@ -1,50 +1,50 @@
 {
     "2022":
         {
-            "HH": { "files_per_job": 12, },
-            "TT": { "files_per_job": 5, "chunksize": 8000},
+            "HH": { "files_per_job": 15, },
+            "TT": { "files_per_job": 10,},
             "Hbb": { "files_per_job": 10 },
             "VBFHH": { "files_per_job": 10, "chunksize": 5000},
-            "QCD": { "files_per_job": 3,  "chunksize": 8000},
+            "QCD": { "files_per_job": 5,  "chunksize": 8000},
             "VJets": { "files_per_job": 10 },
             "Diboson": { "files_per_job": 10 },
             "SingleTop": { "files_per_job": 10 },
             "JetMET": { "files_per_job": 10 }
         },
-    # "2022EE":
-    #     {
-    #         "HH": { "files_per_job": 12, },
-    #         "TT": { "files_per_job": 5, "chunksize": 8000},
-    #         "Hbb": { "files_per_job": 10 },
-    #         "VBFHH": { "files_per_job": 10, "chunksize": 5000},
-    #         "QCD": { "files_per_job": 3,  "chunksize": 8000},
-    #         "VJets": { "files_per_job": 10 },
-    #         "Diboson": { "files_per_job": 10 },
-    #         "SingleTop": { "files_per_job": 10 },
-    #         "JetMET": { "files_per_job": 10 }
-    #     },
-    # "2023":
-    #     {
-    #         "HH": { "files_per_job": 12, },
-    #         "TT": { "files_per_job": 5, "chunksize": 8000},
-    #         "Hbb": { "files_per_job": 10 },
-    #         "VBFHH": { "files_per_job": 10, "chunksize": 5000},
-    #         "QCD": { "files_per_job": 3,  "chunksize": 8000},
-    #         "VJets": { "files_per_job": 10 },
-    #         "Diboson": { "files_per_job": 10 },
-    #         "SingleTop": { "files_per_job": 10 },
-    #         "JetMET": { "files_per_job": 10 }
-    #     },
-    # "2023BPix":
-    #     {
-    #         "HH": { "files_per_job": 12, },
-    #         "TT": { "files_per_job": 5, "chunksize": 8000},
-    #         "Hbb": { "files_per_job": 10 },
-    #         "VBFHH": { "files_per_job": 10, "chunksize": 5000},
-    #         "QCD": { "files_per_job": 3,  "chunksize": 8000},
-    #         "VJets": { "files_per_job": 10 },
-    #         "Diboson": { "files_per_job": 10 },
-    #         "SingleTop": { "files_per_job": 10 },
-    #         "JetMET": { "files_per_job": 10 }
-    #     },
+    "2022EE":
+        {
+            "HH": { "files_per_job": 15, },
+            "TT": { "files_per_job": 10, "chunksize": 8000},
+            "Hbb": { "files_per_job": 10 },
+            "VBFHH": { "files_per_job": 10, "chunksize": 5000},
+            "QCD": { "files_per_job": 5,  "chunksize": 8000},
+            "VJets": { "files_per_job": 10 },
+            "Diboson": { "files_per_job": 10 },
+            "SingleTop": { "files_per_job": 10 },
+            "JetMET": { "files_per_job": 10 }
+        },
+    "2023":
+        {
+            "HH": { "files_per_job": 15, },
+            "TT": { "files_per_job": 5, "chunksize": 8000},
+            #"Hbb": { "files_per_job": 10 },
+            "VBFHH": { "files_per_job": 10, "chunksize": 5000},
+            "QCD": { "files_per_job": 5,  "chunksize": 8000},
+            #"VJets": { "files_per_job": 10 },
+            #"Diboson": { "files_per_job": 10 },
+            #"SingleTop": { "files_per_job": 10 },
+            #"JetMET": { "files_per_job": 10 }
+        },
+    "2023BPix":
+        {
+            "HH": { "files_per_job": 15, },
+            "TT": { "files_per_job": 5, "chunksize": 8000},
+            #"Hbb": { "files_per_job": 10 },
+            "VBFHH": { "files_per_job": 10, "chunksize": 5000},
+            "QCD": { "files_per_job": 5,  "chunksize": 8000},
+            #"VJets": { "files_per_job": 10 },
+            #"Diboson": { "files_per_job": 10 },
+            #"SingleTop": { "files_per_job": 10 },
+            #"JetMET": { "files_per_job": 10 }
+        },
 }
