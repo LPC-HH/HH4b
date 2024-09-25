@@ -165,8 +165,7 @@ class bbbbSkimmer(SkimmerABC):
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         self.pnet_txbb = pnet_txbb
-        print(self.pnet_txbb)
-        
+
         # HLT selection
         HLTs = {
             "signal": {
