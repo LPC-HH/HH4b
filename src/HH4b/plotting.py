@@ -1206,7 +1206,7 @@ def multiROCCurveGrey(
     fig = plt.figure(figsize=(12, 12))
     ax = fig.gca()
     for roc_sigs in rocs.values():
-        for rockey, roc in roc_sigs.items():
+        for roc in roc_sigs.values():
             plt.plot(
                 roc["tpr"],
                 roc["fpr"],
@@ -1224,75 +1224,73 @@ def multiROCCurveGrey(
         i_sigeff = 0
         i_th = 0
         for rockey, roc in roc_sigs.items():
-            if plot_thresholds:
-                if rockey in plot_thresholds:
-                    pths = {th: [[], []] for th in plot_thresholds[rockey]}
-                    for th in plot_thresholds[rockey]:
-                        idx = _find_nearest(roc["thresholds"], th)
-                        pths[th][0].append(roc["tpr"][idx])
-                        pths[th][1].append(roc["fpr"][idx])
-                    for th in plot_thresholds[rockey]:
-                        plt.scatter(
-                            *pths[th],
-                            marker="o",
-                            s=40,
-                            label=rf"{rockey} > {th:.2f}",
-                            zorder=100,
-                            color=th_colours[i_th],
-                        )
-                        plt.vlines(
-                            x=pths[th][0],
-                            ymin=0,
-                            ymax=pths[th][1],
-                            color=th_colours[i_th],
-                            linestyles="dashed",
-                            alpha=0.5,
-                        )
-                        plt.hlines(
-                            y=pths[th][1],
-                            xmin=0,
-                            xmax=pths[th][0],
-                            color=th_colours[i_th],
-                            linestyles="dashed",
-                            alpha=0.5,
-                        )
-                        i_th += 1
+            if rockey in plot_thresholds:
+                pths = {th: [[], []] for th in plot_thresholds[rockey]}
+                for th in plot_thresholds[rockey]:
+                    idx = _find_nearest(roc["thresholds"], th)
+                    pths[th][0].append(roc["tpr"][idx])
+                    pths[th][1].append(roc["fpr"][idx])
+                for th in plot_thresholds[rockey]:
+                    plt.scatter(
+                        *pths[th],
+                        marker="o",
+                        s=40,
+                        label=rf"{rockey} > {th:.2f}",
+                        zorder=100,
+                        color=th_colours[i_th],
+                    )
+                    plt.vlines(
+                        x=pths[th][0],
+                        ymin=0,
+                        ymax=pths[th][1],
+                        color=th_colours[i_th],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+                    plt.hlines(
+                        y=pths[th][1],
+                        xmin=0,
+                        xmax=pths[th][0],
+                        color=th_colours[i_th],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+                    i_th += 1
 
-            if find_from_sigeff:
-                if rockey in find_from_sigeff:
-                    pths = {sig_eff: [[], []] for sig_eff in find_from_sigeff[rockey]}
-                    thrs = {}
-                    for sig_eff in find_from_sigeff[rockey]:
-                        idx = _find_nearest(roc["tpr"], sig_eff)
-                        thrs[sig_eff] = roc["thresholds"][idx]
-                        pths[sig_eff][0].append(roc["tpr"][idx])
-                        pths[sig_eff][1].append(roc["fpr"][idx])
-                    for sig_eff in find_from_sigeff[rockey]:
-                        plt.scatter(
-                            *pths[sig_eff],
-                            marker="o",
-                            s=40,
-                            label=rf"{rockey} > {thrs[sig_eff]:.2f}",
-                            zorder=100,
-                            color=eff_colours[i_sigeff],
-                        )
-                        plt.vlines(
-                            x=pths[sig_eff][0],
-                            ymin=0,
-                            ymax=pths[sig_eff][1],
-                            color=eff_colours[i_sigeff],
-                            linestyles="dashed",
-                            alpha=0.5,
-                        )
-                        plt.hlines(
-                            y=pths[sig_eff][1],
-                            xmin=0,
-                            xmax=pths[sig_eff][0],
-                            color=eff_colours[i_sigeff],
-                            linestyles="dashed",
-                            alpha=0.5,
-                        )
-                        i_sigeff += 1
+            if rockey in find_from_sigeff:
+                pths = {sig_eff: [[], []] for sig_eff in find_from_sigeff[rockey]}
+                thrs = {}
+                for sig_eff in find_from_sigeff[rockey]:
+                    idx = _find_nearest(roc["tpr"], sig_eff)
+                    thrs[sig_eff] = roc["thresholds"][idx]
+                    pths[sig_eff][0].append(roc["tpr"][idx])
+                    pths[sig_eff][1].append(roc["fpr"][idx])
+                for sig_eff in find_from_sigeff[rockey]:
+                    plt.scatter(
+                        *pths[sig_eff],
+                        marker="o",
+                        s=40,
+                        label=rf"{rockey} > {thrs[sig_eff]:.2f}",
+                        zorder=100,
+                        color=eff_colours[i_sigeff],
+                    )
+                    plt.vlines(
+                        x=pths[sig_eff][0],
+                        ymin=0,
+                        ymax=pths[sig_eff][1],
+                        color=eff_colours[i_sigeff],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+                    plt.hlines(
+                        y=pths[sig_eff][1],
+                        xmin=0,
+                        xmax=pths[sig_eff][0],
+                        color=eff_colours[i_sigeff],
+                        linestyles="dashed",
+                        alpha=0.5,
+                    )
+                    i_sigeff += 1
 
     if add_cms_label:
         hep.cms.label(data=False, rlabel="")
