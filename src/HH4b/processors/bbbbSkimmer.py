@@ -165,6 +165,7 @@ class bbbbSkimmer(SkimmerABC):
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         self.pnet_txbb = pnet_txbb
+        print(self.pnet_txbb)
         
         # HLT selection
         HLTs = {
@@ -408,12 +409,12 @@ class bbbbSkimmer(SkimmerABC):
 
         # fatjets ordered by xbb
         txbb_order = {
-            "legacy": "TXbb_legacy"
+            "legacy": "TXbb_legacy",
             "v12": "Txbb",
             "part": "ParTTXbb",
         }[self.pnet_txbb]
         pnet_txbb = {
-            "legacy": "PNetTXbbLegacy"
+            "legacy": "PNetTXbbLegacy",
             "v12": "PNetTXbb",
             "part": "ParTTXbb",
         }[self.pnet_txbb]
