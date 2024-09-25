@@ -1188,11 +1188,11 @@ def multiROCCurveGrey(
     plot_dir: Path = None,
     name: str = "",
     show: bool = False,
-    add_cms_label = False,
+    add_cms_label=False,
     legtitle: str = None,
     title: str = None,
-    plot_thresholds: dict = None, # plot signal and bkg efficiency for a given discriminator threshold
-    find_from_sigeff: dict = None, # find discriminator threshold that matches signal efficiency
+    plot_thresholds: dict = None,  # plot signal and bkg efficiency for a given discriminator threshold
+    find_from_sigeff: dict = None,  # find discriminator threshold that matches signal efficiency
 ):
     """Plot multiple ROC curves (e.g. train and test) + multiple signals"""
     if ylim is None:
@@ -1219,7 +1219,7 @@ def multiROCCurveGrey(
                 y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
                 plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
                 plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
-                
+
     for roc_sigs in rocs.values():
         i_sigeff = 0
         i_th = 0
@@ -1232,9 +1232,30 @@ def multiROCCurveGrey(
                         pths[th][0].append(roc["tpr"][idx])
                         pths[th][1].append(roc["fpr"][idx])
                     for th in plot_thresholds[rockey]:
-                        plt.scatter(*pths[th],marker="o",s=40,label=rf"{rockey} > {th:.2f}",zorder=100,color=th_colours[i_th])
-                        plt.vlines(x=pths[th][0],ymin=0,ymax=pths[th][1],color=th_colours[i_th],linestyles="dashed",alpha=0.5)
-                        plt.hlines(y=pths[th][1],xmin=0,xmax=pths[th][0],color=th_colours[i_th],linestyles="dashed",alpha=0.5)
+                        plt.scatter(
+                            *pths[th],
+                            marker="o",
+                            s=40,
+                            label=rf"{rockey} > {th:.2f}",
+                            zorder=100,
+                            color=th_colours[i_th],
+                        )
+                        plt.vlines(
+                            x=pths[th][0],
+                            ymin=0,
+                            ymax=pths[th][1],
+                            color=th_colours[i_th],
+                            linestyles="dashed",
+                            alpha=0.5,
+                        )
+                        plt.hlines(
+                            y=pths[th][1],
+                            xmin=0,
+                            xmax=pths[th][0],
+                            color=th_colours[i_th],
+                            linestyles="dashed",
+                            alpha=0.5,
+                        )
                         i_th += 1
 
             if find_from_sigeff:
@@ -1247,11 +1268,31 @@ def multiROCCurveGrey(
                         pths[sig_eff][0].append(roc["tpr"][idx])
                         pths[sig_eff][1].append(roc["fpr"][idx])
                     for sig_eff in find_from_sigeff[rockey]:
-                        plt.scatter(*pths[sig_eff],marker="o",s=40,label=rf"{rockey} > {thrs[sig_eff]:.2f}",zorder=100,color=eff_colours[i_sigeff])
-                        plt.vlines(x=pths[sig_eff][0],ymin=0,ymax=pths[sig_eff][1],color=eff_colours[i_sigeff],linestyles="dashed",alpha=0.5)
-                        plt.hlines(y=pths[sig_eff][1],xmin=0,xmax=pths[sig_eff][0],color=eff_colours[i_sigeff],linestyles="dashed",alpha=0.5)
-                        i_sigeff += 1    
-                
+                        plt.scatter(
+                            *pths[sig_eff],
+                            marker="o",
+                            s=40,
+                            label=rf"{rockey} > {thrs[sig_eff]:.2f}",
+                            zorder=100,
+                            color=eff_colours[i_sigeff],
+                        )
+                        plt.vlines(
+                            x=pths[sig_eff][0],
+                            ymin=0,
+                            ymax=pths[sig_eff][1],
+                            color=eff_colours[i_sigeff],
+                            linestyles="dashed",
+                            alpha=0.5,
+                        )
+                        plt.hlines(
+                            y=pths[sig_eff][1],
+                            xmin=0,
+                            xmax=pths[sig_eff][0],
+                            color=eff_colours[i_sigeff],
+                            linestyles="dashed",
+                            alpha=0.5,
+                        )
+                        i_sigeff += 1
 
     if add_cms_label:
         hep.cms.label(data=False, rlabel="")
@@ -1265,7 +1306,7 @@ def multiROCCurveGrey(
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
     if legtitle:
-        plt.legend(title=legtitle,loc="upper left")
+        plt.legend(title=legtitle, loc="upper left")
     else:
         plt.legend(loc="upper left")
 

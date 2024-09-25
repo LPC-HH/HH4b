@@ -188,12 +188,10 @@ def parse_common_args(parser):
         choices=["2018", "2022", "2022EE", "2023", "2023BPix"],
     )
     parser.add_argument(
-	"--pnet-txbb",
-	type=str,
+        "--pnet-txbb",
+        type=str,
         required=True,
-        choices=[
-            "legacy", "v12", "part"
-	],
+        choices=["legacy", "v12", "part"],
         help="PNetTXbb version to be used to order FatJets",
     )
     parser.add_argument(
