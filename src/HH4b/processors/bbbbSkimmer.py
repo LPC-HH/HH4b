@@ -36,6 +36,7 @@ from .GenSelection import (
     gen_selection_HHbbbb,
     gen_selection_Top,
     gen_selection_V,
+    gen_selection_VV,
 )
 from .objects import (
     get_ak8jets,
@@ -58,6 +59,8 @@ gen_selection_dict = {
     "Zto2Q-": gen_selection_V,
     "WtoLNu-": gen_selection_V,
     "DYto2L-": gen_selection_V,
+    "ZZ": gen_selection_VV,
+    "ZH": gen_selection_VV,
 }
 
 logger = logging.getLogger(__name__)
