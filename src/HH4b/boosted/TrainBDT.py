@@ -32,7 +32,7 @@ from HH4b.log_utils import log_config
 
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("TrainBDT")
     
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
@@ -55,6 +55,22 @@ h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{r
 
 bdt_cuts = [0, 0.03, 0.88, 0.95, 0.98]
 txbb_cuts = [0, 0.8, 0.9, 0.98]
+
+txbb_preselection = {
+    "bbFatJetPNetTXbb": 0.3,
+    "bbFatJetPNetTXbbLegacy": 0.8,
+    "bbFatJetParTTXbb": 0.3
+}
+msd1_preselection = {
+    "bbFatJetPNetTXbb": 40,
+    "bbFatJetPNetTXbbLegacy": 40,
+    "bbFatJetParTTXbb": 40,
+}
+msd2_preselection = {
+    "bbFatJetPNetTXbb": 30,
+    "bbFatJetPNetTXbbLegacy": 0,
+    "bbFatJetParTTXbb":	30,
+}
 
 control_plot_vars = [
     ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
@@ -102,51 +118,47 @@ for year in samples_run3:
     ]
 
 
-def get_legtitle(legacy, txbb_str):
+def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
-    if legacy:
-        title += "$T_{Xbb}^{0}$>0.8"
-    else:
-        title += "$T_{Xbb}^{0}$>0.5"
-
+    title += "$T_{Xbb}^{0}$ > {txbb_preselection[txbb_str]}"
     title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
+
     if "Legacy" in txbb_str:
         title += "\n" + "PNet Legacy"
-
-    if legacy:
-        title += "\n" + r"m$_{reg Legacy}$ > 50 GeV"
+    elif "ParT" in txbb_str:
+        title += "\n" + "GloParTv2"
     else:
-        title += "\n" + r"m > 50 GeV & m$_{SD}$ > 30 GeV"
+        title += "\n" + "PNet 103X"
+
+    title += "\n" + r"m$_{reg}$ > 50 GeV"
+    if "Legacy"  not in txbb_str:
+        title += "\n" + r"m$_{SD}^{0}$ > "+f"{msd1_preselection[txbb_str]} GeV"
+        title += "\n" + r"m$_{SD}^{1}$ > "+f"{msd2_preselection[txbb_str]} GeV"
 
     return title
 
 
-def apply_cuts(events_dict, txbb_str, mass_str, legacy):
+def apply_cuts(events_dict, txbb_str, mass_str):
     """
     Apply cuts
     Skimmer selection already includes
     - 2 AK8 jets pT > 250 GeV, mSD > 60 or mReg > 60
     - HLT OR
-    - Here we apply a pT selection at the very least
+    - Here we apply pT(1,2)> 250, mReg(1,2)>50 and a TXbb(1) and mSD(1,2) preselection
     """
     for key in events_dict:
         msd1 = events_dict[key]["bbFatJetMsd"][0]
+        msd2 = events_dict[key]["bbFatJetMsd"][1]
         pt1 = events_dict[key]["bbFatJetPt"][0]
         pt2 = events_dict[key]["bbFatJetPt"][1]
         txbb1 = events_dict[key][txbb_str][0]
         mass1 = events_dict[key][mass_str][0]
         mass2 = events_dict[key][mass_str][1]
-        # add msd > 40 cut for the first jet
-        # add regressed mass cut above 50
-        # FIXME: replace this by the trigobj matched jet
-        if legacy:
-            events_dict[key] = events_dict[key][
-                (pt1 > 250) & (pt2 > 250) & (txbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
-            ].copy()
-        else:
-            events_dict[key] = events_dict[key][
-                (pt1 > 250) & (pt2 > 250) & (txbb1 > 0.3) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
-            ].copy()
+
+        # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
+        events_dict[key] = events_dict[key][
+            (pt1 > 250) & (pt2 > 250) & (txbb1 > txbb_preselection[txbb_str]) & (msd1 > msd1_preselection[txbb_str]) & (msd2 > msd2_preselection[txbb_str]) & (mass1 > 50) & (mass2 > 50)
+        ].copy()
 
     return events_dict
 
@@ -370,7 +382,6 @@ def evaluate_model(
     bg_keys: list[str],
     training_keys: list[str],
     txbb_plots: bool,
-    legacy: bool,
     txbb_str: str,
     mass_str: str,
 ):
@@ -504,7 +515,7 @@ def evaluate_model(
 
         print("Making BDT shape plots")
 
-        legtitle = get_legtitle(legacy, txbb_str)
+        legtitle = get_legtitle(txbb_str)
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
@@ -869,7 +880,7 @@ def plot_allyears(
                     weights = events_dict[year][key]["finalWeight"]
                     h2_mass = events_dict[year][key][mass_str].to_numpy()[:, 1]
                     h2_msd = events_dict[year][key]["bbFatJetMsd"].to_numpy()[:, 1]
-                    h2_xbb = events_dict[year][key][txbb_str].to_numpy()[:, 1]
+                    h2_txbb = events_dict[year][key][txbb_str].to_numpy()[:, 1]
                     cuts_filled = []
                     for cut in bdt_cuts:
                         mask = (scores >= cut) & (h2_txbb >= txbb_cut)
@@ -938,7 +949,6 @@ def plot_train_test(
     sig_keys,
     training_keys,
     model_dir,
-    legacy,
     txbb_str,
 ):
     plot_dir = model_dir / "train_test_plots"
@@ -1037,7 +1047,7 @@ def plot_train_test(
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
 
-            legtitle = get_legtitle(legacy, txbb_str)
+            legtitle = get_legtitle(txbb_str)
 
             ax.legend(
                 title=legtitle,
@@ -1139,14 +1149,19 @@ def main(args):
     events_dict_years = {}
 
     aux_keys = ["vhtobb", "tthtobb", "diboson", "vjets"]
+    print(years)
+    print(samples_run3.keys())
+    print(samples_run3)
     for year in samples_run3.keys():
+        lkeys = list(samples_run3[year].keys())
         if year not in years:
-            for key in list(samples_run3[year].keys()):
+            for key in lkeys:
                 samples_run3[year].pop(key)
-        for key in list(samples_run3[year].keys()):
-            if key not in training_keys + aux_keys:
-                logger.debug(f"Removing {key}")
-                samples_run3[year].pop(key)
+        else:
+            for key in lkeys:
+                if key not in training_keys + aux_keys:
+                    logger.info(f"Removing {key}")
+                    samples_run3[year].pop(key)
 
 
     logger.info(f"Samples to load {samples_run3}")
@@ -1155,7 +1170,6 @@ def main(args):
         events_dict_years[year] = load_run3_samples(
             args.data_path,
             year,
-            args.legacy,
             samples_run3,
             reorder_txbb=True,
             txbb_str=args.txbb_str,
@@ -1168,7 +1182,7 @@ def main(args):
         if args.apply_cuts:
             # apply cuts
             events_dict_years[year] = apply_cuts(
-                events_dict_years[year], args.txbb_str, args.mass_str, args.legacy
+                events_dict_years[year], args.txbb_str, args.mass_str, 
             )
 
         # concatenate data
@@ -1262,7 +1276,6 @@ def main(args):
             args.sig_keys,
             training_keys,
             model_dir,
-            args.legacy,
             args.txbb_str,
         )
 
@@ -1283,7 +1296,6 @@ def main(args):
         args.bg_keys,
         training_keys,
         args.txbb_plots,
-        args.legacy,
         args.txbb_str,
         args.mass_str,
     )
@@ -1295,7 +1307,6 @@ def main(args):
         events_dict[year] = load_run3_samples(
             args.data_path,
             year,
-            args.legacy,
             samples_run3,
             reorder_txbb=True,
             txbb_str=args.txbb_str,
@@ -1306,7 +1317,7 @@ def main(args):
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(
-                events_dict[year], args.txbb_str, args.mass_str, args.legacy
+                events_dict[year], args.txbb_str, args.mass_str,
             )
 
     plot_allyears(
@@ -1388,7 +1399,6 @@ if __name__ == "__main__":
         type=int,
     )
 
-    add_bool_arg(parser, "legacy", "Legacy PNet versions", default=False)
     add_bool_arg(parser, "evaluate-only", "Only evaluation, no training", default=False)
     add_bool_arg(parser, "multiclass", "Classify each background separately", default=True)
     add_bool_arg(

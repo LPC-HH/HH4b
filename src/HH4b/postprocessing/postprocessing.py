@@ -205,7 +205,6 @@ for wp in txbbsfs_decorr_txbb_wps:
 def load_run3_samples(
     input_dir: str,
     year: str,
-    legacy: bool,
     samples_run3: dict[str, list[str]],
     reorder_txbb: bool,
     txbb_str: str,

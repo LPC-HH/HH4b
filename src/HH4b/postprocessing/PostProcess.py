@@ -373,7 +373,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             year,
-            args.legacy,
             samples_to_process,
             reorder_txbb=True,
             txbb_str=args.txbb_str,
@@ -381,8 +380,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             txbb_version=args.txbb,
             scale_and_smear=True,
             mass_str=args.mass_str,
-        )
-
         )[key]
 
         # inference and assign score
