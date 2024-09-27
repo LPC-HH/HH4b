@@ -121,7 +121,7 @@ def get_bdt_training_keys(bdt_model: str):
         if child.suffix == ".npy":
             training_keys.append(child.stem.split("evt_")[-1])
 
-    logger.info("Found BDT Training keys", training_keys)
+    logger.info(f"Found BDT Training keys {training_keys}")
     return training_keys
 
 
@@ -387,7 +387,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             jshifts += hh_vars.jec_shifts
         if key in hh_vars.jmsr_keys:
             jshifts += hh_vars.jmsr_shifts
-        logger.info("JEC shifts ", jshifts)
+        logger.info(f"JEC shifts {jshifts}")
 
         logger.info("Perform inference")
         bdt_events = {}

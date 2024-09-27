@@ -216,7 +216,7 @@ def preprocess_data(
         bkg_weight = np.concatenate([weights_bdt[key] for key in args.bg_keys])
         bkg_weight_min = np.amin(np.absolute(bkg_weight))
         bkg_weight_rescale = 1.0 / np.absolute(bkg_weight_min)
-        logger.info("Background weight rescale ", bkg_weight_rescale)
+        logger.info(f"Background weight rescale {bkg_weight_rescale}")
         for key in args.bg_keys:
             weights_bdt[key][weights_bdt[key] < 0] = 0
             events.loc[key, "weight"] = weights_bdt[key] * bkg_weight_rescale
@@ -225,7 +225,7 @@ def preprocess_data(
             sig_weight = weights_bdt[sig_key]
             sig_weight_min = np.amin(np.absolute(sig_weight))
             sig_weight_rescale = 1.0 / np.absolute(sig_weight_min)
-            logger.info("Signal weight rescale ", sig_weight_rescale)
+            logger.info(f"Signal weight rescale {sig_weight_rescale}")
             sig_weight[sig_weight < 0] = 0
             events.loc[sig_key, "weight"] = sig_weight * sig_weight_rescale
 
@@ -1110,7 +1110,8 @@ def main(args):
     events_dict_years = {}
 
     aux_keys = ["vhtobb", "tthtobb", "diboson", "vjets"]
-    for year in samples_run3.keys():
+    all_years = list(samples_run3.keys())
+    for year in all_years:
         lkeys = list(samples_run3[year].keys())
         if year not in years:
             for key in lkeys:
