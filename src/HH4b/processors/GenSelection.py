@@ -308,13 +308,13 @@ def gen_selection_V(
 
     # get V daughters
     daughters = vs.children
-    daughter0_pdgId = ak.firsts(abs(daughters.pdgId[:,:,0]))
-    daughter1_pdgId = ak.firsts(abs(daughters.pdgId[:,:,1]))
+    daughter0_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 0]))
+    daughter1_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 1]))
     GenVVars["GenVBB"] = ((daughter0_pdgId == b_PDGID) & (daughter1_pdgId == b_PDGID)).to_numpy()
     GenVVars["GenVCC"] = ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == c_PDGID)).to_numpy()
     GenVVars["GenVCS"] = (
-        ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == s_PDGID)) |
-        ((daughter1_pdgId == c_PDGID) & (daughter0_pdgId == s_PDGID))
+        ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == s_PDGID))
+        | ((daughter1_pdgId == c_PDGID) & (daughter0_pdgId == s_PDGID))
     ).to_numpy()
 
     # match V to fatjet
@@ -335,6 +335,7 @@ def gen_selection_V(
 
     return {**GenVVars, **FatJetVars}
 
+
 def gen_selection_VV(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
@@ -348,7 +349,11 @@ def gen_selection_VV(
 
     # get V boson or Higgs boson
     vs = events.GenPart[
-        ((abs(events.GenPart.pdgId) == W_PDGID) | (abs(events.GenPart.pdgId) == Z_PDGID) | (abs(events.GenPart.pdgId) == HIGGS_PDGID))
+        (
+            (abs(events.GenPart.pdgId) == W_PDGID)
+            | (abs(events.GenPart.pdgId) == Z_PDGID)
+            | (abs(events.GenPart.pdgId) == HIGGS_PDGID)
+        )
         * events.GenPart.hasFlags(GEN_FLAGS)
     ]
     GenVVars = {f"GenV{key}": pad_val(vs[var], 2, axis=1) for (var, key) in skim_vars.items()}
@@ -356,21 +361,29 @@ def gen_selection_VV(
     # get V daughters
     daughters = vs.children
 
-    v0_daughter0_pdgId = abs(daughters.pdgId[:,0,0])
-    v0_daughter1_pdgId = abs(daughters.pdgId[:,0,1])
-    v1_daughter0_pdgId = abs(daughters.pdgId[:,1,0])
-    v1_daughter1_pdgId = abs(daughters.pdgId[:,1,1])
-    GenVVars["GenV1BB"] = ((v0_daughter0_pdgId == b_PDGID) & (v0_daughter1_pdgId == b_PDGID)).to_numpy()
-    GenVVars["GenV1CC"] = ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == c_PDGID)).to_numpy()
-    GenVVars["GenV1CS"] = (
-        ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID)) |
-        ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+    v0_daughter0_pdgId = abs(daughters.pdgId[:, 0, 0])
+    v0_daughter1_pdgId = abs(daughters.pdgId[:, 0, 1])
+    v1_daughter0_pdgId = abs(daughters.pdgId[:, 1, 0])
+    v1_daughter1_pdgId = abs(daughters.pdgId[:, 1, 1])
+    GenVVars["GenV1BB"] = (
+        (v0_daughter0_pdgId == b_PDGID) & (v0_daughter1_pdgId == b_PDGID)
     ).to_numpy()
-    GenVVars["GenV2BB"] = ((v1_daughter0_pdgId == b_PDGID) & (v1_daughter1_pdgId == b_PDGID)).to_numpy()
-    GenVVars["GenV2CC"] = ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == c_PDGID)).to_numpy()
+    GenVVars["GenV1CC"] = (
+        (v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == c_PDGID)
+    ).to_numpy()
+    GenVVars["GenV1CS"] = (
+        ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+        | ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+    ).to_numpy()
+    GenVVars["GenV2BB"] = (
+        (v1_daughter0_pdgId == b_PDGID) & (v1_daughter1_pdgId == b_PDGID)
+    ).to_numpy()
+    GenVVars["GenV2CC"] = (
+        (v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == c_PDGID)
+    ).to_numpy()
     GenVVars["GenV2CS"] = (
-        ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID)) |
         ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
+        | ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
     ).to_numpy()
 
     # match V to fatjet
