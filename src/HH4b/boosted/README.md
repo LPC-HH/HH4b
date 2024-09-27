@@ -1,6 +1,6 @@
 # Boosted studies
 
-## Train BDT
+## BDT 
 
 - v0_msd30:
 ```
@@ -30,4 +30,9 @@ python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimm
 - 24May1_legacy_vbf_vars
 ```
 python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr23LegacyLowerThresholds_v12_private_signal/ --model-name 24May1_legacy_vbf_vars --xbb bbFatJetPNetTXbbLegacy --mass bbFatJetPNetMassLegacy --legacy --pnet-plots --apply-cuts --config 24Apr21_legacy_vbf_vars --year 2022 2022EE 2023 2023BPix --sig-keys hh4b vbfhh4b-k2v0
+```
+
+- v5_glopartv2
+```
+python -W ignore TrainBDT.py --data-path /eos/uscms/store/user/cmantill/bbbb/skimmer/24Sep25_v12v2_private_signal/  --model-name 24Sep27_v5_glopartv2 --txbb  glopart-v2 --mass bbFatJetParTmassVis --txbb-plots --apply-cuts --config v5_glopartv2 --year 2022 --sig-keys hh4b vbfhh4b-k2v0
 ```

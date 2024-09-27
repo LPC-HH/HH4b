@@ -201,22 +201,6 @@ requirements in your conda environment:
 pip3 install -r requirements.txt
 ```
 
-### BDT Training
-
-Multi-class BDT training:
-
-```bash
-python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr19LegacyFixes_v12_private_signal/ --model-name 24Apr21_legacy_vbf_vars --legacy --sig-keys hh4b vbfhh4b-k2v0 --no-pnet-plots
-```
-
-### Creating templates / FOM Scan / BDT ROC curve
-
-From inside the src/HH4b/postprocessing directory:
-
-```bash
-python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal --legacy --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 (--no-fom-scan) (--no-fom-scan-bin1) (--no-fom-scan-bin2) (--no-fom-scan-vbf) (--no-templates) (--bdt-roc)
-```
-
 ## Condor Scripts
 
 ### Check jobs
@@ -240,6 +224,7 @@ Combine all output pickles into one:
 ```bash
 for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --tag $TAG --processor trigger --r --year $year; done
 ```
+
 
 ## Combine
 
