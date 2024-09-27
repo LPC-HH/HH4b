@@ -85,7 +85,8 @@ columns_to_load_default = [
 ]
 
 columns_to_load = {
-    "pnet-legacy": columns_to_load_default + [
+    "pnet-legacy": columns_to_load_default
+    + [
         ("bbFatJetPNetTXbbLegacy", 2),
         ("bbFatJetPNetPXbbLegacy", 2),
         ("bbFatJetPNetPQCDbLegacy", 2),
@@ -98,34 +99,36 @@ columns_to_load = {
         ("bbFatJetPNetQCD1HF", 2),
         ("bbFatJetPNetQCD2HF", 2),
     ],
-    "pnet-v12": columns_to_load_default + [
+    "pnet-v12": columns_to_load_default
+    + [
         ("bbFatJetPNetTXbb", 2),
         ("bbFatJetPNetMass", 2),
         ("bbFatJetPNetQCD0HF", 2),
         ("bbFatJetPNetQCD1HF", 2),
         ("bbFatJetPNetQCD2HF", 2),
     ],
-    "glopart-v2": columns_to_load_default + [
+    "glopart-v2": columns_to_load_default
+    + [
         ("bbFatJetParTTXbb", 2),
         ("bbFatJetParTPXbb", 2),
         ("bbFatJetParTmassVis", 2),
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
-    ]
+    ],
 }
 
 filters_to_apply = {
-     "pnet-legacy": [
-         [
-             ("('bbFatJetPt', '0')", ">=", 250),
-             ("('bbFatJetPt', '1')", ">=", 250),
-             (f"('bbFatJetPNetMassLegacy', '0')", "<=", 250),
-             (f"('bbFatJetPNetMassLegacy', '1')", "<=", 250),
-             (f"('bbFatJetPNetMassLegacy', '0')", ">=", 60),
-             (f"('bbFatJetPNetMassLegacy', '1')", ">=", 60),
-         ],
-     ],
+    "pnet-legacy": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+            ("('bbFatJetPNetMassLegacy', '0')", "<=", 250),
+            ("('bbFatJetPNetMassLegacy', '1')", "<=", 250),
+            ("('bbFatJetPNetMassLegacy', '0')", ">=", 60),
+            ("('bbFatJetPNetMassLegacy', '1')", ">=", 60),
+        ],
+    ],
     "pnet-v12": [
         [
             ("('bbFatJetPt', '0')", ">=", 250),
@@ -211,7 +214,7 @@ def load_run3_samples(
     load_systematics: bool,
     txbb_version: str,
     scale_and_smear: bool,
-    mass_str: str
+    mass_str: str,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -262,20 +265,22 @@ def load_run3_samples(
             samples_syst,
             year,
             filters=filters,
-            columns=utils.format_columns(load_columns_year + load_columns_syst if load_systematics else load_columns_year),
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst if load_systematics else load_columns_year
+            ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             variations=False,
         ),
     }
-    
+
     if scale_and_smear:
         add_rawmass(events_dict_nosyst, mass_str)
         add_rawmass(events_dict_syst, mass_str)
         events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
-        
+
     events_dict = {**events_dict_nosyst, **events_dict_syst}
-        
+
     return events_dict
 
 
@@ -312,9 +317,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
                         x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
                     )
                     for i in range(2):
-                        events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[
-                            :, i
-                        ]
+                        events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
     return events_dict
 
 

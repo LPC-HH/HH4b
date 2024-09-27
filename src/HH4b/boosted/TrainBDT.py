@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import logging
+import logging.config
 import pickle
 from collections import OrderedDict
 from pathlib import Path
@@ -19,6 +21,7 @@ from sklearn.preprocessing import LabelEncoder
 
 from HH4b import hh_vars, plotting
 from HH4b.hh_vars import samples_run3
+from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     get_evt_testing,
     load_run3_samples,
@@ -26,14 +29,10 @@ from HH4b.postprocessing import (
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import ShapeVar
 
-import logging
-import logging.config
-from HH4b.log_utils import log_config
-
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("TrainBDT")
-    
+
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 plt.rcParams.update(
@@ -154,7 +153,6 @@ def apply_cuts(events_dict, txbb_str, mass_str):
         txbb1 = events_dict[key][txbb_str][0]
         mass1 = events_dict[key][mass_str][0]
         mass2 = events_dict[key][mass_str][1]
-
         # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
         events_dict[key] = events_dict[key][
             (pt1 > 250) & (pt2 > 250) & (txbb1 > txbb_preselection[txbb_str]) & (msd1 > msd1_preselection[txbb_str]) & (msd2 > msd2_preselection[txbb_str]) & (mass1 > 50) & (mass2 > 50)
@@ -911,7 +909,9 @@ def plot_allyears(
                         ax.yaxis.grid(True, which="major")
                         fig.tight_layout()
                         fig.savefig(
-                            model_dir / year / f"{sig_key}_{hkey}2_{key}_txbbcut{txbb_cut}_{year}.png"
+                            model_dir
+                            / year
+                            / f"{sig_key}_{hkey}2_{key}_txbbcut{txbb_cut}_{year}.png"
                         )
                         fig.savefig(
                             model_dir
@@ -1163,7 +1163,6 @@ def main(args):
                     logger.info(f"Removing {key}")
                     samples_run3[year].pop(key)
 
-
     logger.info(f"Samples to load {samples_run3}")
     for year in years:
         logger.info(f"Loading {year}, with txbb {args.txbb_str}")
@@ -1175,7 +1174,7 @@ def main(args):
             txbb_str=args.txbb_str,
             load_systematics=False,
             txbb_version=args.txbb,
-            scale_and_smear=False, # TODO: train with scale and smear corrections
+            scale_and_smear=False,  # TODO: train with scale and smear corrections
             mass_str=args.mass_str,
         )
 
@@ -1382,7 +1381,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--mass",
-        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy", "bbFatJetMsd", "bbFatJetParTmassVis"],
+        choices=[
+            "bbFatJetPNetMass",
+            "bbFatJetPNetMassLegacy",
+            "bbFatJetMsd",
+            "bbFatJetParTmassVis",
+        ],
         help="txbb mass",
         required=True,
     )
@@ -1412,7 +1416,7 @@ if __name__ == "__main__":
     args.txbb_str = {
         "pnet-v12": "bbFatJetPNetTXbb",
         "pnet-legacy": "bbFatJetPNetTXbbLegacy",
-        "glopart-v2": "bbFatJetParTTXbb"
+        "glopart-v2": "bbFatJetParTTXbb",
     }[args.txbb]
     args.mass_str = args.mass
 

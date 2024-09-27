@@ -7,6 +7,8 @@ Author: Raghav Kansal
 from __future__ import annotations
 
 import contextlib
+import logging
+import logging.config
 import pickle
 import time
 import warnings
@@ -36,9 +38,6 @@ from .hh_vars import (
     years,
 )
 
-import logging
-import logging.config
-from HH4b.log_utils import log_config
 logger = logging.getLogger("HH4b.utils")
 
 MAIN_DIR = "./"
@@ -318,13 +317,12 @@ def load_samples(
     """
     events_dict = {}
 
-        
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
-    
+
     # label - key of sample in events_dict
     # selector - string used to select directories to load in for this sample
     for label, selector in samples.items():
