@@ -73,7 +73,10 @@ def gen_selection_HHbbbb(
     """
     Gets HH, bb 4-vectors, and matches to AK4 jets and AK8 jets
     """
-    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # finding the two gen higgs
     higgs = events.GenPart[
@@ -167,7 +170,10 @@ def gen_selection_Hbb(
     fatjet_str: str,
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
-    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # finding the two gen higgs
     higgs = events.GenPart[
@@ -220,7 +226,10 @@ def gen_selection_Top(
     fatjet_str: str,
 ):
     """Get Hadronic Top and children information"""
-    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # finding tops
     tops = events.GenPart[
@@ -297,7 +306,10 @@ def gen_selection_V(
     fatjet_str: str,
 ):
     """Get W/Z and children information"""
-    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # get V boson
     vs = events.GenPart[
@@ -345,7 +357,10 @@ def gen_selection_VV(
     fatjet_str: str,
 ):
     """Get W/Z and children information"""
-    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # get V boson or Higgs boson
     vs = events.GenPart[
