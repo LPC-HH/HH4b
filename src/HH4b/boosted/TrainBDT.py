@@ -1147,7 +1147,7 @@ def main(args):
             year,
             args.legacy,
             samples_run3,
-            reorder_txbb=True,
+            reorder_txbb=False,
             txbb=args.pnet_xbb_str,
         )
 
@@ -1347,13 +1347,18 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--xbb",
-        choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy"],
+        choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy", "bbFatJetParTPXbb"],
         help="xbb branch",
         required=True,
     )
     parser.add_argument(
         "--mass",
-        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy", "bbFatJetMsd"],
+        choices=[
+            "bbFatJetPNetMass",
+            "bbFatJetPNetMassLegacy",
+            "bbFatJetMsd",
+            "bbFatJetParTmassVis",
+        ],
         help="xbb pnet mass",
         required=True,
     )
