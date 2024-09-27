@@ -34,5 +34,5 @@ python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimm
 
 - v5_glopartv2
 ```
-python -W ignore TrainBDT.py --data-path /eos/uscms/store/user/cmantill/bbbb/skimmer/24Sep25_v12v2_private_signal/  --model-name 24Sep27_v5_glopartv2 --txbb  glopart-v2 --mass bbFatJetParTmassVis --txbb-plots --apply-cuts --config v5_glopartv2 --year 2022 --sig-keys hh4b vbfhh4b-k2v0
+python -W ignore TrainBDT.py --data-path /eos/uscms/store/user/cmantill/bbbb/skimmer/24Sep25_v12v2_private_signal/  --model-name 24Sep27_v5_glopartv2 --txbb  glopart-v2 --mass bbFatJetParTmassVis --txbb-plots --apply-cuts --config v5_glopartv2 --year 2022 2022EE 2023 2023BPix --sig-keys hh4b vbfhh4b-k2v0
 ```
