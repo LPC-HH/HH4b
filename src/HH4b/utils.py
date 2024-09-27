@@ -36,6 +36,11 @@ from .hh_vars import (
     years,
 )
 
+import logging
+import logging.config
+from HH4b.log_utils import log_config
+logger = logging.getLogger("HH4b.utils")
+
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
 PAD_VAL = -99999
@@ -291,8 +296,7 @@ def load_samples(
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
     reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
-    txbb: str = "bbFatJetPNetTXbbLegacy",
-    # select_testing: bool = False,
+    txbb_str: str = "bbFatJetPNetTXbbLegacy",
     load_weight_noxsec: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -312,10 +316,15 @@ def load_samples(
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
 
     """
-    data_dir = Path(data_dir) / year
-    full_samples_list = listdir(data_dir)  # get all directories in data_dir
     events_dict = {}
 
+        
+    data_dir = Path(data_dir) / year
+    full_samples_list = listdir(data_dir)  # get all directories in data_dir
+
+    logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
+    logger.debug(f"Samples to load {samples}")
+    
     # label - key of sample in events_dict
     # selector - string used to select directories to load in for this sample
     for label, selector in samples.items():
@@ -338,7 +347,7 @@ def load_samples(
                 warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-            print(f"Loading {sample}")
+            logger.debug(f"Loading {sample}")
             events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
 
             # no events?
@@ -347,7 +356,7 @@ def load_samples(
                 continue
 
             if reorder_txbb:
-                _reorder_txbb(events, txbb)
+                _reorder_txbb(events, txbb_str)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
@@ -371,7 +380,7 @@ def load_samples(
                     events["finalWeight"] = events["weight"] / n_events
 
             events_dict[label].append(events)
-            print(f"Loaded {sample: <50}: {len(events)} entries")
+            logger.info(f"Loaded {sample: <50}: {len(events)} entries")
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])

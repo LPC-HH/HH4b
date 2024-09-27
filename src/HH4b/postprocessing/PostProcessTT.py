@@ -106,6 +106,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             samples_to_process,
             reorder_txbb=True,
             txbb=f"bbFatJetPNetTXbb{legacy_label}",
+            load_systematics=False,
         )[key]
 
         cutflow_dict[key] = OrderedDict(

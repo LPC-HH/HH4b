@@ -291,13 +291,13 @@ syst_keys.remove("qcd")
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    # "JES": "JES",
+    "JES": "JES",
     "JER": "JER",
     # #####
     # # including all sources
     # #####
     # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",
-    "JES_AbsoluteScale": "JES_AbsoluteScale",
+    # "JES_AbsoluteScale": "JES_AbsoluteScale",
     # "JES_AbsoluteStat": "JES_AbsoluteStat",
     # "JES_FlavorQCD": "JES_FlavorQCD",
     # "JES_Fragmentation": "JES_Fragmentation",

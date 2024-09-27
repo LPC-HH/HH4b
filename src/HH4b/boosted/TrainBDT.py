@@ -26,6 +26,14 @@ from HH4b.postprocessing import (
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import ShapeVar
 
+import logging
+import logging.config
+from HH4b.log_utils import log_config
+
+log_config["root"]["level"] = "INFO"
+logging.config.dictConfig(log_config)
+logger = logging.getLogger(__name__)
+    
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 plt.rcParams.update(
@@ -46,7 +54,7 @@ h2_msd_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{SD
 h2_mass_axis = hist.axis.Regular(18, 40, 220, name="mass", label=r"Higgs 2 m$_{reg}$ [GeV]")
 
 bdt_cuts = [0, 0.03, 0.88, 0.95, 0.98]
-xbb_cuts = [0, 0.8, 0.9, 0.98]
+txbb_cuts = [0, 0.8, 0.9, 0.98]
 
 control_plot_vars = [
     ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
@@ -94,7 +102,7 @@ for year in samples_run3:
     ]
 
 
-def get_legtitle(legacy, pnet_xbb_str):
+def get_legtitle(legacy, txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
     if legacy:
         title += "$T_{Xbb}^{0}$>0.8"
@@ -102,7 +110,7 @@ def get_legtitle(legacy, pnet_xbb_str):
         title += "$T_{Xbb}^{0}$>0.5"
 
     title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
-    if "Legacy" in pnet_xbb_str:
+    if "Legacy" in txbb_str:
         title += "\n" + "PNet Legacy"
 
     if legacy:
@@ -113,7 +121,7 @@ def get_legtitle(legacy, pnet_xbb_str):
     return title
 
 
-def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str, legacy):
+def apply_cuts(events_dict, txbb_str, mass_str, legacy):
     """
     Apply cuts
     Skimmer selection already includes
@@ -125,19 +133,19 @@ def apply_cuts(events_dict, pnet_xbb_str, pnet_mass_str, legacy):
         msd1 = events_dict[key]["bbFatJetMsd"][0]
         pt1 = events_dict[key]["bbFatJetPt"][0]
         pt2 = events_dict[key]["bbFatJetPt"][1]
-        xbb1 = events_dict[key][pnet_xbb_str][0]
-        mass1 = events_dict[key][pnet_mass_str][0]
-        mass2 = events_dict[key][pnet_mass_str][1]
+        txbb1 = events_dict[key][txbb_str][0]
+        mass1 = events_dict[key][mass_str][0]
+        mass2 = events_dict[key][mass_str][1]
         # add msd > 40 cut for the first jet
         # add regressed mass cut above 50
         # FIXME: replace this by the trigobj matched jet
         if legacy:
             events_dict[key] = events_dict[key][
-                (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+                (pt1 > 250) & (pt2 > 250) & (txbb1 > 0.8) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
             ].copy()
         else:
             events_dict[key] = events_dict[key][
-                (pt1 > 250) & (pt2 > 250) & (xbb1 > 0.5) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
+                (pt1 > 250) & (pt2 > 250) & (txbb1 > 0.3) & (msd1 > 40) & (mass1 > 50) & (mass2 > 50)
             ].copy()
 
     return events_dict
@@ -161,15 +169,13 @@ def preprocess_data(
     )
 
     training_keys = train_keys.copy()
-    print("Training keys ", training_keys)
     for key in training_keys:
         if key not in events_dict:
-            print(f"removing {key}")
+            logger.info(f"{key} not in events_dict, removing...")
             training_keys.remove(key)
 
-    print("events dict ", events_dict.keys())
-
-    print("Train keys ", training_keys)
+    logger.info(f"Keys in events_dict {events_dict.keys()}")
+    logger.info(f"Training keys {training_keys}")
 
     events_dict_bdt = {}
     weights_bdt = {}
@@ -186,11 +192,11 @@ def preprocess_data(
     )
 
     for key in weights_bdt:
-        print(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
+        logger.info(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
 
     # weights
     if run2_wapproach:
-        print("Norm weights")
+        logger.info("Normalize weights, using Run-2 approach")
         bkg_weight = np.concatenate([weights_bdt[key] for key in args.bg_keys])
         bkg_weight_min = np.amin(np.absolute(bkg_weight))
         bkg_weight_rescale = 1.0 / np.absolute(bkg_weight_min)
@@ -363,10 +369,10 @@ def evaluate_model(
     sig_keys: list[str],
     bg_keys: list[str],
     training_keys: list[str],
-    pnet_plots: bool,
+    txbb_plots: bool,
     legacy: bool,
-    pnet_xbb_str: str,
-    pnet_mass_str: str,
+    txbb_str: str,
+    mass_str: str,
 ):
     """
     1) Makes ROC curves for testing data
@@ -436,14 +442,14 @@ def evaluate_model(
         weights = {}
         mass_dict = {}
         msd_dict = {}
-        xbb_dict = {}
+        txbb_dict = {}
 
         for key in training_keys:
             score = []
             weight = []
             mass = []
             msd = []
-            xbb = []
+            txbb = []
             for year in events_dict_years:
                 evt_list = get_evt_testing(f"{model_dir}/inferences/{year}", key)
                 if evt_list is None:
@@ -454,9 +460,9 @@ def evaluate_model(
                 test_bdt_dataframe = bdt_events.copy()
                 bdt_events["event"] = events["event"].to_numpy()[:, 0]
                 bdt_events["finalWeight"] = events["finalWeight"]
-                bdt_events["mass"] = events[pnet_mass_str][1]
+                bdt_events["mass"] = events[mass_str][1]
                 bdt_events["msd"] = events["bbFatJetMsd"][1]
-                bdt_events["xbb"] = events[pnet_xbb_str][1]
+                bdt_events["txbb"] = events[txbb_str][1]
                 mask = bdt_events["event"].isin(evt_list)
                 test_dataset = bdt_events[mask]
 
@@ -467,38 +473,38 @@ def evaluate_model(
                 weight.append(test_dataset["finalWeight"])
                 mass.append(test_dataset["mass"])
                 msd.append(test_dataset["msd"])
-                xbb.append(test_dataset["xbb"])
+                txbb.append(test_dataset["txbb"])
 
             scores[key] = np.concatenate(score)
             weights[key] = np.concatenate(weight)
             mass_dict[key] = np.concatenate(mass)
             msd_dict[key] = np.concatenate(msd)
-            xbb_dict[key] = np.concatenate(xbb)
+            txbb_dict[key] = np.concatenate(txbb)
 
         for key in events_dict_years[year]:
             if key in training_keys:
                 continue
             score = []
             weight = []
-            xbb = []
+            txbb = []
             for year in events_dict_years:
                 preds = model.predict_proba(
                     make_bdt_dataframe.bdt_dataframe(events_dict_years[year][key])
                 )
                 score.append(_get_bdt_scores(preds, sig_keys, multiclass)[:, i])
                 weight.append(events_dict_years[year][key]["finalWeight"])
-                xbb.append(events_dict_years[year][key][pnet_xbb_str][1])
+                txbb.append(events_dict_years[year][key][txbb_str][1])
                 msd.append(events_dict_years[year][key]["bbFatJetMsd"][1])
-                mass.append(events_dict_years[year][key][pnet_mass_str][1])
+                mass.append(events_dict_years[year][key][mass_str][1])
             scores[key] = np.concatenate(score)
             weights[key] = np.concatenate(weight)
-            xbb_dict[key] = np.concatenate(xbb)
+            txbb_dict[key] = np.concatenate(txbb)
             msd_dict[key] = np.concatenate(msd)
             mass_dict[key] = np.concatenate(mass)
 
         print("Making BDT shape plots")
 
-        legtitle = get_legtitle(legacy, pnet_xbb_str)
+        legtitle = get_legtitle(legacy, txbb_str)
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
@@ -701,18 +707,18 @@ def evaluate_model(
                 fig.savefig(plot_dir / sig_key / f"{hkey}2_{key}.pdf", bbox_inches="tight")
                 plt.close()
         """
-    if not pnet_plots:
+    if not txbb_plots:
         return
 
-    # PNetXbb ROC
+    # TXbb ROC
     fig, ax = plt.subplots(1, 1, figsize=(18, 12))
     plot_thresholds = [0.8, 0.9]
     th_colours = ["#9381FF", "#1f78b4", "#a6cee3"]
     for bkg in ["qcd", "ttbar", "merged"]:
         if bkg != "merged":
-            scores_roc = np.concatenate([xbb_dict["hh4b"], xbb_dict[bkg]])
-            sig_jets_score = xbb_dict["hh4b"]
-            bkg_jets_score = xbb_dict[bkg]
+            scores_roc = np.concatenate([txbb_dict["hh4b"], txbb_dict[bkg]])
+            sig_jets_score = txbb_dict["hh4b"]
+            bkg_jets_score = txbb_dict[bkg]
             scores_true = np.concatenate(
                 [
                     np.ones(len(sig_jets_score)),
@@ -722,9 +728,9 @@ def evaluate_model(
             scores_weights = np.concatenate([weights["hh4b"], weights[bkg]])
             fpr, tpr, thresholds = roc_curve(scores_true, scores_roc, sample_weight=scores_weights)
         else:
-            scores_roc = np.concatenate([xbb_dict["hh4b"], xbb_dict["qcd"], xbb_dict["ttbar"]])
-            sig_jets_score = xbb_dict["hh4b"]
-            bkg_jets_score = np.concatenate([xbb_dict["qcd"], xbb_dict["ttbar"]])
+            scores_roc = np.concatenate([txbb_dict["hh4b"], txbb_dict["qcd"], txbb_dict["ttbar"]])
+            sig_jets_score = txbb_dict["hh4b"]
+            bkg_jets_score = np.concatenate([txbb_dict["qcd"], txbb_dict["ttbar"]])
             scores_true = np.concatenate(
                 [
                     np.ones(len(sig_jets_score)),
@@ -771,7 +777,7 @@ def evaluate_model(
                     alpha=0.5,
                 )
 
-    ax.set_title("ggF HH4b PNetXbb ROC Curve")
+    ax.set_title("ggF HH4b TXbb ROC Curve")
     ax.set_xlabel("Signal efficiency")
     ax.set_ylabel("Background efficiency")
     ax.set_xlim([0.0, 0.7])
@@ -784,23 +790,23 @@ def evaluate_model(
         loc="upper left",
     )
     fig.tight_layout()
-    fig.savefig(model_dir / "roc_pnetxbb_weights.png")
+    fig.savefig(model_dir / "roc_txbb_weights.png")
     plt.close()
 
     (model_dir / "validation_mass").mkdir(exist_ok=True, parents=True)
 
-    # mass sculpting with Xbb
-    for xbb_cut in xbb_cuts:
+    # mass sculpting with TXbb
+    for txbb_cut in txbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        for key in xbb_dict:
+        for key in txbb_dict:
             if key not in training_keys:
                 continue
             h2_mass = mass_dict[key]
             h2_msd = msd_dict[key]
-            h2_xbb = xbb_dict[key]
+            h2_txbb = txbb_dict[key]
             for cut in bdt_cuts:
-                mask = (scores[key] >= cut) & (h2_xbb >= xbb_cut)
+                mask = (scores[key] >= cut) & (h2_txbb >= txbb_cut)
                 hist_h2.fill(h2_mass[mask], str(cut), key)
                 hist_h2_msd.fill(h2_msd[mask], str(cut), key)
 
@@ -808,7 +814,7 @@ def evaluate_model(
             "msd": hist_h2_msd,
             "mreg": hist_h2,
         }
-        for key in xbb_dict:
+        for key in txbb_dict:
             if key not in training_keys:
                 continue
             for hkey, h in hists.items():
@@ -823,11 +829,11 @@ def evaluate_model(
                     )
                 ax.legend()
                 ax.set_ylabel("Density")
-                ax.set_title(f"{legends[key]} Xbb > {xbb_cut}")
+                ax.set_title(f"{legends[key]} TXbb > {txbb_cut}")
                 ax.xaxis.grid(True, which="major")
                 ax.yaxis.grid(True, which="major")
                 fig.tight_layout()
-                fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_xbbcut{xbb_cut}.png")
+                fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_txbbcut{txbb_cut}.png")
                 plt.close()
 
 
@@ -839,15 +845,15 @@ def plot_allyears(
     multiclass,
     sig_keys: list[str],
     bg_keys: list[str],
-    pnet_xbb_str: str,
-    pnet_mass_str: str,
+    txbb_str: str,
+    mass_str: str,
 ):
     make_bdt_dataframe = importlib.import_module(
         f".{config_name}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
     for i, sig_key in enumerate(sig_keys):
-        for xbb_cut in xbb_cuts:
+        for txbb_cut in txbb_cuts:
             for key in bg_keys:
                 hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
                 hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
@@ -861,12 +867,12 @@ def plot_allyears(
                     scores = _get_bdt_scores(preds, sig_keys, multiclass)[:, i]
 
                     weights = events_dict[year][key]["finalWeight"]
-                    h2_mass = events_dict[year][key][pnet_mass_str].to_numpy()[:, 1]
+                    h2_mass = events_dict[year][key][mass_str].to_numpy()[:, 1]
                     h2_msd = events_dict[year][key]["bbFatJetMsd"].to_numpy()[:, 1]
-                    h2_xbb = events_dict[year][key][pnet_xbb_str].to_numpy()[:, 1]
+                    h2_xbb = events_dict[year][key][txbb_str].to_numpy()[:, 1]
                     cuts_filled = []
                     for cut in bdt_cuts:
-                        mask = (scores >= cut) & (h2_xbb >= xbb_cut)
+                        mask = (scores >= cut) & (h2_txbb >= txbb_cut)
                         if np.any(mask):
                             cuts_filled.append(cut)
                         hist_h2.fill(h2_mass[mask], str(cut), year, weight=weights[mask])
@@ -889,17 +895,17 @@ def plot_allyears(
                             )
                         ax.legend()
                         ax.set_ylabel("Density")
-                        ax.set_title(f"{year}, Xbb > {xbb_cut}")
+                        ax.set_title(f"{year}, TXbb > {txbb_cut}")
                         ax.xaxis.grid(True, which="major")
                         ax.yaxis.grid(True, which="major")
                         fig.tight_layout()
                         fig.savefig(
-                            model_dir / year / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.png"
+                            model_dir / year / f"{sig_key}_{hkey}2_{key}_txbbcut{txbb_cut}_{year}.png"
                         )
                         fig.savefig(
                             model_dir
                             / year
-                            / f"{sig_key}_{hkey}2_{key}_xbbcut{xbb_cut}_{year}.pdf",
+                            / f"{sig_key}_{hkey}2_{key}_txbbcut{txbb_cut}_{year}.pdf",
                             bbox_inches="tight",
                         )
                         plt.close()
@@ -933,7 +939,7 @@ def plot_train_test(
     training_keys,
     model_dir,
     legacy,
-    pnet_xbb_str,
+    txbb_str,
 ):
     plot_dir = model_dir / "train_test_plots"
     plot_dir.mkdir(exist_ok=True, parents=True)
@@ -1031,7 +1037,7 @@ def plot_train_test(
             ax.xaxis.grid(True, which="major")
             ax.yaxis.grid(True, which="major")
 
-            legtitle = get_legtitle(legacy, pnet_xbb_str)
+            legtitle = get_legtitle(legacy, txbb_str)
 
             ax.legend(
                 title=legtitle,
@@ -1121,8 +1127,6 @@ def main(args):
     else:
         years = args.year
 
-    print(years)
-
     X_train = OrderedDict()
     X_test = OrderedDict()
     y_train = OrderedDict()
@@ -1135,26 +1139,36 @@ def main(args):
     events_dict_years = {}
 
     aux_keys = ["vhtobb", "tthtobb", "diboson", "vjets"]
-    for year in years:
+    for year in samples_run3.keys():
+        if year not in years:
+            for key in list(samples_run3[year].keys()):
+                samples_run3[year].pop(key)
         for key in list(samples_run3[year].keys()):
             if key not in training_keys + aux_keys:
+                logger.debug(f"Removing {key}")
                 samples_run3[year].pop(key)
 
+
+    logger.info(f"Samples to load {samples_run3}")
     for year in years:
-        print("loading ", year)
+        logger.info(f"Loading {year}, with txbb {args.txbb_str}")
         events_dict_years[year] = load_run3_samples(
             args.data_path,
             year,
             args.legacy,
             samples_run3,
             reorder_txbb=True,
-            txbb=args.pnet_xbb_str,
+            txbb_str=args.txbb_str,
+            load_systematics=False,
+            txbb_version=args.txbb,
+            scale_and_smear=False, # TODO: train with scale and smear corrections
+            mass_str=args.mass_str,
         )
 
         if args.apply_cuts:
             # apply cuts
             events_dict_years[year] = apply_cuts(
-                events_dict_years[year], args.pnet_xbb_str, args.pnet_mass_str, args.legacy
+                events_dict_years[year], args.txbb_str, args.mass_str, args.legacy
             )
 
         # concatenate data
@@ -1249,7 +1263,7 @@ def main(args):
             training_keys,
             model_dir,
             args.legacy,
-            args.pnet_xbb_str,
+            args.txbb_str,
         )
 
     # no combination for now
@@ -1268,10 +1282,10 @@ def main(args):
         args.sig_keys,
         args.bg_keys,
         training_keys,
-        args.pnet_plots,
+        args.txbb_plots,
         args.legacy,
-        args.pnet_xbb_str,
-        args.pnet_mass_str,
+        args.txbb_str,
+        args.mass_str,
     )
 
     # test in other years
@@ -1284,11 +1298,15 @@ def main(args):
             args.legacy,
             samples_run3,
             reorder_txbb=True,
-            txbb=args.pnet_xbb_str,
+            txbb_str=args.txbb_str,
+            load_systematics=False,
+            txbb_version=args.txbb,
+            scale_and_smear=False,
+            mass_str=args.mass_str,
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(
-                events_dict[year], args.pnet_xbb_str, args.pnet_mass_str, args.legacy
+                events_dict[year], args.txbb_str, args.mass_str, args.legacy
             )
 
     plot_allyears(
@@ -1299,8 +1317,8 @@ def main(args):
         args.multiclass,
         args.sig_keys,
         args.bg_keys,
-        args.pnet_xbb_str,
-        args.pnet_mass_str,
+        args.txbb_str,
+        args.mass_str,
     )
 
 
@@ -1346,15 +1364,15 @@ if __name__ == "__main__":
         nargs="+",
     )
     parser.add_argument(
-        "--xbb",
-        choices=["bbFatJetPNetTXbb", "bbFatJetPNetTXbbLegacy"],
-        help="xbb branch",
+        "--txbb",
+        choices=["pnet-v12", "pnet-legacy", "glopart-v2"],
+        help="txbb version to be used for cuts and txbb performance comparison",
         required=True,
     )
     parser.add_argument(
         "--mass",
-        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy", "bbFatJetMsd"],
-        help="xbb pnet mass",
+        choices=["bbFatJetPNetMass", "bbFatJetPNetMassLegacy", "bbFatJetMsd", "bbFatJetParTmassVis"],
+        help="txbb mass",
         required=True,
     )
     parser.add_argument(
@@ -1377,12 +1395,16 @@ if __name__ == "__main__":
         parser, "equalize-weights", "Equalise total signal and background weights", default=True
     )
     add_bool_arg(parser, "run2-wapproach", "Run2 weight approach", default=False)
-    add_bool_arg(parser, "pnet-plots", "Make PNet plots", default=True)
+    add_bool_arg(parser, "txbb-plots", "Make TXbb plots", default=True)
     add_bool_arg(parser, "apply-cuts", "Apply cuts", default=True)
 
     args = parser.parse_args()
-    args.pnet_xbb_str = args.xbb
-    args.pnet_mass_str = args.mass
+    args.txbb_str = {
+        "pnet-v12": "bbFatJetPNetTXbb",
+        "pnet-legacy": "bbFatJetPNetTXbbLegacy",
+        "glopart-v2": "bbFatJetParTTXbb"
+    }[args.txbb]
+    args.mass_str = args.mass
 
     if args.config_name is None:
         args.config_name = args.model_name
