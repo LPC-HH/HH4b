@@ -193,7 +193,7 @@ def main(args):
         args.region,
         args.apply_selection,
         args.nano_version,
-        args.pnet_txbb,
+        args.txbb,
     )
 
     skipbadfiles = True

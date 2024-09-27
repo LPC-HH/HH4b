@@ -118,9 +118,9 @@ class bbbbSkimmer(SkimmerABC):
 
     preselection = {  # noqa: RUF012
         # roughly, 85% signal efficiency, 2% QCD efficiency (pT: 250-400, mSD:0-250, mRegLegacy:40-250)
-        "legacy": 0.8,
-        "v12": 0.3,
-        "part": 0.3,
+        "pnet-legacy": 0.8,
+        "pnet-v12": 0.3,
+        "glopart-v2": 0.3,
     }
 
     fatjet_selection = {  # noqa: RUF012
@@ -162,12 +162,12 @@ class bbbbSkimmer(SkimmerABC):
         save_systematics=False,
         region="signal",
         nano_version="v12",
-        pnet_txbb="legacy",  # options: "legacy", "v12", "part"
+        txbb="pnet-legacy",
     ):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
-        self.pnet_txbb = pnet_txbb
+        self.txbb = txbb
 
         # HLT selection
         HLTs = {
@@ -414,13 +414,13 @@ class bbbbSkimmer(SkimmerABC):
             "pnet-legacy": "TXbb_legacy",
             "pnet-v12": "Txbb",
             "glopart-v2": "ParTTXbb",
-        }[self.pnet_txbb]
+        }[self.txbb]
         # match txbb string to branch name in skimmerVars
-        pnet_txbb = {
+        txbb_str = {
             "pnet-legacy": "PNetTXbbLegacy",
             "pnet-v12": "PNetTXbb",
             "glopart-v2": "ParTTXbb",
-        }[self.pnet_txbb]
+        }[self.txbb]
         # fatjets ordered by txbb
         fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
@@ -802,7 +802,7 @@ class bbbbSkimmer(SkimmerABC):
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
                 cut_txbb = (
                     np.sum(
-                        bbFatJetVars[f"bbFatJet{pnet_txbb}"] >= self.preselection[self.pnet_txbb],
+                        bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb],
                         axis=1,
                     )
                     >= 1
