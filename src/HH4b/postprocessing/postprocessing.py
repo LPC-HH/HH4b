@@ -17,7 +17,6 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    jec_shifts,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -131,11 +130,11 @@ load_columns_v12 = load_columns + [
     ("bbFatJetPNetQCD2HF", 2),
 ]
 load_columns_syst = []
-for jshift in jec_shifts:
-    load_columns_syst += [
-        (f"bbFatJetPt_{jshift}", 2),
-        (f"VBFJetPt_{jshift}", 2),
-    ]
+# for jshift in jec_shifts:
+#    load_columns_syst += [
+#       # (f"bbFatJetPt_{jshift}", 2),
+#        # (f"VBFJetPt_{jshift}", 2),
+#    ]
 
 
 weight_shifts = {
