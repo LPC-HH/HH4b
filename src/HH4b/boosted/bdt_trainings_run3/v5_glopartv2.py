@@ -92,9 +92,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("H1Xbb"): events[key_map("bbFatJetParTPXbb")].to_numpy()[:, 0],
             key_map("H1QCDb"): events[key_map("bbFatJetParTPQCD1HF")].to_numpy()[:, 0],
             key_map("H1QCDbb"): events[key_map("bbFatJetParTPQCD2HF")].to_numpy()[:, 0],
-            key_map("H1QCDothers"): events[key_map("bbFatJetParTPQCD0HF")].to_numpy()[
-                :, 0
-            ],
+            key_map("H1QCDothers"): events[key_map("bbFatJetParTPQCD0HF")].to_numpy()[:, 0],
             # ratios
             key_map("H1Pt_HHmass"): h1.pt / hh.mass,
             key_map("H2Pt_HHmass"): h2.pt / hh.mass,
