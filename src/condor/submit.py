@@ -121,7 +121,7 @@ def main(args):
                     "jobnum": j,
                     "nano_version": args.nano_version,
                     "save_root": ("--save-root" if args.save_root else "--no-save-root"),
-                    "pnet_txbb": args.pnet_txbb,
+                    "txbb": args.txbb,
                     "save_systematics": (
                         "--save-systematics" if args.save_systematics else "--no-save-systematics"
                     ),

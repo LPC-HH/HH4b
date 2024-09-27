@@ -133,7 +133,7 @@ def get_processor(
     region: str | None = None,
     apply_selection: bool | None = None,
     nano_version: str | None = None,
-    pnet_txbb: str | None = None,
+    txbb: str | None = None,
 ):
     # define processor
     if processor == "matching":
@@ -152,7 +152,7 @@ def get_processor(
             save_systematics=save_systematics,
             region=region,
             nano_version=nano_version,
-            pnet_txbb=pnet_txbb,
+            txbb=txbb,
         )
 
     if processor == "ttSkimmer":
@@ -188,11 +188,11 @@ def parse_common_args(parser):
         choices=["2018", "2022", "2022EE", "2023", "2023BPix"],
     )
     parser.add_argument(
-        "--pnet-txbb",
+        "--txbb",
         type=str,
         required=True,
         choices=["legacy", "v12", "part"],
-        help="PNetTXbb version to be used to order FatJets",
+        help="TXbb version to be used to order FatJets",
     )
     parser.add_argument(
         "--nano-version",
