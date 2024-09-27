@@ -58,7 +58,7 @@ txbb_cuts = [0, 0.8, 0.9, 0.98]
 txbb_preselection = {
     "bbFatJetPNetTXbb": 0.3,
     "bbFatJetPNetTXbbLegacy": 0.8,
-    "bbFatJetParTTXbb": 0.3
+    "bbFatJetParTTXbb": 0.3,
 }
 msd1_preselection = {
     "bbFatJetPNetTXbb": 40,
@@ -68,7 +68,7 @@ msd1_preselection = {
 msd2_preselection = {
     "bbFatJetPNetTXbb": 30,
     "bbFatJetPNetTXbbLegacy": 0,
-    "bbFatJetParTTXbb":	30,
+    "bbFatJetParTTXbb": 30,
 }
 
 control_plot_vars = [
@@ -130,9 +130,9 @@ def get_legtitle(txbb_str):
         title += "\n" + "PNet 103X"
 
     title += "\n" + r"m$_{reg}$ > 50 GeV"
-    if "Legacy"  not in txbb_str:
-        title += "\n" + r"m$_{SD}^{0}$ > "+f"{msd1_preselection[txbb_str]} GeV"
-        title += "\n" + r"m$_{SD}^{1}$ > "+f"{msd2_preselection[txbb_str]} GeV"
+    if "Legacy" not in txbb_str:
+        title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
+        title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
 
     return title
 
@@ -155,7 +155,13 @@ def apply_cuts(events_dict, txbb_str, mass_str):
         mass2 = events_dict[key][mass_str][1]
         # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
         events_dict[key] = events_dict[key][
-            (pt1 > 250) & (pt2 > 250) & (txbb1 > txbb_preselection[txbb_str]) & (msd1 > msd1_preselection[txbb_str]) & (msd2 > msd2_preselection[txbb_str]) & (mass1 > 50) & (mass2 > 50)
+            (pt1 > 250)
+            & (pt2 > 250)
+            & (txbb1 > txbb_preselection[txbb_str])
+            & (msd1 > msd1_preselection[txbb_str])
+            & (msd2 > msd2_preselection[txbb_str])
+            & (mass1 > 50)
+            & (mass2 > 50)
         ].copy()
 
     return events_dict
@@ -1133,7 +1139,9 @@ def main(args):
         if args.apply_cuts:
             # apply cuts
             events_dict_years[year] = apply_cuts(
-                events_dict_years[year], args.txbb_str, args.mass_str, 
+                events_dict_years[year],
+                args.txbb_str,
+                args.mass_str,
             )
 
         # concatenate data
@@ -1265,7 +1273,9 @@ def main(args):
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(
-                events_dict[year], args.txbb_str, args.mass_str,
+                events_dict[year],
+                args.txbb_str,
+                args.mass_str,
             )
 
     plot_allyears(
