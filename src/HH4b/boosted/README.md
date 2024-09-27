@@ -1,6 +1,6 @@
 # Boosted studies
 
-## BDT 
+## BDT
 
 - v0_msd30:
 ```
