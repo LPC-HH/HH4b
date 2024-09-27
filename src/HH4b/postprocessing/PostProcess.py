@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import logging
+import logging.config
 import pprint
 from collections import OrderedDict
 from pathlib import Path
@@ -26,6 +28,7 @@ from HH4b.hh_vars import (
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
+from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -34,10 +37,6 @@ from HH4b.postprocessing import (
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
-
-import logging
-import logging.config
-from HH4b.log_utils import log_config
 
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
