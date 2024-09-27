@@ -191,7 +191,7 @@ def parse_common_args(parser):
         "--txbb",
         type=str,
         required=True,
-        choices=["legacy", "v12", "part"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
         help="TXbb version to be used to order FatJets",
     )
     parser.add_argument(

@@ -409,17 +409,19 @@ class bbbbSkimmer(SkimmerABC):
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
 
-        # fatjets ordered by xbb
+        # match txbb string to branch name in fatjet collection
         txbb_order = {
-            "legacy": "TXbb_legacy",
-            "v12": "Txbb",
-            "part": "ParTTXbb",
+            "pnet-legacy": "TXbb_legacy",
+            "pnet-v12": "Txbb",
+            "glopart-v2": "ParTTXbb",
         }[self.pnet_txbb]
+        # match txbb string to branch name in skimmerVars
         pnet_txbb = {
-            "legacy": "PNetTXbbLegacy",
-            "v12": "PNetTXbb",
-            "part": "ParTTXbb",
+            "pnet-legacy": "PNetTXbbLegacy",
+            "pnet-v12": "PNetTXbb",
+            "glopart-v2": "ParTTXbb",
         }[self.pnet_txbb]
+        # fatjets ordered by txbb
         fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
         # variations for bb fatjets
@@ -469,7 +471,9 @@ class bbbbSkimmer(SkimmerABC):
         for d in gen_selection_dict:
             if d in dataset:
                 # match fatjets_xbb
-                # vars_dict = gen_selection_dict[d](events, jets, fatjets_xbb, selection_args, P4, "bbFatJet")
+                vars_dict = gen_selection_dict[d](
+                    events, jets, fatjets_xbb, selection_args, P4, "bbFatJet"
+                )
                 # match fatjets
                 vars_dict = gen_selection_dict[d](
                     events, jets, fatjets, selection_args, P4, "ak8FatJet"

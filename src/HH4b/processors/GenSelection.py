@@ -46,7 +46,10 @@ def gen_selection_HHbbbb_simplified(
     skim_vars: dict,
     fatjet_str: str,  # noqa: ARG001
 ):
-    """Simplified gen selection"""
+    """
+    Save GenVars for HH(4b) events
+    Does not make use of fatjet or jet matching
+    """
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
     ]
@@ -65,9 +68,13 @@ def gen_selection_HHbbbb(
     fatjets: FatJetArray,
     selection_args: list,
     skim_vars: dict,
-    fatjet_str: str = "bbFatJet",
+    fatjet_str: str,
 ):
-    """Gets HH, bb 4-vectors"""
+    """
+    Gets HH, bb 4-vectors, and matches to AK4 jets and AK8 jets
+    """
+    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
+
     # finding the two gen higgs
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
@@ -157,9 +164,10 @@ def gen_selection_Hbb(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
-    fatjet_str: str = "bbFatJet",
+    fatjet_str: str,
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
+    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
 
     # finding the two gen higgs
     higgs = events.GenPart[
@@ -212,6 +220,7 @@ def gen_selection_Top(
     fatjet_str: str,
 ):
     """Get Hadronic Top and children information"""
+    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
 
     # finding tops
     tops = events.GenPart[
@@ -288,6 +297,7 @@ def gen_selection_V(
     fatjet_str: str,
 ):
     """Get W/Z and children information"""
+    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
 
     # get V boson
     vs = events.GenPart[
@@ -334,6 +344,7 @@ def gen_selection_VV(
     fatjet_str: str,
 ):
     """Get W/Z and children information"""
+    assert fatjet_str in ['bbFatJet', 'ak8FatJet'], 'fatjet_str parameter must be bbFatJet or ak8FatJet'
 
     # get V boson or Higgs boson
     vs = events.GenPart[
@@ -344,7 +355,6 @@ def gen_selection_VV(
 
     # get V daughters
     daughters = vs.children
-    print(daughters.pdgId)
 
     v0_daughter0_pdgId = abs(daughters.pdgId[:,0,0])
     v0_daughter1_pdgId = abs(daughters.pdgId[:,0,1])
@@ -362,9 +372,6 @@ def gen_selection_VV(
         ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID)) |
         ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
     ).to_numpy()
-
-    print(GenVVars["GenV1BB"])
-    print(GenVVars["GenV2BB"])
 
     # match V to fatjet
     matched_to_v = fatjets.metric_table(vs) < 0.8
