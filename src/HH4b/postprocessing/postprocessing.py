@@ -301,6 +301,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
                 * jms_nom
                 * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
             )
+
             for i in range(2):
                 events_dict[key][(f"{mass_str}Raw", i)] = x[:, i]
                 events_dict[key][(mass_str, i)] = x_smear[:, i]

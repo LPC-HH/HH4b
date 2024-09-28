@@ -148,6 +148,7 @@ def apply_cuts(events_dict, txbb_str, mass_str):
     for key in events_dict:
         msd1 = events_dict[key]["bbFatJetMsd"][0]
         msd2 = events_dict[key]["bbFatJetMsd"][1]
+        msd2 = events_dict[key]["bbFatJetMsd"][1]
         pt1 = events_dict[key]["bbFatJetPt"][0]
         pt2 = events_dict[key]["bbFatJetPt"][1]
         txbb1 = events_dict[key][txbb_str][0]
@@ -887,7 +888,7 @@ def plot_allyears(
 
 
 def _get_bdt_scores(preds, sig_keys, multiclass):
-    """Helper function to calculate which BDT outputs to use"""
+    # Helper function to calculate which BDT outputs to use
     if not multiclass:
         return preds[:, 1:]
     else:
