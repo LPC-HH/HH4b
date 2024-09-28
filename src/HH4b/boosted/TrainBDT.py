@@ -798,6 +798,7 @@ def evaluate_model(
 
     (model_dir / "validation_mass").mkdir(exist_ok=True, parents=True)
 
+    """
     # mass sculpting with Xbb
     for xbb_cut in xbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -838,6 +839,7 @@ def evaluate_model(
                 fig.tight_layout()
                 fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_xbbcut{xbb_cut}.png")
                 plt.close()
+    """
 
 
 def plot_allyears(

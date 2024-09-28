@@ -16,7 +16,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             "pt": events[key_map("bbFatJetPt")].to_numpy()[:, 0],
             "phi": events[key_map("bbFatJetPhi")].to_numpy()[:, 0],
             "eta": events[key_map("bbFatJetEta")].to_numpy()[:, 0],
-            "M": events[key_map("bbFatJetPNetMassLegacy")].to_numpy()[:, 0],
+            "M": events[key_map("bbFatJetParTmassVis")].to_numpy()[:, 0],
         }
     )
     h2 = vector.array(
@@ -24,7 +24,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             "pt": events[key_map("bbFatJetPt")].to_numpy()[:, 1],
             "phi": events[key_map("bbFatJetPhi")].to_numpy()[:, 1],
             "eta": events[key_map("bbFatJetEta")].to_numpy()[:, 1],
-            "M": events[key_map("bbFatJetPNetMassLegacy")].to_numpy()[:, 1],
+            "M": events[key_map("bbFatJetParTmassVis")].to_numpy()[:, 1],
         }
     )
     hh = h1 + h2
@@ -90,7 +90,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("H1eta"): h1.eta,
             # "H2eta": h2.eta,
             # xbb
-            key_map("H1Xbb"): events[key_map(" bbFatJetParTPXbb")].to_numpy()[:, 0],
+            key_map("H1Xbb"): events[key_map("bbFatJetParTPXbb")].to_numpy()[:, 0],
             key_map("H1QCDb"): events[key_map("bbFatJetParTPQCD1HF")].to_numpy()[:, 0],
             key_map("H1QCDbb"): events[key_map("bbFatJetParTPQCD2HF")].to_numpy()[:, 0],
             key_map("H1QCDothers"): events[key_map("bbFatJetParTPQCD0HF")].to_numpy()[:, 0],

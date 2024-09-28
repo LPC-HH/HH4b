@@ -123,11 +123,12 @@ load_columns_legacy = load_columns + [
 ]
 
 load_columns_v12 = load_columns + [
-    ("bbFatJetPNetTXbb", 2),
-    ("bbFatJetPNetMass", 2),
-    ("bbFatJetPNetQCD0HF", 2),
-    ("bbFatJetPNetQCD1HF", 2),
-    ("bbFatJetPNetQCD2HF", 2),
+    ("bbFatJetParTPXbb", 2),
+    ("bbFatJetParTTXbb", 2),
+    ("bbFatJetParTmassVis", 2),
+    ("bbFatJetParTPQCD0HF", 2),
+    ("bbFatJetParTPQCD1HF", 2),
+    ("bbFatJetParTPQCD2HF", 2),
 ]
 load_columns_syst = []
 # for jshift in jec_shifts:
@@ -239,13 +240,13 @@ def load_run3_samples(
             events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
     else:
         for key in events_dict_nosyst:
-            x = events_dict_nosyst[key]["bbFatJetPNetMass"].to_numpy(copy=True)
-            events_dict_nosyst[key][("bbFatJetPNetMass", 0)] = x[:, 0]
-            events_dict_nosyst[key][("bbFatJetPNetMass", 1)] = x[:, 1]
+            x = events_dict_nosyst[key]["bbFatJetParTmassVis"].to_numpy(copy=True)
+            events_dict_nosyst[key][("bbFatJetParTmassVis", 0)] = x[:, 0]
+            events_dict_nosyst[key][("bbFatJetParTmassVis", 1)] = x[:, 1]
         for key in events_dict_syst:
-            x = events_dict_syst[key]["bbFatJetPNetMass"].to_numpy(copy=True)
-            events_dict_syst[key][("bbFatJetPNetMass", 0)] = x[:, 0]
-            events_dict_syst[key][("bbFatJetPNetMass", 1)] = x[:, 1]
+            x = events_dict_syst[key]["bbFatJetParTmassVis"].to_numpy(copy=True)
+            events_dict_syst[key][("bbFatJetParTmassVis", 0)] = x[:, 0]
+            events_dict_syst[key][("bbFatJetParTmassVis", 1)] = x[:, 1]
 
     events_dict_syst = scale_smear_mass(events_dict_syst, year)
     events_dict = {**events_dict_nosyst, **events_dict_syst}
@@ -264,7 +265,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, legacy=Fal
             if legacy:
                 x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
             else:
-                x = events_dict[key]["bbFatJetPNetMass"].to_numpy(copy=True)
+                x = events_dict[key]["bbFatJetParTmassVis"].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
             x_smear = (
