@@ -1183,7 +1183,7 @@ def mesh2d(
 def multiROCCurveGrey(
     rocs: dict,
     sig_effs: list[float],
-    bkg_effs: list[float]=None,
+    bkg_effs: list[float] = None,
     xlim=None,
     ylim=None,
     plot_dir: Path = None,
