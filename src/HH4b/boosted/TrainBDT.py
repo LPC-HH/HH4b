@@ -119,8 +119,7 @@ for year in samples_run3:
 
 def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
-    title += "$T_{Xbb}^{0}$ > {txbb_preselection[txbb_str]}"
-    title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
+    title += "$T_{Xbb}^{0}$ >" + f"{txbb_preselection[txbb_str]}"
 
     if "Legacy" in txbb_str:
         title += "\n" + "PNet Legacy"
