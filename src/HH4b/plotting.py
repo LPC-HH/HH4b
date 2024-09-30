@@ -1183,7 +1183,7 @@ def mesh2d(
 def multiROCCurveGrey(
     rocs: dict,
     sig_effs: list[float],
-    bkg_effs: list[float]=None,
+    bkg_effs: list[float] = None,
     xlim=None,
     ylim=None,
     plot_dir: Path = None,
@@ -1410,7 +1410,7 @@ def ROCCurve(
     plt.legend()
 
     if len(name):
-        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+        plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
     if show:
         plt.show()
