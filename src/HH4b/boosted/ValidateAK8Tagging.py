@@ -5,6 +5,7 @@ Validate AK8 Jet bb Taggers
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,10 +15,16 @@ from sklearn.metrics import auc, roc_curve
 
 import HH4b.utils as utils
 from HH4b import plotting
+from HH4b.log_utils import log_config
+
+log_config["root"]["level"] = "INFO"
+logging.config.dictConfig(log_config)
+logger = logging.getLogger("TrainBDT")
 
 
-def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs):
-    check_mass = False
+def load_events(
+    path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs, num_jets
+):
     add_ttbar = False
 
     sample_dirs = {
@@ -27,7 +34,7 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
                 #'QCD_HT-100to200',
                 "QCD_HT-1200to1500",
                 "QCD_HT-1500to2000",
-                "QCD_HT-2000",
+                # "QCD_HT-2000",
                 #'QCD_HT-200to400',
                 "QCD_HT-400to600",
                 "QCD_HT-600to800",
@@ -49,29 +56,20 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
     # e.g. to load 2 jets ("ak8FatJetPt", 2)
     columns = [
         ("weight", 1),  # genweight * otherweights
-        (f"{jet_collection}Pt", 2),
-        (f"{jet_collection}Msd", 2),
-        (f"{jet_collection}PNetMassLegacy", 2),  # ParticleNet Legacy regressed mass
+        (f"{jet_collection}Pt", num_jets),
+        (f"{jet_collection}Msd", num_jets),
+        (f"{jet_collection}PNetMassLegacy", num_jets),  # ParticleNet Legacy regressed mass
+        (f"{jet_collection}PNetTXbb", num_jets),  # ParticleNet 130x bb vs QCD discriminator
+        (f"{jet_collection}PNetTXbbLegacy", num_jets),  # ParticleNet Legacy bb vs QCD discriminator
+        (f"{jet_collection}ParTTXbb", num_jets),  # GloParTv2 bb vs QCD discriminator
     ]
-    if check_mass:
-        columns += [
-            (f"{jet_collection}PNetMass", 2),  # ParticleNet 130x regressed mass
-            (f"{jet_collection}ParTmassRes", 2),  # GloParTv2  regressed mass (resonant)
-            (f"{jet_collection}ParTmassVis", 2),  # GloParTv2  regressed mass (particles)
-        ]
-    else:
-        columns += [
-            (f"{jet_collection}PNetTXbb", 2),  # ParticleNet 130x bb vs QCD discriminator
-            (f"{jet_collection}PNetTXbbLegacy", 2),  # ParticleNet Legacy bb vs QCD discriminator
-            (f"{jet_collection}ParTTXbb", 2),  # GloParTv2 bb vs QCD discriminator
-        ]
 
     # additional columns for matching hh4b jets
     signal_exclusive_columns = (
         [
-            (f"{jet_collection}HiggsMatchIndex", 2),  # index of higgs matched to jet
-            (f"{jet_collection}NumBMatchedH1", 2),  # number of bquarks matched to H1
-            (f"{jet_collection}NumBMatchedH2", 2),  # number of bquarks matched to H2
+            (f"{jet_collection}HiggsMatchIndex", num_jets),  # index of higgs matched to jet
+            (f"{jet_collection}NumBMatchedH1", num_jets),  # number of bquarks matched to H1
+            (f"{jet_collection}NumBMatchedH2", num_jets),  # number of bquarks matched to H2
         ]
         if match_higgs
         else []
@@ -85,13 +83,14 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
             (f"('{jet_collection}Msd', '0')", ">=", msd_cut[0]),
             (f"('{jet_collection}Msd', '0')", "<=", msd_cut[1]),
         ],
-        [
+    ]
+    if num_jets > 1:
+        filters += [
             (f"('{jet_collection}Pt', '1')", ">=", pt_cut[0]),
             (f"('{jet_collection}Pt', '1')", "<=", pt_cut[1]),
             (f"('{jet_collection}Msd', '1')", ">=", msd_cut[0]),
             (f"('{jet_collection}Msd', '1')", "<=", msd_cut[1]),
-        ],
-    ]
+        ]
 
     reorder_txbb = False
     if jet_collection != "ak8FatJet":
@@ -102,6 +101,16 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
     events_dict = {
         # this function will load files (only the columns selected), apply filters and compute a weight per event
         **utils.load_samples(
+            path_to_dir,
+            sample_dirs_sig[year],
+            year,
+            filters=filters,
+            columns=utils.format_columns(columns + signal_exclusive_columns),
+            reorder_txbb=reorder_txbb,
+            txbb_str=txbb,
+            variations=False,
+        ),
+        **utils.load_samples(
             path_to_dir,  # input directory
             sample_dirs[year],  # process_name: datasets
             year,  # year (to find corresponding luminosity)
@@ -110,18 +119,8 @@ def load_events(path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pne
                 columns
             ),  # columns to load from parquet (to not load all columns), IMPORTANT columns must be formatted: ("column name", "idx")
             reorder_txbb=reorder_txbb,  # whether to reorder bbFatJet collection
-            txbb=txbb,
+            txbb_str=txbb,
             variations=False,  # do not load systematic variations of weights
-        ),
-        **utils.load_samples(
-            path_to_dir,
-            sample_dirs_sig[year],
-            year,
-            filters=filters,
-            columns=utils.format_columns(columns + signal_exclusive_columns),
-            reorder_txbb=reorder_txbb,
-            txbb=txbb,
-            variations=False,
         ),
     }
 
@@ -236,14 +235,17 @@ def main(args):
     jet_coll_pnet = ""
     match_higgs = True
 
-    jet_collection = "bbFatJet"
-    jet_coll_pnet = "PNetTXbb"
-    match_higgs = False
+    # jet_collection = "bbFatJet"
+    # jet_coll_pnet = "PNetTXbb"
+    # match_higgs = False
 
     MAIN_DIR = "/eos/uscms/store/user/cmantill/bbbb/skimmer/"
-    tag = "24Sep19_v12v2_private_pre-sel"
+    # w trigger selection
+    # tag = "24Sep19_v12v2_private_pre-sel"
+    # w/o trigger selection
+    tag = "24Sep27_v12v2_private_pre-sel"
     year = "2022"
-    outdir = "24Sep24"  # date of plotting
+    outdir = "24Sep27"  # date of plotting
     plot_dir = f"/uscms/home/cmantill/nobackup/hh/HH4b/plots/PostProcessing/{outdir}/{year}"
     _ = os.system(f"mkdir -p {plot_dir}")
     path_to_dir = f"{MAIN_DIR}/{tag}/"
@@ -263,11 +265,15 @@ def main(args):
         legtitle += "\n " + f"{mreg_cut[0]} <" + r" $m_{reg}$ (Legacy) <" + f" {mreg_cut[1]} GeV"
         cut_str += "mregleg" + "-".join(str(x) for x in mreg_cut)
 
+    num_jets = 1
+    jets = [[0]]
+    # num_jets = 2
+    # jets = [ [0,1], [0], [1] ]
     events_dict = load_events(
-        path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs
+        path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs, num_jets
     )
 
-    for jet_indices in [[0, 1], [0], [1]]:
+    for jet_indices in jets:
         rocs = {
             "PNetTXbbLegacy": get_roc(
                 events_dict,
@@ -306,19 +312,21 @@ def main(args):
         # thresholds on the discriminator, used to search for signal efficiency
         plot_thresholds = {
             "PNetTXbbLegacy": [0.8],
-            "PNetTXbb": [0.7],
+            # "PNetTXbb": [0.7],
             # "ParTTXbb": [0.38],
         }
         # find what the threshold should be to achieve this signal efficiency
         find_from_sigeff = {
-            "PNetTXbb": [0.85],
-            "ParTTXbb": [0.85],
+            # "PNetTXbb": [0.85],
+            # "ParTTXbb": [0.85],
             # "PNetTXbb": [0.72],
             # "ParTTXbb": [0.72],
         }
         plotting.multiROCCurveGrey(
             {"bb": rocs},
-            sig_effs=[0.6],
+            # sig_effs=[0.6],
+            sig_effs=[],
+            bkg_effs=[0.01],
             xlim=[0, 1.0],
             ylim=[1e-4, 1],
             show=True,

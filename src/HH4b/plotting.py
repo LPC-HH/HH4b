@@ -1183,6 +1183,7 @@ def mesh2d(
 def multiROCCurveGrey(
     rocs: dict,
     sig_effs: list[float],
+    bkg_effs: list[float] = None,
     xlim=None,
     ylim=None,
     plot_dir: Path = None,
@@ -1219,6 +1220,11 @@ def multiROCCurveGrey(
                 y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
                 plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
                 plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
+
+            for bkg_eff in bkg_effs:
+                x = roc["tpr"][np.searchsorted(roc["fpr"], bkg_eff)]
+                plt.vlines(x=x, ymin=0, ymax=bkg_eff, **line_style)
+                plt.hlines(y=bkg_eff, xmin=0, xmax=x, **line_style)
 
     for roc_sigs in rocs.values():
         i_sigeff = 0
