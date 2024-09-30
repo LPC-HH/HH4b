@@ -1410,7 +1410,7 @@ def ROCCurve(
     plt.legend()
 
     if len(name):
-        plt.savefig(plot_dir / f"{name}.pdf", bbox_inches="tight")
+        plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
 
     if show:
         plt.show()
