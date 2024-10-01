@@ -57,12 +57,12 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
         year: {
             "qcd": [
                 "QCD_HT-1000to1200",
-                # "QCD_HT-1200to1500",
-                # "QCD_HT-1500to2000",
-                # "QCD_HT-2000",
-                # "QCD_HT-400to600",
-                # "QCD_HT-600to800",
-                # "QCD_HT-800to1000",
+                "QCD_HT-1200to1500",
+                "QCD_HT-1500to2000",
+                "QCD_HT-2000",
+                "QCD_HT-400to600",
+                "QCD_HT-600to800",
+                "QCD_HT-800to1000",
             ],
             "ttbar": [
                 "TTto4Q",
@@ -259,9 +259,7 @@ def get_roc(
     discriminator_label,
     discriminator_color,
 ):
-    y_true, scores, weights = get_roc_inputs(
-        events_dict, jet_collection, discriminator_name, jet_index
-    )
+    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name)
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
     roc = {
         "fpr": fpr,
@@ -292,10 +290,10 @@ def plot_roc(rocs, out_dir):
     # Set x-axis limits (no need to set x-scale, as it is linear by default)
     plt.xlim([0, 0.6])
 
-    # Add legend and gridlines
+    # Add title, legend, and gridlines
     plt.legend(loc="best")
     plt.grid(True, which="both", ls="--", linewidth=0.5)
-
+    plt.title("ggF HH4b BDT ROC Curve")
     # Save the plot
     plt.savefig(out_dir / "rocs.png")
 
