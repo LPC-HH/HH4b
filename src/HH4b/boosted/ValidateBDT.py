@@ -10,6 +10,7 @@ import logging
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -23,6 +24,9 @@ from HH4b.utils import get_var_mapping
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("ValidateBDT")
+
+jet_collection = "bbFatJet"  # ARG001
+jet_index = 0  # ARG001
 
 
 def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
@@ -75,6 +79,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
     # columns (or branches) to load: (branch_name, number of columns)
     # e.g. to load 2 jets ("ak8FatJetPt", 2)
     num_jets = 2
+
     columns = [
         ("weight", 1),  # genweight * otherweights
         ("event", 1),
@@ -209,18 +214,21 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             )
             bdt_scores.extend([f"bdtscore_{bdt_model}", f"bdtscoreVBF_{bdt_model}"])
 
+    # Add finalWeight to the list of columns being retained
+    bdt_scores.append("finalWeight")
+
     return {key: events_dict[key][bdt_scores] for key in events_dict}
 
 
 def get_roc_inputs(
     events_dict,
-    jet_collection,
+    # jet_collection,
     discriminator_name,
-    jet_index,
+    # jet_index,
 ):
     sig_key = "hh4b"
     bg_keys = ["qcd"]
-    discriminator = f"{jet_collection}{discriminator_name}"
+    discriminator = f"{discriminator_name}"  # f"{jet_collection}{discriminator_name}"
 
     # 1 for signal, 0 for background
     y_true = np.concatenate(
@@ -231,13 +239,16 @@ def get_roc_inputs(
     )
     # weights
     weights = np.concatenate(
-        [events_dict[sig_key]["finalWeight"]]
-        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],
+        [events_dict[sig_key]["finalWeight"]]  # subst finalWeight->weight
+        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],  # subst finalWeight->weight
     )
     # discriminator
+    # print(events_dict[sig_key][discriminator])
     scores = np.concatenate(
-        [events_dict[sig_key][discriminator][jet_index]]
-        + [events_dict[bg_key][discriminator][jet_index] for bg_key in bg_keys],
+        [
+            events_dict[sig_key][discriminator].iloc[:, 0]
+        ]  # flatten duplicated bdt scores (n_events,3) to (n_events,)
+        + [events_dict[bg_key][discriminator].iloc[:, 0] for bg_key in bg_keys],
     )
     return y_true, scores, weights
 
@@ -261,6 +272,35 @@ def get_roc(
     }
 
     return roc
+
+
+def plot_roc(rocs, out_dir):
+    plt.figure(figsize=(8, 6))  # Adjust figure size if needed
+
+    # Plot each ROC curve
+    for roc in rocs:
+        plt.plot(roc["tpr"], roc["fpr"], label=roc["label"], color=roc["color"])
+
+    # Set x and y axis labels
+    plt.xlabel("Signal Efficiency")
+    plt.ylabel("Background Efficiency")
+
+    # Set y-axis to log scale and specify y-axis limits
+    plt.yscale("log")
+    plt.ylim([1e-5, 1e-1])
+
+    # Set x-axis limits (no need to set x-scale, as it is linear by default)
+    plt.xlim([0, 0.6])
+
+    # Add legend and gridlines
+    plt.legend(loc="best")
+    plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+    # Save the plot
+    plt.savefig(out_dir / "rocs.png")
+
+    # Close the figure to free memory
+    plt.close()
 
 
 def main(args):
@@ -292,19 +332,21 @@ def main(args):
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
-
+    print("BDT_dict_combined")
     print(bdt_dict_combined)
 
-    rocs = {
-        bdt_model: get_roc(
+    colors = ["blue", "red"]
+    rocs = {}
+    for i, bdt_model in enumerate(bdt_models):
+        rocs[bdt_model] = get_roc(
             bdt_dict_combined,
             f"bdtscore_{bdt_model}",
             bdt_model,
-            "blue",
+            colors[i],
         )
-    }
-
+    print("ROCS")
     print(rocs)
+    plot_roc(rocs.values(), out_dir)
 
 
 if __name__ == "__main__":
