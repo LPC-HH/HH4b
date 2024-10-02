@@ -10,7 +10,6 @@ import logging
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -19,6 +18,7 @@ from sklearn.metrics import auc, roc_curve
 import HH4b.utils as utils
 from HH4b import hh_vars
 from HH4b.log_utils import log_config
+from HH4b.plotting import multiROCCurveGrey
 from HH4b.utils import get_var_mapping
 
 log_config["root"]["level"] = "INFO"
@@ -27,6 +27,22 @@ logger = logging.getLogger("ValidateBDT")
 
 jet_collection = "bbFatJet"  # ARG001
 jet_index = 0  # ARG001
+
+txbb_preselection = {
+    "bbFatJetPNetTXbb": 0.3,
+    "bbFatJetPNetTXbbLegacy": 0.8,
+    "bbFatJetParTTXbb": 0.3,
+}
+msd1_preselection = {
+    "bbFatJetPNetTXbb": 40,
+    "bbFatJetPNetTXbbLegacy": 40,
+    "bbFatJetParTTXbb": 40,
+}
+msd2_preselection = {
+    "bbFatJetPNetTXbb": 30,
+    "bbFatJetPNetTXbbLegacy": 0,
+    "bbFatJetParTTXbb": 30,
+}
 
 
 def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
@@ -272,33 +288,65 @@ def get_roc(
     return roc
 
 
-def plot_roc(rocs, out_dir):
-    plt.figure(figsize=(8, 6))  # Adjust figure size if needed
+def get_legtitle(txbb_str):
+    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+    title += "$PNetT_{Xbb}^{0}$ > 0.8 "
+    title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
 
-    # Plot each ROC curve
-    for roc in rocs:
-        plt.plot(roc["tpr"], roc["fpr"], label=roc["label"], color=roc["color"])
+    title += "\n" + r"m$_{reg}$ > 50 GeV"
+    title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
+    title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
 
-    # Set x and y axis labels
-    plt.xlabel("Signal Efficiency")
-    plt.ylabel("Background Efficiency")
+    return title
 
-    # Set y-axis to log scale and specify y-axis limits
-    plt.yscale("log")
-    plt.ylim([1e-5, 1e-1])
 
-    # Set x-axis limits (no need to set x-scale, as it is linear by default)
-    plt.xlim([0, 0.6])
+def _find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
 
-    # Add title, legend, and gridlines
-    plt.legend(loc="best")
-    plt.grid(True, which="both", ls="--", linewidth=0.5)
-    plt.title("ggF HH4b BDT ROC Curve")
-    # Save the plot
-    plt.savefig(out_dir / "rocs.png")
 
-    # Close the figure to free memory
-    plt.close()
+def compute_bkg_effs(rocs, sig_effs):
+    """
+    Computes background efficiencies corresponding to the given signal efficiencies for each ROC curve.
+
+    Args:
+        rocs (dict): Dictionary of ROC curves.
+        sig_effs (list of float): List of signal efficiencies.
+
+    Returns:
+        dict: Dictionary mapping model names to lists of background efficiencies.
+    """
+    bkg_effs_dict = {}
+    for model_name, roc_dict in rocs.items():
+        for _, roc in roc_dict.items():
+            bkg_effs = []
+            for sig_eff in sig_effs:
+                print(f"Type of roc['tpr']: {type(roc['tpr'])}")
+                print(f"Shape of roc['tpr']: {roc['tpr'].shape}")
+                print(f"roc['tpr']: {roc['tpr']}")
+                idx = _find_nearest(roc["tpr"], sig_eff)
+                bkg_eff = roc["fpr"][idx]
+                bkg_effs.append(bkg_eff)
+            bkg_effs_dict[model_name] = bkg_effs
+    return bkg_effs_dict
+
+
+def restructure_rocs(rocs):
+    """
+    Restructure the 'rocs' dictionary to include an extra layer of nesting,
+    as expected by the 'multiROCCurveGrey' function.
+
+    Args:
+        rocs (dict): Original dictionary of ROC curves.
+
+    Returns:
+        dict: Restructured dictionary with an extra layer of nesting.
+    """
+    new_rocs = {}
+    for model_name, roc_dict in rocs.items():
+        new_rocs[model_name] = {model_name: roc_dict}
+    return new_rocs
 
 
 def main(args):
@@ -330,21 +378,35 @@ def main(args):
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
-    print("BDT_dict_combined")
-    print(bdt_dict_combined)
 
     colors = ["blue", "red"]
     rocs = {}
     for i, bdt_model in enumerate(bdt_models):
+
         rocs[bdt_model] = get_roc(
             bdt_dict_combined,
             f"bdtscore_{bdt_model}",
             bdt_model,
             colors[i],
         )
-    print("ROCS")
-    print(rocs)
-    plot_roc(rocs.values(), out_dir)
+
+    # Plot multi-ROC curve
+
+    multiROCCurveGrey(
+        restructure_rocs(rocs),
+        # sig_effs=sig_effs,
+        # bkg_effs=bkg_effs,
+        plot_dir=out_dir,
+        legtitle=get_legtitle("bbFatJetParTTXbb"),
+        title="ggF HH4b BDT ROC",
+        name="PNet-parT-comparison",
+        plot_thresholds={"v5_PNetLegacy": [0.98, 0.88, 0.03]},
+        # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
+        # add_cms_label=True,
+        show=True,
+        xlim=[0, 0.6],
+        ylim=[1e-5, 1e-1],
+    )
 
 
 if __name__ == "__main__":
