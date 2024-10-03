@@ -18,3 +18,4 @@ uproot==4.3.7
 vector==1.1.0
 xgboost>=2.0.3
 xxhash
+setuptools<71
