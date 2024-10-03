@@ -40,6 +40,7 @@ class Syst:
     )
     pass_only: bool = False  # is it applied only in the pass regions
     convert_shape_to_lnN: bool = False  # take shape uncertainty and convert to lnN
+    decorrelate_regions: bool = False  # decorrelate in each region
 
     def __post_init__(self):
         if isinstance(self.value, dict) and not (self.diff_regions or self.diff_samples):

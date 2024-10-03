@@ -28,6 +28,7 @@ from .hh_vars import (
     data_key,
     jec_shifts,
     jec_vars,
+    jmsr_keys,
     jmsr_shifts,
     jmsr_vars,
     norm_preserving_weights,
@@ -227,16 +228,12 @@ def _normalize_weights(
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
         # print(sample)
-        if sample == "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8":
+        if "VBF" in sample:
             warnings.warn(
                 f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
                 stacklevel=0,
             )
-            events["weight"] = (
-                events["weight"]
-                * xsecs["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"]
-                * LUMI[year]
-            )
+            events["weight"] = events["weight"] * xsecs[sample] * LUMI[year]
         else:
             raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
@@ -753,7 +750,12 @@ def _var_selection(
 
     # OR the different vars
     for cutvar in cut_vars:
-        if jshift != "" and sample in syst_keys:
+        if (
+            jshift in jmsr_shifts
+            and sample in jmsr_keys
+            or jshift in jec_shifts
+            and sample in syst_keys
+        ):
             var = check_get_jec_var(cutvar, jshift)
         else:
             var = cutvar
