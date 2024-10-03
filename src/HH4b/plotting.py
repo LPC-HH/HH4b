@@ -1182,7 +1182,7 @@ def mesh2d(
 
 def multiROCCurveGrey(
     rocs: dict,
-    sig_effs: list[float],
+    sig_effs: list[float] = None,
     bkg_effs: list[float] = None,
     xlim=None,
     ylim=None,
@@ -1207,7 +1207,10 @@ def multiROCCurveGrey(
     fig = plt.figure(figsize=(12, 12))
     ax = fig.gca()
     for roc_sigs in rocs.values():
+
+        # plots roc curves for each type of signal
         for roc in roc_sigs.values():
+
             plt.plot(
                 roc["tpr"],
                 roc["fpr"],
@@ -1216,16 +1219,23 @@ def multiROCCurveGrey(
                 linewidth=2,
             )
 
-            for sig_eff in sig_effs:
-                y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
-                plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
-                plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
+            # determines the point on the ROC curve that corresponds to the signal efficiency
+            # plots a vertical and horizontal line to the point
+            if sig_effs is not None:
+                for sig_eff in sig_effs:
+                    y = roc["fpr"][np.searchsorted(roc["tpr"], sig_eff)]
+                    plt.hlines(y=y, xmin=0, xmax=sig_eff, **line_style)
+                    plt.vlines(x=sig_eff, ymin=0, ymax=y, **line_style)
 
-            for bkg_eff in bkg_effs:
-                x = roc["tpr"][np.searchsorted(roc["fpr"], bkg_eff)]
-                plt.vlines(x=x, ymin=0, ymax=bkg_eff, **line_style)
-                plt.hlines(y=bkg_eff, xmin=0, xmax=x, **line_style)
+            # determines the point on the ROC curve that corresponds to the background efficiency
+            # plots a vertical and horizontal line to the point
+            if bkg_effs is not None:
+                for bkg_eff in bkg_effs:
+                    x = roc["tpr"][np.searchsorted(roc["fpr"], bkg_eff)]
+                    plt.vlines(x=x, ymin=0, ymax=bkg_eff, **line_style)
+                    plt.hlines(y=bkg_eff, xmin=0, xmax=x, **line_style)
 
+    # plots points and lines on plot corresponding to classifier thresholds
     for roc_sigs in rocs.values():
         i_sigeff = 0
         i_th = 0
@@ -1263,7 +1273,7 @@ def multiROCCurveGrey(
                     )
                     i_th += 1
 
-            if rockey in find_from_sigeff:
+            if find_from_sigeff is not None and rockey in find_from_sigeff:
                 pths = {sig_eff: [[], []] for sig_eff in find_from_sigeff[rockey]}
                 thrs = {}
                 for sig_eff in find_from_sigeff[rockey]:
@@ -1310,9 +1320,9 @@ def multiROCCurveGrey(
     ax.xaxis.grid(True, which="major")
     ax.yaxis.grid(True, which="major")
     if legtitle:
-        plt.legend(title=legtitle, loc="upper left")
+        plt.legend(title=legtitle, loc="center left", bbox_to_anchor=(1, 0.5))
     else:
-        plt.legend(loc="upper left")
+        plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 
     if len(name):
         plt.savefig(plot_dir / f"{name}.png", bbox_inches="tight")
