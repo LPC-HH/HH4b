@@ -360,6 +360,10 @@ def main(args):
             "config": "v5_glopartv2",
             "model_name": "24Sep27_v5_glopartv2",
         },
+        "v5_PNetv12": {
+            "config": "v5_PNetv12",
+            "model_name": "24Jul29_v5_PNetv12",
+        },
     }
 
     bdt_dict = {
@@ -377,7 +381,14 @@ def main(args):
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
 
-    colors = ["blue", "red"]
+    colors = [
+        "blue",
+        "red",
+        "green",
+        "purple",
+        "orange",
+        "cyan",
+    ]
     rocs = {}
     for i, bdt_model in enumerate(bdt_models):
 
