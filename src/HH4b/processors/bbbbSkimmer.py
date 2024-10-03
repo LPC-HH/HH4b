@@ -142,12 +142,12 @@ class bbbbSkimmer(SkimmerABC):
         "dr_leptons": 0.4,
     }
 
-    semi_boosted_ak4jets_selection  = {
-	"pt": 30,
-	"eta_max": 2.5,
-	"id": "tight",
-	"dr_fatjets": 0.0,
-	"dr_leptons": 0.4,
+    semi_boosted_ak4jets_selection = {
+        "pt": 30,
+        "eta_max": 2.5,
+        "id": "tight",
+        "dr_fatjets": 0.0,
+        "dr_leptons": 0.4,
     }
 
     ak4_bjet_lepton_selection = {  # noqa: RUF012
@@ -223,13 +223,13 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
                     # resolved
-                    'QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65',
+                    "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
                 ],
                 "2022EE": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet425_SoftDropMass40",
                     # resolved
-                    'QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65',
+                    "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
                 ],
                 "2023": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -240,7 +240,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                     # resolved
-                    'PFHT280_QuadPFJet30_PNet2BTagMean0p55',
+                    "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
                 ],
                 "2023BPix": [
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
@@ -251,7 +251,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                     # resolved
-                    'PFHT280_QuadPFJet30_PNet2BTagMean0p55',
+                    "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
                 ],
             },
             "semilep-tt": {
@@ -567,9 +567,7 @@ class bbbbSkimmer(SkimmerABC):
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
-        if self._region == "signal":
-            genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
-        elif self._region == "semiboosted":
+        if self._region == "signal" or self._region == "semiboosted":
             genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
 
         # used for normalization to cross section below
@@ -880,7 +878,9 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak4_numjets", (ak.num(jets) >= 2), *selection_args)
 
             # >= two AK4 jets pass loose WP (Run3Summer22)
-            add_selection("ak4jet_btag", (ak.sum(jets.btagDeepFlavB >= 0.0583, axis=1) >=2), *selection_args)
+            add_selection(
+                "ak4jet_btag", (ak.sum(jets.btagDeepFlavB >= 0.0583, axis=1) >= 2), *selection_args
+            )
 
             # 0 veto leptons
             add_selection(
@@ -888,7 +888,7 @@ class bbbbSkimmer(SkimmerABC):
                 (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
                 *selection_args,
             )
-            
+
         elif self._region == "pre-sel":
             # >=1 AK8 jets with pT>250
             cut_pt = np.sum(ak8FatJetVars["ak8FatJetPt"] >= 250, axis=1) >= 1
