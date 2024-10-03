@@ -290,9 +290,7 @@ def get_roc(
 
 def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
-    title += "$PNetT_{Xbb}^{0}$ > 0.8 "
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
-
     title += "\n" + r"m$_{reg}$ > 50 GeV"
     title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
     title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
