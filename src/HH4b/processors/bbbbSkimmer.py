@@ -151,6 +151,14 @@ class bbbbSkimmer(SkimmerABC):
         "dr_leptons": 0.4,
     }
 
+    semi_boosted_ak4jets_selection = {  # noqa: RUF012
+        "pt": 30,
+        "eta_max": 2.5,
+        "id": "tight",
+        "dr_fatjets": 0.0,
+        "dr_leptons": 0.4,
+    }
+
     ak4_bjet_lepton_selection = {  # noqa: RUF012
         "electron_pt": 5,
         "muon_pt": 7,
@@ -207,6 +215,53 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
+                ],
+            },
+            # TODO: add semiboosted HLT
+            "semiboosted": {
+                "2018": [
+                    "PFJet500",
+                    "AK8PFJet500",
+                    "AK8PFJet360_TrimMass30",
+                    "AK8PFJet380_TrimMass30",
+                    "AK8PFJet400_TrimMass30",
+                    "AK8PFHT750_TrimMass50",
+                    "AK8PFHT800_TrimMass50",
+                    "PFHT1050",
+                ],
+                "2022": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                    # resolved
+                    "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
+                ],
+                "2022EE": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet425_SoftDropMass40",
+                    # resolved
+                    "QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65",
+                ],
+                "2023": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet420_MassSD30",
+                    # resolved
+                    "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
+                ],
+                "2023BPix": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet420_MassSD30",
+                    # resolved
+                    "PFHT280_QuadPFJet30_PNet2BTagMean0p55",
                 ],
             },
             "semilep-tt": {
@@ -281,6 +336,11 @@ class bbbbSkimmer(SkimmerABC):
         - >=2 AK8 jets with mSD>60 or mReg>60
         - >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
         - 0 veto leptons
+        semiboosted region:
+        - boosted and resolved HLT OR for both data and MC
+        - >=1 AK8 jet
+        - >=1 AK8 jet with pT>250
+        - >=1 AK8 Jet with mSD>60 or mReg>60
         semilep-tt region:
         - HLT OR for both data and MC
         - >=1 "good" isolated lepton with pT>50
@@ -384,7 +444,10 @@ class bbbbSkimmer(SkimmerABC):
             met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
-        jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
+        if self._region == "semiboosted":
+            jets_sel = (jets.pt > 30) & (abs(jets.eta) < 2.5) & (jets.isTight)
+        else:
+            jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
         if not is_run3:
             jets_sel = jets_sel & ((jets.pt >= 50) | (jets.puId >= 6))
 
@@ -445,14 +508,24 @@ class bbbbSkimmer(SkimmerABC):
         )
 
         # AK4 objects away from first two fatjets
-        ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
-            jets,
-            fatjets_xbb[:, :2],
-            events,
-            **self.ak4_bjet_selection,
-            **self.ak4_bjet_lepton_selection,
-            sort_by="nearest",
-        )
+        if self._region == "semiboosted":
+            ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
+                jets,
+                fatjets_xbb[:, :2],
+                events,
+                **self.semi_boosted_ak4jets_selection,
+                **self.ak4_bjet_lepton_selection,
+                sort_by="nearest",
+            )
+        else:
+            ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
+                jets,
+                fatjets_xbb[:, :2],
+                events,
+                **self.ak4_bjet_selection,
+                **self.ak4_bjet_lepton_selection,
+                sort_by="nearest",
+            )
 
         # JMSR
         jmsr_vars = (
@@ -481,7 +554,7 @@ class bbbbSkimmer(SkimmerABC):
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
-        if self._region == "signal":
+        if self._region == "signal" or self._region == "semiboosted":
             genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
 
         # used for normalization to cross section below
@@ -808,6 +881,30 @@ class bbbbSkimmer(SkimmerABC):
                     >= 1
                 )
                 add_selection("ak8bb_txbb0", cut_txbb, *selection_args)
+
+            # VBF veto cut (not now)
+            # add_selection("vbf_veto", ~(cut_vbf), *selection_args)
+
+        elif self._region == "semiboosted":
+            # >= two AK8 jet, selection is same with boosted
+            # as skimmer selection is generally looser than AN selection
+            # more differences from boosted can be implemented in the postprocessors
+            add_selection("ak8_numjets", (ak.num(fatjets) >= 1), *selection_args)
+
+            # AK4 jet noise filter, jet veto map, 2 ak4 jet pT > 30,  eta<2.5, tight ID
+            add_selection("ak4_numjets", (ak.num(jets) >= 2), *selection_args)
+
+            # >= two AK4 jets pass loose WP (Run3Summer22)
+            add_selection(
+                "ak4jet_btag", (ak.sum(jets.btagDeepFlavB >= 0.0583, axis=1) >= 2), *selection_args
+            )
+
+            # 0 veto leptons
+            add_selection(
+                "0lep",
+                (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
+                *selection_args,
+            )
 
         elif self._region == "semilep-tt":
             # >=1 "good" isolated lepton with pT>50
