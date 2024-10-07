@@ -73,12 +73,12 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
         year: {
             "qcd": [
                 "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
+                # "QCD_HT-1200to1500",
+                # "QCD_HT-1500to2000",
+                # "QCD_HT-2000",
+                # "QCD_HT-400to600",
+                # "QCD_HT-600to800",
+                # "QCD_HT-800to1000",
             ],
             "ttbar": [
                 "TTto4Q",
@@ -244,7 +244,7 @@ def get_roc_inputs(
 ):
     sig_key = "hh4b"
     bg_keys = ["qcd"]
-    discriminator = f"{discriminator_name}"  # f"{jet_collection}{discriminator_name}"
+    discriminator = f"{discriminator_name}"
 
     # 1 for signal, 0 for background
     y_true = np.concatenate(
@@ -255,8 +255,8 @@ def get_roc_inputs(
     )
     # weights
     weights = np.concatenate(
-        [events_dict[sig_key]["finalWeight"]]  # subst finalWeight->weight
-        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],  # subst finalWeight->weight
+        [events_dict[sig_key]["finalWeight"]]
+        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],
     )
     # discriminator
     # print(events_dict[sig_key][discriminator])
