@@ -81,6 +81,8 @@ pip install -e .
 # for committing to the repository
 pip install pre-commit
 pre-commit install
+# install requirements
+pip3 install -r requirements.txt
 ```
 
 ### Troubleshooting
@@ -101,18 +103,10 @@ python3 -m pip install -e .
 For submitting to condor, all you need is python >= 3.7.
 
 For running locally, follow the same virtual environment setup instructions
-above and install `coffea`
+above
 
 ```bash
 micromamba activate hh4b
-pip install coffea
-```
-
-Clone the repository:
-
-```
-git clone https://github.com/LPC-HH/HH4b/
-pip install -e .
 ```
 
 ### Running locally
@@ -191,15 +185,6 @@ python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/sk
 ```
 
 ## Postprocessing
-
-### Setup
-
-Make sure to install the package (#installing-package) and install all the
-requirements in your conda environment:
-
-```bash
-pip3 install -r requirements.txt
-```
 
 ## Condor Scripts
 
