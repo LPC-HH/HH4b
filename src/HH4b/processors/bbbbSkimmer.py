@@ -80,6 +80,11 @@ class bbbbSkimmer(SkimmerABC):
         "Jet": {
             **P4,
             "rawFactor": "rawFactor",
+	    "btagDeepFlavB": "btagDeepFlavB",
+            "btagPNetB": "btagPNetB",
+	    "btagPNetCvB": "btagPNetCvB",
+            "btagPNetCvL": "btagPNetCvL",
+            "btagPNetQvG": "btagPNetQvG",
         },
         "Lepton": {
             **P4,
@@ -364,6 +369,53 @@ class bbbbSkimmer(SkimmerABC):
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
         )
 
+        # JMSR
+        self.jmsr_vars = ["msoftdrop", "particleNet_mass"]
+        if self._nano_version == "v12v2_private":
+            self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
+        if self._nano_version == "v12_private":
+            self.jmsr_vars += ["particleNet_mass_legacy"]
+            
+        # FatJet Vars
+        if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
+            extra_vars = [
+		        "TXbb",
+                "PXbb",
+                "PQCD",
+                "PQCDb",
+                "PQCDbb",
+		        "PQCD0HF",
+	            "PQCD1HF",
+                "PQCD2HF",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                "particleNet_mass_legacy": "PNetMassLegacy",
+                **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
+            }
+        if self._nano_version == "v12_private" or self._nano_version == "v12":
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+		        "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
+	        }
+        if self._nano_version == "v12v2_private":
+            extra_vars = [
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+	            "ParTmassVis",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                **{var: var for var in extra_vars}
+            }
+            
         logger.info(f"Running skimmer with systematics {self._systematics}")
 
     @property
@@ -528,13 +580,25 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        jmsr_vars = (
-            ["msoftdrop", "particleNet_mass_legacy"]
-            if self._nano_version == "v12_private"
-            else ["msoftdrop", "particleNet_mass"]
-        )
-        jmsr_shifted_vars = get_jmsr(fatjets_xbb, 2, year, isData, jmsr_vars=jmsr_vars)
-
+        if self._region == "semilep-tt":
+            # save variations with 10\%
+            jmsr_shifted_vars = get_jmsr(
+                fatjets, 3, year,
+                jmsr_vars = self.jmsr_vars,
+                jms_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jmr_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                isData = isData
+            )
+        if self._region == "signal":
+            # TODO: add variations per variable
+            bb_jmsr_shifted_vars = get_jmsr(
+                fatjets_xbb, 2, year,
+                jmsr_vars = self.jmsr_vars,
+                jms_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jmr_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                isData = isData,
+            )
+            
         #########################
         # Save / derive variables
         #########################
@@ -567,15 +631,6 @@ class bbbbSkimmer(SkimmerABC):
 
         # AK4 Jet variables
         jet_skimvars = self.skim_vars["Jet"]
-        if "v12" in self._nano_version:
-            jet_skimvars = {
-                **jet_skimvars,
-                "btagDeepFlavB": "btagDeepFlavB",
-                "btagPNetB": "btagPNetB",
-                "btagPNetCvB": "btagPNetCvB",
-                "btagPNetCvL": "btagPNetCvL",
-                "btagPNetQvG": "btagPNetQvG",
-            }
         if not isData:
             jet_skimvars = {
                 **jet_skimvars,
@@ -611,42 +666,6 @@ class bbbbSkimmer(SkimmerABC):
                 **fatjet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
             }
-        if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
-            extra_vars = [
-                "TXbb",
-                "PXbb",
-                "PQCD",
-                "PQCDb",
-                "PQCDbb",
-                "PQCD0HF",
-                "PQCD1HF",
-                "PQCD2HF",
-            ]
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                "particleNet_mass_legacy": "PNetMassLegacy",
-                **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
-            }
-        if self._nano_version == "v12_private" or self._nano_version == "v12":
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
-            }
-        if self._nano_version == "v12v2_private":
-            extra_vars = [
-                "ParTPQCD1HF",
-                "ParTPQCD0HF",
-                "ParTPQCD2HF",
-                "ParTPTopW",
-                "ParTPTopbW",
-                "ParTPXbb",
-                "ParTPXqq",
-                "ParTTXbb",
-                "ParTmassRes",
-                "ParTmassVis",
-            ]
-            fatjet_skimvars = {**fatjet_skimvars, **{var: var for var in extra_vars}}
-
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
             for (var, key) in fatjet_skimvars.items()
@@ -674,12 +693,22 @@ class bbbbSkimmer(SkimmerABC):
                         bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, 2, axis=1)
 
             # FatJet JMSR
-            for var in jmsr_vars:
+            for var in self.jmsr_vars:
                 key = fatjet_skimvars[var]
-                for shift, vals in jmsr_shifted_vars[var].items():
+                bbFatJetVars[f"bbFatJet{key}_raw"] = bbFatJetVars[f"bbFatJet{key}"]
+                for shift, vals in bb_jmsr_shifted_vars[var].items():
                     # overwrite saved mass vars with corrected ones
                     label = "" if shift == "" else "_" + shift
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
+        if self._region == "semilep-tt":
+            # FatJet JMSR
+            for var in self.jmsr_vars:
+                key = fatjet_skimvars[var]
+                ak8FatJetVars[f"ak8FatJet{key}_raw"] = ak8FatJetVars[f"ak8FatJet{key}"]
+                for shift, vals in jmsr_shifted_vars[var].items():
+                    # overwrite saved mass vars with corrected ones
+                    label = "" if shift == "" else "_" + shift
+                    ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
 
         # Event variables
         met_pt = met.pt
