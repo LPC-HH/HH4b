@@ -80,9 +80,9 @@ class bbbbSkimmer(SkimmerABC):
         "Jet": {
             **P4,
             "rawFactor": "rawFactor",
-	    "btagDeepFlavB": "btagDeepFlavB",
+            "btagDeepFlavB": "btagDeepFlavB",
             "btagPNetB": "btagPNetB",
-	    "btagPNetCvB": "btagPNetCvB",
+            "btagPNetCvB": "btagPNetCvB",
             "btagPNetCvL": "btagPNetCvL",
             "btagPNetQvG": "btagPNetQvG",
         },
@@ -375,17 +375,17 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-            
+
         # FatJet Vars
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
             extra_vars = [
-		        "TXbb",
+                "TXbb",
                 "PXbb",
                 "PQCD",
                 "PQCDb",
                 "PQCDbb",
-		        "PQCD0HF",
-	            "PQCD1HF",
+                "PQCD0HF",
+                "PQCD1HF",
                 "PQCD2HF",
             ]
             self.skim_vars["FatJet"] = {
@@ -396,8 +396,8 @@ class bbbbSkimmer(SkimmerABC):
         if self._nano_version == "v12_private" or self._nano_version == "v12":
             self.skim_vars["FatJet"] = {
                 **self.skim_vars["FatJet"],
-		        "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
-	        }
+                "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
+            }
         if self._nano_version == "v12v2_private":
             extra_vars = [
                 "ParTPQCD1HF",
@@ -409,13 +409,13 @@ class bbbbSkimmer(SkimmerABC):
                 "ParTPXqq",
                 "ParTTXbb",
                 "ParTmassRes",
-	            "ParTmassVis",
+                "ParTmassVis",
             ]
             self.skim_vars["FatJet"] = {
                 **self.skim_vars["FatJet"],
-                **{var: var for var in extra_vars}
+                **{var: var for var in extra_vars},
             }
-            
+
         logger.info(f"Running skimmer with systematics {self._systematics}")
 
     @property
@@ -583,22 +583,26 @@ class bbbbSkimmer(SkimmerABC):
         if self._region == "semilep-tt":
             # save variations with 10\%
             jmsr_shifted_vars = get_jmsr(
-                fatjets, 3, year,
-                jmsr_vars = self.jmsr_vars,
-                jms_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                isData = isData
+                fatjets,
+                3,
+                year,
+                jmsr_vars=self.jmsr_vars,
+                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                isData=isData,
             )
         if self._region == "signal":
             # TODO: add variations per variable
             bb_jmsr_shifted_vars = get_jmsr(
-                fatjets_xbb, 2, year,
-                jmsr_vars = self.jmsr_vars,
-                jms_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values = {key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                isData = isData,
+                fatjets_xbb,
+                2,
+                year,
+                jmsr_vars=self.jmsr_vars,
+                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                isData=isData,
             )
-            
+
         #########################
         # Save / derive variables
         #########################
