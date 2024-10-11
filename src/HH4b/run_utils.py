@@ -136,14 +136,6 @@ def get_processor(
     txbb: str | None = None,
 ):
     # define processor
-    if processor == "matching":
-        from HH4b.processors import matchingSkimmer
-
-        print(apply_selection)
-        return matchingSkimmer(
-            xsecs=xsecs, apply_selection=apply_selection, nano_version=nano_version
-        )
-
     if processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
@@ -165,11 +157,6 @@ def get_processor(
             nano_version=nano_version,
         )
 
-    if processor == "vpt":
-        from HH4b.processors import vptProc
-
-        return vptProc()
-
 
 def parse_common_args(parser):
     parser.add_argument(
@@ -177,7 +164,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching", "ttSkimmer", "vpt"],
+        choices=["skimmer", "ttSkimmer"],
     )
 
     parser.add_argument(
