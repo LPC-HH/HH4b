@@ -54,13 +54,15 @@ gen_selection_dict = {
     "HHto4B": gen_selection_HHbbbb,
     "HToBB": gen_selection_Hbb,
     "Hto2B": gen_selection_Hbb,
-    "TTto4Q": gen_selection_Top,
     "Wto2Q-": gen_selection_V,
     "Zto2Q-": gen_selection_V,
     "WtoLNu-": gen_selection_V,
     "DYto2L-": gen_selection_V,
     "ZZ": gen_selection_VV,
     "ZH": gen_selection_VV,
+    "TTto4Q": gen_selection_Top,
+    "TTto2L2Nu": gen_selection_Top,
+    "TTtoLNu2Q": gen_selection_Top,
 }
 
 logger = logging.getLogger(__name__)
@@ -393,11 +395,6 @@ class bbbbSkimmer(SkimmerABC):
                 "particleNet_mass_legacy": "PNetMassLegacy",
                 **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
             }
-        if self._nano_version == "v12_private" or self._nano_version == "v12":
-            self.skim_vars["FatJet"] = {
-                **self.skim_vars["FatJet"],
-                "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
-            }
         if self._nano_version == "v12v2_private":
             extra_vars = [
                 "ParTPQCD1HF",
@@ -585,7 +582,6 @@ class bbbbSkimmer(SkimmerABC):
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
-                year,
                 jmsr_vars=self.jmsr_vars,
                 jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
                 jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},

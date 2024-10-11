@@ -144,26 +144,23 @@ class ttSkimmer(SkimmerABC):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
-	self._nano_version = nano_version
+        self._nano_version = nano_version
 
         # HLT selection
-        HLTs = {
-            "signal": {
-                "2022EE": [
-                    "Mu50",
-                ],
-                "2022": [
-                    "Mu50",
-                ],
-                "2023": [
-                    "Mu50",
-                ],
-                "2023BPix": [
-                    "Mu50",
-                ],
-            },
+        self.HLTs = {
+            "2022EE": [
+                "Mu50",
+            ],
+            "2022": [
+                "Mu50",
+            ],
+            "2023": [
+                "Mu50",
+            ],
+            "2023BPix": [
+                "Mu50",
+            ],
         }
-        self.HLTs = HLTs[region]
 
         self.met_filters = [
             "goodVertices",
@@ -201,11 +198,6 @@ class ttSkimmer(SkimmerABC):
                 **self.skim_vars["FatJet"],
                 "particleNet_mass_legacy": "PNetMassLegacy",
                 **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
-            }
-        if self._nano_version == "v12_private" or self._nano_version == "v12":
-            self.skim_vars["FatJet"] = {
-                **self.skim_vars["FatJet"],
-                "particleNetTvsQCD": "particleNetWithMass_TvsQCD",
             }
         if self._nano_version == "v12v2_private":
             extra_vars = [
@@ -294,7 +286,6 @@ class ttSkimmer(SkimmerABC):
         jmsr_shifted_vars = get_jmsr(
             fatjets,
             num_fatjets,
-            year,
             jmsr_vars=self.jmsr_vars,
             jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
             jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
