@@ -349,29 +349,23 @@ def get_jmsr(
 
     for mkey in jmsr_vars:
         tdict = {}
-        
+
         mass = pad_val(fatjets[mkey], num_jets, axis=1)
         jms = jms_values[mkey]
         jmr = jmr_values[mkey]
-        
+
         if isData:
             tdict[""] = mass
         else:
             rng = np.random.default_rng(seed)
             smearing = rng.normal(size=mass.shape)
             # scale to JMR nom, down, up (minimum at 0)
-            jmr_nom, jmr_down, jmr_up = (
-                (smearing * max(jmr[i] - 1, 0) + 1) for i in range(3)
-            )
+            jmr_nom, jmr_down, jmr_up = ((smearing * max(jmr[i] - 1, 0) + 1) for i in range(3))
             jms_nom, jms_down, jms_up = jms
-            
+
             corr_mass_JMRUp = random.gauss(0.0, jmr[2] - 1.0)
-            corr_mass = (
-                max(jmr[0] - 1.0, 0.0)
-                / (jmr[2] - 1.0)
-                * corr_mass_JMRUp
-            )
-        
+            corr_mass = max(jmr[0] - 1.0, 0.0) / (jmr[2] - 1.0) * corr_mass_JMRUp
+
             mass_jms = mass * jms_nom
             mass_jmr = mass * jmr_nom
 
