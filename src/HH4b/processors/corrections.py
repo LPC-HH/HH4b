@@ -337,7 +337,6 @@ class JECs:
 def get_jmsr(
     fatjets: FatJetArray,
     num_jets: int,
-    year: str,
     jmsr_vars: list[str],
     jms_values: dict,
     jmr_values: dict,
