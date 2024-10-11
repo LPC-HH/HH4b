@@ -580,17 +580,6 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        if self._region == "semilep-tt":
-            # save variations with 10\%
-            jmsr_shifted_vars = get_jmsr(
-                fatjets,
-                3,
-                year,
-                jmsr_vars=self.jmsr_vars,
-                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                isData=isData,
-            )
         if self._region == "signal":
             # TODO: add variations per variable
             bb_jmsr_shifted_vars = get_jmsr(
@@ -704,15 +693,6 @@ class bbbbSkimmer(SkimmerABC):
                     # overwrite saved mass vars with corrected ones
                     label = "" if shift == "" else "_" + shift
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
-        if self._region == "semilep-tt":
-            # FatJet JMSR
-            for var in self.jmsr_vars:
-                key = fatjet_skimvars[var]
-                ak8FatJetVars[f"ak8FatJet{key}_raw"] = ak8FatJetVars[f"ak8FatJet{key}"]
-                for shift, vals in jmsr_shifted_vars[var].items():
-                    # overwrite saved mass vars with corrected ones
-                    label = "" if shift == "" else "_" + shift
-                    ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
 
         # Event variables
         met_pt = met.pt
