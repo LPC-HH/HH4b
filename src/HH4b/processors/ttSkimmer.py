@@ -131,11 +131,11 @@ class ttSkimmer(SkimmerABC):
 
     num_jets = 1
 
-    jecs = { # noqa: RUF012 
+    jecs = {  # noqa: RUF012
         "JES": "JES",
         "JER": "JER",
     }
-    
+
     def __init__(
         self,
         xsecs=None,
@@ -171,7 +171,6 @@ class ttSkimmer(SkimmerABC):
             "eeBadScFilter",
             "hfNoisyHitsFilt",
         ]
-
 
         self._accumulator = processor.dict_accumulator({})
 
@@ -291,7 +290,7 @@ class ttSkimmer(SkimmerABC):
             jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
             isData=isData,
         )
-        
+
         print("Object definition", f"{time.time() - start:.2f}")
 
         #########################
@@ -324,7 +323,7 @@ class ttSkimmer(SkimmerABC):
             for (var, key) in fatjet_skimvars.items()
         }
 
-        for var in jmsr_vars:
+        for var in self.jmsr_vars:
             key = fatjet_skimvars[var]
             ak8FatJetVars[f"ak8FatJet{key}_raw"] = ak8FatJetVars[f"ak8FatJet{key}"]
             for shift, vals in jmsr_shifted_vars[var].items():
@@ -366,7 +365,7 @@ class ttSkimmer(SkimmerABC):
         #########################
         add_selection("npvsGood", events.PV.npvsGood >= 1, *selection_args)
 
-        # muon 
+        # muon
         muon_selector = (
             (muon[f"{self.muon_selection['Id']}Id"])
             * (muon.pt > self.muon_selection["pt"])
