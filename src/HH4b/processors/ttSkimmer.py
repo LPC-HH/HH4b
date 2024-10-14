@@ -229,7 +229,7 @@ class ttSkimmer(SkimmerABC):
 
         year = events.metadata["dataset"].split("_")[0]
         is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
-        assert is_run3 # run2 not implemented yet
+        assert is_run3  # run2 not implemented yet
 
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
