@@ -187,7 +187,6 @@ def main(args):
         args.processor,
         args.save_systematics,
         args.region,
-        args.apply_selection,
         args.nano_version,
         args.txbb,
     )

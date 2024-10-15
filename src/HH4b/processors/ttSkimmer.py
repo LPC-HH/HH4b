@@ -16,7 +16,6 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import HH4b
 
-from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
@@ -62,15 +61,14 @@ class ttSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
-            "Txbb": "PNetTXbb",
+            "Txbb": "PNetTXbb",  # these are discriminants
             "Txjj": "PNetTXjj",
-            "Tqcd": "PNetQCD",
-            "PQCDb": "PNetQCD1HF",
-            "PQCDbb": "PNetQCD2HF",
-            "PQCDothers": "PNetQCD0HF",
+            "Tqcd": "PNetTQCD",
+            "PQCD1HF": "PNetQCD1HF",  # these are raw probabilities
+            "PQCD2HF": "PNetQCD2HF",
+            "PQCD0HF": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
-            "t21": "Tau2OverTau1",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
         },
@@ -303,7 +301,9 @@ class ttSkimmer(SkimmerABC):
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets, selection_args, P4)
+                vars_dict = gen_selection_dict[d](
+                    events, ak4_jets, fatjets, selection_args, P4, "ak8FatJet"
+                )
                 genVars = {**genVars, **vars_dict}
 
         # used for normalization to cross section below
@@ -549,30 +549,9 @@ class ttSkimmer(SkimmerABC):
         weight_np = weights.partial_weight(include=norm_preserving_weights)
         totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
 
-        if self._systematics:
-            for systematic in list(weights.variations):
-                weights_dict[f"weight_{systematic}"] = weights.weight(modifier=systematic)
-
-                if utils.remove_variation_suffix(systematic) in norm_preserving_weights:
-                    var_weight = weights.partial_weight(include=norm_preserving_weights)
-                    # modify manually
-                    if "Down" in systematic and systematic not in weights._modifiers:
-                        var_weight = (
-                            var_weight / weights._modifiers[systematic.replace("Down", "Up")]
-                        )
-                    else:
-                        var_weight = var_weight * weights._modifiers[systematic]
-
-                    # var_weight = weights.partial_weight(
-                    #    include=norm_preserving_weights, modifier=systematic
-                    # )
-
-                    # need to save total # events for each variation for normalization in post-processing
-                    totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
-
-            # TEMP: save each individual weight TODO: remove
-            for key in weights._weights:
-                weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
+        # TEMP: save each individual weight TODO: remove
+        for key in weights._weights:
+            weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
 
