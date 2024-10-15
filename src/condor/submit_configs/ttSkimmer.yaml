@@ -39,7 +39,6 @@
         "QCD": {
             "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600",
             "QCD_HT-2000", "QCD_HT-1500to2000", "QCD_HT-1200to1500", "QCD_HT-600to800", "QCD_HT-800to1000",
-            "QCD_PT-120to170_MuEnrichedPt5", "QCD_PT-170to300_MuEnrichedPt5", "QCD_PT-300to470_MuEnrichedPt5", "QCD_PT-470to600_MuEnrichedPt5", "QCD_PT-600to800_MuEnrichedPt5", "QCD_PT-1000_MuEnrichedPt5"
             ],
             "files_per_job": 20},
     },
