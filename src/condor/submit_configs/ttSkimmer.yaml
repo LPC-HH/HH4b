@@ -58,7 +58,7 @@
         "VJets": {"subsamples": [
             "WtoLNu-2Jets_0J", "WtoLNu-2Jets_1J", "WtoLNu-2Jets_2J",
             "DYto2L-2Jets_MLL-50_0J", "DYto2L-2Jets_MLL-50_1J", "DYto2L-2Jets_MLL-50_2J"
-        ], "files_per_job": 15},        
+        ], "files_per_job": 15},
         "QCD": {
             "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600",
             "QCD_HT-2000", "QCD_HT-1500to2000", "QCD_HT-1200to1500", "QCD_HT-600to800", "QCD_HT-800to1000"],
@@ -77,7 +77,7 @@
         "VJets": {"subsamples": [
             "WtoLNu-2Jets_0J", "WtoLNu-2Jets_1J", "WtoLNu-2Jets_2J",
             "DYto2L-2Jets_MLL-50_0J", "DYto2L-2Jets_MLL-50_1J", "DYto2L-2Jets_MLL-50_2J"
-        ], "files_per_job": 15},        
+        ], "files_per_job": 15},
         "QCD": {
             "subsamples": ["QCD_HT-1000to1200", "QCD_HT-200to400", "QCD_HT-400to600",
             "QCD_HT-2000", "QCD_HT-1500to2000", "QCD_HT-1200to1500", "QCD_HT-600to800", "QCD_HT-800to1000"],
