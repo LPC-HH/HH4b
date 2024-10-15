@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import logging
+import logging.config
 import pprint
 from collections import OrderedDict
 from pathlib import Path
@@ -26,6 +28,7 @@ from HH4b.hh_vars import (
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
+from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -34,6 +37,10 @@ from HH4b.postprocessing import (
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
+
+log_config["root"]["level"] = "INFO"
+logging.config.dictConfig(log_config)
+logger = logging.getLogger(__name__)
 
 # get top-level HH4b directory
 HH4B_DIR = Path(__file__).resolve().parents[3]
@@ -114,7 +121,7 @@ def get_bdt_training_keys(bdt_model: str):
         if child.suffix == ".npy":
             training_keys.append(child.stem.split("evt_")[-1])
 
-    print("Found BDT Training keys", training_keys)
+    logger.info(f"Found BDT Training keys {training_keys}")
     return training_keys
 
 
@@ -358,17 +365,20 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
-        print(f"load samples {key}")
+        logger.info(f"Load samples {key}")
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             year,
-            args.legacy,
             samples_to_process,
             reorder_txbb=True,
-            txbb=f"bbFatJetPNetTXbb{legacy_label}",
+            txbb_str=args.txbb_str,
+            load_systematics=True,
+            txbb_version=args.txbb,
+            scale_and_smear=True,
+            mass_str=args.mass_str,
         )[key]
 
         # inference and assign score
@@ -377,9 +387,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             jshifts += hh_vars.jec_shifts
         if key in hh_vars.jmsr_keys:
             jshifts += hh_vars.jmsr_shifts
-        print("JEC shifts ", jshifts)
+        logger.info(f"JEC shifts {jshifts}")
 
-        print("perform inference")
+        logger.info("Perform inference")
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
@@ -485,7 +495,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             evt_list = np.load(inferences_dir / f"evt_{key}.npy")
             events_to_keep = bdt_events["event"].isin(evt_list)
             fraction = np.sum(events_to_keep.to_numpy() == 1) / bdt_events["event"].shape[0]
-            print(f"Keep {fraction}% of {key} for year {year}")
+            logger.info(f"Keep {fraction}% of {key} for year {year}")
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
@@ -682,7 +692,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         for jshift in jshifts:
-            print(f"Inference and selection for jshift {jshift}")
+            logger.info(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
             h2pt = check_get_jec_var("H2Pt", jshift)
             h1msd = check_get_jec_var("H1Msd", jshift)
@@ -853,7 +863,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # blind!!
         if key == "data":
             # get sideband estimate instead
-            print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            logger.info(f"Data cutflow in {mass_str} is taken from sideband estimate!")
             cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
                 bdt_events, mask_vbf, args.mass, mass_window
             )
@@ -879,8 +889,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             for key in events_dict_postprocess
         ]
 
-    print("\nCutflow")
-    print(cutflow)
+    logger.info(f"\nCutflow {cutflow}")
     return events_dict_postprocess, cutflow
 
 

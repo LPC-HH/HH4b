@@ -44,8 +44,12 @@ def gen_selection_HHbbbb_simplified(
     fatjets: FatJetArray,  # noqa: ARG001
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str,  # noqa: ARG001
 ):
-    """Simplified gen selection"""
+    """
+    Save GenVars for HH(4b) events
+    Does not make use of fatjet or jet matching
+    """
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
     ]
@@ -64,8 +68,16 @@ def gen_selection_HHbbbb(
     fatjets: FatJetArray,
     selection_args: list,
     skim_vars: dict,
+    fatjet_str: str,
 ):
-    """Gets HH, bb 4-vectors"""
+    """
+    Gets HH, bb 4-vectors, and matches to AK4 jets and AK8 jets
+    """
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
     # finding the two gen higgs
     higgs = events.GenPart[
         (abs(events.GenPart.pdgId) == HIGGS_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
@@ -134,8 +146,8 @@ def gen_selection_HHbbbb(
     fatjets["MaxdRH2"] = ak.max(fatjets.metric_table(b_h2), axis=2)
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -146,7 +158,7 @@ def gen_selection_HHbbbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **bbFatJetVars}
+    return {**GenHiggsVars, **GenbVars, **ak4JetVars, **FatJetVars}
 
 
 def gen_selection_Hbb(
@@ -155,8 +167,13 @@ def gen_selection_Hbb(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str,
 ):
     """Gets H, bb, 4-vectors + Higgs children information"""
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # finding the two gen higgs
     higgs = events.GenPart[
@@ -187,8 +204,8 @@ def gen_selection_Hbb(
     fatjets["NumBMatchedH2"] = ak.sum(fatjets.metric_table(b_h2) < 0.8, axis=2)
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "HiggsMatch",
             "HiggsMatchIndex",
@@ -197,7 +214,7 @@ def gen_selection_Hbb(
         ]
     }
 
-    return {**GenHiggsVars, **GenbVars, **bbFatJetVars}
+    return {**GenHiggsVars, **GenbVars, **FatJetVars}
 
 
 def gen_selection_Top(
@@ -206,8 +223,13 @@ def gen_selection_Top(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str,
 ):
     """Get Hadronic Top and children information"""
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
 
     # finding tops
     tops = events.GenPart[
@@ -260,8 +282,8 @@ def gen_selection_Top(
     fatjets["NumQMatchedTop2"] = numtop2
 
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "TopMatch",
             "TopMatchIndex",
@@ -272,7 +294,7 @@ def gen_selection_Top(
         ]
     }
 
-    return {**GenTopVars, **bbFatJetVars}
+    return {**GenTopVars, **FatJetVars}
 
 
 def gen_selection_V(
@@ -281,25 +303,118 @@ def gen_selection_V(
     fatjets: FatJetArray,
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
+    fatjet_str: str,
 ):
     """Get W/Z and children information"""
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
+    # get V boson
     vs = events.GenPart[
         ((abs(events.GenPart.pdgId) == W_PDGID) | (abs(events.GenPart.pdgId) == Z_PDGID))
         * events.GenPart.hasFlags(GEN_FLAGS)
     ]
-    GenVVars = {f"GenV{key}": vs[var].to_numpy() for (var, key) in skim_vars.items()}
+    GenVVars = {f"GenV{key}": pad_val(vs[var], 1, axis=1) for (var, key) in skim_vars.items()}
 
+    # get V daughters
+    daughters = vs.children
+    daughter0_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 0]))
+    daughter1_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 1]))
+    GenVVars["GenVBB"] = ((daughter0_pdgId == b_PDGID) & (daughter1_pdgId == b_PDGID)).to_numpy()
+    GenVVars["GenVCC"] = ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == c_PDGID)).to_numpy()
+    GenVVars["GenVCS"] = (
+        ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == s_PDGID))
+        | ((daughter1_pdgId == c_PDGID) & (daughter0_pdgId == s_PDGID))
+    ).to_numpy()
+
+    # match V to fatjet
     matched_to_v = fatjets.metric_table(vs) < 0.8
     is_fatjet_matched = ak.any(matched_to_v, axis=2)
-
     fatjets["VMatch"] = is_fatjet_matched
-
+    fatjets["VMatchIndex"] = ak.mask(
+        ak.argmin(fatjets.metric_table(vs), axis=2), fatjets["VMatch"] == 1
+    )
     num_fatjets = 2
-    bbFatJetVars = {
-        f"bbFatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+    FatJetVars = {
+        f"{fatjet_str}FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "VMatch",
+            "VMatchIndex",
         ]
     }
 
-    return {**GenVVars, **bbFatJetVars}
+    return {**GenVVars, **FatJetVars}
+
+
+def gen_selection_VV(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list,  # noqa: ARG001
+    skim_vars: dict,
+    fatjet_str: str,
+):
+    """Get W/Z and children information"""
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
+    # get V boson or Higgs boson
+    vs = events.GenPart[
+        (
+            (abs(events.GenPart.pdgId) == W_PDGID)
+            | (abs(events.GenPart.pdgId) == Z_PDGID)
+            | (abs(events.GenPart.pdgId) == HIGGS_PDGID)
+        )
+        * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    GenVVars = {f"GenV{key}": pad_val(vs[var], 2, axis=1) for (var, key) in skim_vars.items()}
+
+    # get V daughters
+    daughters = vs.children
+
+    v0_daughter0_pdgId = abs(daughters.pdgId[:, 0, 0])
+    v0_daughter1_pdgId = abs(daughters.pdgId[:, 0, 1])
+    v1_daughter0_pdgId = abs(daughters.pdgId[:, 1, 0])
+    v1_daughter1_pdgId = abs(daughters.pdgId[:, 1, 1])
+    GenVVars["GenV1BB"] = (
+        (v0_daughter0_pdgId == b_PDGID) & (v0_daughter1_pdgId == b_PDGID)
+    ).to_numpy()
+    GenVVars["GenV1CC"] = (
+        (v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == c_PDGID)
+    ).to_numpy()
+    GenVVars["GenV1CS"] = (
+        ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+        | ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+    ).to_numpy()
+    GenVVars["GenV2BB"] = (
+        (v1_daughter0_pdgId == b_PDGID) & (v1_daughter1_pdgId == b_PDGID)
+    ).to_numpy()
+    GenVVars["GenV2CC"] = (
+        (v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == c_PDGID)
+    ).to_numpy()
+    GenVVars["GenV2CS"] = (
+        ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
+        | ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
+    ).to_numpy()
+
+    # match V to fatjet
+    matched_to_v = fatjets.metric_table(vs) < 0.8
+    is_fatjet_matched = ak.any(matched_to_v, axis=2)
+    fatjets["VMatch"] = is_fatjet_matched
+    fatjets["VMatchIndex"] = ak.mask(
+        ak.argmin(fatjets.metric_table(vs), axis=2), fatjets["VMatch"] == 1
+    )
+    num_fatjets = 2
+    FatJetVars = {
+        f"{fatjet_str}FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "VMatch",
+            "VMatchIndex",
+        ]
+    }
+
+    return {**GenVVars, **FatJetVars}

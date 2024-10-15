@@ -178,7 +178,7 @@ src/HH4b/postprocessing/**/*.pdf
 src/HH4b/boosted/**/*.png
 src/HH4b/boosted/**/*.pdf
 src/HH4b/boosted/**/*roc_dict.pkl
-
+src/HH4b/boosted/**/*.pkl
 
 running_jobs.txt
 

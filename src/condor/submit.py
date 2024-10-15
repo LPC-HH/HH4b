@@ -46,13 +46,13 @@ def main(args):
         if username == "rkansal":
             proxy = "/home/users/rkansal/x509up_u31735"
         elif username == "dprimosc":
-            proxy = "/home/users/dprimosc/x509up_u150012"
+            proxy = "/tmp/x509up_u150012"  # "/home/users/dprimosc/x509up_u150012"
     else:
         raise ValueError(f"Invalid site {args.site}")
 
     if args.site not in args.save_sites:
         warnings.warn(
-            f"Your local site {args.site} is not in save sites {args.sites}!", stacklevel=1
+            f"Your local sit e {args.site} is not in save sites {args.sites}!", stacklevel=1
         )
 
     t2_prefixes = [t2_redirectors[site] for site in args.save_sites]
@@ -121,11 +121,9 @@ def main(args):
                     "jobnum": j,
                     "nano_version": args.nano_version,
                     "save_root": ("--save-root" if args.save_root else "--no-save-root"),
+                    "txbb": args.txbb,
                     "save_systematics": (
                         "--save-systematics" if args.save_systematics else "--no-save-systematics"
-                    ),
-                    "apply_selection": (
-                        "--apply-selection" if args.apply_selection else "--no-apply-selection"
                     ),
                     "region": f"--region {args.region}" if "skimmer" in args.processor else "",
                 }

@@ -137,13 +137,19 @@ def bregcorr(jets: JetArray):
     )
 
 
-# add extra variables to FatJet collection
 def get_ak8jets(fatjets: FatJetArray):
+    """
+    Add extra variables to FatJet collection (mostly renaming)
+    """
     fatjets["t32"] = ak.nan_to_num(fatjets.tau3 / fatjets.tau2, nan=-1.0)
     fatjets["t21"] = ak.nan_to_num(fatjets.tau2 / fatjets.tau1, nan=-1.0)
+    fatjets["pt_raw"] = (1 - fatjets.rawFactor) * fatjets.pt
 
     fatjets_fields = fatjets.fields
 
+    # ParticleNet and ParT bb tagging
+
+    # discriminators
     if "particleNetMD_Xbb" in fatjets_fields:
         fatjets["Txbb"] = ak.nan_to_num(
             fatjets.particleNetMD_Xbb / (fatjets.particleNetMD_QCD + fatjets.particleNetMD_Xbb),
@@ -171,46 +177,16 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["Txbb"] = fatjets.ParticleNetMD_probXbb / (
             fatjets.ParticleNetMD_probXbb + fatjets["Tqcd"]
         )
-        fatjets["Pxjj"] = (
-            fatjets.ParticleNetMD_probXbb
-            + fatjets.ParticleNetMD_probXcc
-            + fatjets.ParticleNetMD_probXqq
-        )
         fatjets["Txjj"] = fatjets["Pxjj"] / (fatjets["Pxjj"] + fatjets["Tqcd"])
     else:
         fatjets["Txbb"] = fatjets.particleNet_XbbVsQCD
         fatjets["Txjj"] = fatjets.particleNet_XqqVsQCD
         fatjets["Tqcd"] = fatjets.particleNet_QCD
 
-    if "particleNet_mass" not in fatjets_fields:
-        fatjets["particleNet_mass"] = fatjets.mass
+    if "particleNetWithMass_TvsQCD" in fatjets_fields:
+        fatjets["particleNetWithMass_TvsQCD"] = fatjets.particleNetWithMass_TvsQCD
 
-    if "particleNet_massCorr" in fatjets_fields:
-        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
-        fatjets["particleNet_massraw"] = (
-            (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
-        )
-    else:
-        if "particleNet_mass" not in fatjets_fields:
-            fatjets["particleNet_mass"] = fatjets.mass
-            fatjets["particleNet_massraw"] = fatjets.mass
-        else:
-            fatjets["particleNet_massraw"] = fatjets.particleNet_mass
-
-    if "ParticleNetMD_probQCDb" in fatjets_fields:
-        fatjets["PQCDb"] = fatjets.ParticleNetMD_probQCDb
-        fatjets["PQCDbb"] = fatjets.ParticleNetMD_probQCDbb
-        fatjets["PQCDothers"] = fatjets.ParticleNetMD_probQCDothers
-    elif "particleNet_QCD1HF" in fatjets_fields:
-        fatjets["PQCDb"] = fatjets.particleNet_QCD1HF
-        fatjets["PQCDbb"] = fatjets.particleNet_QCD2HF
-        fatjets["PQCDothers"] = fatjets.particleNet_QCD0HF
-    else:
-        # dummy
-        fatjets["PQCDb"] = fatjets.particleNetMD_QCD
-        fatjets["PQCDbb"] = fatjets.particleNetMD_QCD
-        fatjets["PQCDothers"] = fatjets.particleNetMD_QCD
-
+    # "legacy version"
     if "particleNetLegacy_Xbb" in fatjets_fields:
         fatjets["TXbb_legacy"] = fatjets.particleNetLegacy_Xbb / (
             fatjets.particleNetLegacy_Xbb + fatjets.particleNetLegacy_QCD
@@ -222,34 +198,91 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
         fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
         fatjets["PQCDbb_legacy"] = fatjets.particleNetLegacy_QCDbb
-        fatjets["PQCDothers_legacy"] = fatjets.particleNetLegacy_QCDothers
-    else:
-        fatjets["TXbb_legacy"] = fatjets["Txbb"]
+        fatjets["PQCD0HF_legacy"] = fatjets.particleNetLegacy_QCDothers
+        if "particleNetLegacy_QCDc" in fatjets_fields:
+            fatjets["PQCD1HF_legacy"] = (
+                fatjets.particleNetLegacy_QCDb + fatjets.particleNetLegacy_QCDc
+            )
+            fatjets["PQCD2HF_legacy"] = (
+                fatjets.particleNetLegacy_QCDbb + fatjets.particleNetLegacy_QCDcc
+            )
+        else:
+            fatjets["PQCD1HF_legacy"] = fatjets.particleNetLegacy_QCDb
+            fatjets["PQCD2HF_legacy"] = fatjets.particleNetLegacy_QCDbb
 
+    # mass regression
+    fatjets["particleNet_mass"] = fatjets.mass
+    fatjets["particleNet_massraw"] = fatjets.mass
+    if "particleNet_massCorr" in fatjets_fields:
+        fatjets["particleNet_mass"] = fatjets.mass * fatjets.particleNet_massCorr
+        fatjets["particleNet_massraw"] = (
+            (1 - fatjets.rawFactor) * fatjets.mass * fatjets.particleNet_massCorr
+        )
+    if "particleNet_mass" in fatjets_fields:
+        fatjets["particleNet_massraw"] = fatjets.particleNet_mass
+
+    fatjets["particleNet_mass_legacy"] = fatjets["particleNet_mass"]
     if "particleNetLegacy_mass" in fatjets_fields:
         fatjets["particleNet_mass_legacy"] = fatjets.particleNetLegacy_mass
+
+    # individual probabilities
+    if "ParticleNetMD_probQCDb" in fatjets_fields:
+        fatjets["PQCD1HF"] = fatjets.ParticleNetMD_probQCDb
+        fatjets["PQCD2HF"] = fatjets.ParticleNetMD_probQCDbb
+        fatjets["PQCD0HF"] = fatjets.ParticleNetMD_probQCDothers
+    elif "particleNet_QCD1HF" in fatjets_fields:
+        fatjets["PQCD1HF"] = fatjets.particleNet_QCD1HF
+        fatjets["PQCD2HF"] = fatjets.particleNet_QCD2HF
+        fatjets["PQCD0HF"] = fatjets.particleNet_QCD0HF
     else:
-        fatjets["particleNet_mass_legacy"] = fatjets["particleNet_mass"]
+        # dummy
+        fatjets["PQCD1HF"] = fatjets.particleNetMD_QCD
+        fatjets["PQCD2HF"] = fatjets.particleNetMD_QCD
+        fatjets["PQCD0HF"] = fatjets.particleNetMD_QCD
 
-    if "particleNetWithMass_TvsQCD" in fatjets_fields:
-        fatjets["particleNetWithMass_TvsQCD"] = fatjets.particleNetWithMass_TvsQCD
-
-    fatjets["pt_raw"] = (1 - fatjets.rawFactor) * fatjets.pt
+    if "globalParT_Xbb" in fatjets_fields:
+        # P for individual probabilities
+        fatjets["ParTPQCD1HF"] = fatjets.globalParT_QCD1HF
+        fatjets["ParTPQCD2HF"] = fatjets.globalParT_QCD2HF
+        fatjets["ParTPQCD0HF"] = fatjets.globalParT_QCD0HF
+        fatjets["ParTPTopW"] = fatjets.globalParT_TopW
+        fatjets["ParTPTopbW"] = fatjets.globalParT_TopbW
+        fatjets["ParTPTopbWev"] = fatjets.globalParT_TopbWev
+        fatjets["ParTPTopbWmv"] = fatjets.globalParT_TopbWmv
+        fatjets["ParTPTopbWtauhv"] = fatjets.globalParT_TopbWtauhv
+        fatjets["ParTPTopbbWq"] = fatjets.globalParT_TopbWq
+        fatjets["ParTPTopbbWqq"] = fatjets.globalParT_TopbWqq
+        fatjets["ParTPXbb"] = fatjets.globalParT_Xbb
+        fatjets["ParTPXcc"] = fatjets.globalParT_Xcc
+        fatjets["ParTPXcs"] = fatjets.globalParT_Xcs
+        fatjets["ParTPXgg"] = fatjets.globalParT_Xgg
+        fatjets["ParTPXqq"] = fatjets.globalParT_Xqq
+        fatjets["ParTPXtauhtaue"] = fatjets.globalParT_Xtauhtaue
+        fatjets["ParTPXtauhtauh"] = fatjets.globalParT_Xtauhtauh
+        fatjets["ParTPXtauhtaum"] = fatjets.globalParT_Xtauhtaum
+        # T for discriminator
+        fatjets["ParTTXbb"] = fatjets.globalParT_XbbVsQCD
+        # Mass Regression
+        fatjets["ParTmassRes"] = fatjets.globalParT_massRes * fatjets.mass
+        fatjets["ParTmassVis"] = fatjets.globalParT_massVis * fatjets.mass
 
     return fatjets
 
 
 # ak8 jet definition
-def good_ak8jets(fatjets: FatJetArray, pt: float, eta: float, msd: float, mreg: float):
-    fatjets_fields = fatjets.fields
-    legacy = "particleNetLegacy_mass" in fatjets_fields
-    mreg_val = fatjets["particleNet_mass_legacy"] if legacy else fatjets["particleNet_mass"]
-
+def good_ak8jets(
+    fatjets: FatJetArray,
+    pt: float,
+    eta: float,
+    msd: float,
+    mreg: float,
+    mreg_str="particleNet_mass_legacy",
+):
     fatjet_sel = (
         fatjets.isTight
         & (fatjets.pt > pt)
         & (abs(fatjets.eta) < eta)
-        & ((fatjets.msoftdrop > msd) | (mreg_val > mreg))
+        & ((fatjets.msoftdrop > msd) | (fatjets[mreg_str] > mreg))
     )
     return fatjets[fatjet_sel]
 

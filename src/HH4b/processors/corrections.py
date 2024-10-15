@@ -15,14 +15,12 @@ import gzip
 import pathlib
 import pickle
 import random
-from pathlib import Path
 
 import awkward as ak
 import correctionlib
 import numpy as np
 import uproot
 from coffea.analysis_tools import Weights
-from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
@@ -51,78 +49,6 @@ pog_jsons = {
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
-}
-
-# Jet mass scale and Jet mass resolution
-# nominal, down, up
-jmsValues = {}
-jmrValues = {}
-
-# Run3 JMS values (GeV) LEGACY
-# X/80 +/- DX/80
-# 2022: 1.23 +/- 0.40 => 1.015, 0.995, 1.005
-# 2022EE: 1.65 +/- 0.25 => 1.021, 0.997, 1.003
-# 2023: -0.05 +/- 0.25 => 0.999, 0.996, 1.003
-# 2023BPix: -2.01 +/- 0.39 => 0.974, 0.995, 1.005
-
-# Run3 JMR values LEGACY
-# 2022: 1.13 +/- 0.07
-# 2022EE: 1.20 +/- 0.05
-# 2023: 1.20 +/- 0.04
-# 2023BPix: 1.16 +/- 0.07
-
-jmrValues["msoftdrop"] = {
-    "2016": [1.00, 1.0, 1.09],
-    "2017": [1.03, 1.00, 1.07],
-    "2018": [1.065, 1.031, 1.099],
-    "2022": [1.0, 0.9, 1.1],
-    "2022EE": [1.0, 0.9, 1.1],
-    "2023": [1.0, 0.9, 1.1],
-    "2023BPix": [1.0, 0.9, 1.1],
-}
-
-jmsValues["msoftdrop"] = {
-    "2016": [1.00, 0.9906, 1.0094],
-    "2017": [1.0016, 0.978, 0.986],
-    "2018": [0.997, 0.993, 1.001],
-    "2022": [1.0, 0.95, 1.05],
-    "2022EE": [1.0, 0.95, 1.05],
-    "2023": [1.0, 0.95, 1.05],
-    "2023BPix": [1.0, 0.95, 1.05],
-}
-
-jmrValues["particleNet_mass"] = {
-    "2016": [1.028, 1.007, 1.063],
-    "2017": [1.026, 1.009, 1.059],
-    "2018": [1.031, 1.006, 1.075],
-    "2022": [1.0, 0.9, 1.1],
-    "2022EE": [1.0, 0.9, 1.1],
-    "2023": [1.0, 0.9, 1.1],
-    "2023BPix": [1.0, 0.9, 1.1],
-}
-
-jmsValues["particleNet_mass"] = {
-    "2016": [1.00, 0.998, 1.002],
-    "2017": [1.002, 0.996, 1.008],
-    "2018": [0.994, 0.993, 1.001],
-    "2022": [1.0, 0.95, 1.05],
-    "2022EE": [1.0, 0.95, 1.05],
-    "2023": [1.0, 0.95, 1.05],
-    "2023BPix": [1.0, 0.95, 1.05],
-}
-
-jmrValues["particleNet_mass_legacy"] = {
-    "2022": [1.0, 0.9, 1.1],
-    "2022EE": [1.0, 0.9, 1.1],
-    "2023": [1.0, 0.9, 1.1],
-    "2023BPix": [1.0, 0.9, 1.1],
-}
-
-jmsValues["particleNet_mass_legacy"] = {
-    "2022": [1.0, 0.95, 1.05],
-    "2022EE": [1.0, 0.95, 1.05],
-    "2023": [1.0, 0.95, 1.05],
-    "2023BPix": [1.0, 0.95, 1.05],
 }
 
 
@@ -411,14 +337,13 @@ class JECs:
 def get_jmsr(
     fatjets: FatJetArray,
     num_jets: int,
-    year: str,
+    jmsr_vars: list[str],
+    jms_values: dict,
+    jmr_values: dict,
     isData: bool = False,
     seed: int = 42,
-    jmsr_vars: list[str] = None,
 ) -> dict:
     """Calculates post JMS/R masses and shifts"""
-    if jmsr_vars is None:
-        jmsr_vars = ["msoftdrop", "particleNet_mass"]
 
     jmsr_shifted_vars = {}
 
@@ -426,6 +351,8 @@ def get_jmsr(
         tdict = {}
 
         mass = pad_val(fatjets[mkey], num_jets, axis=1)
+        jms = jms_values[mkey]
+        jmr = jmr_values[mkey]
 
         if isData:
             tdict[""] = mass
@@ -433,17 +360,11 @@ def get_jmsr(
             rng = np.random.default_rng(seed)
             smearing = rng.normal(size=mass.shape)
             # scale to JMR nom, down, up (minimum at 0)
-            jmr_nom, jmr_down, jmr_up = (
-                (smearing * max(jmrValues[mkey][year][i] - 1, 0) + 1) for i in range(3)
-            )
-            jms_nom, jms_down, jms_up = jmsValues[mkey][year]
+            jmr_nom, jmr_down, jmr_up = ((smearing * max(jmr[i] - 1, 0) + 1) for i in range(3))
+            jms_nom, jms_down, jms_up = jms
 
-            corr_mass_JMRUp = random.gauss(0.0, jmrValues[mkey][year][2] - 1.0)
-            corr_mass = (
-                max(jmrValues[mkey][year][0] - 1.0, 0.0)
-                / (jmrValues[mkey][year][2] - 1.0)
-                * corr_mass_JMRUp
-            )
+            corr_mass_JMRUp = random.gauss(0.0, jmr[2] - 1.0)
+            corr_mass = max(jmr[0] - 1.0, 0.0) / (jmr[2] - 1.0) * corr_mass_JMRUp
 
             mass_jms = mass * jms_nom
             mass_jmr = mass * jmr_nom
@@ -490,35 +411,3 @@ def get_jetveto_event(jets: JetArray, year: str):
 
     event_sel = ~(ak.any((jets.pt > 15) & jet_veto, axis=1))
     return event_sel
-
-
-def get_trig_weights(fatjets: FatJetArray, year: str, num_jets: int = 2):
-    """
-    Get the trigger scale factor weights and uncertainties
-
-    Give number of jets in pre-selection to obtain event weight
-    """
-    if year == "2018":
-        raise NotImplementedError("Trig weights function needs to be updated for 2018")
-        with Path(f"{package_path}/corrections/data/fatjet_triggereff_{year}_combined.pkl").open(
-            "rb"
-        ) as filehandler:
-            combined = pickle.load(filehandler)
-
-        # sum over TH4q bins
-        effs_txbb = combined["num"][:, sum, :, :] / combined["den"][:, sum, :, :]
-
-        ak8TrigEffsLookup = dense_lookup(
-            np.nan_to_num(effs_txbb.view(flow=False), 0), np.squeeze(effs_txbb.axes.edges)
-        )
-
-        fj_trigeffs = ak8TrigEffsLookup(
-            pad_val(fatjets.Txbb, num_jets, axis=1),
-            pad_val(fatjets.pt, num_jets, axis=1),
-            pad_val(fatjets.msoftdrop, num_jets, axis=1),
-        )
-
-        combined_trigEffs = 1 - np.prod(1 - fj_trigeffs, axis=1)
-
-        weights.add("trig_effs", combined_trigEffs)  # noqa: F821
-        return

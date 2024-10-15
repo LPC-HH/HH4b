@@ -81,6 +81,8 @@ pip install -e .
 # for committing to the repository
 pip install pre-commit
 pre-commit install
+# install requirements
+pip3 install -r requirements.txt
 ```
 
 ### Troubleshooting
@@ -101,18 +103,10 @@ python3 -m pip install -e .
 For submitting to condor, all you need is python >= 3.7.
 
 For running locally, follow the same virtual environment setup instructions
-above and install `coffea`
+above
 
 ```bash
 micromamba activate hh4b
-pip install coffea
-```
-
-Clone the repository:
-
-```
-git clone https://github.com/LPC-HH/HH4b/
-pip install -e .
 ```
 
 ### Running locally
@@ -192,31 +186,6 @@ python -u -W ignore src/run.py --year 2022EE --yaml src/condor/submit_configs/sk
 
 ## Postprocessing
 
-### Setup
-
-Make sure to install the package (#installing-package) and install all the
-requirements in your conda environment:
-
-```bash
-pip3 install -r requirements.txt
-```
-
-### BDT Training
-
-Multi-class BDT training:
-
-```bash
-python -W ignore TrainBDT.py --data-path /ceph/cms/store/user/rkansal/bbbb/skimmer/24Apr19LegacyFixes_v12_private_signal/ --model-name 24Apr21_legacy_vbf_vars --legacy --sig-keys hh4b vbfhh4b-k2v0 --no-pnet-plots
-```
-
-### Creating templates / FOM Scan / BDT ROC curve
-
-From inside the src/HH4b/postprocessing directory:
-
-```bash
-python PostProcess.py --templates-tag 24Apr17pT300Cut --tag 24Mar31_v12_signal --legacy --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 (--no-fom-scan) (--no-fom-scan-bin1) (--no-fom-scan-bin2) (--no-fom-scan-vbf) (--no-templates) (--bdt-roc)
-```
-
 ## Condor Scripts
 
 ### Check jobs
@@ -240,6 +209,7 @@ Combine all output pickles into one:
 ```bash
 for year in 2016APV 2016 2017 2018; do python src/condor/combine_pickles.py --tag $TAG --processor trigger --r --year $year; done
 ```
+
 
 ## Combine
 
@@ -269,7 +239,7 @@ and this repo:
 
 ```bash
 # rhalphalib
-git clone https://github.com/rkansal47/rhalphalib
+git clone https://github.com/nsmith-/rhalphalib
 cd rhalphalib
 pip3 install -e . --user  # editable installation
 cd ..
