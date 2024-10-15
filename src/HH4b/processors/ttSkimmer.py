@@ -420,7 +420,7 @@ class ttSkimmer(SkimmerABC):
 
         # b-tagged and dPhi from muon < 2
         # consider btagDeepFlavB for 2022 only (problem with v12 private production)
-        if year == "2022" and self._nano_version == "v12_private":
+        if year == "2022" and (self._nano_version == "v12_private" or self._nano_version == "v12v2_private"):
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > self.btag_medium_deepJet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
