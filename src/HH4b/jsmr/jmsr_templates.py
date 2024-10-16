@@ -1,16 +1,19 @@
-import click
-import os
-import pandas as pd
-import numpy as np
-import uproot
+from __future__ import annotations
 
 import logging
+import os
+
+import click
+import numpy as np
+import pandas as pd
+import uproot
+
+import HH4b.plotting as plotting
 import HH4b.utils as utils
 from HH4b.utils import ShapeVar
-import HH4b.plotting as plotting
 
-#logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+# logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
 logger = logging.getLogger("JMSR_TEMPLATES")
 
 # for plotting
@@ -38,7 +41,7 @@ samples_mc = {
             "WtoLNu-2Jets_2J",
             "DYto2L-2Jets_MLL-50_2J",
         ],
-        "qcd": [            
+        "qcd": [
             "QCD_HT-400to600",
             "QCD_HT-600to800",
             "QCD_HT-800to1000",
@@ -204,6 +207,7 @@ samples_tt = {
     },
 }
 
+
 def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     """
     Save histograms to file
@@ -221,18 +225,18 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     # catp2 = matched
     # catp1 = unmatched
 
-    f_out[f"data_obs_pass_nominal"] = hists_pass[var][{"Sample": "data"}]
-    f_out[f"data_obs_fail_nominal"] = hists_fail[var][{"Sample": "data"}]
+    f_out["data_obs_pass_nominal"] = hists_pass[var][{"Sample": "data"}]
+    f_out["data_obs_fail_nominal"] = hists_fail[var][{"Sample": "data"}]
 
     # matched
-    f_out[f"catp2_pass_nominal"] = sum(
+    f_out["catp2_pass_nominal"] = sum(
         [
             hists_pass[var][{"Sample": sample}]
             for sample in hists_pass[var].axes[0]
             if sample in ["W_matched", "singletop"]
         ]
     )
-    f_out[f"catp2_fail_nominal"] = sum(
+    f_out["catp2_fail_nominal"] = sum(
         [
             hists_fail[var][{"Sample": sample}]
             for sample in hists_fail[var].axes[0]
@@ -241,14 +245,14 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     )
 
     # unmatched
-    f_out[f"catp1_pass_nominal"] = sum(
+    f_out["catp1_pass_nominal"] = sum(
         [
             hists_pass[var][{"Sample": sample}]
             for sample in hists_pass[var].axes[0]
             if sample in ["top_matched", "unmatched"]
         ]
     )
-    f_out[f"catp1_fail_nominal"] = sum(
+    f_out["catp1_fail_nominal"] = sum(
         [
             hists_fail[var][{"Sample": sample}]
             for sample in hists_fail[var].axes[0]
@@ -303,12 +307,19 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
 
     f_out.close()
 
+
 def get_ev_dataframe(events_dict, mass, pt_mask):
     """
     Get dataframe with W selection applied
     """
+
     def get_wtagger(events):
-        return (events["ak8FatJetParTPXqq"][0] ) / (events["ak8FatJetParTPXqq"][0] + events["ak8FatJetParTPQCD0HF"][0] + events["ak8FatJetParTPQCD1HF"][0] + events["ak8FatJetParTPQCD2HF"][0])
+        return (events["ak8FatJetParTPXqq"][0]) / (
+            events["ak8FatJetParTPXqq"][0]
+            + events["ak8FatJetParTPQCD0HF"][0]
+            + events["ak8FatJetParTPQCD1HF"][0]
+            + events["ak8FatJetParTPQCD2HF"][0]
+        )
 
     ev_dict = {}
     for key in events_dict:
@@ -322,8 +333,8 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
             & (events[f"ak8FatJet{mass}"][0] >= 55)
             & (events[f"ak8FatJet{mass}"][0] <= 200)
             & (wlnu_pt >= 100)
-            & (events["ak8FatJetPt"][0] >= pt_mask[0]) 
-            & (events["ak8FatJetPt"][0] < pt_mask[1]) 
+            & (events["ak8FatJetPt"][0] >= pt_mask[0])
+            & (events["ak8FatJetPt"][0] < pt_mask[1])
         ]
 
         # form event dataframe
@@ -381,7 +392,7 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
             top_matched = ((has_2_daughter_qs) & (has_1_b))[:, 0]
             W_matched = ((has_2_daughter_qs) & (~has_1_b))[:, 0]
             W_matched_tight = W_matched & vpt_matched & vmass_matched
-            unmatched = ((~has_2_daughter_qs))[:, 0] | (W_matched & ~W_matched_tight)
+            unmatched = (~has_2_daughter_qs)[:, 0] | (W_matched & ~W_matched_tight)
 
             ev_dict = {
                 **ev_dict,
@@ -391,7 +402,6 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
             }
         else:
             ev_dict[key] = ev_dataframe
-
 
     # create pass and fail regions
     ev_dict_pass = {}
@@ -404,9 +414,13 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
 
     return ev_dict, ev_dict_pass, ev_dict_fail
 
+
 @click.command()
-@click.option("--dir-name", help="directory name",
-              default="/eos/uscms/store/user/cmantill/bbbb/ttSkimmer/24Oct14_v12v2_private_signal/")
+@click.option(
+    "--dir-name",
+    help="directory name",
+    default="/eos/uscms/store/user/cmantill/bbbb/ttSkimmer/24Oct14_v12v2_private_signal/",
+)
 @click.option("--year-group", default="2022All", type=click.Choice(["2022All", "2023All"]))
 @click.option("--tag", required=True)
 def jmsr_templates(dir_name, year_group, tag):
@@ -466,17 +480,45 @@ def jmsr_templates(dir_name, year_group, tag):
         # 3.33 gev bins
         ShapeVar(var="WMass", label=r"W Mass (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
         ShapeVar(var="WMsd", label=r"W Msd (GeV)", bins=[30, 50, 200], plot_args={"log": False}),
-        ShapeVar(var="WPt", label=r"W p$_{T}$ (GeV)", bins=[30, 300, 800], plot_args={"log": False}),
+        ShapeVar(
+            var="WPt", label=r"W p$_{T}$ (GeV)", bins=[30, 300, 800], plot_args={"log": False}
+        ),
         ShapeVar(var="WTagger", label=r"W discriminator", bins=[30, 0, 1], plot_args={"log": True}),
         # plot extra discriminators
-        ShapeVar(var="WPXqq", label=r"ParT Xqq probability", bins=[30, 0, 1], plot_args={"log": True}),
-        ShapeVar(var="WPTopW", label=r"ParT TopW probability", bins=[30, 0, 1], plot_args={"log": True}),
-        ShapeVar(var="WPTopbW", label=r"ParT TopbW probability", bins=[30, 0, 1], plot_args={"log": True}),
+        ShapeVar(
+            var="WPXqq", label=r"ParT Xqq probability", bins=[30, 0, 1], plot_args={"log": True}
+        ),
+        ShapeVar(
+            var="WPTopW", label=r"ParT TopW probability", bins=[30, 0, 1], plot_args={"log": True}
+        ),
+        ShapeVar(
+            var="WPTopbW", label=r"ParT TopbW probability", bins=[30, 0, 1], plot_args={"log": True}
+        ),
         # variations
-        ShapeVar(var="WMass_JMS_down", label=r"W Mass JMS down (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
-        ShapeVar(var="WMass_JMS_up", label=r"W Mass JMS up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
-        ShapeVar(var="WMass_JMR_down", label=r"W Mass JMR up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
-        ShapeVar(var="WMass_JMR_up", label=r"W Mass JMR up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
+        ShapeVar(
+            var="WMass_JMS_down",
+            label=r"W Mass JMS down (GeV)",
+            bins=[21, 55, 125],
+            plot_args={"log": False},
+        ),
+        ShapeVar(
+            var="WMass_JMS_up",
+            label=r"W Mass JMS up (GeV)",
+            bins=[21, 55, 125],
+            plot_args={"log": False},
+        ),
+        ShapeVar(
+            var="WMass_JMR_down",
+            label=r"W Mass JMR up (GeV)",
+            bins=[21, 55, 125],
+            plot_args={"log": False},
+        ),
+        ShapeVar(
+            var="WMass_JMR_up",
+            label=r"W Mass JMR up (GeV)",
+            bins=[21, 55, 125],
+            plot_args={"log": False},
+        ),
     ]
 
     ev_dict = {}
@@ -566,7 +608,7 @@ def jmsr_templates(dir_name, year_group, tag):
                 bg_err_mcstat=True,
                 exclude_qcd_mcstat=False,
                 save_pdf=False,
-                **shape_var.plot_args
+                **shape_var.plot_args,
                 # ylim=1.2e4,
                 # ylim_low=0,
             )
@@ -579,6 +621,7 @@ def jmsr_templates(dir_name, year_group, tag):
     # save Wmass template
     # TODO: save variations (e.g. WMass_JMS_down)
     save_to_file(out_file, hists_pass, hists_fail)
+
 
 if __name__ == "__main__":
     jmsr_templates()
