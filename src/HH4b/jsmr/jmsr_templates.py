@@ -261,21 +261,24 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     )
 
     # other
-    f_out[f"other_pass_nominal"] = sum(
+    f_out["other_pass_nominal"] = sum(
         [
             hists_pass[var][{"Sample": sample}]
             for sample in hists_pass[var].axes[0]
             if sample in ["diboson", "qcd", "vjetslnu"]
         ]
     )
-    f_out[f"other_fail_nominal"] = sum(
+    f_out["other_fail_nominal"] = sum(
         [
             hists_fail[var][{"Sample": sample}]
             for sample in hists_fail[var].axes[0]
-            if sample in [
-                #"diboson", 
-                "qcd", "vjetslnu", "singletop"
-                ]
+            if sample
+            in [
+                # "diboson",
+                "qcd",
+                "vjetslnu",
+                "singletop",
+            ]
         ]
     )
 
@@ -303,7 +306,6 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
                     if sample in ["W_matched"]
                 ]
             )
-
 
     f_out.close()
 
