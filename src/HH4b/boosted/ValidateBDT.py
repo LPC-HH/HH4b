@@ -71,17 +71,37 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
     sample_dirs = {
         year: {
-            "qcd": [
+            "QCD": [
                 "QCD_HT-1000to1200",
-                # "QCD_HT-1200to1500",
-                # "QCD_HT-1500to2000",
-                # "QCD_HT-2000",
-                # "QCD_HT-400to600",
-                # "QCD_HT-600to800",
-                # "QCD_HT-800to1000",
+                "QCD_HT-1200to1500",
+                "QCD_HT-1500to2000",
+                "QCD_HT-2000",
+                "QCD_HT-400to600",
+                "QCD_HT-600to800",
+                "QCD_HT-800to1000",
             ],
             "ttbar": [
                 "TTto4Q",
+            ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "VBFHH": [
+                "VBFHHTo4B_CV_1_C2V_1_C3_1_TuneCP5_13TeV-madgraph-pythia8",
+                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8",
+            ],
+            "VBFH": [
+                "VBFHto2B_M-125_dipoleRecoilOn",
             ],
         },
     }
