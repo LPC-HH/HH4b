@@ -2,6 +2,7 @@ import click
 import os
 import pandas as pd
 import numpy as np
+import uproot
 
 import logging
 import HH4b.utils as utils
@@ -202,6 +203,49 @@ samples_tt = {
     },
 }
 
+def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
+    """
+    Save histograms to file
+    """
+    f_out = uproot.recreate(out_file)
+    var = "WMass"
+
+    f_out[f"data_obs_pass_nominal"] = hists_pass[var][{"Sample": "data"}]
+    f_out[f"data_obs_fail_nominal"] = hists_fail[var][{"Sample": "data"}]
+
+    # matched
+    f_out[f"catp2_pass_nominal"] = sum(
+        [
+            hists_pass[var][{"Sample": sample}]
+            for sample in hists_pass[var].axes[0]
+            if sample in ["W_matched", "singletop"]
+        ]
+    )
+    f_out[f"catp2_fail_nominal"] = sum(
+        [
+            hists_fail[var][{"Sample": sample}]
+            for sample in hists_fail[var].axes[0]
+            if sample in ["W_matched"]
+        ]
+    )
+
+    # unmatched
+    f_out[f"catp1_pass_nominal"] = sum(
+        [
+            hists_pass[var][{"Sample": sample}]
+            for sample in hists_pass[var].axes[0]
+            if sample in ["top_matched", "unmatched", "diboson", "qcd", "vjetslnu"]
+        ]
+    )
+    f_out[f"catp1_fail_nominal"] = sum(
+        [
+            hists_fail[var][{"Sample": sample}]
+            for sample in hists_fail[var].axes[0]
+            if sample in ["top_matched", "unmatched", "diboson", "qcd", "vjetslnu", "singletop"]
+        ]
+    )
+    f_out.close()
+
 def get_ev_dataframe(events_dict, mass, pt_mask):
     """
     Get dataframe with W selection applied
@@ -239,13 +283,16 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
                 "WPTopbW": events["ak8FatJetParTPTopbW"][0],
                 # Variations up and down
                 "WMass_JMS_down": events[f"ak8FatJet{mass}"][0],
-                #"WMass_JMS_down": events[f"ak8FatJet{mass}_JMS_down"][0] if key!="data" else events[f"ak8FatJet{mass}"][0],
-                #"WMass_JMS_down": events[f"ak8FatJet{mass}_JMS_down"][0] if key!="data" else events[f"ak8FatJet{mass}"][0],
-                #"WMass_JMS_down": events[f"ak8FatJet{mass}_JMS_down"][0] if key!="data" else events[f"ak8FatJet{mass}"][0],
+                "WMass_JMS_up": events[f"ak8FatJet{mass}"][0],
+                "WMass_JMR_down": events[f"ak8FatJet{mass}"][0],
+                "WMass_JMR_up": events[f"ak8FatJet{mass}"][0],
             }
         )
         if key != "data":
             ev_dataframe["WMass_JMS_down"] = events[f"ak8FatJet{mass}_JMS_down"][0]
+            ev_dataframe["WMass_JMS_up"] = events[f"ak8FatJet{mass}_JMS_up"][0]
+            ev_dataframe["WMass_JMR_down"] = events[f"ak8FatJet{mass}_JMR_down"][0]
+            ev_dataframe["WMass_JMR_up"] = events[f"ak8FatJet{mass}_JMR_up"][0]
 
         # identify ttbar jets matched and unmatched to top quark decays
         if key == "ttbar":
@@ -368,6 +415,11 @@ def jmsr_templates(dir_name, year_group, tag):
         ShapeVar(var="WPXqq", label=r"ParT Xqq probability", bins=[30, 0, 1], plot_args={"log": True}),
         ShapeVar(var="WPTopW", label=r"ParT TopW probability", bins=[30, 0, 1], plot_args={"log": True}),
         ShapeVar(var="WPTopbW", label=r"ParT TopbW probability", bins=[30, 0, 1], plot_args={"log": True}),
+        # variations
+        ShapeVar(var="WMass_JMS_down", label=r"W Mass JMS down (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
+        ShapeVar(var="WMass_JMS_up", label=r"W Mass JMS up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
+        ShapeVar(var="WMass_JMR_down", label=r"W Mass JMR up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
+        ShapeVar(var="WMass_JMR_up", label=r"W Mass JMR up (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
     ]
 
     ev_dict = {}
@@ -415,11 +467,6 @@ def jmsr_templates(dir_name, year_group, tag):
             ev_dict_pass[year_group] = events_pass
             ev_dict_fail[year_group] = events_fail
 
-    # create template directory
-    template_directory = f"TnPSF/run3_templates/{year_group}/pt{pt_mask[0]-pt_mask[1]}"
-    os.system(f"mkdir -p {template_directory}")
-    out_file = f"template_directory/topCR_{tag}.root"
-
     # create plotting directory
     odir = f"{tag}/pt{pt_mask[0]-pt_mask[1]}/{year_group}"
     os.system(f"mkdir -p {odir}")
@@ -466,5 +513,15 @@ def jmsr_templates(dir_name, year_group, tag):
                 # ylim=1.2e4,
                 # ylim_low=0,
             )
+
+    # create template directory
+    template_directory = f"TnPSF/run3_templates/{year_group}/{tag}"
+    os.system(f"mkdir -p {template_directory}")
+    out_file = f"{template_directory}/topCR_pt{pt_mask[0]-pt_mask[1]}.root"
+
+    # save Wmass template
+    # TODO: save variations (e.g. WMass_JMS_down)
+    save_to_file(out_file, hists_pass, hists_fail)
+
 if __name__ == "__main__":
     jmsr_templates()
