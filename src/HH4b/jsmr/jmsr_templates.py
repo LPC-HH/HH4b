@@ -25,6 +25,7 @@ bkg_order = [
     "W_matched",
 ]
 
+# TODO: ADD TTV
 samples_mc = {
     "2022": {
         "diboson": [
@@ -210,6 +211,16 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     f_out = uproot.recreate(out_file)
     var = "WMass"
 
+    """
+    In https://github.com/cms-jet/ParticleNetSF/blob/ParticleNet_TopW_SFs_NanoV9
+    - catp3 = top_matched
+    - catp2 = unmatched
+    - catp1 = W_matched
+    """
+
+    # catp2 = matched
+    # catp1 = unmatched
+
     f_out[f"data_obs_pass_nominal"] = hists_pass[var][{"Sample": "data"}]
     f_out[f"data_obs_fail_nominal"] = hists_fail[var][{"Sample": "data"}]
 
@@ -234,16 +245,62 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
         [
             hists_pass[var][{"Sample": sample}]
             for sample in hists_pass[var].axes[0]
-            if sample in ["top_matched", "unmatched", "diboson", "qcd", "vjetslnu"]
+            if sample in ["top_matched", "unmatched"]
         ]
     )
     f_out[f"catp1_fail_nominal"] = sum(
         [
             hists_fail[var][{"Sample": sample}]
             for sample in hists_fail[var].axes[0]
-            if sample in ["top_matched", "unmatched", "diboson", "qcd", "vjetslnu", "singletop"]
+            if sample in ["top_matched", "unmatched"]
         ]
     )
+
+    # other
+    f_out[f"other_pass_nominal"] = sum(
+        [
+            hists_pass[var][{"Sample": sample}]
+            for sample in hists_pass[var].axes[0]
+            if sample in ["diboson", "qcd", "vjetslnu"]
+        ]
+    )
+    f_out[f"other_fail_nominal"] = sum(
+        [
+            hists_fail[var][{"Sample": sample}]
+            for sample in hists_fail[var].axes[0]
+            if sample in [
+                #"diboson", 
+                "qcd", "vjetslnu", "singletop"
+                ]
+        ]
+    )
+
+    if save_variations:
+        # save templates for variations
+        variationmap = {
+            "ScaleUp": "JMS_up",
+            "ScaleDown": "JMS_down",
+            "SmearUp": "JMR_up",
+            "SmearDown": "JMR_down",
+        }
+        # catp2 templates
+        for variation in variationmap:
+            f_out[f"catp2_pass_{variation}"] = sum(
+                [
+                    hists_pass[var][{"Sample": sample}]
+                    for sample in hists_pass[f"{var}_{variationmap[variation]}"].axes[0]
+                    if sample in ["W_matched", "singletop"]
+                ]
+            )
+            f_out[f"catp2_fail_{variation}"] = sum(
+                [
+                    hists_fail[var][{"Sample": sample}]
+                    for sample in hists_fail[f"{var}_{variationmap[variation]}"].axes[0]
+                    if sample in ["W_matched"]
+                ]
+            )
+
+
     f_out.close()
 
 def get_ev_dataframe(events_dict, mass, pt_mask):
