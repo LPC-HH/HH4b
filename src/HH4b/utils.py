@@ -348,7 +348,7 @@ def load_samples(
             logger.debug(f"Loading {sample}")
             try:
                 events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
-            except Exception as e:
+            except Exception:
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
