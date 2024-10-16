@@ -205,6 +205,8 @@ class ttSkimmer(SkimmerABC):
                 "ParTPTopbW",
                 "ParTPXbb",
                 "ParTPXqq",
+                "ParTPXcc",
+                "ParTPXcs",
                 "ParTTXbb",
                 "ParTmassRes",
                 "ParTmassVis",

@@ -294,7 +294,7 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
-    reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
+    reorder_txbb: bool = False,  # temporary fix for sorting by given Txbb
     txbb_str: str = "bbFatJetPNetTXbbLegacy",
     load_weight_noxsec: bool = True,
 ) -> dict[str, pd.DataFrame]:
@@ -331,13 +331,6 @@ def load_samples(
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
-        """
-        if label == "hh4b":
-            load_columns = columns
-            for col in signal_exclusive_columns:
-                columns = columns + format_columns([col])
-        """
-
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
             # check if this directory passes our selector string
@@ -353,7 +346,11 @@ def load_samples(
                 continue
 
             logger.debug(f"Loading {sample}")
-            events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
+            try:
+                events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
+            except Exception:
+                warnings.warn(f"No events for {sample}!", stacklevel=1)
+                continue
 
             # no events?
             if not len(events):
