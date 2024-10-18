@@ -106,14 +106,25 @@ control_plot_vars = [
 # do not include small qcd bins
 for year in samples_run3:
     samples_run3[year]["qcd"] = [
+        "QCD_HT-100to200",
         "QCD_HT-1000to1200",
         "QCD_HT-1200to1500",
         "QCD_HT-1500to2000",
         "QCD_HT-2000",
-        # "QCD_HT-200to400",
+        "QCD_HT-200to400",
         "QCD_HT-400to600",
         "QCD_HT-600to800",
         "QCD_HT-800to1000",
+    ]
+    samples_run3[year]["ttbar"] = [
+        "TTto2L2Nu",
+        "TTto4Q",
+        "TTtoLNu2Q",
+    ]
+    samples_run3[year]["diboson"] = [
+        "WW",
+        "WZ",
+        "ZZ",
     ]
 
 
@@ -766,7 +777,7 @@ def evaluate_model(
     plt.close()
 
     (model_dir / "validation_mass").mkdir(exist_ok=True, parents=True)
-
+    """
     # mass sculpting with TXbb
     for txbb_cut in txbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -807,6 +818,7 @@ def evaluate_model(
                 fig.tight_layout()
                 fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_txbbcut{txbb_cut}.png")
                 plt.close()
+    """
 
 
 def plot_allyears(
@@ -1278,17 +1290,18 @@ def main(args):
                 args.mass_str,
             )
 
-    plot_allyears(
-        events_dict,
-        model,
-        model_dir,
-        args.config_name,
-        args.multiclass,
-        args.sig_keys,
-        args.bg_keys,
-        args.txbb_str,
-        args.mass_str,
-    )
+    if args.plot_allyears:
+        plot_allyears(
+            events_dict,
+            model,
+            model_dir,
+            args.config_name,
+            args.multiclass,
+            args.sig_keys,
+            args.bg_keys,
+            args.txbb_str,
+            args.mass_str,
+        )
 
 
 if __name__ == "__main__":
@@ -1370,6 +1383,7 @@ if __name__ == "__main__":
     add_bool_arg(parser, "run2-wapproach", "Run2 weight approach", default=False)
     add_bool_arg(parser, "txbb-plots", "Make TXbb plots", default=True)
     add_bool_arg(parser, "apply-cuts", "Apply cuts", default=True)
+    add_bool_arg(parser, "plot-allyears", "Plot histograms for all years", default=False)
 
     args = parser.parse_args()
     args.txbb_str = {
