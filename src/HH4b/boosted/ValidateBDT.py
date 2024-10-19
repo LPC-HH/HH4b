@@ -71,7 +71,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
     sample_dirs = {
         year: {
-            "QCD": [
+            "qcd": [
                 "QCD_HT-1000to1200",
                 "QCD_HT-1200to1500",
                 "QCD_HT-1500to2000",
@@ -384,6 +384,10 @@ def main(args):
         "v5_PNetv12": {
             "config": "v5_PNetv12",
             "model_name": "24Jul29_v5_PNetv12",
+        },
+        "v6_ParT": {
+            "config": "v6_glopartv2",
+            "model_name": "24Oct17_v6_glopartv2",
         },
     }
 
