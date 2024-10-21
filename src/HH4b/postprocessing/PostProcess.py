@@ -26,9 +26,9 @@ from HH4b.hh_vars import (
     samples_run3,
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
-    txbb_strings,
 )
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import (

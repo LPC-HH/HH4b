@@ -25,9 +25,9 @@ from HH4b.hh_vars import (
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
-    txbb_strings,
     years,
 )
 
