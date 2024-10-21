@@ -137,9 +137,7 @@ def _load_trig_effs(year: str, label: str, region: str):
     )
 
 
-def trigger_SF(
-    year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, region: str
-):
+def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, region: str):
     """
     Evaluate trigger Scale Factors
     """
