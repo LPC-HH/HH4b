@@ -68,7 +68,16 @@ def process_event_list(args):
         )
         ev_dicts.append((year, ev_dict))
 
-    eventlist_dict = ["event", "bdt_score", "bdt_score_vbf", "H2TXbb", "H2Msd", "run", "H2PNetMass"]
+    eventlist_dict = [
+        "event",
+        "bdt_score",
+        "bdt_score_vbf",
+        "H2TXbb",
+        "H2Msd",
+        "run",
+        "H2PNetMass",
+        "luminosityBlock",
+    ]
 
     eventlist_folder = "eventlist_files"
     for year, ev_dict in ev_dicts:
