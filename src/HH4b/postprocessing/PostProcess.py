@@ -378,7 +378,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             load_systematics=True,
             txbb_version=args.txbb,
             scale_and_smear=True,
-            mass_str=args.mass_str,
+            mass_str=mreg_strings[args.txbb],
         )[key]
 
         # inference and assign score

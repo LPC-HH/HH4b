@@ -138,7 +138,7 @@ def _load_trig_effs(year: str, label: str, region: str):
 
 
 def trigger_SF(
-    year: str, events_dict: dict[str, pd.DataFrame], pnet_str: str, region: str, legacy: bool = True
+    year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, region: str
 ):
     """
     Evaluate trigger Scale Factors
@@ -306,12 +306,17 @@ def trigger_SF(
         350.0,
     ]
 
-    xbb_axis = hist.axis.Variable(xbbv11_range if legacy else xbb_range, name="xbb")
+    # for now, assume same trigger SFs for PNet Legacy and GloParTv2
+    if "Legacy" in txbb_str or "ParT" in txbb_str:
+        txbb = "txbb"
+        xbb_axis = hist.axis.Variable(xbb_range, name="xbb")
+    else:
+        txbb = "txbbv11"
+        xbb_axis = hist.axis.Variable(xbbv11_range, name="xbb")
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
-    txbb = "txbbv11" if legacy else "txbb"
     triggereff_btag = _load_trig_effs(year, txbb, region)
     eff_data = triggereff_ptmsd[f"fatjet_triggereffdata_{year}_ptmsd"]
     eff_mc = triggereff_ptmsd[f"fatjet_triggereffmc_{year}_ptmsd"]
