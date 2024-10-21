@@ -333,7 +333,7 @@ def trigger_SF(
     for jet in range(2):
         pt = events_dict["bbFatJetPt"][jet]
         msd = events_dict["bbFatJetMsd"][jet]
-        xbb = events_dict[f"bbFatJet{pnet_str}"][jet]
+        xbb = events_dict[txbb_str][jet]
 
         num_ev = pt.shape[0]
 

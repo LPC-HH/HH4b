@@ -22,11 +22,13 @@ from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
 from HH4b.hh_vars import (
     bg_keys,
+    mreg_strings,
     samples_run3,
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
+    txbb_strings,
 )
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
@@ -143,7 +145,7 @@ def add_bdt_scores(
         )
 
 
-def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: bool, jshift=""):
+def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
     sig_keys = [
         "hh4b",
         "hh4b-kl0",
@@ -165,7 +167,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
-    legtitle = get_legtitle(legacy, pnet_xbb_str="Legacy")
+    legtitle = get_legtitle(txbb_version)
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
         sig_keys.remove("vbfhh4b-k2v0")
@@ -326,7 +328,6 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, legacy: boo
 
 
 def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window):
-    legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
@@ -374,7 +375,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             year,
             samples_to_process,
             reorder_txbb=True,
-            txbb_str=args.txbb_str,
             load_systematics=True,
             txbb_version=args.txbb,
             scale_and_smear=True,
@@ -407,17 +407,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
         bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
         bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
-        bdt_events["H1TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][0]
-        bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
-        bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
-        bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
+        bdt_events["H1TXbb"] = events_dict[txbb_strings[args.txbb]][0]
+        bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
+        bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
+        bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
         if key in hh_vars.jmsr_keys:
             for jshift in hh_vars.jmsr_shifts:
                 bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
-                    f"bbFatJetPNetMass{legacy_label}_{jshift}"
+                    f"{mreg_strings[args.txbb]}_{jshift}"
                 ][0]
                 bdt_events[f"H2PNetMass_{jshift}"] = events_dict[
-                    f"bbFatJetPNetMass{legacy_label}_{jshift}"
+                    f"{mreg_strings[args.txbb]}_{jshift}"
                 ][1]
         bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
         bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
@@ -448,7 +448,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         trigger_weight_dn = np.ones(nevents)
         if key != "data":
             trigger_weight, _, total, total_err = corrections.trigger_SF(
-                year, events_dict, f"PNetTXbb{legacy_label}", trigger_region
+                year, events_dict, txbb_strings[args.txbb], trigger_region
             )
             trigger_weight_up = trigger_weight * (1 + total_err / total)
             trigger_weight_dn = trigger_weight * (1 - total_err / total)
@@ -879,7 +879,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     # end of loop over samples
 
     if control_plots:
-        make_control_plots(events_dict_postprocess, plot_dir, year, args.legacy)
+        make_control_plots(events_dict_postprocess, plot_dir, year, args.txbb)
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
 
@@ -1128,18 +1128,24 @@ def get_cuts(args, region: str):
         raise ValueError("Invalid region")
 
 
-def make_control_plots(events_dict, plot_dir, year, legacy):
-    legacy_label = "Legacy" if legacy else ""
+def make_control_plots(events_dict, plot_dir, year, txbb_version):
+
+    if txbb_version == "pnet-legacy":
+        txbb_label = "PNet Legacy"
+    elif txbb_version == "pnet-v12":
+        txbb_label = "PNet 103X"
+    elif txbb_version == "glopart-v2":
+        txbb_label = "GloParTv2"
 
     control_plot_vars = [
         ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),
-        ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$ " + legacy_label, bins=[30, 0, 1]),
-        ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ " + legacy_label, bins=[30, 0, 1]),
+        ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$ " + txbb_label, bins=[30, 0, 1]),
+        ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ " + txbb_label, bins=[30, 0, 1]),
         ShapeVar(var="H1TXbbNoLeg", label=r"Xbb$^{1}$ v12", bins=[30, 0, 1]),
         ShapeVar(var="H2TXbbNoLeg", label=r"Xbb$^{2}$ v12", bins=[30, 0, 1]),
-        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
-        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
+        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
+        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
         ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
         ShapeVar(var="HHeta", label=r"HH $\eta$", bins=[30, -5, 5]),
         ShapeVar(var="HHmass", label=r"HH mass (GeV)", bins=[30, 0, 1500]),
@@ -1252,6 +1258,7 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
+    # use for both pnet-legacy and glopart-v2
     fom_window_by_mass = {
         "H2Msd": [110, 140],
         "H2PNetMass": [105, 150],  # use wider range for FoM scan
@@ -1260,7 +1267,9 @@ def postprocess_run3(args):
         "H2Msd": [110, 140],
         "H2PNetMass": [110, 140],  # only blind 3 bins
     }
-    if not args.legacy:
+
+    # different for pnet-v12
+    if args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
 
@@ -1331,9 +1340,9 @@ def postprocess_run3(args):
 
     if args.bdt_roc:
         print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.legacy)
-        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_up")
-        # bdt_roc(events_combined, plot_dir, args.legacy, jshift="JMR_down")
+        bdt_roc(events_combined, plot_dir, args.txbb)
+        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_up")
+        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_down")
 
     # combined cutflow
     cutflow_combined = None
@@ -1608,7 +1617,13 @@ if __name__ == "__main__":
         default="24May31_lr_0p02_md_8_AK4Away",
         help="BDT model to load",
     )
-
+    parser.add_argument(
+        "--txbb",
+        type=str,
+        default="",
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        help="version of TXbb tagger/mass regression to use",
+    )
     parser.add_argument(
         "--txbb-wps",
         type=float,
@@ -1659,7 +1674,6 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
-    run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"

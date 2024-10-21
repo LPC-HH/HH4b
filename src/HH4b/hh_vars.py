@@ -417,3 +417,15 @@ txbbsfs_decorr_pt_bins = OrderedDict(
         ("WP1", [200, 400, 100000]),
     ]
 )
+
+txbb_strings = {
+    "pnet-legacy": "bbFatJetPNetTXbbLegacy",
+    "pnet-v12": "bbFatJetPNetTXbb",
+    "globart-v2": "bbFatJetParTTXbb",
+}
+
+mreg_strings = {
+    "pnet-legacy": "bbFatJetPNetMassLegacy",
+    "pnet-v12": "bbFatJetPNetMass",
+    "globart-v2": "bbFatJetParTmassVis",
+}

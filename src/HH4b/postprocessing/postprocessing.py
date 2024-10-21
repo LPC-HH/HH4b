@@ -27,6 +27,7 @@ from HH4b.hh_vars import (
     ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
+    txbb_strings,
     years,
 )
 
@@ -210,7 +211,6 @@ def load_run3_samples(
     year: str,
     samples_run3: dict[str, list[str]],
     reorder_txbb: bool,
-    txbb_str: str,
     load_systematics: bool,
     txbb_version: str,
     scale_and_smear: bool,
@@ -222,6 +222,7 @@ def load_run3_samples(
         "glopart-v2",
     ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
 
+    txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
     load_columns = columns_to_load[txbb_version]
 
