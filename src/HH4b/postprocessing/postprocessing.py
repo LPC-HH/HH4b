@@ -17,6 +17,7 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
+    jecs,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -90,15 +91,12 @@ columns_to_load = {
     + [
         ("bbFatJetPNetTXbbLegacy", 2),
         ("bbFatJetPNetPXbbLegacy", 2),
-        ("bbFatJetPNetPQCDbLegacy", 2),
-        ("bbFatJetPNetPQCDbbLegacy", 2),
-        ("bbFatJetPNetPQCDothersLegacy", 2),
+        ("bbFatJetPNetPQCD0HFLegacy", 2),
+        ("bbFatJetPNetPQCD1HFLegacy", 2),
+        ("bbFatJetPNetPQCD2HFLegacy", 2),
         ("bbFatJetPNetMassLegacy", 2),
         ("bbFatJetPNetTXbb", 2),
         ("bbFatJetPNetMass", 2),
-        ("bbFatJetPNetQCD0HF", 2),
-        ("bbFatJetPNetQCD1HF", 2),
-        ("bbFatJetPNetQCD2HF", 2),
     ],
     "pnet-v12": columns_to_load_default
     + [
@@ -149,10 +147,7 @@ filters_to_apply = {
 }
 
 load_columns_syst = []
-jecs = {
-    "JES": "JES",
-    "JER": "JER",
-}
+
 jec_shifts = []
 for key in jecs:
     for shift in ["up", "down"]:

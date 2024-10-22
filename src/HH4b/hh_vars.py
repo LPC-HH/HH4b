@@ -56,7 +56,7 @@ common_samples_bg = {
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
     "diboson": ["ZZ", "WW", "WZ"],
-    "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
+    "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
 }
 
 common_samples_sig = {}
@@ -291,7 +291,7 @@ syst_keys.remove("qcd")
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    "JES": "JES",
+    # "JES": "JES",
     "JER": "JER",
     # #####
     # # including all sources

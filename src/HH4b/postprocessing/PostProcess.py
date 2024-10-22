@@ -1581,7 +1581,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tag",
         type=str,
-        default="24May24_v12_private_signal",
+        default="24Sep25_v12v2_private_signal",
         help="tag for input ntuples",
     )
     parser.add_argument(
