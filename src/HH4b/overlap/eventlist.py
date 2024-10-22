@@ -48,6 +48,7 @@ def parse_arguments():
     parser.add_argument("--vbf-priority", action="store_true", help="VBF priority")
     parser.add_argument("--weight-ttbar-bdt", type=float, default=1, help="Weight TTbar BDT")
     parser.add_argument("--blind", action="store_true", help="Blind")
+    parser.add_argument("--out-dir", type=str, help="Output directory")
 
     return parser.parse_args()
 
@@ -79,7 +80,7 @@ def process_event_list(args):
         "luminosityBlock",
     ]
 
-    eventlist_folder = "eventlist_files"
+    eventlist_folder = "eventlist_files/" + args.out_dir
     for year, ev_dict in ev_dicts:
         hh4b = ev_dict["hh4b"]
         event_list = hh4b[eventlist_dict]
