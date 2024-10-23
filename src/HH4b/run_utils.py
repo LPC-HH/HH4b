@@ -38,11 +38,11 @@ def print_red(s):
     return print(f"{Fore.RED}{s}{Style.RESET_ALL}")
 
 
-def check_branch(git_branch: str, allow_diff_local_repo: bool = False):
+def check_branch(git_branch: str, git_user: str = "LPC-HH", allow_diff_local_repo: bool = False):
     """Check that specified git branch exists in the repo, and local repo is up-to-date"""
     assert not bool(
         os.system(
-            f'git ls-remote --exit-code --heads "https://github.com/LPC-HH/HH4b" "{git_branch}"'
+            f'git ls-remote --exit-code --heads "https://github.com/{git_user}/HH4b" "{git_branch}"'
         )
     ), f"Branch {git_branch} does not exist"
 
@@ -130,20 +130,11 @@ def get_fileset(
 def get_processor(
     processor: str,
     save_systematics: bool | None = None,
-    save_array: bool = False,
     region: str | None = None,
-    apply_selection: bool | None = None,
     nano_version: str | None = None,
+    txbb: str | None = None,
 ):
     # define processor
-    if processor == "matching":
-        from HH4b.processors import matchingSkimmer
-
-        print(apply_selection)
-        return matchingSkimmer(
-            xsecs=xsecs, apply_selection=apply_selection, nano_version=nano_version
-        )
-
     if processor == "skimmer":
         from HH4b.processors import bbbbSkimmer
 
@@ -151,8 +142,8 @@ def get_processor(
             xsecs=xsecs,
             save_systematics=save_systematics,
             region=region,
-            save_array=save_array,
             nano_version=nano_version,
+            txbb=txbb,
         )
 
     if processor == "ttSkimmer":
@@ -160,16 +151,8 @@ def get_processor(
 
         return ttSkimmer(
             xsecs=xsecs,
-            save_systematics=save_systematics,
-            region=region,
-            save_array=save_array,
             nano_version=nano_version,
         )
-
-    if processor == "vpt":
-        from HH4b.processors import vptProc
-
-        return vptProc()
 
 
 def parse_common_args(parser):
@@ -178,7 +161,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["skimmer", "matching", "ttSkimmer", "vpt"],
+        choices=["skimmer", "ttSkimmer"],
     )
 
     parser.add_argument(
@@ -187,6 +170,13 @@ def parse_common_args(parser):
         type=str,
         default="2022",
         choices=["2018", "2022", "2022EE", "2023", "2023BPix"],
+    )
+    parser.add_argument(
+        "--txbb",
+        type=str,
+        default="glopart-v2",
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        help="TXbb version to be used to order FatJets",
     )
     parser.add_argument(
         "--nano-version",
@@ -201,6 +191,7 @@ def parse_common_args(parser):
             "v11_private",
             "v12",
             "v12_private",
+            "v12v2_private",
         ],
         help="NanoAOD version",
     )
@@ -223,15 +214,10 @@ def parse_common_args(parser):
         "--region",
         help="region",
         default="signal",
-        choices=["pre-sel", "signal", "semilep-tt", "had-tt"],
+        choices=["pre-sel", "signal", "semiboosted", "semilep-tt", "had-tt"],
         type=str,
     )
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
-    parser.add_argument("--apply-selection", dest="apply_selection", action="store_true", help=help)
-    parser.add_argument(
-        "--no-apply-selection", dest="apply_selection", action="store_false", help=help
-    )
-    add_bool_arg(parser, "save-array", default=False, help="save array (for dask)")
     add_bool_arg(parser, "save-root", default=False, help="save root ntuples too")
 
 

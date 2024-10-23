@@ -17,7 +17,6 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    jec_shifts,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -39,30 +38,6 @@ from HH4b.utils import ShapeVar, Syst, check_get_jec_var
 class Region:
     cuts: dict = None
     label: str = None
-
-
-mass_key = "bbFatJetPNetMassLegacy"
-filters_legacy = [
-    [
-        ("('bbFatJetPt', '0')", ">=", 250),
-        ("('bbFatJetPt', '1')", ">=", 250),
-        (f"('{mass_key}', '0')", "<=", 250),
-        (f"('{mass_key}', '1')", "<=", 250),
-        (f"('{mass_key}', '0')", ">=", 60),
-        (f"('{mass_key}', '1')", ">=", 60),
-    ],
-]
-
-filters_v12 = [
-    [
-        ("('bbFatJetPt', '0')", ">=", 250),
-        ("('bbFatJetPt', '1')", ">=", 250),
-        ("('bbFatJetMsd', '0')", "<=", 250),
-        ("('bbFatJetMsd', '1')", "<=", 250),
-        ("('bbFatJetMsd', '0')", ">=", 30),
-        ("('bbFatJetMsd', '1')", ">=", 30),
-    ],
-]
 
 
 HLTs = {
@@ -88,7 +63,7 @@ HLTs = {
 }
 
 
-load_columns = [
+columns_to_load_default = [
     ("weight", 1),
     ("event", 1),
     ("run", 1),
@@ -109,34 +84,83 @@ load_columns = [
     ("AK4JetAwayMass", 2),
 ]
 
-load_columns_legacy = load_columns + [
-    ("bbFatJetPNetTXbbLegacy", 2),
-    ("bbFatJetPNetPXbbLegacy", 2),
-    ("bbFatJetPNetPQCDbLegacy", 2),
-    ("bbFatJetPNetPQCDbbLegacy", 2),
-    ("bbFatJetPNetPQCDothersLegacy", 2),
-    ("bbFatJetPNetMassLegacy", 2),
-    ("bbFatJetPNetTXbb", 2),
-    ("bbFatJetPNetMass", 2),
-    ("bbFatJetPNetQCD0HF", 2),
-    ("bbFatJetPNetQCD1HF", 2),
-    ("bbFatJetPNetQCD2HF", 2),
-]
+columns_to_load = {
+    "pnet-legacy": columns_to_load_default
+    + [
+        ("bbFatJetPNetTXbbLegacy", 2),
+        ("bbFatJetPNetPXbbLegacy", 2),
+        ("bbFatJetPNetPQCDbLegacy", 2),
+        ("bbFatJetPNetPQCDbbLegacy", 2),
+        ("bbFatJetPNetPQCDothersLegacy", 2),
+        ("bbFatJetPNetMassLegacy", 2),
+        ("bbFatJetPNetTXbb", 2),
+        ("bbFatJetPNetMass", 2),
+        ("bbFatJetPNetQCD0HF", 2),
+        ("bbFatJetPNetQCD1HF", 2),
+        ("bbFatJetPNetQCD2HF", 2),
+    ],
+    "pnet-v12": columns_to_load_default
+    + [
+        ("bbFatJetPNetTXbb", 2),
+        ("bbFatJetPNetMass", 2),
+        ("bbFatJetPNetQCD0HF", 2),
+        ("bbFatJetPNetQCD1HF", 2),
+        ("bbFatJetPNetQCD2HF", 2),
+    ],
+    "glopart-v2": columns_to_load_default
+    + [
+        ("bbFatJetParTTXbb", 2),
+        ("bbFatJetParTPXbb", 2),
+        ("bbFatJetParTmassVis", 2),
+        ("bbFatJetParTPQCD0HF", 2),
+        ("bbFatJetParTPQCD1HF", 2),
+        ("bbFatJetParTPQCD2HF", 2),
+    ],
+}
 
-load_columns_v12 = load_columns + [
-    ("bbFatJetPNetTXbb", 2),
-    ("bbFatJetPNetMass", 2),
-    ("bbFatJetPNetQCD0HF", 2),
-    ("bbFatJetPNetQCD1HF", 2),
-    ("bbFatJetPNetQCD2HF", 2),
-]
+filters_to_apply = {
+    "pnet-legacy": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+            ("('bbFatJetPNetMassLegacy', '0')", "<=", 250),
+            ("('bbFatJetPNetMassLegacy', '1')", "<=", 250),
+            ("('bbFatJetPNetMassLegacy', '0')", ">=", 60),
+            ("('bbFatJetPNetMassLegacy', '1')", ">=", 60),
+        ],
+    ],
+    "pnet-v12": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+            ("('bbFatJetMsd', '0')", "<=", 250),
+            ("('bbFatJetMsd', '1')", "<=", 250),
+            ("('bbFatJetMsd', '0')", ">=", 30),
+            ("('bbFatJetMsd', '1')", ">=", 30),
+        ],
+    ],
+    "glopart-v2": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+        ],
+    ],
+}
+
 load_columns_syst = []
+jecs = {
+    "JES": "JES",
+    "JER": "JER",
+}
+jec_shifts = []
+for key in jecs:
+    for shift in ["up", "down"]:
+        jec_shifts.append(f"{key}_{shift}")
 for jshift in jec_shifts:
     load_columns_syst += [
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
     ]
-
 
 weight_shifts = {
     "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
@@ -171,12 +195,12 @@ for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
     )
 
 for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
         weight_shifts[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}"
+            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
         ] = Syst(
             samples=sig_keys,
-            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[j]}, {txbbsfs_decorr_pt_bins[j+1]}]",
+            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[wp][j]}, {txbbsfs_decorr_pt_bins[wp][j+1]}]",
             years=years + ["2022-2023"],
         )
 
@@ -184,13 +208,22 @@ for wp in txbbsfs_decorr_txbb_wps:
 def load_run3_samples(
     input_dir: str,
     year: str,
-    legacy: bool,
     samples_run3: dict[str, list[str]],
     reorder_txbb: bool,
-    txbb: str,
+    txbb_str: str,
+    load_systematics: bool,
+    txbb_version: str,
+    scale_and_smear: bool,
+    mass_str: str,
 ):
-    filters = filters_legacy if legacy else filters_v12
-    load_columns = load_columns_legacy if legacy else load_columns_v12
+    assert txbb_version in [
+        "pnet-v12",
+        "pnet-legacy",
+        "glopart-v2",
+    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
+
+    filters = filters_to_apply[txbb_version]
+    load_columns = columns_to_load[txbb_version]
 
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
@@ -204,7 +237,14 @@ def load_run3_samples(
         if sample not in syst_keys
     }
 
-    # pre-selection
+    # add extra branches if needed
+    def add_rawmass(events_dict, mass_str):
+        for key in events_dict:
+            x = events_dict[key][mass_str].to_numpy(copy=True)
+            events_dict[key][(f"{mass_str}Raw", 0)] = x[:, 0]
+            events_dict[key][(f"{mass_str}Raw", 1)] = x[:, 1]
+
+    # load samples that do no need systematics (e.g. data)
     events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
@@ -213,46 +253,47 @@ def load_run3_samples(
             filters=filters,
             columns=utils.format_columns(load_columns_year),
             reorder_txbb=reorder_txbb,
-            txbb=txbb,
+            txbb_str=txbb_str,
             variations=False,
         ),
     }
+
+    # load samples that need systematics
     events_dict_syst = {
         **utils.load_samples(
             input_dir,
             samples_syst,
             year,
             filters=filters,
-            columns=utils.format_columns(load_columns_year + load_columns_syst),
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst if load_systematics else load_columns_year
+            ),
             reorder_txbb=reorder_txbb,
-            txbb=txbb,
+            txbb_str=txbb_str,
             variations=False,
         ),
     }
-    for key in events_dict_nosyst:
-        x = events_dict_nosyst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
-        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
-        events_dict_nosyst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
-    for key in events_dict_syst:
-        x = events_dict_syst[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
-        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 0)] = x[:, 0]
-        events_dict_syst[key][("bbFatJetPNetMassLegacyRaw", 1)] = x[:, 1]
 
-    events_dict_syst = scale_smear_mass(events_dict_syst, year)
+    if scale_and_smear:
+        add_rawmass(events_dict_nosyst, mass_str)
+        add_rawmass(events_dict_syst, mass_str)
+        events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
+
     events_dict = {**events_dict_nosyst, **events_dict_syst}
+
     return events_dict
 
 
-def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
+def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: str):
     jms_nom = jmsr_values["JMS"][year]["nom"]
     jmr_nom = jmsr_values["JMR"][year]["nom"]
     rng = np.random.default_rng(seed=42)
 
     # formula for smearing and scaling
     for key in events_dict:
-        print(f"scaling and smearing mass for {key} {year}")
         if key in jmsr_keys:
-            x = events_dict[key]["bbFatJetPNetMassLegacy"].to_numpy(copy=True)
+            print(f"scaling and smearing mass for {key} {year}")
+            x = events_dict[key][mass_str].to_numpy(copy=True)
             x_smear = np.zeros_like(x)
             random_smear = rng.standard_normal(size=x.shape)
             x_smear = (
@@ -260,9 +301,10 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                 * jms_nom
                 * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
             )
+
             for i in range(2):
-                events_dict[key][("bbFatJetPNetMassLegacyRaw", i)] = x[:, i]
-                events_dict[key][("bbFatJetPNetMassLegacy", i)] = x_smear[:, i]
+                events_dict[key][(f"{mass_str}Raw", i)] = x[:, i]
+                events_dict[key][(mass_str, i)] = x_smear[:, i]
             for skey in jmsr:
                 for shift in ["up", "down"]:
                     if skey == "JMS":
@@ -276,9 +318,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str):
                         x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
                     )
                     for i in range(2):
-                        events_dict[key][(f"bbFatJetPNetMassLegacy_{skey}_{shift}", i)] = x_smear[
-                            :, i
-                        ]
+                        events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
     return events_dict
 
 

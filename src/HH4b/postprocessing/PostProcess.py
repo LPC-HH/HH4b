@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import logging
+import logging.config
 import pprint
 from collections import OrderedDict
 from pathlib import Path
@@ -26,6 +28,7 @@ from HH4b.hh_vars import (
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
+from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
@@ -34,6 +37,10 @@ from HH4b.postprocessing import (
     weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
+
+log_config["root"]["level"] = "INFO"
+logging.config.dictConfig(log_config)
+logger = logging.getLogger(__name__)
 
 # get top-level HH4b directory
 HH4B_DIR = Path(__file__).resolve().parents[3]
@@ -114,7 +121,7 @@ def get_bdt_training_keys(bdt_model: str):
         if child.suffix == ".npy":
             training_keys.append(child.stem.split("evt_")[-1])
 
-    print("Found BDT Training keys", training_keys)
+    logger.info(f"Found BDT Training keys {training_keys}")
     return training_keys
 
 
@@ -349,23 +356,29 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
     # load TXbb SFs
     txbb_sf = corrections._load_txbb_sfs(
-        year, "sf_txbbv11_Jun14", txbbsfs_decorr_txbb_wps, txbbsfs_decorr_pt_bins
+        year,
+        "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
+        txbbsfs_decorr_txbb_wps,
+        txbbsfs_decorr_pt_bins,
     )
 
     events_dict_postprocess = {}
     columns_by_key = {}
     for key in samples_year:
-        print(f"load samples {key}")
+        logger.info(f"Load samples {key}")
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             year,
-            args.legacy,
             samples_to_process,
             reorder_txbb=True,
-            txbb=f"bbFatJetPNetTXbb{legacy_label}",
+            txbb_str=args.txbb_str,
+            load_systematics=True,
+            txbb_version=args.txbb,
+            scale_and_smear=True,
+            mass_str=args.mass_str,
         )[key]
 
         # inference and assign score
@@ -374,9 +387,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             jshifts += hh_vars.jec_shifts
         if key in hh_vars.jmsr_keys:
             jshifts += hh_vars.jmsr_shifts
-        print("JEC shifts ", jshifts)
+        logger.info(f"JEC shifts {jshifts}")
 
-        print("perform inference")
+        logger.info("Perform inference")
         bdt_events = {}
         for jshift in jshifts:
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
@@ -448,7 +461,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             h1txbb = bdt_events["H1TXbb"].to_numpy()
             h2txbb = bdt_events["H2TXbb"].to_numpy()
             txbb_range = [0.92, 1]
-            pt_range = [250, 100000]
+            pt_range = [200, 100000]
             txbb_sf_weight1 = corrections.restrict_SF(
                 txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range
             )
@@ -482,7 +495,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             evt_list = np.load(inferences_dir / f"evt_{key}.npy")
             events_to_keep = bdt_events["event"].isin(evt_list)
             fraction = np.sum(events_to_keep.to_numpy() == 1) / bdt_events["event"].shape[0]
-            print(f"Keep {fraction}% of {key} for year {year}")
+            logger.info(f"Keep {fraction}% of {key} for year {year}")
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
@@ -523,19 +536,43 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             h1txbb = bdt_events["H1TXbb"].to_numpy()
             h2txbb = bdt_events["H2TXbb"].to_numpy()
             txbb_range = [0.92, 1]
-            pt_range = [250, 100000]
+            pt_range = [200, 100000]
             # correlated signal xbb up/dn variations
             corr_up1 = corrections.restrict_SF(
-                txbb_sf["corr_up"], h1txbb, h1pt, txbb_range, pt_range
+                txbb_sf["corr_up"],
+                h1txbb,
+                h1pt,
+                txbb_range,
+                pt_range,
+                txbb_sf["corr3x_up"],
+                txbbsfs_decorr_txbb_wps["WP1"],
             )
             corr_up2 = corrections.restrict_SF(
-                txbb_sf["corr_up"], h2txbb, h2pt, txbb_range, pt_range
+                txbb_sf["corr_up"],
+                h2txbb,
+                h2pt,
+                txbb_range,
+                pt_range,
+                txbb_sf["corr3x_up"],
+                txbbsfs_decorr_txbb_wps["WP1"],
             )
             corr_dn1 = corrections.restrict_SF(
-                txbb_sf["corr_dn"], h1txbb, h1pt, txbb_range, pt_range
+                txbb_sf["corr_dn"],
+                h1txbb,
+                h1pt,
+                txbb_range,
+                pt_range,
+                txbb_sf["corr3x_dn"],
+                txbbsfs_decorr_txbb_wps["WP1"],
             )
             corr_dn2 = corrections.restrict_SF(
-                txbb_sf["corr_dn"], h2txbb, h2pt, txbb_range, pt_range
+                txbb_sf["corr_dn"],
+                h2txbb,
+                h2pt,
+                txbb_range,
+                pt_range,
+                txbb_sf["corr3x_dn"],
+                txbbsfs_decorr_txbb_wps["WP1"],
             )
             bdt_events["weight_TXbbSF_correlatedUp"] = (
                 bdt_events["weight"] * corr_up1 * corr_up2 / txbb_sf_weight
@@ -543,57 +580,64 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events["weight_TXbbSF_correlatedDown"] = (
                 bdt_events["weight"] * corr_dn1 * corr_dn2 / txbb_sf_weight
             )
-
             # uncorrelated signal xbb up/dn variations in bins
             for wp in txbbsfs_decorr_txbb_wps:
-                for j in range(len(txbbsfs_decorr_pt_bins) - 1):
+                for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
                     nominal1 = corrections.restrict_SF(
                         txbb_sf["nominal"],
                         h1txbb,
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
                     )
                     nominal2 = corrections.restrict_SF(
                         txbb_sf["nominal"],
                         h2txbb,
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
                     )
                     stat_up1 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
                         h1txbb,
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
+                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_up2 = corrections.restrict_SF(
                         txbb_sf["stat_up"],
                         h2txbb,
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
+                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_dn1 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
                         h1txbb,
                         h1pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
+                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_dn2 = corrections.restrict_SF(
                         txbb_sf["stat_dn"],
                         h2txbb,
                         h2pt,
                         txbbsfs_decorr_txbb_wps[wp],
-                        txbbsfs_decorr_pt_bins[j : j + 2],
+                        txbbsfs_decorr_pt_bins[wp][j : j + 2],
+                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
+                        txbbsfs_decorr_txbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     bdt_events[
-                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Up"
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}Up"
                     ] = (bdt_events["weight"] * stat_up1 * stat_up2 / (nominal1 * nominal2))
                     bdt_events[
-                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[j]}_{txbbsfs_decorr_pt_bins[j+1]}Down"
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}Down"
                     ] = (bdt_events["weight"] * stat_dn1 * stat_dn2 / (nominal1 * nominal2))
 
         if key == "ttbar":
@@ -648,7 +692,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         for jshift in jshifts:
-            print(f"Inference and selection for jshift {jshift}")
+            logger.info(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
             h2pt = check_get_jec_var("H2Pt", jshift)
             h1msd = check_get_jec_var("H1Msd", jshift)
@@ -819,7 +863,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # blind!!
         if key == "data":
             # get sideband estimate instead
-            print(f"Data cutflow in {mass_str} is taken from sideband estimate!")
+            logger.info(f"Data cutflow in {mass_str} is taken from sideband estimate!")
             cutflow_dict[key][f"Bin VBF {mass_str}"] = get_nevents_data(
                 bdt_events, mask_vbf, args.mass, mass_window
             )
@@ -845,8 +889,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             for key in events_dict_postprocess
         ]
 
-    print("\nCutflow")
-    print(cutflow)
+    logger.info(f"\nCutflow {cutflow}")
     return events_dict_postprocess, cutflow
 
 
