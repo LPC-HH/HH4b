@@ -34,7 +34,7 @@ common_samples_bg = {
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "gghtobb": ["GluGluHto2B_PT-200_M-125"],
-    "vbfhtobb": ["VBFHto2B_M-125?"],
+    "vbfhtobb": ["VBFHto2B_M-125"],
     # "singletop": [
     #     "TbarBQ_t-channel_4FS",
     #     "TBbarQ_t-channel_4FS",
