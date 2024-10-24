@@ -153,8 +153,6 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         "hh4b-kl5",
         "vbfhh4b",
         "vbfhh4b-k2v0",
-        "vbfhh4b-k2v2",
-        "vbfhh4b-kl2",
     ]
     scores_keys = {
         "hh4b": "bdt_score",
@@ -162,8 +160,6 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         "hh4b-kl2p45": "bdt_score",
         "hh4b-kl5": "bdt_score",
         "vbfhh4b": "bdt_score_vbf",
-        "vbfhh4b-kl2": "bdt_score_vbf",
-        "vbfhh4b-k2v2": "bdt_score_vbf",
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
@@ -1318,14 +1314,10 @@ def postprocess_run3(args):
     print("bg keys", bg_keys)
     print("bg_keys_combined ", bg_keys_combined)
     if len(args.years) > 1:
+        # list of years available for a given process to scale to full lumi,
+        # not needed at the moment
         scaled_by_years = {
-            "vbfhh4b-k2v2": ["2022", "2022EE"],
-            "vbfhh4b-kl2": ["2022", "2022EE"],
-            "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["2022", "2022EE", "2023BPix"],
-            "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["2023", "2023BPix"],
+            # "vbfhh4b-k2v2": ["2022", "2022EE"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
