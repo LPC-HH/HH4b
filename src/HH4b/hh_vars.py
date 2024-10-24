@@ -285,8 +285,6 @@ sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
 sig_keys_vbf = [
     "vbfhh4b",
     "vbfhh4b-k2v0",
-    "vbfhh4b-k2v2",
-    "vbfhh4b-kl2",
     "vbfhh4b-kv1p74-k2v1p37-kl14p4",
     "vbfhh4b-kvm0p012-k2v0p03-kl10p2",
     "vbfhh4b-kvm0p758-k2v1p44-klm19p3",
