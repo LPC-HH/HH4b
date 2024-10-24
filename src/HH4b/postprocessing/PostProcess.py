@@ -825,6 +825,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             "event",
             "run",
             "luminosityBlock",
+            "year",
         ]
         for jshift in jshifts:
             columns += [
