@@ -1024,6 +1024,7 @@ def scan_fom(
     all_bdt_cuts = np.array(all_bdt_cuts)
 
     # save all arrays to plot_dir
+    name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
     print(f"Saving FOM scan: {plot_dir}/{name}_fom_arrays \n")
     np.savez(
         f"{plot_dir}/{name}_fom_arrays.npz",
@@ -1037,7 +1038,6 @@ def scan_fom(
     )
 
     # plot fom scan
-    name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
     print(f"Plotting FOM scan: {plot_dir}/{name} \n")
     plotting.plot_fom(h_sb, plot_dir, name=name, fontsize=2.0)
     plotting.plot_fom(h_b, plot_dir, name=f"{name}_bkg", fontsize=2.0)
