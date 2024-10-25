@@ -1415,8 +1415,8 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.8, 0.999, 0.005),
-                np.arange(0.5, 0.99, 0.01),
+                np.arange(0.8, 0.999, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
@@ -1428,7 +1428,7 @@ def postprocess_run3(args):
         if args.fom_scan_bin1:
             if args.vbf and args.vbf_priority:
                 print(
-                    f"Scanning Bin 1 vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
+                    f"Scanning Bin 1, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
                 )
             else:
                 print("Scanning Bin 1, no VBF category")
@@ -1449,16 +1449,16 @@ def postprocess_run3(args):
         if args.fom_scan_bin2:
             if args.vbf:
                 print(
-                    f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                    f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
                 )
             else:
-                print(f"Scanning Bin 2 with bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
+                print(f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
             scan_fom(
                 args.method,
                 events_combined,
                 get_cuts(args, "bin2"),
-                np.arange(0.8, args.txbb_wps[0], 0.02),
-                np.arange(0.5, args.bdt_wps[0], 0.02),
+                np.arange(0.8, args.txbb_wps[0], 0.0025),
+                np.arange(0.8, args.bdt_wps[0], 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
