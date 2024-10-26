@@ -1452,7 +1452,9 @@ def postprocess_run3(args):
                     f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
                 )
             else:
-                print(f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
+                print(
+                    f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                )
             scan_fom(
                 args.method,
                 events_combined,
