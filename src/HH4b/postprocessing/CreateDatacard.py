@@ -169,8 +169,6 @@ mc_samples_sig = OrderedDict(
         ("hh4b-kl5", "ggHH_kl_5_kt_1_hbbhbb"),
         ("vbfhh4b", "qqHH_CV_1_C2V_1_kl_1_hbbhbb"),
         ("vbfhh4b-k2v0", "qqHH_CV_1_C2V_0_kl_1_hbbhbb"),
-        ("vbfhh4b-k2v2", "qqHH_CV_1_C2V_2_kl_1_hbbhbb"),
-        ("vbfhh4b-kl2", "qqHH_CV_1_C2V_1_kl_2_hbbhbb"),
         ("vbfhh4b-kv1p74-k2v1p37-kl14p4", "qqHH_CV_1p74_C2V_1p37_kl_14p4_hbbhbb"),
         ("vbfhh4b-kvm0p012-k2v0p03-kl10p2", "qqHH_CV_m0p012_C2V_0p03_kl_10p2_hbbhbb"),
         ("vbfhh4b-kvm0p758-k2v1p44-klm19p3", "qqHH_CV_m0p758_C2V_1p44_kl_m19p3_hbbhbb"),
