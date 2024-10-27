@@ -1264,11 +1264,11 @@ def postprocess_run3(args):
     # use for both pnet-legacy
     if args.txbb == "pnet-legacy":
         fom_window_by_mass["H2PNetMass"] = [105, 150]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = ([110, 140],)  # only blind 3 bins
+        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
     # different for glopart-v2
     elif args.txbb == "glopart-v2":
         fom_window_by_mass["H2PNetMass"] = [115, 160]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = ([120, 150],)  # only blind 3 bins
+        blind_window_by_mass["H2PNetMass"] = [120, 150]  # only blind 3 bins
     # different for pnet-v12
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
