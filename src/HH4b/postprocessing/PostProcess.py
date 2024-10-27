@@ -1254,18 +1254,23 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
-    # use for both pnet-legacy and glopart-v2
     fom_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [105, 150],  # use wider range for FoM scan
     }
     blind_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [110, 140],  # only blind 3 bins
     }
 
+    # use for both pnet-legacy
+    if args.txbb == "pnet-legacy":
+        fom_window_by_mass["H2PNetMass"] = [105, 150]  # use wider range for FoM scan
+        blind_window_by_mass["H2PNetMass"] = [110, 140],  # only blind 3 bins
+    # different for glopart-v2
+    elif args.txbb == "glopart-v2":
+        fom_window_by_mass["H2PNetMass"] = [115, 160]  # use wider range for FoM scan
+        blind_window_by_mass["H2PNetMass"] = [120, 150],  # only blind 3 bins
     # different for pnet-v12
-    if args.txbb == "pnet-v12":
+    elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
 
