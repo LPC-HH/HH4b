@@ -1015,13 +1015,6 @@ def scan_fom(
                 f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
             )
 
-    name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
-    print(f"Plotting FOM scan: {plot_dir}/{name} \n")
-    plotting.plot_fom(h_sb, plot_dir, name=name, fontsize=2.0)
-    plotting.plot_fom(h_b, plot_dir, name=f"{name}_bkg", fontsize=2.0)
-    plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
-    plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
-
     all_fom = np.array(all_fom)
     all_b = np.array(all_b)
     all_b_unc = np.array(all_b_unc)
@@ -1029,7 +1022,10 @@ def scan_fom(
     all_sideband_events = np.array(all_sideband_events)
     all_xbb_cuts = np.array(all_xbb_cuts)
     all_bdt_cuts = np.array(all_bdt_cuts)
+
     # save all arrays to plot_dir
+    name = f"{plot_name}_{args.method}_mass{mass_window[0]}-{mass_window[1]}"
+    print(f"Saving FOM scan: {plot_dir}/{name}_fom_arrays \n")
     np.savez(
         f"{plot_dir}/{name}_fom_arrays.npz",
         all_fom=all_fom,
@@ -1040,6 +1036,13 @@ def scan_fom(
         all_xbb_cuts=all_xbb_cuts,
         all_bdt_cuts=all_bdt_cuts,
     )
+
+    # plot fom scan
+    print(f"Plotting FOM scan: {plot_dir}/{name} \n")
+    plotting.plot_fom(h_sb, plot_dir, name=name, fontsize=2.0)
+    plotting.plot_fom(h_b, plot_dir, name=f"{name}_bkg", fontsize=2.0)
+    plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
+    plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
 
 
 def get_cuts(args, region: str):
@@ -1251,18 +1254,23 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
-    # use for both pnet-legacy and glopart-v2
     fom_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [105, 150],  # use wider range for FoM scan
     }
     blind_window_by_mass = {
         "H2Msd": [110, 140],
-        "H2PNetMass": [110, 140],  # only blind 3 bins
     }
 
+    # use for both pnet-legacy
+    if args.txbb == "pnet-legacy":
+        fom_window_by_mass["H2PNetMass"] = [105, 150]  # use wider range for FoM scan
+        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
+    # different for glopart-v2
+    elif args.txbb == "glopart-v2":
+        fom_window_by_mass["H2PNetMass"] = [115, 160]  # use wider range for FoM scan
+        blind_window_by_mass["H2PNetMass"] = [120, 150]  # only blind 3 bins
     # different for pnet-v12
-    if args.txbb == "pnet-v12":
+    elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
 
@@ -1412,8 +1420,8 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
-                np.arange(0.8, 0.999, 0.005),
-                np.arange(0.5, 0.99, 0.01),
+                np.arange(0.7, 0.85, 0.0025),
+                np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
@@ -1425,7 +1433,7 @@ def postprocess_run3(args):
         if args.fom_scan_bin1:
             if args.vbf and args.vbf_priority:
                 print(
-                    f"Scanning Bin 1 vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
+                    f"Scanning Bin 1, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
                 )
             else:
                 print("Scanning Bin 1, no VBF category")
@@ -1446,16 +1454,18 @@ def postprocess_run3(args):
         if args.fom_scan_bin2:
             if args.vbf:
                 print(
-                    f"Scanning Bin 2 with VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                    f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
                 )
             else:
-                print(f"Scanning Bin 2 with bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
+                print(
+                    f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
+                )
             scan_fom(
                 args.method,
                 events_combined,
                 get_cuts(args, "bin2"),
-                np.arange(0.8, args.txbb_wps[0], 0.02),
-                np.arange(0.5, args.bdt_wps[0], 0.02),
+                np.arange(0.6, args.txbb_wps[0], 0.0025),
+                np.arange(0.6, args.bdt_wps[0], 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
