@@ -17,6 +17,7 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
+    jecs,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -25,6 +26,7 @@ from HH4b.hh_vars import (
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
     years,
@@ -89,15 +91,12 @@ columns_to_load = {
     + [
         ("bbFatJetPNetTXbbLegacy", 2),
         ("bbFatJetPNetPXbbLegacy", 2),
-        ("bbFatJetPNetPQCDbLegacy", 2),
-        ("bbFatJetPNetPQCDbbLegacy", 2),
-        ("bbFatJetPNetPQCDothersLegacy", 2),
+        ("bbFatJetPNetPQCD0HFLegacy", 2),
+        ("bbFatJetPNetPQCD1HFLegacy", 2),
+        ("bbFatJetPNetPQCD2HFLegacy", 2),
         ("bbFatJetPNetMassLegacy", 2),
         ("bbFatJetPNetTXbb", 2),
         ("bbFatJetPNetMass", 2),
-        ("bbFatJetPNetQCD0HF", 2),
-        ("bbFatJetPNetQCD1HF", 2),
-        ("bbFatJetPNetQCD2HF", 2),
     ],
     "pnet-v12": columns_to_load_default
     + [
@@ -148,10 +147,7 @@ filters_to_apply = {
 }
 
 load_columns_syst = []
-jecs = {
-    "JES": "JES",
-    "JER": "JER",
-}
+
 jec_shifts = []
 for key in jecs:
     for shift in ["up", "down"]:
@@ -210,7 +206,6 @@ def load_run3_samples(
     year: str,
     samples_run3: dict[str, list[str]],
     reorder_txbb: bool,
-    txbb_str: str,
     load_systematics: bool,
     txbb_version: str,
     scale_and_smear: bool,
@@ -222,6 +217,7 @@ def load_run3_samples(
         "glopart-v2",
     ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
 
+    txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
     load_columns = columns_to_load[txbb_version]
 

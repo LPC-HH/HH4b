@@ -121,9 +121,9 @@ def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
     title += "$T_{Xbb}^{0}$ >" + f"{txbb_preselection[txbb_str]}"
 
-    if "Legacy" in txbb_str:
+    if "legacy" in txbb_str.lower():
         title += "\n" + "PNet Legacy"
-    elif "ParT" in txbb_str:
+    elif "part" in txbb_str.lower():
         title += "\n" + "GloParTv2"
     else:
         title += "\n" + "PNet 103X"
