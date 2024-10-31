@@ -238,13 +238,11 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
 def get_roc_inputs(
     events_dict,
-    # jet_collection,
     discriminator_name,
-    # jet_index,
+    bg_keys,
 ):
     sig_key = "hh4b"
-    bg_keys = ["qcd"]
-    discriminator = f"{discriminator_name}"  # f"{jet_collection}{discriminator_name}"
+    discriminator = f"{discriminator_name}"
 
     # 1 for signal, 0 for background
     y_true = np.concatenate(
@@ -255,9 +253,10 @@ def get_roc_inputs(
     )
     # weights
     weights = np.concatenate(
-        [events_dict[sig_key]["finalWeight"]]  # subst finalWeight->weight
-        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],  # subst finalWeight->weight
+        [events_dict[sig_key]["finalWeight"]]  
+        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys], 
     )
+
     # discriminator
     # print(events_dict[sig_key][discriminator])
     scores = np.concatenate(
@@ -274,14 +273,22 @@ def get_roc(
     discriminator_name,
     discriminator_label,
     discriminator_color,
+    bg_keys,
 ):
-    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name)
+    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name, bg_keys)
+    #print("ytrue ", y_true)
+    #print("scores ", scores)
+    #print("weights ", weights)
+
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
+    #print("fpr", fpr)
+    #print("tpr", tpr)
+
     roc = {
         "fpr": fpr,
         "tpr": tpr,
         "thresholds": thresholds,
-        "label": discriminator_label + f" AUC ({auc(fpr, tpr):.4f})",
+        "label": discriminator_label, # + f" AUC ({auc(fpr, tpr):.4f})",
         "color": discriminator_color,
     }
 
@@ -361,10 +368,10 @@ def main(args):
             "config": "v5_glopartv2",
             "model_name": "24Sep27_v5_glopartv2",
         },
-        "v5_PNetv12": {
-            "config": "v5_PNetv12",
-            "model_name": "24Jul29_v5_PNetv12",
-        },
+        #"v5_PNetv12": {
+        #    "config": "v5_PNetv12",
+        #    "model_name": "24Jul29_v5_PNetv12",
+        #},
     }
 
     bdt_dict = {
@@ -377,7 +384,7 @@ def main(args):
         )
         for year in args.year
     }
-    processes = ["qcd", "ttbar", "hh4b"]
+    processes = ["hh4b"] + args.processes
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
@@ -398,10 +405,14 @@ def main(args):
             f"bdtscore_{bdt_model}",
             bdt_model,
             colors[i],
+            bg_keys=args.processes
         )
 
     # Plot multi-ROC curve
-
+    bkgprocess_key = "-".join(args.processes)
+    years_key = "_".join(args.year)
+    output_name = f"PNet-parT-comparison-{bkgprocess_key}-{years_key}"
+    print(output_name)
     multiROCCurveGrey(
         restructure_rocs(rocs),
         # sig_effs=sig_effs,
@@ -409,8 +420,11 @@ def main(args):
         plot_dir=out_dir,
         legtitle=get_legtitle("bbFatJetParTTXbb"),
         title="ggF HH4b BDT ROC",
-        name="PNet-parT-comparison",
-        plot_thresholds={"v5_PNetLegacy": [0.98, 0.88, 0.03]},
+        name=output_name,
+        plot_thresholds={
+            "v5_PNetLegacy": [0.98, 0.88, 0.03],
+            "v5_ParT": [0.9425, 0.74, 0.03],
+        },
         # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
         # add_cms_label=True,
         show=True,
@@ -427,7 +441,15 @@ if __name__ == "__main__":
         type=str,
         default=["2022EE"],
         choices=hh_vars.years,
-        help="years to train on",
+        help="years to evaluate on",
+    )
+    parser.add_argument(
+        "--processes",
+        nargs="+",
+        type=str,
+        default=["qcd"],
+        choices=["qcd", "ttbar"],
+        help="bkg processes to evaluate",
     )
     parser.add_argument(
         "--data-path",
