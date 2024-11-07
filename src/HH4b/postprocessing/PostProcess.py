@@ -1626,7 +1626,14 @@ if __name__ == "__main__":
         "--bdt-disc",
         type=bool,
         default=True,
-        help="use BDT discriminant defined as BDT_ggF/VBF  = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise just use P_ggF/VBF",
+        help="use BDT discriminant defined as BDT_ggF/VBF = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise use P_ggF/VBF",
+    )
+    parser.add_argument(
+        "--txbb",
+        type=str,
+        default="",
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        help="version of TXbb tagger/mass regression to use",
     )
     parser.add_argument(
         "--txbb-wps",
