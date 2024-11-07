@@ -128,7 +128,11 @@ def get_bdt_training_keys(bdt_model: str):
 
 
 def add_bdt_scores(
-    events: pd.DataFrame, preds: np.ArrayLike, jshift: str = "", weight_ttbar: float = 1, bdt_disc: bool = True
+    events: pd.DataFrame,
+    preds: np.ArrayLike,
+    jshift: str = "",
+    weight_ttbar: float = 1,
+    bdt_disc: bool = True,
 ):
     jlabel = "" if jshift == "" else "_" + jshift
 
@@ -138,11 +142,15 @@ def add_bdt_scores(
         events[f"bdt_score{jlabel}"] = preds[:, 0]  # ggF HH
     elif preds.shape[1] == 4:  # multi-class BDT with ggF HH, VBF HH, QCD, ttbar classes
         bg_tot = np.sum(preds[:, 2:], axis=1)
-        events[f"bdt_score{jlabel}"] = preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
+        events[f"bdt_score{jlabel}"] = (
+            preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
+        )
         # events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
-        events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (
-            preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3]
-        ) if bdt_disc else preds[:, 1]
+        events[f"bdt_score_vbf{jlabel}"] = (
+            preds[:, 1] / (preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3])
+            if bdt_disc
+            else preds[:, 1]
+        )
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -392,7 +400,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 events_dict, get_var_mapping(jshift)
             )
             preds = bdt_model.predict_proba(bdt_events[jshift])
-            add_bdt_scores(bdt_events[jshift], preds, jshift, weight_ttbar=args.weight_ttbar_bdt, bdt_disc=args.bdt_disc)
+            add_bdt_scores(
+                bdt_events[jshift],
+                preds,
+                jshift,
+                weight_ttbar=args.weight_ttbar_bdt,
+                bdt_disc=args.bdt_disc,
+            )
         bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
 
         # remove duplicates

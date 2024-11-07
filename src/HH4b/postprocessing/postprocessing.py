@@ -114,7 +114,7 @@ columns_to_load = {
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
-        ("bbFatJetrawFactor", 2)
+        ("bbFatJetrawFactor", 2),
     ],
 }
 
@@ -244,8 +244,12 @@ def load_run3_samples(
     # correct mass for glopart-v2; remove once done in skimmer!
     def correct_mass(events_dict, mass_str):
         for key in events_dict:
-            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (1 - events_dict[key][("bbFatJetrawFactor", 0)])
-            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (1 - events_dict[key][("bbFatJetrawFactor", 1)])
+            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 0)]
+            )
+            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 1)]
+            )
 
     # load samples that do no need systematics (e.g. data)
     events_dict_nosyst = {
