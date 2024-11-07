@@ -114,6 +114,7 @@ columns_to_load = {
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
+        ("bbFatJetrawFactor", 2)
     ],
 }
 
@@ -240,6 +241,12 @@ def load_run3_samples(
             events_dict[key][(f"{mass_str}Raw", 0)] = x[:, 0]
             events_dict[key][(f"{mass_str}Raw", 1)] = x[:, 1]
 
+    # correct mass for glopart-v2; remove once done in skimmer!
+    def correct_mass(events_dict, mass_str):
+        for key in events_dict:
+            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (1 - events_dict[key][("bbFatJetrawFactor", 0)])
+            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (1 - events_dict[key][("bbFatJetrawFactor", 1)])
+
     # load samples that do no need systematics (e.g. data)
     events_dict_nosyst = {
         **utils.load_samples(
@@ -274,6 +281,10 @@ def load_run3_samples(
         add_rawmass(events_dict_nosyst, mass_str)
         add_rawmass(events_dict_syst, mass_str)
         events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
+
+    if txbb_version == "glopart-v2":
+        correct_mass(events_dict, mass_str)
+        correct_mass(events_dict_syst, mass_str)
 
     events_dict = {**events_dict_nosyst, **events_dict_syst}
 
