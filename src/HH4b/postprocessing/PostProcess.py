@@ -1617,12 +1617,6 @@ if __name__ == "__main__":
         help="BDT model to load",
     )
     parser.add_argument(
-        "--bdt-config",
-        type=str,
-        default="24May31_lr_0p02_md_8_AK4Away",
-        help="BDT model to load",
-    )
-    parser.add_argument(
         "--bdt-disc",
         type=bool,
         default=True,
