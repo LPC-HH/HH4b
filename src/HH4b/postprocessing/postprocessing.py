@@ -281,14 +281,14 @@ def load_run3_samples(
         ),
     }
 
+    if txbb_version == "glopart-v2":
+        correct_mass(events_dict_nosyst, mass_str)
+        correct_mass(events_dict_syst, mass_str)
+
     if scale_and_smear:
         add_rawmass(events_dict_nosyst, mass_str)
         add_rawmass(events_dict_syst, mass_str)
         events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
-
-    if txbb_version == "glopart-v2":
-        correct_mass(events_dict_nosyst, mass_str)
-        correct_mass(events_dict_syst, mass_str)
 
     events_dict = {**events_dict_nosyst, **events_dict_syst}
 
