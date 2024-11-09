@@ -131,20 +131,18 @@ for year in samples_run3:
 def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
     title += "$T_{Xbb}^{0}$ >" + f"{txbb_preselection[txbb_str]}"
-    title += "$T_{Xbb}^{0}$ >" + f"{txbb_preselection[txbb_str]}"
 
-    if "Legacy" in txbb_str:
+    if "legacy" in txbb_str.lower():
         title += "\n" + "PNet Legacy"
-    elif "ParT" in txbb_str:
+    elif "part" in txbb_str.lower():
         title += "\n" + "GloParTv2"
     else:
         title += "\n" + "PNet 103X"
 
     title += "\n" + r"m$_{reg}$ > 50 GeV"
-    if "Legacy" not in txbb_str:
+    if "legacy" not in txbb_str.lower():
         title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
         title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
-        title += "\n" + "PNet 103X"
 
     return title
 
@@ -155,7 +153,6 @@ def apply_cuts(events_dict, txbb_str, mass_str):
     Skimmer selection already includes
     - 2 AK8 jets pT > 250 GeV, mSD > 60 or mReg > 60
     - HLT OR
-    - Here we apply pT(1,2)> 250, mReg(1,2)>50 and a TXbb(1) and mSD(1,2) preselection
     - Here we apply pT(1,2)> 250, mReg(1,2)>50 and a TXbb(1) and mSD(1,2) preselection
     """
     for key in events_dict:
@@ -225,7 +222,6 @@ def preprocess_data(
     )
 
     for key in weights_bdt:
-        logger.info(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
         logger.info(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
 
     # weights
@@ -782,11 +778,10 @@ def evaluate_model(
     )
     fig.tight_layout()
     fig.savefig(model_dir / "roc_txbb_weights.png")
-    fig.savefig(model_dir / "roc_txbb_weights.png")
     plt.close()
 
     (model_dir / "validation_mass").mkdir(exist_ok=True, parents=True)
-    """
+
     # mass sculpting with TXbb
     for txbb_cut in txbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
@@ -826,9 +821,7 @@ def evaluate_model(
                 ax.yaxis.grid(True, which="major")
                 fig.tight_layout()
                 fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_txbbcut{txbb_cut}.png")
-                fig.savefig(model_dir / "validation_mass" / f"{hkey}2_{key}_txbbcut{txbb_cut}.png")
                 plt.close()
-    """
 
 
 def plot_allyears(
