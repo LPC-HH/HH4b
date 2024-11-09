@@ -151,8 +151,6 @@ def get_processor(
 
         return ttSkimmer(
             xsecs=xsecs,
-            save_systematics=save_systematics,
-            region=region,
             nano_version=nano_version,
         )
 
@@ -176,6 +174,7 @@ def parse_common_args(parser):
     parser.add_argument(
         "--txbb",
         type=str,
+        default="glopart-v2",
         required=True,
         choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
         help="TXbb version to be used to order FatJets",
@@ -193,7 +192,6 @@ def parse_common_args(parser):
             "v11_private",
             "v12",
             "v12_private",
-            "v12v2_private",
             "v12v2_private",
         ],
         help="NanoAOD version",

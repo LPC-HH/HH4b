@@ -303,7 +303,7 @@ syst_keys.remove("qcd")
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    "JES": "JES",
+    # "JES": "JES",
     "JER": "JER",
     # #####
     # # including all sources
