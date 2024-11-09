@@ -13,6 +13,28 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
+
+def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list]):
+    """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
+
+    txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
+    pt_fine_bins = np.unique(np.concatenate([pt_bins[wp] for wp in pt_bins]))
+    edges = (txbb_bins, pt_fine_bins)
+    
+    txbb_sf = {
+        "nominal": dense_lookup(1, edges),
+        "stat_up": dense_lookup(1.1, edges),
+        "stat_dn": dense_lookup(0.9, edges),
+        "stat3x_up": dense_lookup(1.1, edges),
+        "stat3x_dn": dense_lookup(0.9, edges),
+        "corr_up": dense_lookup(1.1, edges),
+        "corr_dn": dense_lookup(0.9, edges),
+        "corr3x_up": dense_lookup(1.1, edges),
+        "corr3x_dn": dense_lookup(0.9, edges),
+    }
+
+    return txbb_sf
+
 def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list]):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 

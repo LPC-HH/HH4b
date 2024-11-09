@@ -342,7 +342,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb")
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
-    tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
+    if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
+        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
+    else:
+        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
 
     # get function
     make_bdt_dataframe = importlib.import_module(
@@ -360,12 +363,19 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     trigger_region = "QCD"
 
     # load TXbb SFs
-    txbb_sf = corrections._load_txbb_sfs(
-        year,
-        "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
-        txbbsfs_decorr_txbb_wps,
-        txbbsfs_decorr_pt_bins,
-    )
+    if args.txbb == "pnet-legacy":
+        txbb_sf = corrections._load_txbb_sfs(
+            year,
+            "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
+            txbbsfs_decorr_txbb_wps,
+            txbbsfs_decorr_pt_bins,
+        )
+    else:
+        # load dummy values
+        txbb_sf = corrections._load_dummy_txbb_sfs(
+            txbbsfs_decorr_txbb_wps,
+            txbbsfs_decorr_pt_bins,
+        )
 
     events_dict_postprocess = {}
     columns_by_key = {}
@@ -477,12 +487,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 txbb_sf["nominal"], h2txbb, h2pt, txbb_range, pt_range
             )
             txbb_sf_weight = txbb_sf_weight1 * txbb_sf_weight2
-            # plt.figure()
-            # plt.hist(txbb_sf_weight[h2txbb > 0.975], bins=50, range=[0.5, 1.5], histtype="step", label=f"ggF HH4b, mean = {np.mean(txbb_sf_weight[h2txbb > 0.975]):.3f}, std = {np.std(txbb_sf_weight[h2txbb > 0.975]):.3f}")
-            # plt.xlabel("Event weight = H1 TXbb SF * H2 TXbb SF")
-            # plt.ylabel("Events")
-            # plt.legend(title=f"{year} [H2 TXbb > 0.975]")
-            # plt.savefig(f"txbb_sf_weight_{year}.png")
 
         # TODO: apply to Single Higgs processes
         # need to match fatjet to Gen-Level single H
