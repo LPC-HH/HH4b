@@ -1688,8 +1688,12 @@ if __name__ == "__main__":
         "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
 
-
-    run_utils.add_bool_arg(parser, "bdt-disc", default=True, help="use BDT discriminant defined as BDT_ggF/VBF = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise use P_ggF/VBF")
+    run_utils.add_bool_arg(
+        parser,
+        "bdt-disc",
+        default=True,
+        help="use BDT discriminant defined as BDT_ggF/VBF = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise use P_ggF/VBF",
+    )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
