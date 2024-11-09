@@ -331,7 +331,6 @@ def load_samples(
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
-
         events_dict[label] = []  # list of directories we load in for this sample
         for sample in full_samples_list:
             # check if this directory passes our selector string
