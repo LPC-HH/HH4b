@@ -33,10 +33,6 @@ log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("TrainBDT")
 
-log_config["root"]["level"] = "INFO"
-logging.config.dictConfig(log_config)
-logger = logging.getLogger("TrainBDT")
-
 formatter = mticker.ScalarFormatter(useMathText=True)
 formatter.set_powerlimits((-3, 3))
 plt.rcParams.update(
