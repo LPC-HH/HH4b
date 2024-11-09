@@ -16,7 +16,6 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import HH4b
 
-from . import utils
 from .corrections import (
     JECs,
     add_pileup_weight,
@@ -55,10 +54,6 @@ class ttSkimmer(SkimmerABC):
 
     # key is name in nano files, value will be the name in the skimmed output
     skim_vars = {  # noqa: RUF012
-        # "Jet": {
-        #     **P4,
-        #     "rawFactor": "rawFactor",
-        # },
         "Lepton": {
             **P4,
             "id": "Id",
@@ -66,15 +61,14 @@ class ttSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
-            "Txbb": "PNetTXbb",
+            "Txbb": "PNetTXbb",  # these are discriminants
             "Txjj": "PNetTXjj",
-            "Tqcd": "PNetQCD",
-            "PQCDb": "PNetQCD1HF",
-            "PQCDbb": "PNetQCD2HF",
-            "PQCDothers": "PNetQCD0HF",
+            "Tqcd": "PNetTQCD",
+            "PQCD1HF": "PNetQCD1HF",  # these are raw probabilities
+            "PQCD2HF": "PNetQCD2HF",
+            "PQCD0HF": "PNetQCD0HF",
             "particleNet_mass": "PNetMass",
             "particleNet_massraw": "PNetMassRaw",
-            "t21": "Tau2OverTau1",
             "t32": "Tau3OverTau2",
             "rawFactor": "rawFactor",
         },
@@ -135,42 +129,37 @@ class ttSkimmer(SkimmerABC):
 
     num_jets = 1
 
+    jecs = {  # noqa: RUF012
+        "JES": "JES",
+        "JER": "JER",
+    }
+
     def __init__(
         self,
         xsecs=None,
-        save_systematics=False,
-        region="signal",
         nano_version="v12",
     ):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
-
-        # HLT selection
-        HLTs = {
-            "signal": {
-                "2022EE": [
-                    "Mu50",
-                ],
-                "2022": [
-                    "Mu50",
-                ],
-                "2023": [
-                    "Mu50",
-                ],
-                "2023BPix": [
-                    "Mu50",
-                ],
-            },
-        }
-
-        self.HLTs = HLTs[region]
-
-        self._systematics = save_systematics
-
         self._nano_version = nano_version
 
-        # https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_recommendations
+        # HLT selection
+        self.HLTs = {
+            "2022EE": [
+                "Mu50",
+            ],
+            "2022": [
+                "Mu50",
+            ],
+            "2023": [
+                "Mu50",
+            ],
+            "2023BPix": [
+                "Mu50",
+            ],
+        }
+
         self.met_filters = [
             "goodVertices",
             "globalSuperTightHalo2016Filter",
@@ -181,11 +170,51 @@ class ttSkimmer(SkimmerABC):
             "hfNoisyHitsFilt",
         ]
 
-        self._region = region
-
         self._accumulator = processor.dict_accumulator({})
 
-        logger.info(f"Running skimmer with systematics {self._systematics}")
+        # JMSR
+        self.jmsr_vars = ["msoftdrop", "particleNet_mass"]
+        if self._nano_version == "v12v2_private":
+            self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
+        if self._nano_version == "v12_private":
+            self.jmsr_vars += ["particleNet_mass_legacy"]
+
+        # FatJet Vars
+        if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
+            extra_vars = [
+                "TXbb",
+                "PXbb",
+                "PQCD",
+                "PQCDb",
+                "PQCDbb",
+                "PQCD0HF",
+                "PQCD1HF",
+                "PQCD2HF",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                "particleNet_mass_legacy": "PNetMassLegacy",
+                **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
+            }
+        if self._nano_version == "v12v2_private":
+            extra_vars = [
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTPXcc",
+                "ParTPXcs",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                **{var: var for var in extra_vars},
+            }
 
     @property
     def accumulator(self):
@@ -199,7 +228,9 @@ class ttSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023"]
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
+        assert is_run3  # run2 not implemented yet
+
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
 
         isData = not hasattr(events, "genWeight")
@@ -211,7 +242,6 @@ class ttSkimmer(SkimmerABC):
         cutflow = OrderedDict()
         cutflow["all"] = n_events
         selection = PackedSelection()
-        # weights = Weights(len(events), storeIndividual=True)
         selection_args = (selection, cutflow, isData, gen_weights)
 
         # JEC factory loader
@@ -222,47 +252,46 @@ class ttSkimmer(SkimmerABC):
         #########################
         print("Starting object definition", f"{time.time() - start:.2f}")
 
-        # run = events.run.to_numpy()
-
         muon = events.Muon
         muon["id"] = muon.charge * (13)
 
-        # electron = events.Electron
-
-        # num_jets = 4
         ak4_jets, jec_shifted_jetvars = JEC_loader.get_jec_jets(
             events,
             events.Jet,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=False,
             applyData=True,
             dataset=dataset,
             nano_version=self._nano_version,
         )
-        print(ak.fields(ak4_jets))
 
         met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
 
-        num_fatjets = 3  # number to save
+        num_fatjets = 2  # number to save
         fatjets = get_ak8jets(events.FatJet)
         fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
             fatjets,
             year,
             isData,
-            # jecs=self.jecs,
-            jecs=None,
+            jecs=self.jecs,
             fatjets=True,
             applyData=True,
             dataset=dataset,
             nano_version=self._nano_version,
         )
 
-        jmsr_vars = ["msoftdrop", "particleNet_mass_legacy", "particleNet_mass"]
-        jmsr_shifted_vars = get_jmsr(fatjets, 2, year, isData, jmsr_vars=jmsr_vars)
+        # save variations with 10\%
+        jmsr_shifted_vars = get_jmsr(
+            fatjets,
+            num_fatjets,
+            jmsr_vars=self.jmsr_vars,
+            jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+            jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+            isData=isData,
+        )
 
         print("Object definition", f"{time.time() - start:.2f}")
 
@@ -270,16 +299,14 @@ class ttSkimmer(SkimmerABC):
         # Derive variables
         #########################
 
-        # Gen variables - saving HH and bbbb 4-vector info
+        # Gen variables
         genVars = {}
         for d in gen_selection_dict:
             if d in dataset:
-                vars_dict = gen_selection_dict[d](events, ak4_jets, fatjets, selection_args, P4)
+                vars_dict = gen_selection_dict[d](
+                    events, ak4_jets, fatjets, selection_args, P4, "ak8FatJet"
+                )
                 genVars = {**genVars, **vars_dict}
-
-        # remove unnecessary ak4 gen variables for signal region
-        if self._region == "signal":
-            genVars = {key: val for (key, val) in genVars.items() if not key.startswith("ak4Jet")}
 
         # used for normalization to cross section below
         gen_selected = (
@@ -295,21 +322,14 @@ class ttSkimmer(SkimmerABC):
                 **fatjet_skimvars,
                 "pt_gen": "MatchedGenJetPt",
             }
-        if self._nano_version == "v12_private":
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                "TXqq_legacy": "PNetTXqqLegacy",
-                "TXbb_legacy": "PNetTXbbLegacy",
-                "particleNet_mass_legacy": "PNetMassLegacy",
-            }
-
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], num_fatjets, axis=1)
             for (var, key) in fatjet_skimvars.items()
         }
 
-        for var in jmsr_vars:
+        for var in self.jmsr_vars:
             key = fatjet_skimvars[var]
+            ak8FatJetVars[f"ak8FatJet{key}_raw"] = ak8FatJetVars[f"ak8FatJet{key}"]
             for shift, vals in jmsr_shifted_vars[var].items():
                 label = "" if shift == "" else "_" + shift
                 ak8FatJetVars[f"ak8FatJet{key}{label}"] = vals
@@ -323,7 +343,6 @@ class ttSkimmer(SkimmerABC):
             f"lepton{key}": pad_val(muon[var], num_leptons, axis=1)
             for (var, key) in lepton_skimvars.items()
         }
-
         print("Lepton vars", f"{time.time() - start:.2f}")
 
         # event variable
@@ -345,11 +364,9 @@ class ttSkimmer(SkimmerABC):
 
         print("Vars", f"{time.time() - start:.2f}")
 
-        # A summary of https://www.notion.so/Create-processor-TT-mass-regression-6f0a714558474bd192732698bd85ff9e
         #########################
         # Selection Starts
         #########################
-        # at least one good reconstructed primary vertex
         add_selection("npvsGood", events.PV.npvsGood >= 1, *selection_args)
 
         # muon
@@ -360,16 +377,13 @@ class ttSkimmer(SkimmerABC):
             * (muon.miniPFRelIso_all < self.muon_selection["miniPFRelIso_all"])
             * (np.abs(muon.dxy) < self.muon_selection["dxy"])
         )
-
         muon_selector = muon_selector * (
             ak.count(events.Muon.pt[muon_selector], axis=1) == self.muon_selection["count"]
         )
-
         muon = ak.pad_none(muon[muon_selector], 1, axis=1)[:, 0]
-
         muon_selector = ak.any(muon_selector, axis=1)
 
-        # 1024 - Mu50 trigger (https://algomez.web.cern.ch/algomez/testWeb/PFnano_content_v02.html#TrigObj)
+        # match muon to trigger object
         trigObj_muon = events.TrigObj[
             (events.TrigObj.id == MU_PDGID) * (events.TrigObj.filterBits >= 1024)
         ]
@@ -378,10 +392,9 @@ class ttSkimmer(SkimmerABC):
             np.abs(muon.delta_r(trigObj_muon)) <= self.muon_selection["delta_trigObj"],
             axis=1,
         )
-
         add_selection("muon", muon_selector, *selection_args)
 
-        # loose taus/electrons
+        # veto loose taus/electrons
         veto_electron_sel = veto_electrons(events.Electron)
         veto_tau_sel = veto_taus(events.Tau)
         add_selection(
@@ -406,10 +419,12 @@ class ttSkimmer(SkimmerABC):
             * (ak4_jets.pt > self.ak4_jet_selection["pt"])
             * (np.abs(ak4_jets.eta) < self.ak4_jet_selection["eta"])
         )
-        # ak4_jets_selected = ak.fill_none(ak4_jets[ak4_jet_selector], [], axis=0)
 
         # b-tagged and dPhi from muon < 2
-        if year == "2022" and self._nano_version == "v12_private":
+        # consider btagDeepFlavB for 2022 only (problem with v12 private production)
+        if year == "2022" and (
+            self._nano_version == "v12_private" or self._nano_version == "v12v2_private"
+        ):
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > self.btag_medium_deepJet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
@@ -419,7 +434,6 @@ class ttSkimmer(SkimmerABC):
                 (ak4_jets.btagPNetB > self.btag_medium_pNet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
             )
-
         ak4_selection = (
             # at least 1 b-tagged jet close to the muon
             (ak.any(ak4_jet_selector_btag_muon, axis=1))
@@ -436,30 +450,20 @@ class ttSkimmer(SkimmerABC):
             * (np.abs(fatjets.delta_phi(muon)) > self.ak8_jet_selection["delta_phi_muon"])
             * fatjets.isTight
         )
-
         fatjet_selector = ak.any(fatjet_selector, axis=1)
-
         add_selection("ak8_jet", fatjet_selector, *selection_args)
 
         # OR-ing HLT triggers
         for trigger in self.HLTs[year]:
             if trigger not in events.HLT.fields:
                 logger.warning(f"Missing HLT {trigger}!")
-
         HLT_triggered = np.any(
             np.array(
                 [events.HLT[trigger] for trigger in self.HLTs[year] if trigger in events.HLT.fields]
             ),
             axis=0,
         )
-
-        # apply trigger
-        apply_trigger = True
-        if not is_run3 and (~isData) and self._region == "signal":
-            # in run2 we do not apply the trigger to MC
-            apply_trigger = False
-        if apply_trigger:
-            add_selection("trigger", HLT_triggered, *selection_args)
+        add_selection("trigger", HLT_triggered, *selection_args)
 
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
@@ -499,7 +503,6 @@ class ttSkimmer(SkimmerABC):
         ##############################
         # Reshape and apply selections
         ##############################
-
         sel_all = selection.all(*selection.names)
 
         skimmed_events = {
@@ -510,19 +513,6 @@ class ttSkimmer(SkimmerABC):
         dataframe = self.to_pandas(skimmed_events)
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(dataframe, fname)
-
-        if self._save_array:
-            output = {}
-            for key in dataframe.columns:
-                if isinstance(key, tuple):
-                    column = "".join(str(k) for k in key)
-                output[column] = processor.column_accumulator(dataframe[key].values)
-
-            # print("Save Array", f"{time.time() - start:.2f}")
-            return {
-                "array": output,
-                "pkl": {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}},
-            }
 
         print("Return ", f"{time.time() - start:.2f}")
         return {year: {dataset: {"nevents": n_events, "cutflow": cutflow}}}
@@ -563,30 +553,9 @@ class ttSkimmer(SkimmerABC):
         weight_np = weights.partial_weight(include=norm_preserving_weights)
         totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
 
-        if self._systematics:
-            for systematic in list(weights.variations):
-                weights_dict[f"weight_{systematic}"] = weights.weight(modifier=systematic)
-
-                if utils.remove_variation_suffix(systematic) in norm_preserving_weights:
-                    var_weight = weights.partial_weight(include=norm_preserving_weights)
-                    # modify manually
-                    if "Down" in systematic and systematic not in weights._modifiers:
-                        var_weight = (
-                            var_weight / weights._modifiers[systematic.replace("Down", "Up")]
-                        )
-                    else:
-                        var_weight = var_weight * weights._modifiers[systematic]
-
-                    # var_weight = weights.partial_weight(
-                    #    include=norm_preserving_weights, modifier=systematic
-                    # )
-
-                    # need to save total # events for each variation for normalization in post-processing
-                    totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
-
-            # TEMP: save each individual weight TODO: remove
-            for key in weights._weights:
-                weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
+        # TEMP: save each individual weight TODO: remove
+        for key in weights._weights:
+            weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
 

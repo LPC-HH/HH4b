@@ -61,7 +61,8 @@ class SkimmerABC(processor.ProcessorABC):
         # need to write with pyarrow as pd.to_parquet doesn't support different types in
         # multi-index column names
         table = pa.Table.from_pandas(pddf)
-        pq.write_table(table, local_dir / fname)
+        if len(table) != 0:  # skip dataframes with empty entries
+            pq.write_table(table, local_dir / fname)
 
     def pileup_cutoff(self, events, year, cutoff: float = 4):
         pweights = corrections.get_pileup_weight(year, events.Pileup.nPU.to_numpy())

@@ -239,7 +239,7 @@ and this repo:
 
 ```bash
 # rhalphalib
-git clone https://github.com/rkansal47/rhalphalib
+git clone https://github.com/nsmith-/rhalphalib
 cd rhalphalib
 pip3 install -e . --user  # editable installation
 cd ..

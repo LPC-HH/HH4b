@@ -40,7 +40,7 @@ pip install -e .
 
 # run code
 # pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} --txbb ${txbb} ${region} ${apply_selection} ${save_root}
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} --txbb ${txbb} ${region} ${save_root}
 
 #move output to t2s
 for t2_prefix in ${t2_prefixes}

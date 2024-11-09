@@ -40,6 +40,8 @@ from .hh_vars import (
 
 logger = logging.getLogger("HH4b.utils")
 
+logger = logging.getLogger("HH4b.utils")
+
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
 PAD_VAL = -99999
@@ -317,8 +319,13 @@ def load_samples(
     """
     events_dict = {}
 
+    events_dict = {}
+
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
+
+    logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
+    logger.debug(f"Samples to load {samples}")
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
@@ -362,6 +369,7 @@ def load_samples(
 
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
+                _reorder_txbb(events, txbb_str)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
@@ -385,6 +393,7 @@ def load_samples(
                     events["finalWeight"] = events["weight"] / n_events
 
             events_dict[label].append(events)
+            logger.info(f"Loaded {sample: <50}: {len(events)} entries")
             logger.info(f"Loaded {sample: <50}: {len(events)} entries")
 
         if len(events_dict[label]):
