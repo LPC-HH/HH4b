@@ -13,14 +13,13 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-
 def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list]):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
     pt_fine_bins = np.unique(np.concatenate([pt_bins[wp] for wp in pt_bins]))
     edges = (txbb_bins, pt_fine_bins)
-    
+
     ones_2d = np.ones(shape=(len(txbb_bins) - 1, len(pt_fine_bins) - 1))
     txbb_sf = {
         "nominal": dense_lookup(ones_2d, edges),
@@ -36,10 +35,15 @@ def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list]):
 
     return txbb_sf
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list], txbb_version: str):
+
+def _load_txbb_sfs(
+    year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list], txbb_version: str
+):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
-    with (package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year}/{fname}.json").open() as f:
+    with (
+        package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year}/{fname}.json"
+    ).open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
