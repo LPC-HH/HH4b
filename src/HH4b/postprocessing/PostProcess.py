@@ -340,7 +340,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     )
 
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
-    tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb")
+    if args.txbb == "pnet-legacy":
+        tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
+    else:
+        tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
     if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
         tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
@@ -369,6 +372,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
             txbbsfs_decorr_txbb_wps,
             txbbsfs_decorr_pt_bins,
+            args.txbb,
         )
     else:
         # load dummy values

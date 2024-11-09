@@ -36,10 +36,10 @@ def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list]):
 
     return txbb_sf
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list]):
+def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list], txbb_version: str):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
-    with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
+    with (package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year}/{fname}.json").open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
