@@ -83,6 +83,26 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             "ttbar": [
                 "TTto4Q",
             ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "VBFHH": [
+                "VBFHHTo4B_CV_1_C2V_1_C3_1_TuneCP5_13TeV-madgraph-pythia8",
+                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8",
+            ],
+            "VBFH": [
+                "VBFHto2B_M-125_dipoleRecoilOn",
+            ],
         },
     }
     sample_dirs_sig = {
@@ -244,7 +264,7 @@ def get_roc_inputs(
 ):
     sig_key = "hh4b"
     bg_keys = ["qcd"]
-    discriminator = f"{discriminator_name}"  # f"{jet_collection}{discriminator_name}"
+    discriminator = f"{discriminator_name}"
 
     # 1 for signal, 0 for background
     y_true = np.concatenate(
@@ -255,8 +275,8 @@ def get_roc_inputs(
     )
     # weights
     weights = np.concatenate(
-        [events_dict[sig_key]["finalWeight"]]  # subst finalWeight->weight
-        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],  # subst finalWeight->weight
+        [events_dict[sig_key]["finalWeight"]]
+        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],
     )
     # discriminator
     # print(events_dict[sig_key][discriminator])
@@ -364,6 +384,10 @@ def main(args):
         "v5_PNetv12": {
             "config": "v5_PNetv12",
             "model_name": "24Jul29_v5_PNetv12",
+        },
+        "v6_ParT": {
+            "config": "v6_glopartv2",
+            "model_name": "24Oct17_v6_glopartv2",
         },
     }
 
