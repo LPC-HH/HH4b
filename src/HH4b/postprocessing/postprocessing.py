@@ -173,6 +173,7 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
 
+
 def add_weight_shifts(weight_shifts: dict, txbb_version: str, bdt_version: str):
     for i in range(len(ttbarsfs_decorr_txbb_bins[txbb_version]) - 1):
         weight_shifts[
@@ -328,7 +329,9 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
                         jmr = jmsr_values[mass_str]["JMR"][year][shift]
                     x_smear = np.zeros_like(x)
                     x_smear = (
-                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x)
+                        x
+                        * jms
+                        * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x)
                     )
                     for i in range(2):
                         events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]

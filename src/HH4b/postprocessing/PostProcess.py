@@ -33,11 +33,11 @@ from HH4b.hh_vars import (
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     Region,
+    add_weight_shifts,
     combine_run3_samples,
     corrections,
     load_run3_samples,
     weight_shifts,
-    add_weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -685,7 +685,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # bdt up/dn variations in bins
             for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
                 tempw, tempw_up, tempw_dn = corrections.ttbar_SF(
-                    tt_bdtshape_sf, bdt_events, "bdt_score", ttbarsfs_decorr_bdt_bins[args.bdt_model][i : i + 2]
+                    tt_bdtshape_sf,
+                    bdt_events,
+                    "bdt_score",
+                    ttbarsfs_decorr_bdt_bins[args.bdt_model][i : i + 2],
                 )
                 bdt_events[
                     f"weight_ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}Up"
