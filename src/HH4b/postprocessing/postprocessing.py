@@ -173,33 +173,34 @@ weight_shifts = {
     # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
 }
 
-for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
-    weight_shifts[
-        f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
-    ] = Syst(
-        samples=["ttbar"],
-        label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[i]}, {ttbarsfs_decorr_txbb_bins[i+1]}]",
-        years=years + ["2022-2023"],
-    )
-
-for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
-    weight_shifts[
-        f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"
-    ] = Syst(
-        samples=["ttbar"],
-        label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
-        years=years + ["2022-2023"],
-    )
-
-for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
+def add_weight_shifts(weight_shifts: dict, txbb_version: str, bdt_version: str):
+    for i in range(len(ttbarsfs_decorr_txbb_bins[txbb_version]) - 1):
         weight_shifts[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
+            f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[txbb_version][i]}_{ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}"
         ] = Syst(
-            samples=sig_keys,
-            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[wp][j]}, {txbbsfs_decorr_pt_bins[wp][j+1]}]",
+            samples=["ttbar"],
+            label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[txbb_version][i]}, {ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}]",
             years=years + ["2022-2023"],
         )
+
+    for i in range(len(ttbarsfs_decorr_bdt_bins[bdt_version]) - 1):
+        weight_shifts[
+            f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[bdt_version][i]}_{ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}"
+        ] = Syst(
+            samples=["ttbar"],
+            label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[bdt_version][i]}, {ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}]",
+            years=years + ["2022-2023"],
+        )
+
+    for wp in txbbsfs_decorr_txbb_wps[txbb_version]:
+        for j in range(len(txbbsfs_decorr_pt_bins[txbb_version][wp]) - 1):
+            weight_shifts[
+                f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}_{txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}"
+            ] = Syst(
+                samples=sig_keys,
+                label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}, {txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}]",
+                years=years + ["2022-2023"],
+            )
 
 
 def load_run3_samples(
@@ -209,6 +210,7 @@ def load_run3_samples(
     reorder_txbb: bool,
     load_systematics: bool,
     txbb_version: str,
+    bdt_version: str,
     scale_and_smear: bool,
     mass_str: str,
 ):
@@ -296,8 +298,8 @@ def load_run3_samples(
 
 
 def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: str):
-    jms_nom = jmsr_values["JMS"][year]["nom"]
-    jmr_nom = jmsr_values["JMR"][year]["nom"]
+    jms_nom = jmsr_values[mass_str]["JMS"][year]["nom"]
+    jmr_nom = jmsr_values[mass_str]["JMR"][year]["nom"]
     rng = np.random.default_rng(seed=42)
 
     # formula for smearing and scaling
@@ -310,7 +312,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
             x_smear = (
                 x
                 * jms_nom
-                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
+                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[mass_str][key] / x)
             )
 
             for i in range(2):
@@ -319,14 +321,14 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
             for skey in jmsr:
                 for shift in ["up", "down"]:
                     if skey == "JMS":
-                        jms = jmsr_values["JMS"][year][shift]
+                        jms = jmsr_values[mass_str]["JMS"][year][shift]
                         jmr = jmr_nom
                     else:
                         jms = jms_nom
-                        jmr = jmsr_values["JMR"][year][shift]
+                        jmr = jmsr_values[mass_str]["JMR"][year][shift]
                     x_smear = np.zeros_like(x)
                     x_smear = (
-                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
+                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x)
                     )
                     for i in range(2):
                         events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
