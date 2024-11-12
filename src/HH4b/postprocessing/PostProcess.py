@@ -33,11 +33,10 @@ from HH4b.hh_vars import (
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
     Region,
-    add_weight_shifts,
     combine_run3_samples,
     corrections,
+    get_weight_shifts,
     load_run3_samples,
-    weight_shifts,
 )
 from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
 
@@ -404,7 +403,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             reorder_txbb=True,
             load_systematics=True,
             txbb_version=args.txbb,
-            bdt_version=args.bdt_model,
             scale_and_smear=True,
             mass_str=mreg_strings[args.txbb],
         )[key]
@@ -1323,7 +1321,7 @@ def postprocess_run3(args):
     )
 
     # add weight shifts based on xbb and bdt versions
-    weight_shifts = add_weight_shifts(weight_shifts, args.txbb, args.bdt_model)
+    weight_shifts = get_weight_shifts(args.txbb, args.bdt_model)
 
     plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
     plot_dir.mkdir(exist_ok=True, parents=True)

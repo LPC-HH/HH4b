@@ -159,22 +159,24 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 
-weight_shifts = {
-    "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
-    "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
-    "TXbbSF_correlated": Syst(
-        samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
-    ),
-    # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
-    # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
-    # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
-    # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
-    # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
-}
 
+def get_weight_shifts(txbb_version: str, bdt_version: str):
+    """Get weight shifts for systematics"""
 
-def add_weight_shifts(weight_shifts: dict, txbb_version: str, bdt_version: str):
+    weight_shifts = {
+        "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
+        "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
+        "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+        "TXbbSF_correlated": Syst(
+            samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
+        ),
+        # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
+        # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
+        # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
+        # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
+        # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
+    }
+
     for i in range(len(ttbarsfs_decorr_txbb_bins[txbb_version]) - 1):
         weight_shifts[
             f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[txbb_version][i]}_{ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}"
@@ -202,6 +204,7 @@ def add_weight_shifts(weight_shifts: dict, txbb_version: str, bdt_version: str):
                 label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}, {txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}]",
                 years=years + ["2022-2023"],
             )
+    return weight_shifts
 
 
 def load_run3_samples(
@@ -211,7 +214,6 @@ def load_run3_samples(
     reorder_txbb: bool,
     load_systematics: bool,
     txbb_version: str,
-    bdt_version: str,
     scale_and_smear: bool,
     mass_str: str,
 ):

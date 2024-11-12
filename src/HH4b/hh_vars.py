@@ -400,6 +400,7 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
+jmsr_values["bbFatJetParTmassVis"] = {}
 jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
     "2022": {"nom": 1.144, "down": 1.098, "up": 1.190},
     "2022EE": {"nom": 1.144, "down": 1.098, "up": 1.190},
@@ -423,8 +424,10 @@ jmsr_res["bbFatJetParTmassVis"]["diboson"] = 10.7 * 80.0 / 125.0
 
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
+ttbarsfs_decorr_txbb_bins["glopart-v2"] = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_bdt_bins = {}
 ttbarsfs_decorr_bdt_bins["24May31_lr_0p02_md_8_AK4Away"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
+ttbarsfs_decorr_bdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
 txbbsfs_decorr_txbb_wps = {}
 txbbsfs_decorr_txbb_wps["pnet-legacy"] = OrderedDict(
