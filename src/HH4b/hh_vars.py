@@ -417,9 +417,9 @@ jmsr_res = {}
 jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
 jmsr_res["bbFatJetPNetMassLegacy"]["vhtobb"] = 14.4 * 80.0 / 125.0
 jmsr_res["bbFatJetPNetMassLegacy"]["diboson"] = 14.4 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"] = {sig_key: 9.7 for sig_key in sig_keys}
-jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 9.7 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"]["diboson"] = 9.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"] = {sig_key: 10.7 for sig_key in sig_keys}
+jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["diboson"] = 10.7 * 80.0 / 125.0
 
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
