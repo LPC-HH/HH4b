@@ -846,7 +846,6 @@ class bbbbSkimmer(SkimmerABC):
         if (not is_run3) and (not isData) and self._region == "signal":
             # in run2 we do not apply the trigger to MC
             apply_trigger = False
-            
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
 
