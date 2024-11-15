@@ -40,6 +40,7 @@ from HH4b.hh_vars import (
     sig_keys_vbf,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
+    ttbarsfs_decorr_bdt_bins,
 )
 from HH4b.hh_vars import (
     years as hh_years,
@@ -112,6 +113,19 @@ parser.add_argument(
     default="2022-2023",
     choices=hh_years + ["2022-2023"],
     help="years to make datacards for",
+)
+parser.add_argument(
+    "--txbb",
+    type=str,
+    default="",
+    choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+    help="version of TXbb tagger/mass regression to use",
+)
+parser.add_argument(
+    "--bdt-model",
+    type=str,
+    default="24May31_lr_0p02_md_8_AK4Away",
+    help="BDT model to load",
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
@@ -295,7 +309,7 @@ corr_year_shape_systs = {
     # "PDFalphaS": Syst(
     #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
     # ),
-    "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    # "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -308,37 +322,6 @@ corr_year_shape_systs = {
         samples=["ttbar"],
         convert_shape_to_lnN=True,
     ),
-    "ttbarSF_BDT_bin_0.03_0.3": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p03_0p3",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_BDT_bin_0.3_0.5": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p3_0p5",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_BDT_bin_0.5_0.7": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p5_0p7",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_BDT_bin_0.7_0.93": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p7_0p93",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-    ),
-    "ttbarSF_BDT_bin_0.93_1.0": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_0p93_1",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        decorrelate_regions=True,
-    ),
     "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
     "TXbbSF_correlated": Syst(
         name=f"{CMS_PARAMS_LABEL}_txbb_sf_correlated",
@@ -348,6 +331,17 @@ corr_year_shape_systs = {
         convert_shape_to_lnN=True,
     ),
 }
+
+for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
+    label = f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
+    corr_year_shape_systs[label] = Syst(
+        name=name,
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+    )
+
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
@@ -415,12 +409,12 @@ uncorr_year_shape_systs = {
     ),
 }
 
-for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
-        uncorr_year_shape_systs[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
-        ] = Syst(
-            name=f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}",
+for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
+    for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
+        label = f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}"
+        name = f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}"
+        uncorr_year_shape_systs[label] = Syst(
+            name=name,
             prior="shape",
             samples=sig_keys,
             convert_shape_to_lnN=True,
@@ -437,7 +431,7 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMS"]
 
 if not args.jesr:
-    del corr_year_shape_systs["JES_AbsoluteScale"]
+    # del corr_year_shape_systs["JES_AbsoluteScale"]
     del uncorr_year_shape_systs["JER"]
 
 if args.ttbar_rate_param:
