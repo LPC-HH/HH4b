@@ -38,9 +38,9 @@ from HH4b.hh_vars import (
     qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
+    ttbarsfs_decorr_bdt_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
-    ttbarsfs_decorr_bdt_bins,
 )
 from HH4b.hh_vars import (
     years as hh_years,

@@ -165,7 +165,9 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
 
     weight_shifts = {
         "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
-        "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
+        "ttbarSF_tau32": Syst(
+            samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]
+        ),
         "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
         "TXbbSF_correlated": Syst(
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
