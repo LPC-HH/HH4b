@@ -39,9 +39,6 @@ four beauty quarks (b).
       - [Jobs](#jobs)
     - [Dask](#dask)
   - [Postprocessing](#postprocessing)
-    - [Setup](#setup-1)
-    - [BDT Training](#bdt-training)
-    - [Creating templates / FOM Scan / BDT ROC curve](#creating-templates--fom-scan--bdt-roc-curve)
   - [Condor Scripts](#condor-scripts)
     - [Check jobs](#check-jobs)
     - [Combine pickles](#combine-pickles)
@@ -74,7 +71,7 @@ micromamba activate hh4b
 
 ```bash
 # Clone the repository
-git clone https://github.com/LPC-HH/HH4b.git
+git clone -r https://github.com/LPC-HH/HH4b.git
 cd HH4b
 # Perform an editable installation
 pip install -e .
@@ -83,6 +80,10 @@ pip install pre-commit
 pre-commit install
 # install requirements
 pip3 install -r requirements.txt
+# install common boostedhh library
+cd boostedhh
+pip install -e .
+cd ..
 ```
 
 ### Troubleshooting

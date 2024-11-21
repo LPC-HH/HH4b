@@ -16,13 +16,8 @@ import numpy as np
 import pandas as pd
 import vector
 import xgboost as xgb
-from coffea import processor
-from coffea.analysis_tools import PackedSelection, Weights
-
-import HH4b
-
-from . import objects, utils
-from .corrections import (
+from boostedhh.processors import SkimmerABC, utils
+from boostedhh.processors.corrections import (
     JECs,
     add_pileup_weight,
     add_ps_weight,
@@ -31,6 +26,19 @@ from .corrections import (
     get_pdf_weights,
     get_scale_weights,
 )
+from boostedhh.processors.utils import (
+    P4,
+    PAD_VAL,
+    add_selection,
+    get_var_mapping,
+    pad_val,
+)
+from coffea import processor
+from coffea.analysis_tools import PackedSelection, Weights
+
+import HH4b
+
+from . import objects
 from .GenSelection import (
     gen_selection_Hbb,
     gen_selection_HHbbbb,
@@ -46,8 +54,6 @@ from .objects import (
     veto_electrons,
     veto_muons,
 )
-from .SkimmerABC import SkimmerABC
-from .utils import P4, PAD_VAL, add_selection, get_var_mapping, pad_val
 
 # mapping samples to the appropriate function for doing gen-level selections
 gen_selection_dict = {
