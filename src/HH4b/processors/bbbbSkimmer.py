@@ -843,7 +843,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # apply trigger
         apply_trigger = True
-        if (~is_run3) and (~isData) and self._region == "signal":
+        if (not is_run3) and (not isData) and self._region == "signal":
             # in run2 we do not apply the trigger to MC
             apply_trigger = False
         if apply_trigger:
