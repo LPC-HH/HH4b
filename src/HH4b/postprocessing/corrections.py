@@ -13,10 +13,37 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_txbb_sfs(year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list]):
+def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list]):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
-    with (package_path / f"corrections/data/txbb_sfs/{year}/{fname}.json").open() as f:
+    txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
+    pt_fine_bins = np.unique(np.concatenate([pt_bins[wp] for wp in pt_bins]))
+    edges = (txbb_bins, pt_fine_bins)
+
+    ones_2d = np.ones(shape=(len(txbb_bins) - 1, len(pt_fine_bins) - 1))
+    txbb_sf = {
+        "nominal": dense_lookup(ones_2d, edges),
+        "stat_up": dense_lookup(1.1 * ones_2d, edges),
+        "stat_dn": dense_lookup(0.9 * ones_2d, edges),
+        "stat3x_up": dense_lookup(1.1 * ones_2d, edges),
+        "stat3x_dn": dense_lookup(0.9 * ones_2d, edges),
+        "corr_up": dense_lookup(1.1 * ones_2d, edges),
+        "corr_dn": dense_lookup(0.9 * ones_2d, edges),
+        "corr3x_up": dense_lookup(1.1 * ones_2d, edges),
+        "corr3x_dn": dense_lookup(0.9 * ones_2d, edges),
+    }
+
+    return txbb_sf
+
+
+def _load_txbb_sfs(
+    year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list], txbb_version: str
+):
+    """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
+
+    with (
+        package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year}/{fname}.json"
+    ).open() as f:
         txbb_sf = json.load(f)
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])

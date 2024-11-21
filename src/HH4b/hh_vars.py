@@ -387,28 +387,50 @@ jmsr_vars = [
 ]
 
 jmsr_values = {}
-jmsr_values["JMR"] = {
+jmsr_values["bbFatJetPNetMassLegacy"] = {}
+jmsr_values["bbFatJetPNetMassLegacy"]["JMR"] = {
     "2022": {"nom": 1.13, "down": 1.06, "up": 1.20},
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
     "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
     "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
 }
-jmsr_values["JMS"] = {
+jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
     "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
     "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
+jmsr_values["bbFatJetParTmassVis"] = {}
+jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
+    "2022": {"nom": 1.144, "down": 1.098, "up": 1.190},
+    "2022EE": {"nom": 1.144, "down": 1.098, "up": 1.190},
+    "2023": {"nom": 1.089, "down": 1.025, "up": 1.152},
+    "2023BPix": {"nom": 1.089, "down": 1.025, "up": 1.152},
+}
+jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
+    "2022": {"nom": 1.009, "down": 1.005, "up": 1.012},
+    "2022EE": {"nom": 1.009, "down": 1.005, "up": 1.012},
+    "2023": {"nom": 0.928, "down": 0.915, "up": 0.942},
+    "2023BPix": {"nom": 0.928, "down": 0.915, "up": 0.942},
+}
 jmsr_keys = sig_keys + ["vhtobb", "diboson"]
-jmsr_res = {sig_key: 14.4 for sig_key in sig_keys}
-jmsr_res["vhtobb"] = 14.4 * 80.0 / 125.0
-jmsr_res["diboson"] = 14.4 * 80.0 / 125.0
+jmsr_res = {}
+jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
+jmsr_res["bbFatJetPNetMassLegacy"]["vhtobb"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetPNetMassLegacy"]["diboson"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"] = {sig_key: 10.7 for sig_key in sig_keys}
+jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["diboson"] = 10.7 * 80.0 / 125.0
 
+ttbarsfs_decorr_txbb_bins = {}
+ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
+ttbarsfs_decorr_txbb_bins["glopart-v2"] = [0, 0.8, 0.94, 0.99, 1]
+ttbarsfs_decorr_bdt_bins = {}
+ttbarsfs_decorr_bdt_bins["24May31_lr_0p02_md_8_AK4Away"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
+ttbarsfs_decorr_bdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 
-ttbarsfs_decorr_txbb_bins = [0, 0.8, 0.94, 0.99, 1]
-ttbarsfs_decorr_bdt_bins = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
-
-txbbsfs_decorr_txbb_wps = OrderedDict(
+txbbsfs_decorr_txbb_wps = {}
+txbbsfs_decorr_txbb_wps["pnet-legacy"] = OrderedDict(
     [
         ("WP6", [0.92, 0.95]),
         ("WP5", [0.95, 0.975]),
@@ -418,13 +440,32 @@ txbbsfs_decorr_txbb_wps = OrderedDict(
         ("WP1", [0.998, 1]),
     ]
 )
+txbbsfs_decorr_txbb_wps["glopart-v2"] = OrderedDict(
+    [
+        ("WP5", [0.8, 0.9]),
+        ("WP4", [0.9, 0.94]),
+        ("WP3", [0.94, 0.97]),
+        ("WP2", [0.97, 0.99]),
+        ("WP1", [0.99, 1]),
+    ]
+)
 
-txbbsfs_decorr_pt_bins = OrderedDict(
+txbbsfs_decorr_pt_bins = {}
+txbbsfs_decorr_pt_bins["pnet-legacy"] = OrderedDict(
     [
         ("WP6", [200, 250, 300, 400, 500, 100000]),
         ("WP5", [200, 250, 300, 400, 500, 100000]),
         ("WP4", [200, 250, 300, 400, 500, 100000]),
         ("WP3", [200, 250, 300, 400, 500, 100000]),
+        ("WP2", [200, 400, 100000]),
+        ("WP1", [200, 400, 100000]),
+    ]
+)
+txbbsfs_decorr_pt_bins["glopart-v2"] = OrderedDict(
+    [
+        ("WP5", [200, 400, 100000]),
+        ("WP4", [200, 400, 100000]),
+        ("WP3", [200, 400, 100000]),
         ("WP2", [200, 400, 100000]),
         ("WP1", [200, 400, 100000]),
     ]
