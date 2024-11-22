@@ -374,6 +374,7 @@ jec_vars = [
 # variables affected by JMS/JMR
 jmsr_vars = [
     "bbFatJetPNetMassLegacy",
+    "bbFatJetParTmassVis",
     "bdt_score",
     "bdt_score_vbf",
     "HHmass",
