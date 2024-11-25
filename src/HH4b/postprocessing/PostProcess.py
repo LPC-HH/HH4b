@@ -1043,7 +1043,6 @@ def scan_fom(
             figure_of_merits = np.array(figure_of_merits)
             smallest = np.argmin(figure_of_merits)
             if not min_nevents:
-                # TODO: is this okay to leave unhandled?
                 print("No valid FoM found for this scan")
             else:
                 print(
