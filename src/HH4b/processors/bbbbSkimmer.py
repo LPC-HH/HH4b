@@ -65,6 +65,20 @@ gen_selection_dict = {
     "TTtoLNu2Q": gen_selection_Top,
 }
 
+# map txbb string to branch name
+txbbstr_to_branch = {
+    "pnet-legacy": "TXbb_legacy",
+    "pnet-v12": "Txbb",
+    "glopart-v2": "ParTTXbb",
+}
+
+# map txbb string to skimmer variable name
+txbbstr_to_skimmer = {
+    "pnet-legacy": "PNetTXbbLegacy",
+    "pnet-v12": "PNetTXbb",
+    "glopart-v2": "ParTTXbb",
+}
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -522,17 +536,10 @@ class bbbbSkimmer(SkimmerABC):
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
 
         # match txbb string to branch name in fatjet collection
-        txbb_order = {
-            "pnet-legacy": "TXbb_legacy",
-            "pnet-v12": "Txbb",
-            "glopart-v2": "ParTTXbb",
-        }[self.txbb]
+        txbb_order = txbbstr_to_branch[self.txbb]
         # match txbb string to branch name in skimmerVars
-        txbb_str = {
-            "pnet-legacy": "PNetTXbbLegacy",
-            "pnet-v12": "PNetTXbb",
-            "glopart-v2": "ParTTXbb",
-        }[self.txbb]
+        txbb_str = txbbstr_to_skimmer[self.txbb]
+
         # fatjets ordered by txbb
         fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
@@ -949,7 +956,9 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak8_pt_msd", cut_pt_msd, *selection_args)
 
             # == 2 AK8 jets with Xbb>0.1
-            cut_txbb = np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2
+            cut_txbb = (np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2) | (
+                np.sum(ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.05, axis=1) == 2
+            )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
