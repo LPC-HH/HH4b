@@ -1042,11 +1042,13 @@ def scan_fom(
             cuts = np.array(cuts)
             figure_of_merits = np.array(figure_of_merits)
             smallest = np.argmin(figure_of_merits)
-
-            print(
-                f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
-                f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
-            )
+            if not min_nevents:
+                print("No valid FoM found for this scan")
+            else:
+                print(
+                    f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
+                    f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
+                )
 
     all_fom = np.array(all_fom)
     all_b = np.array(all_b)
