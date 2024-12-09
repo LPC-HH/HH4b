@@ -1,20 +1,13 @@
 #!/bin/bash
 
 card_dir=./
-if [ -f "passvbf.txt" ]; then
-    datacards=$card_dir/passbin3_nomasks.root:$card_dir/passbin2_nomasks.root:$card_dir/passbin1_nomasks.root:$card_dir/passvbf_nomasks.root:$card_dir/combined_nomasks.root
-    datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
-    # xmin="0.03"
-    # parameters="C2V=0"
-    xmin="0.75"
-    parameters="C2V=1"
-else
-    datacards=$card_dir/passbin3_nomasks.root:$card_dir/passbin2_nomasks.root:$card_dir/passbin1_nomasks.root:$card_dir/combined_nomasks.root
-    datacard_names="Category 3,Category 2,Category 1,Combined"
-    xmin="0.75"
-    parameters="C2V=1"
-fi
-model=hh_model.model_default@noNNLOscaling@noklDependentUnc
+datacards=$card_dir/passbin3_nomasks.root:$card_dir/passbin2_nomasks.root:$card_dir/passbin1_nomasks.root:$card_dir/passvbf_nomasks.root:$card_dir/combined_nomasks.root
+datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
+xmin="0.03"
+parameters="C2V=0"
+# xmin="0.75"
+# parameters="C2V=1"
+model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotUpperLimitsAtPoint \
@@ -30,3 +23,5 @@ law run PlotUpperLimitsAtPoint \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c
+#    --frozen-parameters "allConstrainedNuisances"
+#    --frozen-parameters "allConstrainedNuisances,var{CMS_bbbb_hadronic_tf_dataResidual.*}"

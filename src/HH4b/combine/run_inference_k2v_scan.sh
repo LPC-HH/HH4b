@@ -2,7 +2,7 @@
 
 card_dir=./
 datacards=$card_dir/combined.txt
-model=hh_model_13p6TeV.model_default
+model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotUpperLimits \
