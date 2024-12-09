@@ -18,6 +18,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
+import rhalphalib as rl
 from datacardHelpers import (
     ShapeVar,
     Syst,
@@ -29,7 +30,6 @@ from datacardHelpers import (
 )
 from hist import Hist
 
-import rhalphalib as rl
 from HH4b.hh_vars import (
     LUMI,
     data_key,
