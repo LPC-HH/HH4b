@@ -2,7 +2,7 @@
 
 card_dir=./
 datacards=$card_dir/combined.txt
-model=hh_model_13p6TeV.model_default
+model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotUpperLimits \
@@ -16,7 +16,7 @@ law run PlotUpperLimits \
     --xsec fb \
     --pois r \
     --frozen-groups signal_norm_xsbr \
-    --scan-parameters kl,-5,10,16 \
+    --scan-parameters kl,-15,20,36 \
     --br bbbb \
     --y-log \
     --save-ranges
