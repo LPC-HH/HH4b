@@ -155,7 +155,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
     # selection to apply
     filters = [
         [
-            (f"('{jet_collection}Pt', '0')", ">=", 250),
+            (f"('{jet_collection}Pt', '0')", ">=", 300),
             (f"('{jet_collection}Pt', '1')", ">=", 250),
         ],
     ]
@@ -198,7 +198,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             mass2 = events_dict[key][mass_str][1]
             # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
             events_dict[key] = events_dict[key][
-                (pt1 > 250)
+                (pt1 > 300)
                 & (pt2 > 250)
                 & (txbb1 > txbb_preselection[txbb_str])
                 & (msd1 > msd1_preselection[txbb_str])
@@ -261,11 +261,14 @@ def get_roc_inputs(
     # jet_collection,
     discriminator_name,
     # jet_index,
+    bkgs,
 ):
     sig_key = "hh4b"
-    bg_keys = ["qcd"]
-    discriminator = f"{discriminator_name}"
 
+    # bg_keys = ["ttbar"]
+    bg_keys = bkgs
+    discriminator = f"{discriminator_name}"
+    print(events_dict["ttbar"])
     # 1 for signal, 0 for background
     y_true = np.concatenate(
         [
@@ -294,9 +297,15 @@ def get_roc(
     discriminator_name,
     discriminator_label,
     discriminator_color,
+    bkgs,
 ):
-    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name)
+    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name, bkgs)
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
+    # make sure fpr is sorted
+    sorted_indices = np.argsort(fpr)
+    fpr = fpr[sorted_indices]
+    tpr = tpr[sorted_indices]
+
     roc = {
         "fpr": fpr,
         "tpr": tpr,
@@ -309,8 +318,9 @@ def get_roc(
 
 
 def get_legtitle(txbb_str):
-    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
-    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+    # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
+    title = r"FatJet p$_T^{0}$ > 300 GeV" + "\n"
+    title += r"FatJet p$_T^{1}$ > 250 GeV" + "\n"
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
     title += "\n" + r"m$_{reg}$ > 50 GeV"
     title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
@@ -377,19 +387,26 @@ def main(args):
             "config": "v5",
             "model_name": "24May31_lr_0p02_md_8_AK4Away",
         },
-        "v5_ParT": {
+        # "v5_ParT": {
+        #    "config": "v5_glopartv2",
+        #    "model_name": "24Sep27_v5_glopartv2",
+        # },
+        # "v5_PNetv12": {
+        #    "config": "v5_PNetv12",
+        #    "model_name": "24Jul29_v5_PNetv12",
+        # },
+        # "v6_ParT": {
+        #    "config": "v6_glopartv2",
+        #    "model_name": "24Oct17_v6_glopartv2",
+        # },
+        "v5_ParT_rawmass": {
             "config": "v5_glopartv2",
-            "model_name": "24Sep27_v5_glopartv2",
-        },
-        "v5_PNetv12": {
-            "config": "v5_PNetv12",
-            "model_name": "24Jul29_v5_PNetv12",
-        },
-        "v6_ParT": {
-            "config": "v6_glopartv2",
-            "model_name": "24Oct17_v6_glopartv2",
+            "model_name": "24Nov7_v5_glopartv2_rawmass",
         },
     }
+
+    # distinguish between main backgrounds
+    bkgs = ["qcd", "ttbar"] if args.bkgs == "all" else [args.bkgs]
 
     bdt_dict = {
         year: load_events(
@@ -422,6 +439,7 @@ def main(args):
             f"bdtscore_{bdt_model}",
             bdt_model,
             colors[i],
+            bkgs,
         )
 
     # Plot multi-ROC curve
@@ -434,12 +452,15 @@ def main(args):
         legtitle=get_legtitle("bbFatJetParTTXbb"),
         title="ggF HH4b BDT ROC",
         name="PNet-parT-comparison",
-        plot_thresholds={"v5_PNetLegacy": [0.98, 0.88, 0.03]},
+        plot_thresholds={
+            "v5_PNetLegacy": [0.98, 0.88, 0.03],
+            "v5_ParT_rawmass": [0.91, 0.64, 0.03],
+        },
         # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
         # add_cms_label=True,
         show=True,
-        xlim=[0, 0.6],
-        ylim=[1e-5, 1e-1],
+        xlim=[0, 1],
+        ylim=[1e-5, 0],
     )
 
 
@@ -464,6 +485,14 @@ if __name__ == "__main__":
         required=True,
         help="path to save plots",
         type=str,
+    )
+    parser.add_argument(
+        "--bkgs",
+        required=False,
+        default="all",
+        choices=["all", "qcd", "ttbar"],
+        type=str,
+        help="Backgrounds to include in the ROC curve",
     )
     args = parser.parse_args()
     sys.exit(main(args))
