@@ -51,24 +51,8 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
     jet_collection = "bbFatJet"
     reorder_txbb = True
-    txbb_str = "bbFatJet" + jet_coll_pnet
-    mass_str = "bbFatJet" + jet_coll_mass
-
-    txbb_preselection = {
-        "bbFatJetPNetTXbb": 0.3,
-        "bbFatJetPNetTXbbLegacy": 0.8,
-        "bbFatJetParTTXbb": 0.3,
-    }
-    msd1_preselection = {
-        "bbFatJetPNetTXbb": 40,
-        "bbFatJetPNetTXbbLegacy": 40,
-        "bbFatJetParTTXbb": 40,
-    }
-    msd2_preselection = {
-        "bbFatJetPNetTXbb": 30,
-        "bbFatJetPNetTXbbLegacy": 0,
-        "bbFatJetParTTXbb": 30,
-    }
+    txbb_str = jet_collection + jet_coll_pnet
+    mass_str = jet_collection + jet_coll_mass
 
     sample_dirs = {
         year: {
@@ -187,28 +171,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             variations=False,  # do not load systematic variations of weights
         ),
     }
-    """
-    def apply_cuts(events_dict, txbb_str, mass_str):
-        for key in events_dict:
-            msd1 = events_dict[key]["bbFatJetMsd"][0]
-            msd2 = events_dict[key]["bbFatJetMsd"][1]
-            pt1 = events_dict[key]["bbFatJetPt"][0]
-            pt2 = events_dict[key]["bbFatJetPt"][1]
-            txbb1 = events_dict[key][txbb_str][0]
-            mass1 = events_dict[key][mass_str][0]
-            mass2 = events_dict[key][mass_str][1]
-            # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
-            events_dict[key] = events_dict[key][
-                (pt1 > 300)
-                & (pt2 > 250)
-                & (txbb1 > txbb_preselection[txbb_str])
-                & (msd1 > msd1_preselection[txbb_str])
-                & (msd2 > msd2_preselection[txbb_str])
-                & (mass1 > 50)
-                & (mass2 > 50)
-            ].copy()
-        return events_dict
-    """
+
     # apply boosted selection
     event_selector = EventSelection(
         jet_collection=jet_collection,
@@ -241,8 +204,6 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             bdt_score = preds[:, 0] / (preds[:, 0] + bg_tot)
             bdt_score_vbf = preds[:, 1] / (preds[:, 1] + preds[:, 2] + preds[:, 3])
         return bdt_score, bdt_score_vbf
-
-    # events_dict = apply_cuts(events_dict, txbb_str, mass_str)
 
     bdt_scores = []
     for bdt_model in bdt_models:
