@@ -17,6 +17,7 @@ from sklearn.metrics import auc, roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
+from HH4b.event_selection import EventSelection
 from HH4b.log_utils import log_config
 from HH4b.plotting import multiROCCurveGrey
 from HH4b.utils import get_var_mapping
@@ -186,7 +187,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             variations=False,  # do not load systematic variations of weights
         ),
     }
-
+    """
     def apply_cuts(events_dict, txbb_str, mass_str):
         for key in events_dict:
             msd1 = events_dict[key]["bbFatJetMsd"][0]
@@ -207,6 +208,16 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
                 & (mass2 > 50)
             ].copy()
         return events_dict
+    """
+    # apply boosted selection
+    event_selector = EventSelection(
+        jet_collection=jet_collection,
+        txbb_preselection=txbb_preselection,
+        msd1_preselection=msd1_preselection,
+        msd2_preselection=msd2_preselection,
+    )
+
+    events_dict = event_selector.apply_boosted(events_dict, txbb_str, mass_str)
 
     def get_bdt(events_dict, bdt_model, bdt_model_name, bdt_config, jlabel=""):
         bdt_model = xgb.XGBClassifier()
@@ -231,7 +242,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             bdt_score_vbf = preds[:, 1] / (preds[:, 1] + preds[:, 2] + preds[:, 3])
         return bdt_score, bdt_score_vbf
 
-    events_dict = apply_cuts(events_dict, txbb_str, mass_str)
+    # events_dict = apply_cuts(events_dict, txbb_str, mass_str)
 
     bdt_scores = []
     for bdt_model in bdt_models:
