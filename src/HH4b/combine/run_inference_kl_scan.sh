@@ -1,7 +1,7 @@
 #!/bin/bash
 
 card_dir=./
-datacards=$card_dir/combined.txt
+datacards="${card_dir}/combined.txt<i"
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 

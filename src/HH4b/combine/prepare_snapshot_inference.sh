@@ -1,8 +1,7 @@
 #!/bin/bash
 
-run_unblinded_hh4b.sh --workspace --bfit --passbin=0
-extract_fit_result.py higgsCombineSnapshotBOnly.MultiDimFit.mH125.root "w:MultiDimFit" "inject_combined.json" --keep 'CMS_bbbb_hadronic_tf_dataResidual_*'
-inject_fit_result.py inject_combined.json HHModel.root HHModel
+run_blinded_hh4b.sh --workspace --bfit --passbin=0
+extract_fit_result.py higgsCombineSnapshot.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'
 
 combineCards.py fail=fail.txt passvbf=passvbf.txt > passvbf_nomasks.txt
 combineCards.py fail=fail.txt passbin1=passbin1.txt > passbin1_nomasks.txt
