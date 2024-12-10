@@ -16,7 +16,7 @@ law run PlotUpperLimits \
     --xsec fb \
     --pois r \
     --frozen-groups signal_norm_xsbr \
-    --scan-parameters C2V,0,2,11 \
+    --scan-parameters C2V,0,2,21 \
     --br bbbb \
     --y-log \
     --save-ranges

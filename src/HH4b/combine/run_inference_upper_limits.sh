@@ -46,7 +46,7 @@ law run PlotUpperLimitsAtPoint \
     --x-min "$xmin" \
     --hh-model "$model" \
     --datacard-names "$datacard_names" \
-    --remove-output 2,a,y \
+    --remove-output 0,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c $frozen
