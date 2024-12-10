@@ -3,8 +3,6 @@
 card_dir=./
 datacards="${card_dir}/passbin3_nomasks.txt<i:${card_dir}/passbin2_nomasks.txt<i:${card_dir}/passbin1_nomasks.txt<i:${card_dir}/passvbf_nomasks.txt:${card_dir}/combined.txt<i"
 datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
-#xmin="0.03"
-#parameters="C2V=0"
 xmin="0.75"
 parameters="C2V=1"
 model=hh_model_run23.model_default_run3
