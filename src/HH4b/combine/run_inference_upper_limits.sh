@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086
 
 syst="full"
 while getopts ":s:" opt; do
@@ -20,9 +21,9 @@ done
 if [[ "$syst" == "full" ]]; then
     frozen=""
 elif [[ "$syst" == "bkgd" ]]; then
-    frozen="--frozen-parameters 'allConstrainedNuisances'"
+    frozen="--frozen-parameters allConstrainedNuisances"
 elif [[ "$syst" == "stat" ]]; then
-    frozen="--frozen-parameters 'allConstrainedNuisances,var{CMS_bbbb_hadronic_tf_dataResidual.*}'"
+    frozen="--frozen-parameters allConstrainedNuisances,var{CMS_bbbb_hadronic_tf_dataResidual.*}"
 else
     echo "Invalid syst argument"
     exit 1
@@ -48,4 +49,4 @@ law run PlotUpperLimitsAtPoint \
     --remove-output 2,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
-    --file-types pdf,png,root,c "$frozen"
+    --file-types pdf,png,root,c $frozen
