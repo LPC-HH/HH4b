@@ -199,9 +199,9 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     Evaluate trigger Scale Factors
     """
     txbb = "txbb" if ("Legacy" in txbb_str or "ParT" in txbb_str) else "txbbv11"
-    if "Legacy" in txbb_str:
+    if "legacy" in txbb_str.lower():
         txbb_str = "txbbPNet"
-    elif "ParT" in txbb_str:
+    elif "part" in txbb_str.lower():
         txbb_str = "txbbGloParT"
     else:
         warnings.warn(f"txbb_str {txbb_str} not recognized. Using it as is.", stacklevel=2)
