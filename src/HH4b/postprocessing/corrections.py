@@ -171,7 +171,8 @@ def _load_trig_effs(year: str, label: str, region: str):
 def _get_bins(year: str, label: str, region: str) -> dict[str, list[float]]:
     """Extract bins from json file"""
     fname = _get_json_fname(year, label, region)
-    json_dict = json.load(Path.open(fname))
+    with Path(fname).open() as f:
+        json_dict = json.load(f)
     sample_dict = json_dict["corrections"][0]["data"]["content"][0]["value"]
 
     edge_dict = {}
@@ -200,9 +201,11 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     """
     txbb = "txbb" if ("Legacy" in txbb_str or "ParT" in txbb_str) else "txbbv11"
     if "legacy" in txbb_str.lower():
-        txbb_str = "txbbPNet"
+        txbb_str = "txbbPNetLegacy"
+        txbb = "bbFatJetPNetTXbbLegacy"
     elif "part" in txbb_str.lower():
         txbb_str = "txbbGloParT"
+        txbb = "bbFatJetParTTXbb"
     else:
         warnings.warn(f"txbb_str {txbb_str} not recognized. Using it as is.", stacklevel=2)
 
@@ -219,7 +222,10 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     ptmsd_bins_dict = _get_bins(year, "ptmsd", region)
     pt_range = ptmsd_bins_dict["pt"]
     msd_range = ptmsd_bins_dict["msd"]
-    xbb_range = _get_bins(year, txbb_str, region)["xbb"]
+    try:
+        xbb_range = _get_bins(year, txbb_str, region)["txbb"]
+    except KeyError:
+        xbb_range = _get_bins(year, txbb_str, region)["xbb"]
 
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")
