@@ -1,15 +1,16 @@
 #!/bin/bash
 # shellcheck disable=SC2086,SC2034
 
+
 card_dir=./
-datacards=$card_dir/combined_nomasks.root
-model=hh_model.model_default@noNNLOscaling@noklDependentUnc
+datacards="${card_dir}/combined.txt<i"
+model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotPullsAndImpacts \
     --version dev \
-    --hh-model $model \
-    --datacards $datacards \
+    --hh-model "$model" \
+    --datacards "$datacards" \
     --pois r \
     --mc-stats \
     --parameter-ranges r=-20,20 \
