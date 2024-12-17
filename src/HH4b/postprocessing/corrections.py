@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import warnings
 from pathlib import Path
 
 import correctionlib
@@ -160,7 +159,7 @@ def ttbar_SF(
 
 
 def _get_json_fname(year: str, label: str, region: str):
-    return f"{package_path}/corrections/data/fatjet_triggereff_{year}_{label}_{region}.json"
+    return f"{package_path}/corrections/data/trigger_sfs/fatjet_triggereff_{year}_{label}_{region}.json"
 
 
 def _load_trig_effs(year: str, label: str, region: str):
@@ -199,7 +198,6 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     """
     Evaluate trigger Scale Factors
     """
-    txbb = "txbb" if ("Legacy" in txbb_str or "ParT" in txbb_str) else "txbbv11"
     if "legacy" in txbb_str.lower():
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
@@ -207,7 +205,7 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
         txbb_str = "txbbGloParT"
         txbb = "bbFatJetParTTXbb"
     else:
-        warnings.warn(f"txbb_str {txbb_str} not recognized. Using it as is.", stacklevel=2)
+        raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
