@@ -47,7 +47,7 @@ if [[ "$C2V" == "0" ]]; then
 else
     xmin="0.75"
 fi
-    
+
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
