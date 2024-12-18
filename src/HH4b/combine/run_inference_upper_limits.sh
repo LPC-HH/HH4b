@@ -2,8 +2,16 @@
 # shellcheck disable=SC2086
 
 syst="full"
-while getopts ":s:" opt; do
+inj=""
+C2V="1"
+while getopts ":c:is:" opt; do
   case $opt in
+    c)
+      C2V=$OPTARG
+      ;;
+    i)
+      inj="<i"
+      ;;
     s)
       syst=$OPTARG
       ;;
@@ -30,10 +38,16 @@ else
 fi
 
 card_dir=./
-datacards="${card_dir}/passbin3_nomasks.txt<i:${card_dir}/passbin2_nomasks.txt<i:${card_dir}/passbin1_nomasks.txt<i:${card_dir}/passvbf_nomasks.txt:${card_dir}/combined.txt<i"
+datacards="${card_dir}/passbin3_nomasks.txt${inj}:${card_dir}/passbin2_nomasks.txt${inj}:${card_dir}/passbin1_nomasks.txt${inj}:${card_dir}/passvbf_nomasks.txt${inj}:${card_dir}/combined.txt${inj}"
 datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
-xmin="0.75"
-parameters="C2V=1"
+parameters="C2V=${C2V}"
+
+if [[ "$C2V" == "0" ]]; then
+    xmin="0.03"
+else
+    xmin="0.75"
+fi
+    
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
@@ -46,7 +60,7 @@ law run PlotUpperLimitsAtPoint \
     --x-min "$xmin" \
     --hh-model "$model" \
     --datacard-names "$datacard_names" \
-    --remove-output 0,a,y \
+    --remove-output 2,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c $frozen
