@@ -3,11 +3,11 @@
 
 syst="full"
 inj=""
-C2V="1"
-while getopts ":c:is:" opt; do
+param="kl"
+while getopts ":p:is:" opt; do
   case $opt in
-    c)
-      C2V=$OPTARG
+    p)
+      param=$OPTARG
       ;;
     i)
       inj="<i"
@@ -37,30 +37,32 @@ else
     exit 1
 fi
 
-card_dir=./
-datacards="${card_dir}/passbin3_nomasks.txt${inj}:${card_dir}/passbin2_nomasks.txt${inj}:${card_dir}/passbin1_nomasks.txt${inj}:${card_dir}/passvbf_nomasks.txt${inj}:${card_dir}/combined_nomasks.txt${inj}"
-datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
-parameters="C2V=${C2V}"
-
-if [[ "$C2V" == "0" ]]; then
-    xmin="0.03"
+if [[ "$param" == "kl" ]]; then
+    parameters="kl,-15,20,36"
+elif [[ "$param" == "C2V" ]]; then
+    parameters="C2V,0,2,21"
 else
-    xmin="0.75"
+    echo "Invalid param argument"
+    exit 1
 fi
 
+card_dir=./
+datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
-law run PlotUpperLimitsAtPoint \
+law run PlotUpperLimits \
     --version dev  \
-    --multi-datacards "$datacards" \
-    --parameter-values "$parameters" \
-    --h-lines 1 \
-    --x-log True \
-    --x-min "$xmin" \
+    --datacards "$datacards" \
     --hh-model "$model" \
-    --datacard-names "$datacard_names" \
     --remove-output 0,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
-    --file-types pdf,png,root,c $frozen
+    --file-types pdf,png,root,c \
+    --xsec fb \
+    --pois r \
+    --frozen-groups signal_norm_xsbr \
+    --scan-parameters "$parameters" \
+    --br bbbb \
+    --y-log \
+    --save-ranges $frozen
