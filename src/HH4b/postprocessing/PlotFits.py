@@ -98,7 +98,7 @@ def plot_fits(args):
         "passvbf": 10,
         "passbin1": 10,
         "passbin2": 60,
-        "passbin3": 2000,
+        "passbin3": 600,
         "fail": 300000,
     }
 
