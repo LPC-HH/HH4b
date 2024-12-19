@@ -1,9 +1,25 @@
 #!/bin/bash
 # shellcheck disable=SC2086,SC2034
 
+inj=""
+while getopts ":i" opt; do
+  case $opt in
+    i)
+      inj="<i"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
 
 card_dir=./
-datacards="${card_dir}/combined.txt<i"
+datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
