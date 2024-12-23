@@ -135,6 +135,9 @@ def get_roc_inputs(
 
     # bg_keys = ["ttbar"]
     bg_keys = bkgs
+
+    # bg_keys = ["ttbar"]
+    bg_keys = bkgs
     discriminator = f"{discriminator_name}"
     print(events_dict["ttbar"])
     # 1 for signal, 0 for background
@@ -361,6 +364,14 @@ if __name__ == "__main__":
         required=True,
         help="path to save plots",
         type=str,
+    )
+    parser.add_argument(
+        "--bkgs",
+        required=False,
+        default="all",
+        choices=["all", "qcd", "ttbar"],
+        type=str,
+        help="Backgrounds to include in the ROC curve",
     )
     parser.add_argument(
         "--bkgs",
