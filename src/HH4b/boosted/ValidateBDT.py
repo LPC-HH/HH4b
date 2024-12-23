@@ -31,9 +31,9 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
     logger.info(f"Load {year}")
 
     event_sel = EventSelection(year, jet_coll_tagger, jet_coll_mass)
-    sample_dirs, sample_dirs_sig, columns, signal_exclusive_columns, filters = (
-        event_sel.get_samples()
-    )
+
+    sample_dirs, sample_dirs_sig = event_sel.get_samples()
+    columns, sig_exclusive_columns = event_sel.get_columns()
 
     # dictionary that will contain all information (from all samples)
     events_dict = {
@@ -42,8 +42,8 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
             path_to_dir,
             sample_dirs_sig[year],
             year,
-            filters=filters,
-            columns=utils.format_columns(columns + signal_exclusive_columns),
+            filters=event_sel.filters,
+            columns=utils.format_columns(columns + sig_exclusive_columns),
             reorder_txbb=event_sel.reorder_txbb,
             txbb_str=event_sel.txbb_str,
             variations=False,
@@ -52,7 +52,7 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
             path_to_dir,  # input directory
             sample_dirs[year],  # process_name: datasets
             year,  # year (to find corresponding luminosity)
-            filters=filters,  # do not apply filter
+            filters=event_sel.filters,  # do not apply filter
             columns=utils.format_columns(
                 columns
             ),  # columns to load from parquet (to not load all columns), IMPORTANT columns must be formatted: ("column name", "idx")
@@ -121,7 +121,7 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
     # Add finalWeight to the list of columns being retained
     bdt_scores.append("finalWeight")
 
-    return {key: events_dict[key][bdt_scores] for key in events_dict}
+    return {key: events_dict[key][bdt_scores] for key in events_dict}, event_sel
 
 
 def get_roc_inputs(
@@ -185,14 +185,18 @@ def get_roc(
     return roc
 
 
-def get_legtitle(txbb_str, event_sel):
+def get_legtitle(event_sel: EventSelection):
     # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
+    txbb_str = event_sel.txbb_str
+    msd1_preselection = event_sel.msd1_preselection
+    msd2_preselection = event_sel.msd2_preselection
+
     title = r"FatJet p$_T^{0}$ > 300 GeV" + "\n"
     title += r"FatJet p$_T^{1}$ > 250 GeV" + "\n"
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
     title += "\n" + r"m$_{reg}$ > 50 GeV"
-    title += "\n" + r"m$_{SD}^{0}$ > " + f"{event_sel.msd1_preselection[txbb_str]} GeV"
-    title += "\n" + r"m$_{SD}^{1}$ > " + f"{event_sel.msd2_preselection[txbb_str]} GeV"
+    title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
+    title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
 
     return title
 
@@ -277,16 +281,17 @@ def main(args):
     # distinguish between main backgrounds
     bkgs = ["qcd", "ttbar"] if args.bkgs == "all" else [args.bkgs]
 
-    bdt_dict = {
-        year: load_events(
+    bdt_dict = {}
+    event_sel = None
+    for year in args.year:
+        event_dict, event_sel = load_events(
             args.data_path,
             year,
             jet_coll_tagger="ParTTXbb",
             jet_coll_mass="ParTmassVis",
             bdt_models=bdt_models,
         )
-        for year in args.year
-    }
+        bdt_dict[year] = event_dict
     processes = ["qcd", "ttbar", "hh4b"]
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
@@ -318,9 +323,7 @@ def main(args):
         # sig_effs=sig_effs,
         # bkg_effs=bkg_effs,
         plot_dir=out_dir,
-        legtitle=get_legtitle(
-            "bbFatJetParTTXbb",
-        ),
+        legtitle=get_legtitle(event_sel),
         title="ggF HH4b BDT ROC",
         name=f"PNet-parT-comparison-{args.bkgs}",
         plot_thresholds={
@@ -349,6 +352,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-path",
         required=True,
+        default="/home/users/dprimosc/data/24Sep25_v12v2_private_signal",
         help="path to training data",
         type=str,
     )

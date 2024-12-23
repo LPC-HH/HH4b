@@ -133,7 +133,7 @@ class EventSelection:
 
     def get_samples(self):
         # Combine the background samples + signal samples
-        return self.sample_dirs[self.year], self.sample_dirs_sig[self.year]
+        return self.sample_dirs, self.sample_dirs_sig
 
     def get_columns(self):
         return self.columns, self.signal_exclusive_columns
