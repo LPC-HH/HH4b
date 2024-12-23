@@ -26,124 +26,14 @@ log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("ValidateBDT")
 
-jet_collection = "bbFatJet"  # ARG001
-jet_index = 0  # ARG001
 
-txbb_preselection = {
-    "bbFatJetPNetTXbb": 0.3,
-    "bbFatJetPNetTXbbLegacy": 0.8,
-    "bbFatJetParTTXbb": 0.3,
-}
-msd1_preselection = {
-    "bbFatJetPNetTXbb": 40,
-    "bbFatJetPNetTXbbLegacy": 40,
-    "bbFatJetParTTXbb": 40,
-}
-msd2_preselection = {
-    "bbFatJetPNetTXbb": 30,
-    "bbFatJetPNetTXbbLegacy": 0,
-    "bbFatJetParTTXbb": 30,
-}
-
-
-def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
+def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
     logger.info(f"Load {year}")
 
-    jet_collection = "bbFatJet"
-    reorder_txbb = True
-    txbb_str = jet_collection + jet_coll_pnet
-    mass_str = jet_collection + jet_coll_mass
-
-    sample_dirs = {
-        year: {
-            "qcd": [
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "VBFHH": [
-                "VBFHHTo4B_CV_1_C2V_1_C3_1_TuneCP5_13TeV-madgraph-pythia8",
-                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8",
-            ],
-            "VBFH": [
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-        },
-    }
-    sample_dirs_sig = {
-        year: {
-            "hh4b": [
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"
-            ],  # the ? enforces exact matching
-        }
-    }
-    # columns (or branches) to load: (branch_name, number of columns)
-    # e.g. to load 2 jets ("ak8FatJetPt", 2)
-    num_jets = 2
-
-    columns = [
-        ("weight", 1),  # genweight * otherweights
-        ("event", 1),
-        ("MET_pt", 1),
-        ("bbFatJetTau3OverTau2", 2),
-        ("VBFJetPt", 2),
-        ("VBFJetEta", 2),
-        ("VBFJetPhi", 2),
-        ("VBFJetMass", 2),
-        ("AK4JetAwayPt", 2),
-        ("AK4JetAwayEta", 2),
-        ("AK4JetAwayPhi", 2),
-        ("AK4JetAwayMass", 2),
-        (f"{jet_collection}Pt", num_jets),
-        (f"{jet_collection}Msd", num_jets),
-        (f"{jet_collection}Eta", num_jets),
-        (f"{jet_collection}Phi", num_jets),
-        (f"{jet_collection}PNetPXbbLegacy", num_jets),  # Legacy PNet
-        (f"{jet_collection}PNetPQCDbLegacy", num_jets),
-        (f"{jet_collection}PNetPQCDbbLegacy", num_jets),
-        (f"{jet_collection}PNetPQCD0HFLegacy", num_jets),
-        (f"{jet_collection}PNetMassLegacy", num_jets),
-        (f"{jet_collection}PNetTXbbLegacy", num_jets),
-        (f"{jet_collection}PNetTXbb", num_jets),  # 103X PNet
-        (f"{jet_collection}PNetMass", num_jets),
-        (f"{jet_collection}PNetQCD0HF", num_jets),
-        (f"{jet_collection}PNetQCD1HF", num_jets),
-        (f"{jet_collection}PNetQCD2HF", num_jets),
-        (f"{jet_collection}ParTmassVis", num_jets),  # GloParT
-        (f"{jet_collection}ParTTXbb", num_jets),
-        (f"{jet_collection}ParTPXbb", num_jets),
-        (f"{jet_collection}ParTPQCD0HF", num_jets),
-        (f"{jet_collection}ParTPQCD1HF", num_jets),
-        (f"{jet_collection}ParTPQCD2HF", num_jets),
-    ]
-    signal_exclusive_columns = []
-    # selection to apply
-    filters = [
-        [
-            (f"('{jet_collection}Pt', '0')", ">=", 300),
-            (f"('{jet_collection}Pt', '1')", ">=", 250),
-        ],
-    ]
+    event_sel = EventSelection(year, jet_coll_tagger, jet_coll_mass)
+    sample_dirs, sample_dirs_sig, columns, signal_exclusive_columns, filters = (
+        event_sel.get_samples()
+    )
 
     # dictionary that will contain all information (from all samples)
     events_dict = {
@@ -154,8 +44,8 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             year,
             filters=filters,
             columns=utils.format_columns(columns + signal_exclusive_columns),
-            reorder_txbb=reorder_txbb,
-            txbb_str=txbb_str,
+            reorder_txbb=event_sel.reorder_txbb,
+            txbb_str=event_sel.txbb_str,
             variations=False,
         ),
         **utils.load_samples(
@@ -166,21 +56,27 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             columns=utils.format_columns(
                 columns
             ),  # columns to load from parquet (to not load all columns), IMPORTANT columns must be formatted: ("column name", "idx")
-            reorder_txbb=reorder_txbb,  # whether to reorder bbFatJet collection
-            txbb_str=txbb_str,
+            reorder_txbb=event_sel.reorder_txbb,  # whether to reorder bbFatJet collection
+            txbb_str=event_sel.txbb_str,
             variations=False,  # do not load systematic variations of weights
         ),
     }
 
     # apply boosted selection
-    event_selector = EventSelection(
-        jet_collection=jet_collection,
-        txbb_preselection=txbb_preselection,
-        msd1_preselection=msd1_preselection,
-        msd2_preselection=msd2_preselection,
-    )
+    events_dict = event_sel.apply_boosted(events_dict)
+    print(events_dict.keys())
 
-    events_dict = event_selector.apply_boosted(events_dict, txbb_str, mass_str)
+    # remove once done in pre-processing!
+    def correct_mass(events_dict, mass_str):
+        for key in events_dict:
+            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 0)]
+            )
+            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 1)]
+            )
+
+    correct_mass(events_dict, "bbFatJetParTmassVis")
 
     def get_bdt(events_dict, bdt_model, bdt_model_name, bdt_config, jlabel=""):
         bdt_model = xgb.XGBClassifier()
@@ -289,14 +185,14 @@ def get_roc(
     return roc
 
 
-def get_legtitle(txbb_str):
+def get_legtitle(txbb_str, event_sel):
     # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
     title = r"FatJet p$_T^{0}$ > 300 GeV" + "\n"
     title += r"FatJet p$_T^{1}$ > 250 GeV" + "\n"
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
     title += "\n" + r"m$_{reg}$ > 50 GeV"
-    title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
-    title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
+    title += "\n" + r"m$_{SD}^{0}$ > " + f"{event_sel.msd1_preselection[txbb_str]} GeV"
+    title += "\n" + r"m$_{SD}^{1}$ > " + f"{event_sel.msd2_preselection[txbb_str]} GeV"
 
     return title
 
@@ -333,6 +229,7 @@ def compute_bkg_effs(rocs, sig_effs):
     return bkg_effs_dict
 
 
+# TODO: obsolete?
 def restructure_rocs(rocs):
     """
     Restructure the 'rocs' dictionary to include an extra layer of nesting,
@@ -384,7 +281,7 @@ def main(args):
         year: load_events(
             args.data_path,
             year,
-            jet_coll_pnet="ParTTXbb",
+            jet_coll_tagger="ParTTXbb",
             jet_coll_mass="ParTmassVis",
             bdt_models=bdt_models,
         )
@@ -421,12 +318,15 @@ def main(args):
         # sig_effs=sig_effs,
         # bkg_effs=bkg_effs,
         plot_dir=out_dir,
-        legtitle=get_legtitle("bbFatJetParTTXbb"),
+        legtitle=get_legtitle(
+            "bbFatJetParTTXbb",
+        ),
         title="ggF HH4b BDT ROC",
-        name="PNet-parT-comparison",
+        name=f"PNet-parT-comparison-{args.bkgs}",
         plot_thresholds={
             "v5_PNetLegacy": [0.98, 0.88, 0.03],
             "v5_ParT_rawmass": [0.91, 0.64, 0.03],
+            "ParTTXbb": [0.7475, 0.775, 0.9375],
         },
         # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
         # add_cms_label=True,
