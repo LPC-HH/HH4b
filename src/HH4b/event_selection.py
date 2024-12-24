@@ -1,5 +1,5 @@
 """
-Event selection module for the HH->4b analysis.
+Event selection module for the boosted HH->4b analysis.
 
 Author: Daniel Primosch
 """
