@@ -17,7 +17,13 @@ from correctionlib import schemav2
 from hist.intervals import ratio_uncertainty
 
 from HH4b import hh_vars, plotting, run_utils
-from HH4b.hh_vars import LUMI, bg_keys, years  # noqa: F401
+from HH4b.hh_vars import (
+    LUMI,
+    bg_keys
+    mreg_strings,
+    txbb_strings,
+    years,
+)
 from HH4b.postprocessing import (
     PostProcess,
     combine_run3_samples,
@@ -79,11 +85,21 @@ samples_run3 = {
 
 
 def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG001
-    legacy_label = "Legacy" if args.legacy else ""
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
+
+    tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
+    if args.txbb == "pnet-legacy":
+        tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
+    else:
+        tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
+    tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
+    if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
+        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
+    else:
+        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
 
     # get function
     make_bdt_dataframe = importlib.import_module(
@@ -102,11 +118,12 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             year,
-            args.legacy,
             samples_to_process,
             reorder_txbb=True,
-            txbb=f"bbFatJetPNetTXbb{legacy_label}",
             load_systematics=False,
+            txbb_version=args.txbb,
+            scale_and_smear=True,
+            mass_str=mreg_strings[args.txbb],
         )[key]
 
         cutflow_dict[key] = OrderedDict(
@@ -125,26 +142,31 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
         bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
         bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
-        bdt_events["H1TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][0]
-        bdt_events["H2TXbb"] = events_dict[f"bbFatJetPNetTXbb{legacy_label}"][1]
-        bdt_events["H1PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][0]
-        bdt_events["H2PNetMass"] = events_dict[f"bbFatJetPNetMass{legacy_label}"][1]
-        bdt_events["H1TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][0]
-        bdt_events["H2TXbbNoLeg"] = events_dict["bbFatJetPNetTXbb"][1]
-        bdt_events["bdt_score_finebin"] = bdt_events["bdt_score"]
-        bdt_events["bdt_score_coarsebin"] = bdt_events["bdt_score"]
+        bdt_events["H1TXbb"] = events_dict[txbb_strings[args.txbb]][0]
+        bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
+        bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
+        bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
+        if key in hh_vars.jmsr_keys:
+            for jshift in hh_vars.jmsr_shifts:
+                bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
+                    f"{mreg_strings[args.txbb]}_{jshift}"
+                ][0]
+                bdt_events[f"H2PNetMass_{jshift}"] = events_dict[
+                    f"{mreg_strings[args.txbb]}_{jshift}"
+                ][1]
 
         # add HLTs
         bdt_events["hlt"] = np.any(
             np.array(
                 [
                     events_dict[trigger].to_numpy()[:, 0]
-                    for trigger in HLTs[year]
+                    for trigger in postprocessing.HLTs[year]
                     if trigger in events_dict
                 ]
             ),
             axis=0,
         )
+
 
         # weights
         # finalWeight: includes genWeight, puWeight
@@ -348,7 +370,12 @@ def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
 
 
 def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder, model):
-    legacy_label = "Legacy" if legacy else ""
+    if txbb_version == "pnet-legacy":
+        txbb_label = "PNet Legacy"
+    elif txbb_version == "pnet-v12":
+        txbb_label = "PNet 103X"
+    elif txbb_version == "glopart-v2":
+        txbb_label = "GloParTv2"
 
     control_plot_vars = [
         # ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
@@ -357,8 +384,8 @@ def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder, model)
         # ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ " + legacy_label, bins=[30, 0, 1]),
         # ShapeVar(var="H1TXbbNoLeg", label=r"Xbb$^{1}$ v12", bins=[30, 0, 1]),
         # ShapeVar(var="H2TXbbNoLeg", label=r"Xbb$^{2}$ v12", bins=[30, 0, 1]),
-        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
-        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + legacy_label, bins=[30, 0, 300]),
+        ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
+        ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
         ShapeVar(
             var="HHPt",
             label=r"HH $p_{T}$ (GeV)",
@@ -554,8 +581,14 @@ if __name__ == "__main__":
         default="24Apr21_legacy_vbf_vars",
         help="BDT model to load",
     )
+    parser.add_argument(
+        "--txbb",
+        type=str,
+        default="",
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        help="version of TXbb tagger/mass regression to use",
+    )
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
-    run_utils.add_bool_arg(parser, "legacy", default=True, help="using legacy pnet txbb and mass")
     args = parser.parse_args()
 
     print(args)
