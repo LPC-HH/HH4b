@@ -17,6 +17,7 @@ from sklearn.metrics import auc, roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
+from HH4b.boosted.BDT import BDT
 from HH4b.event_selection import EventSelection
 from HH4b.log_utils import log_config
 from HH4b.plotting import multiROCCurveGrey
@@ -64,8 +65,8 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
 
     # apply boosted selection
     events_dict = event_sel.apply_boosted(events_dict)
-    print(events_dict.keys())
 
+    """
     # remove once done in pre-processing!
     def correct_mass(events_dict, mass_str):
         for key in events_dict:
@@ -75,10 +76,12 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
             events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
                 1 - events_dict[key][("bbFatJetrawFactor", 1)]
             )
+    """
+    # TODO: move bdt loading outside of load_events
 
-    correct_mass(events_dict, "bbFatJetParTmassVis")
+    # correct_mass(events_dict, "bbFatJetParTmassVis")
 
-    def get_bdt(events_dict, bdt_model, bdt_model_name, bdt_config, jlabel=""):
+    def get_bdt(events_dict_key, bdt_model, bdt_model_name, bdt_config, jlabel=""):
         bdt_model = xgb.XGBClassifier()
         bdt_model.load_model(
             fname=f"../boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -86,9 +89,10 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
         make_bdt_dataframe = importlib.import_module(
             f".{bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
         )
-        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict, get_var_mapping(jlabel))
+        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict_key, get_var_mapping(jlabel))
         preds = bdt_model.predict_proba(bdt_events)
 
+        # Running inference on the provided events_dict(sample_key)
         bdt_score = None
         bdt_score_vbf = None
         if preds.shape[1] == 2:  # binary BDT only
@@ -101,12 +105,21 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
             bdt_score_vbf = preds[:, 1] / (preds[:, 1] + preds[:, 2] + preds[:, 3])
         return bdt_score, bdt_score_vbf
 
-    bdt_scores = []
+    fields_to_return = []
     for bdt_model in bdt_models:
         logger.info(f"Perform inference {bdt_model}")
         bdt_config = bdt_models[bdt_model]["config"]
         bdt_model_name = bdt_models[bdt_model]["model_name"]
+
+        # here bdt_model_name is the folder name, bdt_model is the descriptive name
+        bdt = BDT(bdt_model, bdt_model_name, bdt_config)
+
+        events_dict = bdt.infer(events_dict)
+
+        """
         for key in events_dict:
+            bdt_score, bdt_score_vbf = bdt.infer(events_dict[key])
+
             bdt_score, bdt_score_vbf = get_bdt(
                 events_dict[key], bdt_model, bdt_model_name, bdt_config
             )
@@ -116,14 +129,18 @@ def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
             events_dict[key][f"bdtscoreVBF_{bdt_model}"] = (
                 bdt_score if bdt_score is not None else np.ones(events_dict[key]["weight"])
             )
-            bdt_scores.extend([f"bdtscore_{bdt_model}", f"bdtscoreVBF_{bdt_model}"])
+        """
+        # Add the BDT scores to the list of columns being retained
+        fields_to_return.extend([f"bdtscore_{bdt.model_name}", f"bdtscoreVBF_{bdt.model_name}"])
 
     # Add finalWeight to the list of columns being retained
-    bdt_scores.append("finalWeight")
+    fields_to_return.append("finalWeight")
 
-    return {key: events_dict[key][bdt_scores] for key in events_dict}, event_sel
+    # return ggF/VBF bdt scores and finalWeight as a sample organized dict, return event_sel
+    return {key: events_dict[key][fields_to_return] for key in events_dict}, event_sel
 
 
+# TODO: bug fix: discriminator name is deprecated
 def get_roc_inputs(
     events_dict,
     # jet_collection,
@@ -139,7 +156,6 @@ def get_roc_inputs(
     # bg_keys = ["ttbar"]
     bg_keys = bkgs
     discriminator = f"{discriminator_name}"
-    print(events_dict["ttbar"])
     # 1 for signal, 0 for background
     y_true = np.concatenate(
         [
@@ -295,6 +311,7 @@ def main(args):
             bdt_models=bdt_models,
         )
         bdt_dict[year] = event_dict
+        print(type(event_dict["hh4b"]["bdtscore_v5_PNetLegacy"]))
     processes = ["qcd", "ttbar", "hh4b"]
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
@@ -364,14 +381,6 @@ if __name__ == "__main__":
         required=True,
         help="path to save plots",
         type=str,
-    )
-    parser.add_argument(
-        "--bkgs",
-        required=False,
-        default="all",
-        choices=["all", "qcd", "ttbar"],
-        type=str,
-        help="Backgrounds to include in the ROC curve",
     )
     parser.add_argument(
         "--bkgs",
