@@ -18,8 +18,6 @@ from hist.intervals import ratio_uncertainty
 
 from HH4b import hh_vars, plotting, run_utils
 from HH4b.hh_vars import (
-    LUMI,
-    bg_keys,
     mreg_strings,
     txbb_strings,
     years,
@@ -155,7 +153,6 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             ),
             axis=0,
         )
-
 
         # weights
         # finalWeight: includes genWeight, puWeight
