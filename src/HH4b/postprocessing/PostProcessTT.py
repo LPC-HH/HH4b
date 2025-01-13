@@ -90,17 +90,6 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
     bdt_model = xgb.XGBClassifier()
     bdt_model.load_model(fname=f"../boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model")
 
-    tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
-    if args.txbb == "pnet-legacy":
-        tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
-    else:
-        tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
-    tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
-    if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
-    else:
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
-
     # get function
     make_bdt_dataframe = importlib.import_module(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
@@ -175,18 +164,22 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         # trigger weight
 
         # tt corrections
+
+        # Unused! code copied from PostProcess
+        # if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
+        #     tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
+        # else:
+        #     tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
+
         nevents = len(events_dict["bbFatJetPt"][0])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")[0]
-            tau32sf = (
-                corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H1T32")[0]
-                * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
-            )
-            txbbsf = (
-                corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
-                * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
-            )
+            ptjjsf = corrections._load_ttbar_sfs(year, "PTJJ")
+            tau32sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
+            if args.txbb == "pnet-legacy":
+                txbbsf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
+            else:
+                txbbsf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
 
             ttbar_weight = ptjjsf * txbbsf * tau32sf
         bdt_events["weight_ttbar"] = ttbar_weight
@@ -369,7 +362,7 @@ def get_corr(corr_key, eff, eff_unc_up, eff_unc_dn, year, edges):
     return corr
 
 
-def make_control_plots(events_dict, plot_dir, year, legacy, tag, bgorder, model):
+def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, model):
     if txbb_version == "pnet-legacy":
         txbb_label = "PNet Legacy"
     elif txbb_version == "pnet-v12":
@@ -527,7 +520,7 @@ def postprocess_run3(args):
             events_to_plot,
             plot_dir,
             "2022-2023",
-            args.legacy,
+            args.txbb,
             f"cat{i}",
             ["diboson", "vjets", "qcd", "ttbar"],
             model=args.bdt_model,
