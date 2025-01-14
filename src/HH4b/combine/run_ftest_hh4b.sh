@@ -138,7 +138,9 @@ do
     if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" --regions ${region_}
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" \
+        --regions ${region_} --no-jesr --bdt-model 24Nov7_v5_glopartv2_rawmass \
+        --sig-samples hh4b vbfhh4b --txbb glopart-v2
     fi
 
     cd "${cards_dir}/${model_name}/" || exit

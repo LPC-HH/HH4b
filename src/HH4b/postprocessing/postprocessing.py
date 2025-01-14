@@ -17,6 +17,7 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
+    jecs,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -25,6 +26,7 @@ from HH4b.hh_vars import (
     syst_keys,
     ttbarsfs_decorr_bdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
     years,
@@ -89,15 +91,12 @@ columns_to_load = {
     + [
         ("bbFatJetPNetTXbbLegacy", 2),
         ("bbFatJetPNetPXbbLegacy", 2),
-        ("bbFatJetPNetPQCDbLegacy", 2),
-        ("bbFatJetPNetPQCDbbLegacy", 2),
-        ("bbFatJetPNetPQCDothersLegacy", 2),
+        ("bbFatJetPNetPQCD0HFLegacy", 2),
+        ("bbFatJetPNetPQCD1HFLegacy", 2),
+        ("bbFatJetPNetPQCD2HFLegacy", 2),
         ("bbFatJetPNetMassLegacy", 2),
         ("bbFatJetPNetTXbb", 2),
         ("bbFatJetPNetMass", 2),
-        ("bbFatJetPNetQCD0HF", 2),
-        ("bbFatJetPNetQCD1HF", 2),
-        ("bbFatJetPNetQCD2HF", 2),
     ],
     "pnet-v12": columns_to_load_default
     + [
@@ -115,6 +114,7 @@ columns_to_load = {
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
+        ("bbFatJetrawFactor", 2),
     ],
 }
 
@@ -148,10 +148,7 @@ filters_to_apply = {
 }
 
 load_columns_syst = []
-jecs = {
-    "JES": "JES",
-    "JER": "JER",
-}
+
 jec_shifts = []
 for key in jecs:
     for shift in ["up", "down"]:
@@ -162,47 +159,54 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 
-weight_shifts = {
-    "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
-    "ttbarSF_tau32": Syst(samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]),
-    "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
-    "TXbbSF_correlated": Syst(
-        samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
-    ),
-    # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
-    # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
-    # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
-    # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
-    # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
-}
 
-for i in range(len(ttbarsfs_decorr_txbb_bins) - 1):
-    weight_shifts[
-        f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[i]}_{ttbarsfs_decorr_txbb_bins[i+1]}"
-    ] = Syst(
-        samples=["ttbar"],
-        label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[i]}, {ttbarsfs_decorr_txbb_bins[i+1]}]",
-        years=years + ["2022-2023"],
-    )
+def get_weight_shifts(txbb_version: str, bdt_version: str):
+    """Get weight shifts for systematics"""
 
-for i in range(len(ttbarsfs_decorr_bdt_bins) - 1):
-    weight_shifts[
-        f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[i]}_{ttbarsfs_decorr_bdt_bins[i+1]}"
-    ] = Syst(
-        samples=["ttbar"],
-        label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[i]}, {ttbarsfs_decorr_bdt_bins[i+1]}]",
-        years=years + ["2022-2023"],
-    )
+    weight_shifts = {
+        "ttbarSF_pTjj": Syst(samples=["ttbar"], label="ttbar SF pTjj", years=years + ["2022-2023"]),
+        "ttbarSF_tau32": Syst(
+            samples=["ttbar"], label="ttbar SF tau32", years=years + ["2022-2023"]
+        ),
+        "trigger": Syst(samples=sig_keys + bg_keys, label="Trigger", years=years + ["2022-2023"]),
+        "TXbbSF_correlated": Syst(
+            samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
+        ),
+        # "pileup": Syst(samples=sig_keys + bg_keys, label="Pileup"),
+        # "PDFalphaS": Syst(samples=sig_keys, label="PDF"),
+        # "QCDscale": Syst(samples=sig_keys, label="QCDscale"),
+        # "ISRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="ISR Parton Shower"),
+        # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
+    }
 
-for wp in txbbsfs_decorr_txbb_wps:
-    for j in range(len(txbbsfs_decorr_pt_bins[wp]) - 1):
+    for i in range(len(ttbarsfs_decorr_txbb_bins[txbb_version]) - 1):
         weight_shifts[
-            f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[wp][j]}_{txbbsfs_decorr_pt_bins[wp][j+1]}"
+            f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[txbb_version][i]}_{ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}"
         ] = Syst(
-            samples=sig_keys,
-            label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[wp][j]}, {txbbsfs_decorr_pt_bins[wp][j+1]}]",
+            samples=["ttbar"],
+            label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[txbb_version][i]}, {ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}]",
             years=years + ["2022-2023"],
         )
+
+    for i in range(len(ttbarsfs_decorr_bdt_bins[bdt_version]) - 1):
+        weight_shifts[
+            f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[bdt_version][i]}_{ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}"
+        ] = Syst(
+            samples=["ttbar"],
+            label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[bdt_version][i]}, {ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}]",
+            years=years + ["2022-2023"],
+        )
+
+    for wp in txbbsfs_decorr_txbb_wps[txbb_version]:
+        for j in range(len(txbbsfs_decorr_pt_bins[txbb_version][wp]) - 1):
+            weight_shifts[
+                f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}_{txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}"
+            ] = Syst(
+                samples=sig_keys,
+                label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}, {txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}]",
+                years=years + ["2022-2023"],
+            )
+    return weight_shifts
 
 
 def load_run3_samples(
@@ -210,7 +214,6 @@ def load_run3_samples(
     year: str,
     samples_run3: dict[str, list[str]],
     reorder_txbb: bool,
-    txbb_str: str,
     load_systematics: bool,
     txbb_version: str,
     scale_and_smear: bool,
@@ -222,6 +225,7 @@ def load_run3_samples(
         "glopart-v2",
     ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
 
+    txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
     load_columns = columns_to_load[txbb_version]
 
@@ -243,6 +247,16 @@ def load_run3_samples(
             x = events_dict[key][mass_str].to_numpy(copy=True)
             events_dict[key][(f"{mass_str}Raw", 0)] = x[:, 0]
             events_dict[key][(f"{mass_str}Raw", 1)] = x[:, 1]
+
+    # correct mass for glopart-v2; remove once done in skimmer!
+    def correct_mass(events_dict, mass_str):
+        for key in events_dict:
+            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 0)]
+            )
+            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 1)]
+            )
 
     # load samples that do no need systematics (e.g. data)
     events_dict_nosyst = {
@@ -274,6 +288,10 @@ def load_run3_samples(
         ),
     }
 
+    if txbb_version == "glopart-v2":
+        correct_mass(events_dict_nosyst, mass_str)
+        correct_mass(events_dict_syst, mass_str)
+
     if scale_and_smear:
         add_rawmass(events_dict_nosyst, mass_str)
         add_rawmass(events_dict_syst, mass_str)
@@ -285,8 +303,8 @@ def load_run3_samples(
 
 
 def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: str):
-    jms_nom = jmsr_values["JMS"][year]["nom"]
-    jmr_nom = jmsr_values["JMR"][year]["nom"]
+    jms_nom = jmsr_values[mass_str]["JMS"][year]["nom"]
+    jmr_nom = jmsr_values[mass_str]["JMR"][year]["nom"]
     rng = np.random.default_rng(seed=42)
 
     # formula for smearing and scaling
@@ -299,7 +317,7 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
             x_smear = (
                 x
                 * jms_nom
-                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[key] / x)
+                * (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[mass_str][key] / x)
             )
 
             for i in range(2):
@@ -308,14 +326,16 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
             for skey in jmsr:
                 for shift in ["up", "down"]:
                     if skey == "JMS":
-                        jms = jmsr_values["JMS"][year][shift]
+                        jms = jmsr_values[mass_str]["JMS"][year][shift]
                         jmr = jmr_nom
                     else:
                         jms = jms_nom
-                        jmr = jmsr_values["JMR"][year][shift]
+                        jmr = jmsr_values[mass_str]["JMR"][year][shift]
                     x_smear = np.zeros_like(x)
                     x_smear = (
-                        x * jms * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[key] / x)
+                        x
+                        * jms
+                        * (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x)
                     )
                     for i in range(2):
                         events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]

@@ -349,7 +349,10 @@ def load_samples(
             try:
                 events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
             except Exception:
-                warnings.warn(f"No events for {sample}!", stacklevel=1)
+                events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
+                warnings.warn(
+                    f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
+                )
                 continue
 
             # no events?
