@@ -106,14 +106,25 @@ control_plot_vars = [
 # do not include small qcd bins
 for year in samples_run3:
     samples_run3[year]["qcd"] = [
+        "QCD_HT-100to200",
         "QCD_HT-1000to1200",
         "QCD_HT-1200to1500",
         "QCD_HT-1500to2000",
         "QCD_HT-2000",
-        # "QCD_HT-200to400",
+        "QCD_HT-200to400",
         "QCD_HT-400to600",
         "QCD_HT-600to800",
         "QCD_HT-800to1000",
+    ]
+    samples_run3[year]["ttbar"] = [
+        "TTto2L2Nu",
+        "TTto4Q",
+        "TTtoLNu2Q",
+    ]
+    samples_run3[year]["diboson"] = [
+        "WW",
+        "WZ",
+        "ZZ",
     ]
 
 
@@ -121,15 +132,15 @@ def get_legtitle(txbb_str):
     title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
     title += "$T_{Xbb}^{0}$ >" + f"{txbb_preselection[txbb_str]}"
 
-    if "Legacy" in txbb_str:
+    if "legacy" in txbb_str.lower():
         title += "\n" + "PNet Legacy"
-    elif "ParT" in txbb_str:
+    elif "part" in txbb_str.lower():
         title += "\n" + "GloParTv2"
     else:
         title += "\n" + "PNet 103X"
 
     title += "\n" + r"m$_{reg}$ > 50 GeV"
-    if "Legacy" not in txbb_str:
+    if "legacy" not in txbb_str.lower():
         title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
         title += "\n" + r"m$_{SD}^{1}$ > " + f"{msd2_preselection[txbb_str]} GeV"
 
@@ -162,6 +173,10 @@ def apply_cuts(events_dict, txbb_str, mass_str):
             & (mass1 > 50)
             & (mass2 > 50)
         ].copy()
+        txbb1 = events_dict[key][txbb_str][0]
+        mass1 = events_dict[key][mass_str][0]
+        mass2 = events_dict[key][mass_str][1]
+        # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
 
     return events_dict
 
@@ -1278,17 +1293,18 @@ def main(args):
                 args.mass_str,
             )
 
-    plot_allyears(
-        events_dict,
-        model,
-        model_dir,
-        args.config_name,
-        args.multiclass,
-        args.sig_keys,
-        args.bg_keys,
-        args.txbb_str,
-        args.mass_str,
-    )
+    if args.plot_allyears:
+        plot_allyears(
+            events_dict,
+            model,
+            model_dir,
+            args.config_name,
+            args.multiclass,
+            args.sig_keys,
+            args.bg_keys,
+            args.txbb_str,
+            args.mass_str,
+        )
 
 
 if __name__ == "__main__":
@@ -1298,7 +1314,7 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         default=["2022EE"],
-        choices=hh_vars.years,
+        choices=[hh_vars.years, "2022-2023"],
         help="years to train on",
     )
     parser.add_argument(
@@ -1370,6 +1386,7 @@ if __name__ == "__main__":
     add_bool_arg(parser, "run2-wapproach", "Run2 weight approach", default=False)
     add_bool_arg(parser, "txbb-plots", "Make TXbb plots", default=True)
     add_bool_arg(parser, "apply-cuts", "Apply cuts", default=True)
+    add_bool_arg(parser, "plot-allyears", "Plot histograms for all years", default=False)
 
     args = parser.parse_args()
     args.txbb_str = {
