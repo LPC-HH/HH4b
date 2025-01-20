@@ -1173,7 +1173,10 @@ class bbbbSkimmer(SkimmerABC):
         )
         # perform BDT inference
         preds = self.bdt_model.predict_proba(bdt_events)
-
+        print("preds")
+        print(preds)
+        print("shape ", preds.shape)
+        
         # store BDT output
         bdtVars = {}
         jlabel = "" if jshift == "" else "_" + jshift
