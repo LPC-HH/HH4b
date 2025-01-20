@@ -17,5 +17,5 @@ tabulate
 tqdm==4.65.0
 uproot==4.3.7
 vector==1.1.0
-xgboost==2.0.3
+xgboost>=2.0.3
 xxhash
