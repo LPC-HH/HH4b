@@ -886,7 +886,9 @@ class bbbbSkimmer(SkimmerABC):
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
                 cut_txbb = (
                     np.sum(
-                        bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb],
+                        (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
+                        | (bbFatJetVars[f"bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                        | (bbFatJetVars[f"bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
                         axis=1,
                     )
                     >= 1
@@ -951,7 +953,10 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak8_pt_msd", cut_pt_msd, *selection_args)
 
             # == 2 AK8 jets with Xbb>0.1
-            cut_txbb = np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2
+            cut_txbb = np.sum(
+                (ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1)
+                | (ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.1),
+                axis=1)==2
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
