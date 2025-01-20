@@ -17,6 +17,7 @@ from sklearn.metrics import auc, roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
+from HH4b.event_selection import EventSelection
 from HH4b.log_utils import log_config
 from HH4b.plotting import multiROCCurveGrey
 from HH4b.utils import get_var_mapping
@@ -50,24 +51,8 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
     jet_collection = "bbFatJet"
     reorder_txbb = True
-    txbb_str = "bbFatJet" + jet_coll_pnet
-    mass_str = "bbFatJet" + jet_coll_mass
-
-    txbb_preselection = {
-        "bbFatJetPNetTXbb": 0.3,
-        "bbFatJetPNetTXbbLegacy": 0.8,
-        "bbFatJetParTTXbb": 0.3,
-    }
-    msd1_preselection = {
-        "bbFatJetPNetTXbb": 40,
-        "bbFatJetPNetTXbbLegacy": 40,
-        "bbFatJetParTTXbb": 40,
-    }
-    msd2_preselection = {
-        "bbFatJetPNetTXbb": 30,
-        "bbFatJetPNetTXbbLegacy": 0,
-        "bbFatJetParTTXbb": 30,
-    }
+    txbb_str = jet_collection + jet_coll_pnet
+    mass_str = jet_collection + jet_coll_mass
 
     sample_dirs = {
         year: {
@@ -82,6 +67,26 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             ],
             "ttbar": [
                 "TTto4Q",
+            ],
+            "diboson": [
+                "WW",
+                "WZ",
+                "ZZ",
+            ],
+            "VBFHH": [
+                "VBFHHTo4B_CV_1_C2V_1_C3_1_TuneCP5_13TeV-madgraph-pythia8",
+                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8",
+                "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8",
+            ],
+            "VBFH": [
+                "VBFHto2B_M-125_dipoleRecoilOn",
             ],
         },
     }
@@ -135,7 +140,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
     # selection to apply
     filters = [
         [
-            (f"('{jet_collection}Pt', '0')", ">=", 250),
+            (f"('{jet_collection}Pt', '0')", ">=", 300),
             (f"('{jet_collection}Pt', '1')", ">=", 250),
         ],
     ]
@@ -167,26 +172,15 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
         ),
     }
 
-    def apply_cuts(events_dict, txbb_str, mass_str):
-        for key in events_dict:
-            msd1 = events_dict[key]["bbFatJetMsd"][0]
-            msd2 = events_dict[key]["bbFatJetMsd"][1]
-            pt1 = events_dict[key]["bbFatJetPt"][0]
-            pt2 = events_dict[key]["bbFatJetPt"][1]
-            txbb1 = events_dict[key][txbb_str][0]
-            mass1 = events_dict[key][mass_str][0]
-            mass2 = events_dict[key][mass_str][1]
-            # add msd > 40 cut for the first jet FIXME: replace this by the trigobj matched jet
-            events_dict[key] = events_dict[key][
-                (pt1 > 250)
-                & (pt2 > 250)
-                & (txbb1 > txbb_preselection[txbb_str])
-                & (msd1 > msd1_preselection[txbb_str])
-                & (msd2 > msd2_preselection[txbb_str])
-                & (mass1 > 50)
-                & (mass2 > 50)
-            ].copy()
-        return events_dict
+    # apply boosted selection
+    event_selector = EventSelection(
+        jet_collection=jet_collection,
+        txbb_preselection=txbb_preselection,
+        msd1_preselection=msd1_preselection,
+        msd2_preselection=msd2_preselection,
+    )
+
+    events_dict = event_selector.apply_boosted(events_dict, txbb_str, mass_str)
 
     def get_bdt(events_dict, bdt_model, bdt_model_name, bdt_config, jlabel=""):
         bdt_model = xgb.XGBClassifier()
@@ -210,8 +204,6 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             bdt_score = preds[:, 0] / (preds[:, 0] + bg_tot)
             bdt_score_vbf = preds[:, 1] / (preds[:, 1] + preds[:, 2] + preds[:, 3])
         return bdt_score, bdt_score_vbf
-
-    events_dict = apply_cuts(events_dict, txbb_str, mass_str)
 
     bdt_scores = []
     for bdt_model in bdt_models:
@@ -243,7 +235,7 @@ def get_roc_inputs(
 ):
     sig_key = "hh4b"
     discriminator = f"{discriminator_name}"
-
+    print(events_dict["ttbar"])
     # 1 for signal, 0 for background
     y_true = np.concatenate(
         [
@@ -253,8 +245,8 @@ def get_roc_inputs(
     )
     # weights
     weights = np.concatenate(
-        [events_dict[sig_key]["finalWeight"]]  
-        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys], 
+        [events_dict[sig_key]["finalWeight"]]
+        + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],
     )
 
     # discriminator
@@ -276,13 +268,12 @@ def get_roc(
     bg_keys,
 ):
     y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name, bg_keys)
-    #print("ytrue ", y_true)
-    #print("scores ", scores)
-    #print("weights ", weights)
-
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
-    #print("fpr", fpr)
-    #print("tpr", tpr)
+
+    # make sure fpr is sorted
+    sorted_indices = np.argsort(fpr)
+    fpr = fpr[sorted_indices]
+    tpr = tpr[sorted_indices]
 
     roc = {
         "fpr": fpr,
@@ -296,8 +287,9 @@ def get_roc(
 
 
 def get_legtitle(txbb_str):
-    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
-    title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+    # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
+    title = r"FatJet p$_T^{0}$ > 300 GeV" + "\n"
+    title += r"FatJet p$_T^{1}$ > 250 GeV" + "\n"
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
     title += "\n" + r"m$_{reg}$ > 50 GeV"
     title += "\n" + r"m$_{SD}^{0}$ > " + f"{msd1_preselection[txbb_str]} GeV"
@@ -364,15 +356,26 @@ def main(args):
             "config": "v5",
             "model_name": "24May31_lr_0p02_md_8_AK4Away",
         },
-        "v5_ParT": {
-            "config": "v5_glopartv2",
-            "model_name": "24Sep27_v5_glopartv2",
-        },
-        #"v5_PNetv12": {
+        # "v5_ParT": {
+        #    "config": "v5_glopartv2",
+        #    "model_name": "24Sep27_v5_glopartv2",
+        # },
+        # "v5_PNetv12": {
         #    "config": "v5_PNetv12",
         #    "model_name": "24Jul29_v5_PNetv12",
-        #},
+        # },
+        # "v6_ParT": {
+        #    "config": "v6_glopartv2",
+        #    "model_name": "24Oct17_v6_glopartv2",
+        # },
+        "v5_ParT_rawmass": {
+            "config": "v5_glopartv2",
+            "model_name": "24Nov7_v5_glopartv2_rawmass",
+        },
     }
+
+    # distinguish between main backgrounds
+    bkgs = ["qcd", "ttbar"] if args.bkgs == "all" else [args.bkgs]
 
     bdt_dict = {
         year: load_events(
@@ -423,13 +426,13 @@ def main(args):
         name=output_name,
         plot_thresholds={
             "v5_PNetLegacy": [0.98, 0.88, 0.03],
-            "v5_ParT": [0.9425, 0.74, 0.03],
+            "v5_ParT_rawmass": [0.91, 0.64, 0.03],
         },
         # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
         # add_cms_label=True,
         show=True,
-        xlim=[0, 0.6],
-        ylim=[1e-5, 1e-1],
+        xlim=[0, 1],
+        ylim=[1e-5, 0],
     )
 
 
@@ -462,6 +465,14 @@ if __name__ == "__main__":
         required=True,
         help="path to save plots",
         type=str,
+    )
+    parser.add_argument(
+        "--bkgs",
+        required=False,
+        default="all",
+        choices=["all", "qcd", "ttbar"],
+        type=str,
+        help="Backgrounds to include in the ROC curve",
     )
     args = parser.parse_args()
     sys.exit(main(args))

@@ -175,6 +175,7 @@ def parse_common_args(parser):
         "--txbb",
         type=str,
         default="glopart-v2",
+        required=True,
         choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
         help="TXbb version to be used to order FatJets",
     )
