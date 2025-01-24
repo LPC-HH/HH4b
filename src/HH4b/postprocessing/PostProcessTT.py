@@ -16,7 +16,7 @@ import xgboost as xgb
 from correctionlib import schemav2
 from hist.intervals import ratio_uncertainty
 
-from HH4b import hh_vars, plotting, run_utils
+from HH4b import hh_vars, postprocessing, plotting, run_utils
 from HH4b.hh_vars import (
     mreg_strings,
     txbb_strings,
@@ -133,6 +133,9 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
         bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
         bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
+        bdt_events["bdt_score_finebin"] = bdt_events["bdt_score"]
+        bdt_events["bdt_score_coarsebin"] = bdt_events["bdt_score"]
+
         if key in hh_vars.jmsr_keys:
             for jshift in hh_vars.jmsr_shifts:
                 bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
@@ -519,7 +522,8 @@ def postprocess_run3(args):
             "2022-2023",
             args.txbb,
             f"cat{i}",
-            ["diboson", "vjets", "qcd", "ttbar"],
+            # ["diboson", "vjets", "qcd", "ttbar"],
+            ["qcd"],
             model=args.bdt_model,
         )
 
