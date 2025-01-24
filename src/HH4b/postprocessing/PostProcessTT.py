@@ -16,7 +16,7 @@ import xgboost as xgb
 from correctionlib import schemav2
 from hist.intervals import ratio_uncertainty
 
-from HH4b import hh_vars, postprocessing, plotting, run_utils
+from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.hh_vars import (
     mreg_strings,
     txbb_strings,

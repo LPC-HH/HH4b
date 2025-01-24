@@ -349,7 +349,7 @@ def load_samples(
             logger.debug(f"Loading {sample}")
             try:
                 non_empty_passed_list = []
-                for parquet_file in parquet_path.glob('*.parquet'):
+                for parquet_file in parquet_path.glob("*.parquet"):
                     if not pd.read_parquet(parquet_file).empty:
                         df = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
                         non_empty_passed_list.append(df)
@@ -359,7 +359,7 @@ def load_samples(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
                 non_empty_passed_list = []
-                for parquet_file in parquet_path.glob('*.parquet'):
+                for parquet_file in parquet_path.glob("*.parquet"):
                     if not pd.read_parquet(parquet_file).empty:
                         print(parquet_file)
                         df = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
