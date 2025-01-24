@@ -174,12 +174,15 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         nevents = len(events_dict["bbFatJetPt"][0])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections._load_ttbar_sfs(year, "PTJJ")
-            tau32sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
-            if args.txbb == "pnet-legacy":
-                txbbsf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
-            else:
-                txbbsf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
+            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")[0]
+            tau32sf = (
+                corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H1T32")[0]
+                * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
+            )
+            txbbsf = (
+                corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
+                * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
+            )
 
             ttbar_weight = ptjjsf * txbbsf * tau32sf
         bdt_events["weight_ttbar"] = ttbar_weight
