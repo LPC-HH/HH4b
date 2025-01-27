@@ -1201,7 +1201,7 @@ def multiROCCurveGrey(
     if xlim is None:
         xlim = [0, 1]
     line_style = {"colors": "lightgrey", "linestyles": "dashed"}
-    th_colours = ["cornflowerblue", "deepskyblue", "mediumblue", "cyan", "cadetblue"]
+    th_colours = ["cornflowerblue", "deepskyblue", "mediumblue", "cyan", "cadetblue", "plum", "purple", "palevioletred"]
     eff_colours = ["lime", "aquamarine", "greenyellow"]
 
     fig = plt.figure(figsize=(12, 12))
