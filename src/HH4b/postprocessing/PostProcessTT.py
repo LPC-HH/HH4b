@@ -76,7 +76,7 @@ samples_run3 = {
         "data": [f"{key}_Run" for key in ["JetMET"]],
         "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
         "diboson": ["ZZ", "WW", "WZ"],
-        "vjets": ["Wto2Q-3Jets_HT", "Zto2Q-4Jets_HT"],
+        "vjets": ["Wto2Q-2Jets", "Zto2Q-2Jets"],
     }
     for year in years
 }
@@ -101,6 +101,8 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
     events_dict_postprocess = {}
     for key in samples_year:
         samples_to_process = {year: {key: samples_run3[year][key]}}
+        print(key)
+        print(samples_to_process)
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
@@ -174,16 +176,33 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         nevents = len(events_dict["bbFatJetPt"][0])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            ptjjsf = corrections.ttbar_SF(year, bdt_events, "PTJJ", "HHPt")[0]
-            tau32sf = (
-                corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H1T32")[0]
-                * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
-            )
-            txbbsf = (
-                corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
-                * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
-            )
+            tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
+            ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
 
+            tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
+            tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
+                tt_tau32_sf, bdt_events, "H1T32"
+            )
+            tau32j2sf, tau32j2sf_up, tau32j2sf_dn = corrections.ttbar_SF(
+                tt_tau32_sf, bdt_events, "H2T32"
+            )
+            tau32sf = tau32j1sf * tau32j2sf
+            # tau32sf = (
+            #     corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H1T32")[0]
+            #     * corrections.ttbar_SF(year, bdt_events, "Tau3OverTau2", "H2T32")[0]
+            # )
+            # txbbsf = (
+            #    corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
+            #     * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
+            # )
+
+            if args.txbb == "pnet-legacy":
+                tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
+            else:
+                tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
+            tempw1, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H1TXbb")
+            tempw2, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H2TXbb")
+            txbbsf = tempw1 * tempw2
             ttbar_weight = ptjjsf * txbbsf * tau32sf
         bdt_events["weight_ttbar"] = ttbar_weight
 
