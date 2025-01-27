@@ -1,3 +1,12 @@
+"""
+Data handling classes for HH4b analysis.
+
+This is a stub, likely fully taken care ofby event_selection.py
+TODO: Check if this is the case and remove this file if so.
+
+Author: Daniel Primosch
+"""
+
 from __future__ import annotations
 
 import logging

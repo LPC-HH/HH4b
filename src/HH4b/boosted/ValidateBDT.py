@@ -17,6 +17,7 @@ from sklearn.metrics import auc, roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
+from HH4b.boosted.BDT import BDT
 from HH4b.event_selection import EventSelection
 from HH4b.log_utils import log_config
 from HH4b.plotting import multiROCCurveGrey
@@ -26,124 +27,14 @@ log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("ValidateBDT")
 
-jet_collection = "bbFatJet"  # ARG001
-jet_index = 0  # ARG001
 
-txbb_preselection = {
-    "bbFatJetPNetTXbb": 0.3,
-    "bbFatJetPNetTXbbLegacy": 0.8,
-    "bbFatJetParTTXbb": 0.3,
-}
-msd1_preselection = {
-    "bbFatJetPNetTXbb": 40,
-    "bbFatJetPNetTXbbLegacy": 40,
-    "bbFatJetParTTXbb": 40,
-}
-msd2_preselection = {
-    "bbFatJetPNetTXbb": 30,
-    "bbFatJetPNetTXbbLegacy": 0,
-    "bbFatJetParTTXbb": 30,
-}
-
-
-def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
+def load_events(path_to_dir, year, jet_coll_tagger, jet_coll_mass, bdt_models):
     logger.info(f"Load {year}")
 
-    jet_collection = "bbFatJet"
-    reorder_txbb = True
-    txbb_str = jet_collection + jet_coll_pnet
-    mass_str = jet_collection + jet_coll_mass
+    event_sel = EventSelection(year, jet_coll_tagger, jet_coll_mass)
 
-    sample_dirs = {
-        year: {
-            "qcd": [
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000",
-                "QCD_HT-400to600",
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-            ],
-            "ttbar": [
-                "TTto4Q",
-            ],
-            "diboson": [
-                "WW",
-                "WZ",
-                "ZZ",
-            ],
-            "VBFHH": [
-                "VBFHHTo4B_CV_1_C2V_1_C3_1_TuneCP5_13TeV-madgraph-pythia8",
-                "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8",
-                "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8",
-            ],
-            "VBFH": [
-                "VBFHto2B_M-125_dipoleRecoilOn",
-            ],
-        },
-    }
-    sample_dirs_sig = {
-        year: {
-            "hh4b": [
-                "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"
-            ],  # the ? enforces exact matching
-        }
-    }
-    # columns (or branches) to load: (branch_name, number of columns)
-    # e.g. to load 2 jets ("ak8FatJetPt", 2)
-    num_jets = 2
-
-    columns = [
-        ("weight", 1),  # genweight * otherweights
-        ("event", 1),
-        ("MET_pt", 1),
-        ("bbFatJetTau3OverTau2", 2),
-        ("VBFJetPt", 2),
-        ("VBFJetEta", 2),
-        ("VBFJetPhi", 2),
-        ("VBFJetMass", 2),
-        ("AK4JetAwayPt", 2),
-        ("AK4JetAwayEta", 2),
-        ("AK4JetAwayPhi", 2),
-        ("AK4JetAwayMass", 2),
-        (f"{jet_collection}Pt", num_jets),
-        (f"{jet_collection}Msd", num_jets),
-        (f"{jet_collection}Eta", num_jets),
-        (f"{jet_collection}Phi", num_jets),
-        (f"{jet_collection}PNetPXbbLegacy", num_jets),  # Legacy PNet
-        (f"{jet_collection}PNetPQCDbLegacy", num_jets),
-        (f"{jet_collection}PNetPQCDbbLegacy", num_jets),
-        (f"{jet_collection}PNetPQCD0HFLegacy", num_jets),
-        (f"{jet_collection}PNetMassLegacy", num_jets),
-        (f"{jet_collection}PNetTXbbLegacy", num_jets),
-        (f"{jet_collection}PNetTXbb", num_jets),  # 103X PNet
-        (f"{jet_collection}PNetMass", num_jets),
-        (f"{jet_collection}PNetQCD0HF", num_jets),
-        (f"{jet_collection}PNetQCD1HF", num_jets),
-        (f"{jet_collection}PNetQCD2HF", num_jets),
-        (f"{jet_collection}ParTmassVis", num_jets),  # GloParT
-        (f"{jet_collection}ParTTXbb", num_jets),
-        (f"{jet_collection}ParTPXbb", num_jets),
-        (f"{jet_collection}ParTPQCD0HF", num_jets),
-        (f"{jet_collection}ParTPQCD1HF", num_jets),
-        (f"{jet_collection}ParTPQCD2HF", num_jets),
-    ]
-    signal_exclusive_columns = []
-    # selection to apply
-    filters = [
-        [
-            (f"('{jet_collection}Pt', '0')", ">=", 300),
-            (f"('{jet_collection}Pt', '1')", ">=", 250),
-        ],
-    ]
+    sample_dirs, sample_dirs_sig = event_sel.get_samples()
+    columns, sig_exclusive_columns = event_sel.get_columns()
 
     # dictionary that will contain all information (from all samples)
     events_dict = {
@@ -152,37 +43,45 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             path_to_dir,
             sample_dirs_sig[year],
             year,
-            filters=filters,
-            columns=utils.format_columns(columns + signal_exclusive_columns),
-            reorder_txbb=reorder_txbb,
-            txbb_str=txbb_str,
+            filters=event_sel.filters,
+            columns=utils.format_columns(columns + sig_exclusive_columns),
+            reorder_txbb=event_sel.reorder_txbb,
+            txbb_str=event_sel.txbb_str,
             variations=False,
         ),
         **utils.load_samples(
             path_to_dir,  # input directory
             sample_dirs[year],  # process_name: datasets
             year,  # year (to find corresponding luminosity)
-            filters=filters,  # do not apply filter
+            filters=event_sel.filters,  # do not apply filter
             columns=utils.format_columns(
                 columns
             ),  # columns to load from parquet (to not load all columns), IMPORTANT columns must be formatted: ("column name", "idx")
-            reorder_txbb=reorder_txbb,  # whether to reorder bbFatJet collection
-            txbb_str=txbb_str,
+            reorder_txbb=event_sel.reorder_txbb,  # whether to reorder bbFatJet collection
+            txbb_str=event_sel.txbb_str,
             variations=False,  # do not load systematic variations of weights
         ),
     }
 
     # apply boosted selection
-    event_selector = EventSelection(
-        jet_collection=jet_collection,
-        txbb_preselection=txbb_preselection,
-        msd1_preselection=msd1_preselection,
-        msd2_preselection=msd2_preselection,
-    )
+    events_dict = event_sel.apply_boosted(events_dict)
 
-    events_dict = event_selector.apply_boosted(events_dict, txbb_str, mass_str)
+    """
+    # remove once done in pre-processing!
+    def correct_mass(events_dict, mass_str):
+        for key in events_dict:
+            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 0)]
+            )
+            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
+                1 - events_dict[key][("bbFatJetrawFactor", 1)]
+            )
+    """
+    # TODO: move bdt loading outside of load_events
 
-    def get_bdt(events_dict, bdt_model, bdt_model_name, bdt_config, jlabel=""):
+    # correct_mass(events_dict, "bbFatJetParTmassVis")
+
+    def get_bdt(events_dict_key, bdt_model, bdt_model_name, bdt_config, jlabel=""):
         bdt_model = xgb.XGBClassifier()
         bdt_model.load_model(
             fname=f"../boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -190,9 +89,10 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
         make_bdt_dataframe = importlib.import_module(
             f".{bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
         )
-        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict, get_var_mapping(jlabel))
+        bdt_events = make_bdt_dataframe.bdt_dataframe(events_dict_key, get_var_mapping(jlabel))
         preds = bdt_model.predict_proba(bdt_events)
 
+        # Running inference on the provided events_dict(sample_key)
         bdt_score = None
         bdt_score_vbf = None
         if preds.shape[1] == 2:  # binary BDT only
@@ -205,12 +105,21 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             bdt_score_vbf = preds[:, 1] / (preds[:, 1] + preds[:, 2] + preds[:, 3])
         return bdt_score, bdt_score_vbf
 
-    bdt_scores = []
+    fields_to_return = []
     for bdt_model in bdt_models:
         logger.info(f"Perform inference {bdt_model}")
         bdt_config = bdt_models[bdt_model]["config"]
         bdt_model_name = bdt_models[bdt_model]["model_name"]
+
+        # here bdt_model_name is the folder name, bdt_model is the descriptive name
+        bdt = BDT(bdt_model, bdt_model_name, bdt_config)
+
+        events_dict = bdt.infer(events_dict)
+
+        """
         for key in events_dict:
+            bdt_score, bdt_score_vbf = bdt.infer(events_dict[key])
+
             bdt_score, bdt_score_vbf = get_bdt(
                 events_dict[key], bdt_model, bdt_model_name, bdt_config
             )
@@ -220,14 +129,18 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
             events_dict[key][f"bdtscoreVBF_{bdt_model}"] = (
                 bdt_score if bdt_score is not None else np.ones(events_dict[key]["weight"])
             )
-            bdt_scores.extend([f"bdtscore_{bdt_model}", f"bdtscoreVBF_{bdt_model}"])
+        """
+        # Add the BDT scores to the list of columns being retained
+        fields_to_return.extend([f"bdtscore_{bdt.model_name}", f"bdtscoreVBF_{bdt.model_name}"])
 
     # Add finalWeight to the list of columns being retained
-    bdt_scores.append("finalWeight")
+    fields_to_return.append("finalWeight")
 
-    return {key: events_dict[key][bdt_scores] for key in events_dict}
+    # return ggF/VBF bdt scores and finalWeight as a sample organized dict, return event_sel
+    return {key: events_dict[key][fields_to_return] for key in events_dict}, event_sel
 
 
+# TODO: bug fix: discriminator name is deprecated
 def get_roc_inputs(
     events_dict,
     # jet_collection,
@@ -239,8 +152,10 @@ def get_roc_inputs(
 
     # bg_keys = ["ttbar"]
     bg_keys = bkgs
+
+    # bg_keys = ["ttbar"]
+    bg_keys = bkgs
     discriminator = f"{discriminator_name}"
-    print(events_dict["ttbar"])
     # 1 for signal, 0 for background
     y_true = np.concatenate(
         [
@@ -289,8 +204,12 @@ def get_roc(
     return roc
 
 
-def get_legtitle(txbb_str):
+def get_legtitle(event_sel: EventSelection):
     # title = r"FatJet p$_T^{(0,1)}$ > 250 GeV"
+    txbb_str = event_sel.txbb_str
+    msd1_preselection = event_sel.msd1_preselection
+    msd2_preselection = event_sel.msd2_preselection
+
     title = r"FatJet p$_T^{0}$ > 300 GeV" + "\n"
     title += r"FatJet p$_T^{1}$ > 250 GeV" + "\n"
     title += "\n" + "$GloParT_{Xbb}^{0}$ > 0.3"
@@ -333,6 +252,7 @@ def compute_bkg_effs(rocs, sig_effs):
     return bkg_effs_dict
 
 
+# TODO: obsolete?
 def restructure_rocs(rocs):
     """
     Restructure the 'rocs' dictionary to include an extra layer of nesting,
@@ -380,16 +300,18 @@ def main(args):
     # distinguish between main backgrounds
     bkgs = ["qcd", "ttbar"] if args.bkgs == "all" else [args.bkgs]
 
-    bdt_dict = {
-        year: load_events(
+    bdt_dict = {}
+    event_sel = None
+    for year in args.year:
+        event_dict, event_sel = load_events(
             args.data_path,
             year,
-            jet_coll_pnet="ParTTXbb",
+            jet_coll_tagger="ParTTXbb",
             jet_coll_mass="ParTmassVis",
             bdt_models=bdt_models,
         )
-        for year in args.year
-    }
+        bdt_dict[year] = event_dict
+        print(type(event_dict["hh4b"]["bdtscore_v5_PNetLegacy"]))
     processes = ["qcd", "ttbar", "hh4b"]
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
@@ -421,12 +343,13 @@ def main(args):
         # sig_effs=sig_effs,
         # bkg_effs=bkg_effs,
         plot_dir=out_dir,
-        legtitle=get_legtitle("bbFatJetParTTXbb"),
+        legtitle=get_legtitle(event_sel),
         title="ggF HH4b BDT ROC",
-        name="PNet-parT-comparison",
+        name=f"PNet-parT-comparison-{args.bkgs}",
         plot_thresholds={
             "v5_PNetLegacy": [0.98, 0.88, 0.03],
             "v5_ParT_rawmass": [0.91, 0.64, 0.03],
+            "ParTTXbb": [0.7475, 0.775, 0.9375],
         },
         # find_from_sigeff={0.98: [0.98, 0.88, 0.03]},
         # add_cms_label=True,
@@ -449,6 +372,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-path",
         required=True,
+        default="/home/users/dprimosc/data/24Sep25_v12v2_private_signal",
         help="path to training data",
         type=str,
     )
