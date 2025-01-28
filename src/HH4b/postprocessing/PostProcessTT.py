@@ -82,7 +82,7 @@ samples_run3 = {
 }
 
 
-def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG001
+def load_process_run3_samples(args, year, control_plots, plot_dir):
 
     # define BDT model
     bdt_model = xgb.XGBClassifier()
@@ -318,13 +318,13 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
 
     # end of loop over samples
 
-    
     if control_plots:
-        for i in range(1,6):
+        for i in range(1, 6):
             events_to_plot = {
-                key: events[events["Category"] == i] for key, events in events_dict_postprocess.items()
+                key: events[events["Category"] == i]
+                for key, events in events_dict_postprocess.items()
             }
-            #print(events_to_plot)
+            # print(events_to_plot)
             make_control_plots(
                 events_to_plot,
                 plot_dir,
@@ -332,7 +332,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
                 args.txbb,
                 f"cat{i}",
                 ["diboson", "vjets", "qcd", "ttbar"],
-                model=args.bdt_model
+                model=args.bdt_model,
             )
 
     for cut in cutflow_dict["data"]:
