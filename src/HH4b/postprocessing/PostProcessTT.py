@@ -318,7 +318,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
 
     # end of loop over samples
 
-    """
+    
     if control_plots:
         for i in range(1,6):
             events_to_plot = {
@@ -329,12 +329,11 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
                 events_to_plot,
                 plot_dir,
                 year,
-                args.legacy,
+                args.txbb,
                 f"cat{i}",
                 ["diboson", "vjets", "qcd", "ttbar"],
                 model=args.bdt_model
             )
-    """
 
     for cut in cutflow_dict["data"]:
         cutflow[cut] = [cutflow_dict[key][cut].round(2) for key in events_dict_postprocess]
