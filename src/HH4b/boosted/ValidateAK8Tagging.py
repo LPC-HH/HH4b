@@ -24,6 +24,7 @@ logger = logging.getLogger("TrainBDT")
 
 use_ttbar = False
 
+
 def load_events(
     path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs, num_jets
 ):
@@ -43,11 +44,7 @@ def load_events(
         }
     }
     if use_ttbar:
-        sample_dirs = {
-            year: {
-                "ttbar": ["TTto4Q"]
-            }
-        }
+        sample_dirs = {year: {"ttbar": ["TTto4Q"]}}
 
     sample_dirs_sig = {
         year: {
@@ -228,7 +225,7 @@ def get_roc(
     auc_label = ""
     try:
         auc_label = f" AUC ({auc(fpr, tpr):.4f})"
-    except ValueError: 
+    except ValueError:
         print("AUC invalid")
     roc = {
         "fpr": fpr,
@@ -322,7 +319,7 @@ def main(args):
         }
         # thresholds on the discriminator, used to search for signal efficiency
         plot_thresholds = {
-            #"PNetTXbbLegacy": [0.8, 0.92, 0.975],
+            # "PNetTXbbLegacy": [0.8, 0.92, 0.975],
             "PNetTXbbLegacy": [0.8],
             "PNetTXbb": [0.7],
             "ParTTXbb": [0.3, 0.75, 0.78, 0.9375],
