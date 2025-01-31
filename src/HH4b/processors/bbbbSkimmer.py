@@ -1099,7 +1099,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # makedataframe from v5_glopartv2
         # 24Nov7_v5_glopartv2_rawmass
-        # NOTE: this bdt assumes mass = raw mass  
+        # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
                 "pt": bbFatJetVars["bbFatJetPt"],
