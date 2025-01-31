@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.metrics import auc, roc_curve
+from sklearn.metrics import roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
@@ -279,7 +279,7 @@ def get_roc(
         "fpr": fpr,
         "tpr": tpr,
         "thresholds": thresholds,
-        "label": discriminator_label, # + f" AUC ({auc(fpr, tpr):.4f})",
+        "label": discriminator_label,  # + f" AUC ({auc(fpr, tpr):.4f})",
         "color": discriminator_color,
     }
 
@@ -404,11 +404,7 @@ def main(args):
     for i, bdt_model in enumerate(bdt_models):
 
         rocs[bdt_model] = get_roc(
-            bdt_dict_combined,
-            f"bdtscore_{bdt_model}",
-            bdt_model,
-            colors[i],
-            bg_keys=args.processes
+            bdt_dict_combined, f"bdtscore_{bdt_model}", bdt_model, colors[i], bg_keys=args.processes
         )
 
     # Plot multi-ROC curve

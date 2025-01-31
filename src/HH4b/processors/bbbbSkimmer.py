@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import vector
 import xgboost as xgb
+
 print("version ", xgb.__version__)
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
@@ -382,7 +383,10 @@ class bbbbSkimmer(SkimmerABC):
         # BDT model
         bdt_model_name = "24May31_lr_0p02_md_8_AK4Away"
         self.bdt_model = xgb.XGBClassifier()
-        print("bdt model ", f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model")
+        print(
+            "bdt model ",
+            f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model",
+        )
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
         )
@@ -895,8 +899,8 @@ class bbbbSkimmer(SkimmerABC):
                 cut_txbb = (
                     np.sum(
                         (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
-                        | (bbFatJetVars[f"bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
-                        | (bbFatJetVars[f"bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
+                        | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                        | (bbFatJetVars["bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
                         axis=1,
                     )
                     >= 1
@@ -962,9 +966,9 @@ class bbbbSkimmer(SkimmerABC):
 
             # == 2 AK8 jets with Xbb>0.1
             cut_txbb = (
-                (np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2) |
-                (np.sum(ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.05, axis=1) == 2) |
-                (np.sum(ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1, axis=1) == 2)
+                (np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2)
+                | (np.sum(ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.05, axis=1) == 2)
+                | (np.sum(ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1, axis=1) == 2)
             )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
@@ -1174,7 +1178,7 @@ class bbbbSkimmer(SkimmerABC):
         )
         # perform BDT inference
         preds = self.bdt_model.predict_proba(bdt_events)
-        
+
         # store BDT output
         bdtVars = {}
         jlabel = "" if jshift == "" else "_" + jshift
