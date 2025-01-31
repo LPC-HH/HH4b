@@ -379,7 +379,7 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "24May31_lr_0p02_md_8_AK4Away"
+        bdt_model_name = "24Nov7_v5_glopartv2_rawmass"
         self.bdt_model = xgb.XGBClassifier()
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -808,7 +808,7 @@ class bbbbSkimmer(SkimmerABC):
 
         if self._region == "signal":
             bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, "")
-            print(bdtVars)
+            # print(bdtVars)
             skimmed_events = {
                 **skimmed_events,
                 **bdtVars,
@@ -1097,13 +1097,15 @@ class bbbbSkimmer(SkimmerABC):
         """Calculates BDT"""
         key_map = get_var_mapping(jshift)
 
-        # makedataframe from 24May31_lr_0p02_md_8_AK4Away
+        # makedataframe from v5_glopartv2
+        # 24Nov7_v5_glopartv2_rawmass
+        # NOTE: this bdt assumes mass = raw mass  
         jets = vector.array(
             {
                 "pt": bbFatJetVars["bbFatJetPt"],
                 "phi": bbFatJetVars["bbFatJetPhi"],
                 "eta": bbFatJetVars["bbFatJetEta"],
-                "M": bbFatJetVars["bbFatJetPNetMassLegacy"],
+                "M": events[key_map("bbFatJetParTmassVis")],
             }
         )
         h1 = jets[:, 0]
@@ -1144,7 +1146,7 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 0],
                 key_map("H2T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 1],
                 # fatjet mass
-                key_map("H1Mass"): bbFatJetVars[key_map("bbFatJetPNetMassLegacy")][:, 0],
+                key_map("H1Mass"): bbFatJetVars[key_map("bbFatJetParTmassVis")][:, 0],
                 # fatjet kinematics
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,
