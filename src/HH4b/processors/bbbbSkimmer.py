@@ -191,7 +191,7 @@ class bbbbSkimmer(SkimmerABC):
         save_systematics=False,
         region="signal",
         nano_version="v12",
-        txbb="pnet-legacy",
+        txbb="glopart-v2",
     ):
         super().__init__()
 
@@ -807,12 +807,12 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, "")
-            # print(bdtVars)
-            skimmed_events = {
-                **skimmed_events,
-                **bdtVars,
-            }
+            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up"] + list(self.jecs.values()):
+                bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                skimmed_events = {
+                    **skimmed_events,
+                    **bdtVars,
+                }
 
         if self._region == "semilep-tt":
             # concatenate leptons
