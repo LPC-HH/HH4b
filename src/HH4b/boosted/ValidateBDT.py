@@ -387,7 +387,7 @@ def main(args):
         )
         for year in args.year
     }
-    processes = ["hh4b"] + args.processes
+    processes = ["hh4b"] + bkgs
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
@@ -408,7 +408,7 @@ def main(args):
             f"bdtscore_{bdt_model}",
             bdt_model,
             colors[i],
-            bg_keys=args.processes
+            bg_keys=bkgs
         )
 
     # Plot multi-ROC curve
@@ -445,14 +445,6 @@ if __name__ == "__main__":
         default=["2022EE"],
         choices=hh_vars.years,
         help="years to evaluate on",
-    )
-    parser.add_argument(
-        "--processes",
-        nargs="+",
-        type=str,
-        default=["qcd"],
-        choices=["qcd", "ttbar"],
-        help="bkg processes to evaluate",
     )
     parser.add_argument(
         "--data-path",

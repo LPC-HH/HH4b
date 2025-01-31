@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import vector
 import xgboost as xgb
-print("version ", xgb.__version__)
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
