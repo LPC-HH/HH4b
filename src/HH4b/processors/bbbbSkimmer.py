@@ -1102,10 +1102,10 @@ class bbbbSkimmer(SkimmerABC):
         # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
-                "pt": bbFatJetVars["bbFatJetPt"],
-                "phi": bbFatJetVars["bbFatJetPhi"],
-                "eta": bbFatJetVars["bbFatJetEta"],
-                "M": events[key_map("bbFatJetParTmassVis")],
+                "pt": bbFatJetVars[key_map("bbFatJetPt")],
+                "phi": bbFatJetVars[key_map("bbFatJetPhi")],
+                "eta": bbFatJetVars[key_map("bbFatJetEta")],
+                "M": bbFatJetVars[key_map("bbFatJetParTmassVis")],
             }
         )
         h1 = jets[:, 0]
@@ -1113,10 +1113,10 @@ class bbbbSkimmer(SkimmerABC):
         hh = jets[:, 0] + jets[:, 1]
         vbfjets = vector.array(
             {
-                "pt": vbfJetVars["VBFJetPt"],
-                "phi": vbfJetVars["VBFJetPhi"],
-                "eta": vbfJetVars["VBFJetEta"],
-                "M": vbfJetVars["VBFJetMass"],
+                "pt": vbfJetVars[key_map("VBFJetPt")],
+                "phi": vbfJetVars[key_map("VBFJetPhi")],
+                "eta": vbfJetVars[key_map("VBFJetEta")],
+                "M": vbfJetVars[key_map("VBFJetMass")],
             }
         )
         vbf1 = vbfjets[:, 0]
@@ -1124,10 +1124,10 @@ class bbbbSkimmer(SkimmerABC):
         jj = vbfjets[:, 0] + vbfjets[:, 1]
         ak4away = vector.array(
             {
-                "pt": ak4JetAwayVars["AK4JetAwayPt"],
-                "phi": ak4JetAwayVars["AK4JetAwayPhi"],
-                "eta": ak4JetAwayVars["AK4JetAwayEta"],
-                "M": ak4JetAwayVars["AK4JetAwayMass"],
+                "pt": ak4JetAwayVars[key_map("AK4JetAwayPt")],
+                "phi": ak4JetAwayVars[key_map("AK4JetAwayPhi")],
+                "eta": ak4JetAwayVars[key_map("AK4JetAwayEta")],
+                "M": ak4JetAwayVars[key_map("AK4JetAwayMass")],
             }
         )
         ak4away1 = ak4away[:, 0]
