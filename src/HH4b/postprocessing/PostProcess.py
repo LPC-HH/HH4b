@@ -485,13 +485,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # TXbbWeight
         txbb_sf_weight = np.ones(nevents)
-        if "hh" in key:
-            h1pt = bdt_events["H1Pt"].to_numpy()
-            h2pt = bdt_events["H2Pt"].to_numpy()
-            h1txbb = bdt_events["H1TXbb"].to_numpy()
-            h2txbb = bdt_events["H2TXbb"].to_numpy()
-            txbb_range = [0.92, 1]
-            pt_range = [200, 100000]
+        txbb_range = [0.92, 1]
+        pt_range = [200, 100000]
+        h1pt = bdt_events["H1Pt"].to_numpy()
+        h2pt = bdt_events["H2Pt"].to_numpy()
+        h1txbb = bdt_events["H1TXbb"].to_numpy()
+        h2txbb = bdt_events["H2TXbb"].to_numpy()
+        # TODO: correct application of bb-tagging SF based on gen-matching to H(bb) or Z(bb)
+        # for now, assuming mostly V=Z(bb) passes selection
+        # apply to both jets in HH, VH, VV processes
+        # apply to only first jet in single-H or single-V processes
+        if "hh4b" in key or key in ["vhtobb", "diboson"]:
             txbb_sf_weight1 = corrections.restrict_SF(
                 txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range
             )
@@ -499,11 +503,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 txbb_sf["nominal"], h2txbb, h2pt, txbb_range, pt_range
             )
             txbb_sf_weight = txbb_sf_weight1 * txbb_sf_weight2
-
-        # TODO: apply to Single Higgs processes
-        # need to match fatjet to Gen-Level single H
-        # if key in ["vhtobb", "tthtobb"]:
-        #    hpt = events_dict[]
+        elif key in ["novhhtobb", "tthtobb", "vjets"]:
+            txbb_sf_weight = corrections.restrict_SF(
+                txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range
+            )
 
         # remove training events if asked
         if (
