@@ -191,7 +191,7 @@ class bbbbSkimmer(SkimmerABC):
         save_systematics=False,
         region="signal",
         nano_version="v12",
-        txbb="pnet-legacy",
+        txbb="glopart-v2",
     ):
         super().__init__()
 
@@ -379,7 +379,7 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "24May31_lr_0p02_md_8_AK4Away"
+        bdt_model_name = "24Nov7_v5_glopartv2_rawmass"
         self.bdt_model = xgb.XGBClassifier()
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -807,12 +807,14 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, "")
-            print(bdtVars)
-            skimmed_events = {
-                **skimmed_events,
-                **bdtVars,
-            }
+            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up"] + list(
+                self.jecs.values()
+            ):
+                bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                skimmed_events = {
+                    **skimmed_events,
+                    **bdtVars,
+                }
 
         if self._region == "semilep-tt":
             # concatenate leptons
@@ -891,7 +893,9 @@ class bbbbSkimmer(SkimmerABC):
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
                 cut_txbb = (
                     np.sum(
-                        bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb],
+                        (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
+                        | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                        | (bbFatJetVars["bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
                         axis=1,
                     )
                     >= 1
@@ -956,8 +960,10 @@ class bbbbSkimmer(SkimmerABC):
             add_selection("ak8_pt_msd", cut_pt_msd, *selection_args)
 
             # == 2 AK8 jets with Xbb>0.1
-            cut_txbb = (np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2) | (
-                np.sum(ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.05, axis=1) == 2
+            cut_txbb = (
+                (np.sum(ak8FatJetVars["ak8FatJetPNetTXbb"] >= 0.1, axis=1) == 2)
+                | (np.sum(ak8FatJetVars["ak8FatJetParTTXbb"] >= 0.05, axis=1) == 2)
+                | (np.sum(ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1, axis=1) == 2)
             )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
@@ -1093,13 +1099,15 @@ class bbbbSkimmer(SkimmerABC):
         """Calculates BDT"""
         key_map = get_var_mapping(jshift)
 
-        # makedataframe from 24May31_lr_0p02_md_8_AK4Away
+        # makedataframe from v5_glopartv2
+        # 24Nov7_v5_glopartv2_rawmass
+        # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
-                "pt": bbFatJetVars["bbFatJetPt"],
-                "phi": bbFatJetVars["bbFatJetPhi"],
-                "eta": bbFatJetVars["bbFatJetEta"],
-                "M": bbFatJetVars["bbFatJetPNetMassLegacy"],
+                "pt": bbFatJetVars[key_map("bbFatJetPt")],
+                "phi": bbFatJetVars[key_map("bbFatJetPhi")],
+                "eta": bbFatJetVars[key_map("bbFatJetEta")],
+                "M": bbFatJetVars[key_map("bbFatJetParTmassVis")],
             }
         )
         h1 = jets[:, 0]
@@ -1107,10 +1115,10 @@ class bbbbSkimmer(SkimmerABC):
         hh = jets[:, 0] + jets[:, 1]
         vbfjets = vector.array(
             {
-                "pt": vbfJetVars["VBFJetPt"],
-                "phi": vbfJetVars["VBFJetPhi"],
-                "eta": vbfJetVars["VBFJetEta"],
-                "M": vbfJetVars["VBFJetMass"],
+                "pt": vbfJetVars[key_map("VBFJetPt")],
+                "phi": vbfJetVars[key_map("VBFJetPhi")],
+                "eta": vbfJetVars[key_map("VBFJetEta")],
+                "M": vbfJetVars[key_map("VBFJetMass")],
             }
         )
         vbf1 = vbfjets[:, 0]
@@ -1118,10 +1126,10 @@ class bbbbSkimmer(SkimmerABC):
         jj = vbfjets[:, 0] + vbfjets[:, 1]
         ak4away = vector.array(
             {
-                "pt": ak4JetAwayVars["AK4JetAwayPt"],
-                "phi": ak4JetAwayVars["AK4JetAwayPhi"],
-                "eta": ak4JetAwayVars["AK4JetAwayEta"],
-                "M": ak4JetAwayVars["AK4JetAwayMass"],
+                "pt": ak4JetAwayVars[key_map("AK4JetAwayPt")],
+                "phi": ak4JetAwayVars[key_map("AK4JetAwayPhi")],
+                "eta": ak4JetAwayVars[key_map("AK4JetAwayEta")],
+                "M": ak4JetAwayVars[key_map("AK4JetAwayMass")],
             }
         )
         ak4away1 = ak4away[:, 0]
@@ -1140,7 +1148,7 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 0],
                 key_map("H2T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 1],
                 # fatjet mass
-                key_map("H1Mass"): bbFatJetVars[key_map("bbFatJetPNetMassLegacy")][:, 0],
+                key_map("H1Mass"): bbFatJetVars[key_map("bbFatJetParTmassVis")][:, 0],
                 # fatjet kinematics
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,

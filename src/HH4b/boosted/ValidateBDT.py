@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.metrics import auc, roc_curve
+from sklearn.metrics import roc_curve
 
 import HH4b.utils as utils
 from HH4b import hh_vars
@@ -230,15 +230,10 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
 
 def get_roc_inputs(
     events_dict,
-    # jet_collection,
     discriminator_name,
-    # jet_index,
-    bkgs,
+    bg_keys,
 ):
     sig_key = "hh4b"
-
-    # bg_keys = ["ttbar"]
-    bg_keys = bkgs
     discriminator = f"{discriminator_name}"
     print(events_dict["ttbar"])
     # 1 for signal, 0 for background
@@ -253,6 +248,7 @@ def get_roc_inputs(
         [events_dict[sig_key]["finalWeight"]]
         + [events_dict[bg_key]["finalWeight"] for bg_key in bg_keys],
     )
+
     # discriminator
     # print(events_dict[sig_key][discriminator])
     scores = np.concatenate(
@@ -269,10 +265,11 @@ def get_roc(
     discriminator_name,
     discriminator_label,
     discriminator_color,
-    bkgs,
+    bg_keys,
 ):
-    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name, bkgs)
+    y_true, scores, weights = get_roc_inputs(events_dict, discriminator_name, bg_keys)
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
+
     # make sure fpr is sorted
     sorted_indices = np.argsort(fpr)
     fpr = fpr[sorted_indices]
@@ -282,7 +279,7 @@ def get_roc(
         "fpr": fpr,
         "tpr": tpr,
         "thresholds": thresholds,
-        "label": discriminator_label + f" AUC ({auc(fpr, tpr):.4f})",
+        "label": discriminator_label,  # + f" AUC ({auc(fpr, tpr):.4f})",
         "color": discriminator_color,
     }
 
@@ -390,7 +387,7 @@ def main(args):
         )
         for year in args.year
     }
-    processes = ["qcd", "ttbar", "hh4b"]
+    processes = ["hh4b"] + bkgs
     bdt_dict_combined = {
         key: pd.concat([bdt_dict[year][key] for year in bdt_dict]) for key in processes
     }
@@ -407,15 +404,14 @@ def main(args):
     for i, bdt_model in enumerate(bdt_models):
 
         rocs[bdt_model] = get_roc(
-            bdt_dict_combined,
-            f"bdtscore_{bdt_model}",
-            bdt_model,
-            colors[i],
-            bkgs,
+            bdt_dict_combined, f"bdtscore_{bdt_model}", bdt_model, colors[i], bg_keys=bkgs
         )
 
     # Plot multi-ROC curve
-
+    bkgprocess_key = "-".join(args.processes)
+    years_key = "_".join(args.year)
+    output_name = f"PNet-parT-comparison-{bkgprocess_key}-{years_key}"
+    print(output_name)
     multiROCCurveGrey(
         restructure_rocs(rocs),
         # sig_effs=sig_effs,
@@ -423,7 +419,7 @@ def main(args):
         plot_dir=out_dir,
         legtitle=get_legtitle("bbFatJetParTTXbb"),
         title="ggF HH4b BDT ROC",
-        name="PNet-parT-comparison",
+        name=output_name,
         plot_thresholds={
             "v5_PNetLegacy": [0.98, 0.88, 0.03],
             "v5_ParT_rawmass": [0.91, 0.64, 0.03],
@@ -444,7 +440,7 @@ if __name__ == "__main__":
         type=str,
         default=["2022EE"],
         choices=hh_vars.years,
-        help="years to train on",
+        help="years to evaluate on",
     )
     parser.add_argument(
         "--data-path",
