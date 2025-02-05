@@ -507,10 +507,11 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
                 save_pdf=False,
             )
 
-        if (shape_var.var == "bdt_score_coarsebin" and tag == "cat3") or (
-            shape_var.var == "bdt_score_finebin" and tag != "cat3") or (
-            shape_var.var == "bdt_score_vbf_coarsebin" and tag != "cat3") or (
-            shape_var.var == "bdt_score_vbf_finebin" and tag != "cat3"
+        if (
+            (shape_var.var == "bdt_score_coarsebin" and tag == "cat3")
+            or (shape_var.var == "bdt_score_finebin" and tag != "cat3")
+            or (shape_var.var == "bdt_score_vbf_coarsebin" and tag != "cat3")
+            or (shape_var.var == "bdt_score_vbf_finebin" and tag != "cat3")
         ):
             # save correction
             num = (
