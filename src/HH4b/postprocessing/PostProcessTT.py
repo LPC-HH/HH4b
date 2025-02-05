@@ -200,6 +200,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
                 tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
             else:
                 tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
+            # tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
             tempw1, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H1TXbb")
             tempw2, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H2TXbb")
             txbbsf = tempw1 * tempw2
@@ -220,7 +221,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         bdt_events = bdt_events[mask_presel]
 
         bdt_events["Category"] = 6  # all events
-        """
+        
         mask_bin1 = (
             (bdt_events["H1TXbb"] >= 0.9)
             & (bdt_events["H1PNetMass"] > 150)
@@ -229,7 +230,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
-        """
+       
         mask_bin2 = (
             (bdt_events["H1TXbb"] > 0.1)
             & (bdt_events["H2TXbb"] > 0.1)
@@ -241,7 +242,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
 
-        """
+        
         mask_bin3 = (
             (bdt_events["H1TXbb"] >= 0.9)
             # & (bdt_events["H2TXbb"] > 0.1)
@@ -262,7 +263,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin4, "Category"] = 4
-        """
+        
         mask_bin5 = (
             (bdt_events["H1TXbb"] > 0.1)
             & (bdt_events["H2TXbb"] > 0.1)
@@ -273,16 +274,29 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin5, "Category"] = 5
+        """
+        mask_bin6 = (
+            (bdt_events["H1TXbb"] > 0.1)
+            & (bdt_events["H2TXbb"] > 0.1)
+            & (bdt_events["H1T32"] < 0.6)
+            & (bdt_events["H1PNetMass"] > 150)
+            & (bdt_events["H1PNetMass"] < 200)
+            & (bdt_events["H2PNetMass"] > 50)
+            & (bdt_events["H2PNetMass"] < 200)
+        )
+        bdt_events.loc[mask_bin6, "Category"] = 6
+        """
 
         # save cutflows for nominal variables
         cutflow_dict[key]["H1Msd > 40 & Pt>300"] = np.sum(bdt_events["weight"].to_numpy())
-        # cutflow_dict[key]["H1TXbb>0.9, H1M:[150-200]"] = np.sum(
-        #    bdt_events["weight"][mask_bin1].to_numpy()
-        # )
+        """
+        cutflow_dict[key]["H1TXbb>0.9, H1M:[150-200]"] = np.sum(
+           bdt_events["weight"][mask_bin1].to_numpy()
+        )
         cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.46, H1M:[150-200]"] = np.sum(
             bdt_events["weight"][mask_bin2].to_numpy()
         )
-        """
+        
         cutflow_dict[key]["H1TXbb>0.9,H1T32<0.46, H1M:[160-200]"] = np.sum(
             bdt_events["weight"][mask_bin3].to_numpy()
         )
@@ -290,9 +304,14 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
             bdt_events["weight"][mask_bin4].to_numpy()
         )
         """
-        cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.6, H1M:[160-200]"] = np.sum(
+        cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.6, H1M:[150-200]"] = np.sum(
             bdt_events["weight"][mask_bin5].to_numpy()
         )
+        """
+        cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.6, H1M:[150-200], H2M:[50-200]"] = np.sum(
+            bdt_events["weight"][mask_bin6].to_numpy()
+        )
+        """
 
         # keep some (or all) columns
         columns = [
@@ -320,7 +339,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):  # noqa: ARG
 
     
     if control_plots:
-        for i in range(1,6):
+        for i in [5]:
             events_to_plot = {
                 key: events[events["Category"] == i] for key, events in events_dict_postprocess.items()
             }
@@ -431,7 +450,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
             var="bdt_score_finebin",
             label=r"BDT score",
             # bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
-            bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
+            # bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
+            bins=[0, 0.0299999, 0.6374999, 0.9074999, 1],
             reg=False,
         ),
     ]
@@ -531,8 +551,7 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
 
-    # for i in range(1,6):
-    for i in [2, 5]:
+    for i in range(1,6):
         events_to_plot = {
             key: events[events["Category"] == i] for key, events in events_combined.items()
         }
@@ -543,8 +562,7 @@ def postprocess_run3(args):
             "2022-2023",
             args.txbb,
             f"cat{i}",
-            # ["diboson", "vjets", "qcd", "ttbar"],
-            ["qcd"],
+            ["diboson", "vjets", "qcd", "ttbar"],
             model=args.bdt_model,
         )
 
