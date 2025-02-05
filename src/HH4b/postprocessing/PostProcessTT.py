@@ -537,7 +537,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
                 schema_version=2,
                 corrections=[corr],
             )
-            path = Path(f"../corrections/data/{model}/ttbar_bdtshape{tag}_{shape_var.var}_{year}.json")
+            path = Path(
+                f"../corrections/data/{model}/ttbar_bdtshape{tag}_{shape_var.var}_{year}.json"
+            )
             with path.open("w") as fout:
                 fout.write(cset.json(exclude_unset=True))
 
