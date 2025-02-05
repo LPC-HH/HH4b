@@ -137,6 +137,8 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
         bdt_events["bdt_score_finebin"] = bdt_events["bdt_score"]
         bdt_events["bdt_score_coarsebin"] = bdt_events["bdt_score"]
+        bdt_events["bdt_score_vbf_finebin"] = bdt_events["bdt_score_vbf"]
+        bdt_events["bdt_score_vbf_coarsebin"] = bdt_events["bdt_score_vbf"]
 
         if key in hh_vars.jmsr_keys:
             for jshift in hh_vars.jmsr_shifts:
@@ -318,11 +320,14 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             "weight",
             "Category",
             "bdt_score",
+            "bdt_score_vbf",
             "H2PNetMass",
             "HHPt",
             "H1PNetMass",
             "bdt_score_finebin",
             "bdt_score_coarsebin",
+            "bdt_score_vbf_finebin",
+            "bdt_score_vbf_coarsebin",
         ]
         columns = list(set(columns))
 
@@ -438,19 +443,34 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
         # ShapeVar(var="H1Pt_HHmass", label=r"H$^1$ $p_{T}/mass$", bins=[30, 0, 1]),
         # ShapeVar(var="H2Pt_HHmass", label=r"H$^2$ $p_{T}/mass$", bins=[30, 0, 0.7]),
         # ShapeVar(var="H1Pt_H2Pt", label=r"H$^1$/H$^2$ $p_{T}$ (GeV)", bins=[30, 0.5, 1]),
-        ShapeVar(var="bdt_score", label=r"BDT score", bins=[30, 0, 1]),
+        ShapeVar(var="bdt_score", label=r"BDT ggF score", bins=[30, 0, 1]),
+        ShapeVar(var="bdt_score_vbf", label=r"BDT VBF score", bins=[30, 0, 1]),
         ShapeVar(
             var="bdt_score_coarsebin",
-            label=r"BDT score",
+            label=r"BDT ggF score",
             bins=[0, 0.3, 0.68, 1],
             reg=False,
         ),
         ShapeVar(
             var="bdt_score_finebin",
-            label=r"BDT score",
+            label=r"BDT ggF score",
             # bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
             # bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
             bins=[0, 0.0299999, 0.6374999, 0.9074999, 1],
+            reg=False,
+        ),
+        ShapeVar(
+            var="bdt_score_vbf_coarsebin",
+            label=r"BDT VBF score",
+            bins=[0, 0.3, 0.68, 1],
+            reg=False,
+        ),
+        ShapeVar(
+            var="bdt_score_vbf_finebin",
+            label=r"BDT VBF score",
+            # bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
+            # bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
+            bins=[0, 0.0299999, 0.6374999, 0.9824999, 1],
             reg=False,
         ),
     ]
@@ -515,7 +535,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
                 schema_version=2,
                 corrections=[corr],
             )
-            path = Path(f"../corrections/data/{model}/ttbar_bdtshape{tag}_{year}.json")
+            path = Path(f"../corrections/data/{model}/ttbar_bdtshape{tag}_{shape_var.var}_{year}.json")
             with path.open("w") as fout:
                 fout.write(cset.json(exclude_unset=True))
 
@@ -550,7 +570,8 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
 
-    for i in range(1, 6):
+    # for i in range(1, 6):
+    for i in [5]:
         events_to_plot = {
             key: events[events["Category"] == i] for key, events in events_combined.items()
         }
