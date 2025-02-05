@@ -221,7 +221,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         bdt_events = bdt_events[mask_presel]
 
         bdt_events["Category"] = 6  # all events
-        
+
         mask_bin1 = (
             (bdt_events["H1TXbb"] >= 0.9)
             & (bdt_events["H1PNetMass"] > 150)
@@ -230,7 +230,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin1, "Category"] = 1
-       
+
         mask_bin2 = (
             (bdt_events["H1TXbb"] > 0.1)
             & (bdt_events["H2TXbb"] > 0.1)
@@ -242,7 +242,6 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         )
         bdt_events.loc[mask_bin2, "Category"] = 2
 
-        
         mask_bin3 = (
             (bdt_events["H1TXbb"] >= 0.9)
             # & (bdt_events["H2TXbb"] > 0.1)
@@ -263,7 +262,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin4, "Category"] = 4
-        
+
         mask_bin5 = (
             (bdt_events["H1TXbb"] > 0.1)
             & (bdt_events["H2TXbb"] > 0.1)
@@ -296,7 +295,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         cutflow_dict[key]["H1TXbb>0.1,H2TXbb>0.1,H1T32<0.46, H1M:[150-200]"] = np.sum(
             bdt_events["weight"][mask_bin2].to_numpy()
         )
-        
+
         cutflow_dict[key]["H1TXbb>0.9,H1T32<0.46, H1M:[160-200]"] = np.sum(
             bdt_events["weight"][mask_bin3].to_numpy()
         )
@@ -551,7 +550,7 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
 
-    for i in range(1,6):
+    for i in range(1, 6):
         events_to_plot = {
             key: events[events["Category"] == i] for key, events in events_combined.items()
         }
