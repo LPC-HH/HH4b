@@ -37,6 +37,7 @@ do
 done
 
 pip install -e .
+pip install -r requirements.txt
 
 # run code
 # pip install --user onnxruntime

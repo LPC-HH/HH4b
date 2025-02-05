@@ -22,11 +22,12 @@ logging.config.dictConfig(log_config)
 logger = logging.getLogger("TrainBDT")
 
 
+use_ttbar = False
+
+
 def load_events(
     path_to_dir, year, jet_collection, pt_cut, msd_cut, jet_coll_pnet, match_higgs, num_jets
 ):
-    add_ttbar = False
-
     sample_dirs = {
         year: {
             "qcd": [
@@ -42,8 +43,9 @@ def load_events(
             ],
         }
     }
-    if add_ttbar:
-        sample_dirs[year]["ttbar"] = ["TTTo4Q"]
+    if use_ttbar:
+        sample_dirs = {year: {"ttbar": ["TTto4Q"]}}
+
     sample_dirs_sig = {
         year: {
             "hh4b": [
@@ -154,7 +156,8 @@ def get_roc_inputs(
     jet_index,
 ):
     sig_key = "hh4b"
-    bg_keys = ["qcd"]
+    bg_keys = ["ttbar"] if use_ttbar else ["qcd"]
+
     discriminator = f"{jet_collection}{discriminator_name}"
 
     # 1 for signal, 0 for background
@@ -219,11 +222,16 @@ def get_roc(
     scores = np.concatenate(scores_arr)
     weights = np.concatenate(weights_arr)
     fpr, tpr, thresholds = roc_curve(y_true, scores, sample_weight=weights)
+    auc_label = ""
+    try:
+        auc_label = f" AUC ({auc(fpr, tpr):.4f})"
+    except ValueError:
+        print("AUC invalid")
     roc = {
         "fpr": fpr,
         "tpr": tpr,
         "thresholds": thresholds,
-        "label": discriminator_label + f" AUC ({auc(fpr, tpr):.4f})",
+        "label": discriminator_label + auc_label,
         "color": discriminator_color,
     }
 
@@ -245,7 +253,7 @@ def main(args):
     # w/o trigger selection
     tag = "24Sep27_v12v2_private_pre-sel"
     year = "2022"
-    outdir = "24Sep27"  # date of plotting
+    outdir = "24Dec13"  # date of plotting
     plot_dir = f"/uscms/home/cmantill/nobackup/hh/HH4b/plots/PostProcessing/{outdir}/{year}"
     _ = os.system(f"mkdir -p {plot_dir}")
     path_to_dir = f"{MAIN_DIR}/{tag}/"
@@ -279,7 +287,7 @@ def main(args):
                 events_dict,
                 jet_collection,
                 "PNetTXbbLegacy",
-                "ParticleNet Legacy Hbb vs QCD",
+                "ParticleNet Legacy TXbb",
                 "blue",
                 jet_indices,
                 pt_cut,
@@ -290,7 +298,7 @@ def main(args):
                 events_dict,
                 jet_collection,
                 "PNetTXbb",
-                "ParticleNet 103X Hbb vs QCD",
+                "ParticleNet 103X TXbb",
                 "orange",
                 jet_indices,
                 pt_cut,
@@ -301,7 +309,7 @@ def main(args):
                 events_dict,
                 jet_collection,
                 "ParTTXbb",
-                "GloParTv2 Hbb vs QCD",
+                "GloParTv2 TXbb",
                 "red",
                 jet_indices,
                 pt_cut,
@@ -311,9 +319,10 @@ def main(args):
         }
         # thresholds on the discriminator, used to search for signal efficiency
         plot_thresholds = {
+            # "PNetTXbbLegacy": [0.8, 0.92, 0.975],
             "PNetTXbbLegacy": [0.8],
-            # "PNetTXbb": [0.7],
-            # "ParTTXbb": [0.38],
+            "PNetTXbb": [0.7],
+            "ParTTXbb": [0.3, 0.75, 0.78, 0.9375],
         }
         # find what the threshold should be to achieve this signal efficiency
         find_from_sigeff = {
@@ -322,18 +331,19 @@ def main(args):
             # "PNetTXbb": [0.72],
             # "ParTTXbb": [0.72],
         }
+        bkg_label = "TT" if use_ttbar else "QCD"
         plotting.multiROCCurveGrey(
             {"bb": rocs},
             # sig_effs=[0.6],
             sig_effs=[],
-            bkg_effs=[0.01],
+            bkg_effs=[],
             xlim=[0, 1.0],
             ylim=[1e-4, 1],
             show=True,
             plot_dir=Path(plot_dir),
-            name=f"{jet_collection}{jet_coll_pnet}ROC{''.join(str(x) for x in jet_indices)}_{cut_str}",
+            name=f"{jet_collection}{jet_coll_pnet}{bkg_label}ROC{''.join(str(x) for x in jet_indices)}_{cut_str}",
             title=(
-                f"AK8 Jets {jet_indices}"
+                f"AK8 Jets {jet_indices}, {bkg_label}"
                 if jet_collection == "ak8FatJet"
                 else f"bb Jets {jet_indices}"
             ),
