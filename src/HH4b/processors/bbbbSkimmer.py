@@ -380,12 +380,12 @@ class bbbbSkimmer(SkimmerABC):
 
         # BDT model
         bdt_model_name = "24May31_lr_0p02_md_8_AK4Away"
-        self.bdt_model = xgb.XGBClassifier()
-        print("bdt model ", f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model")
-        self.bdt_model.load_model(
-            fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
-        )
-        print(self.bdt_model)
+        #self.bdt_model = xgb.XGBClassifier()
+        # print("bdt model ", f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model")
+        #self.bdt_model.load_model(
+        #    fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
+        #)
+        #print(self.bdt_model)
 
         # JMSR
         self.jmsr_vars = ["msoftdrop", "particleNet_mass"]
@@ -810,7 +810,6 @@ class bbbbSkimmer(SkimmerABC):
 
         if self._region == "signal":
             bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, "")
-            print(bdtVars)
             skimmed_events = {
                 **skimmed_events,
                 **bdtVars,
