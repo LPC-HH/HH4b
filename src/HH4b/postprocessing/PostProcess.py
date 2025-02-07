@@ -340,7 +340,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     )
 
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
-    tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb", args.txbb)
+    tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
     if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
         tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)

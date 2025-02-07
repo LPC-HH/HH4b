@@ -421,6 +421,115 @@
           "flow": 1.0
         }
       }
+    },
+    {
+      "name": "ttbar_corr_PTJJ_2023",
+      "description": "ttbar correction PTJJ for 2023",
+      "version": 1,
+      "inputs": [
+        {
+          "name": "PTJJ",
+          "type": "real",
+          "description": "PTJJ"
+        },
+        {
+          "name": "systematic",
+          "type": "string",
+          "description": "Systematic variation"
+        }
+      ],
+      "output": {
+        "name": "weight",
+        "type": "real",
+        "description": "ttbar efficiency"
+      },
+      "data": {
+        "nodetype": "category",
+        "input": "systematic",
+        "content": [
+          {
+            "key": "nominal",
+            "value": {
+              "nodetype": "binning",
+              "input": "PTJJ",
+              "edges": [
+                0.0,
+                50.0,
+                100.0,
+                150.0,
+                250.0,
+                400.0,
+                550.0,
+                1000.0
+              ],
+              "content": [
+                0.8508039329188849,
+                1.010036939070987,
+                1.0826686132931487,
+                1.1257363614371256,
+                1.2078068729282008,
+                1.3340898168641595,
+                0.9837438344099854
+              ],
+              "flow": 1.0
+            }
+          },
+          {
+            "key": "stat_up",
+            "value": {
+              "nodetype": "binning",
+              "input": "PTJJ",
+              "edges": [
+                0.0,
+                50.0,
+                100.0,
+                150.0,
+                250.0,
+                400.0,
+                550.0,
+                1000.0
+              ],
+              "content": [
+                0.07836971462970865,
+                0.08888257180758329,
+                0.133404985104229,
+                0.15350180410672074,
+                0.24912141906257934,
+                0.5391144152437348,
+                0.6364598741926061
+              ],
+              "flow": 1.0
+            }
+          },
+          {
+            "key": "stat_dn",
+            "value": {
+              "nodetype": "binning",
+              "input": "PTJJ",
+              "edges": [
+                0.0,
+                50.0,
+                100.0,
+                150.0,
+                250.0,
+                400.0,
+                550.0,
+                1000.0
+              ],
+              "content": [
+                0.07836971462970865,
+                0.08888257180758329,
+                0.133404985104229,
+                0.15350180410672074,
+                0.24912141906257934,
+                0.5391144152437348,
+                0.6364598741926061
+              ],
+              "flow": 1.0
+            }
+          }
+        ]
+      }
     }
   ],
   "compound_corrections": []
