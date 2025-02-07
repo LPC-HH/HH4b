@@ -339,12 +339,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
     )
 
-    tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
-    if args.txbb == "pnet-legacy":
-        tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
-    else:
-        tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
-    tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
+    tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
+    tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb", args.txbb)
+    tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
     if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
         tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
     else:
