@@ -147,6 +147,7 @@ bg_order_default = [
     "qcd",
 ]
 
+
 def sigErrRatioPlot(
     h: Hist,
     sig_key: str,
@@ -174,7 +175,7 @@ def sigErrRatioPlot(
         linewidth=2,
     )
 
-    if h_uncorr: 
+    if h_uncorr:
         hep.histplot(
             h_uncorr[f"{sig_key}", :],
             histtype="step",
@@ -209,8 +210,8 @@ def sigErrRatioPlot(
             color=colour,
             ax=rax,
         )
-    
-    if h_uncorr: 
+
+    if h_uncorr:
         hep.histplot(
             h[f"{sig_key}", :] / nom,
             yerr=False,
