@@ -147,7 +147,6 @@ bg_order_default = [
     "qcd",
 ]
 
-
 def sigErrRatioPlot(
     h: Hist,
     sig_key: str,
@@ -158,75 +157,7 @@ def sigErrRatioPlot(
     name: str = None,
     show: bool = False,
     ylim: list = None,
-):
-    fig, (ax, rax) = plt.subplots(
-        2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
-    )
-
-    nom = h[f"{sig_key}_{wshift}", :].values()
-    hep.histplot(
-        h[f"{sig_key}_{wshift}", :],
-        histtype="step",
-        label=sig_key,
-        yerr=False,
-        color="k",
-        ax=ax,
-        linewidth=2,
-    )
-
-    for skey, shift in [("Up", "up"), ("Down", "down")]:
-        if f"{sig_key}_{wshift}_{shift}" not in h.axes[0]:
-            continue
-
-        colour = {"up": "#81C14B", "down": "#1f78b4"}[shift]
-        hep.histplot(
-            h[f"{sig_key}_{wshift}_{shift}", :],
-            histtype="step",
-            yerr=False,
-            label=f"{sig_key} {skey}",
-            color=colour,
-            ax=ax,
-            linewidth=2,
-        )
-
-        hep.histplot(
-            h[f"{sig_key}_{wshift}_{shift}", :] / nom,
-            histtype="step",
-            label=f"{sig_key} {skey}",
-            color=colour,
-            ax=rax,
-        )
-
-    ax.legend()
-    ax.set_ylim(0)
-    ax.set_ylabel("Events")
-    ax.set_title(title, y=1.08)
-
-    rax.set_ylim([0, 2])
-    if ylim is not None:
-        rax.set_ylim(ylim)
-    rax.set_xlabel(xlabel)
-    rax.legend()
-    rax.set_ylabel("Variation / Nominal")
-    rax.grid(axis="y")
-
-    plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def sigErrRatioPlot(
-    h: Hist,
-    sig_key: str,
-    wshift: str,
-    xlabel: str,
-    title: str = None,
-    plot_dir: str = None,
-    name: str = None,
-    show: bool = False,
-    ylim: list = None,
+    h_uncorr: Hist = None,
 ):
     fig, (ax, rax) = plt.subplots(
         2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
@@ -237,11 +168,23 @@ def sigErrRatioPlot(
         h[f"{sig_key}", :],
         histtype="step",
         label=sig_key,
-        yerr=False,
+        yerr=np.sqrt(h[f"{sig_key}", :].variances()),
         color="k",
         ax=ax,
         linewidth=2,
     )
+
+    if h_uncorr: 
+        hep.histplot(
+            h_uncorr[f"{sig_key}", :],
+            histtype="step",
+            label=f"{sig_key} No corr.",
+            yerr=False,
+            color="r",
+            linestyle="--",
+            ax=ax,
+            linewidth=1,
+        )
 
     for skey, shift in [("Up", "up"), ("Down", "down")]:
         if f"{sig_key}_{wshift}_{shift}" not in h.axes[0]:
@@ -255,15 +198,36 @@ def sigErrRatioPlot(
             label=f"{sig_key} {skey}",
             color=colour,
             ax=ax,
-            linewidth=2,
+            linewidth=1,
         )
 
         hep.histplot(
             h[f"{sig_key}_{wshift}_{shift}", :] / nom,
+            yerr=False,
             histtype="step",
             label=f"{sig_key} {skey}",
             color=colour,
             ax=rax,
+        )
+    
+    if h_uncorr: 
+        hep.histplot(
+            h[f"{sig_key}", :] / nom,
+            yerr=False,
+            histtype="step",
+            label=f"{sig_key}",
+            color="k",
+            ax=rax,
+        )
+        hep.histplot(
+            h_uncorr[f"{sig_key}", :] / nom,
+            yerr=np.sqrt(h_uncorr[f"{sig_key}", :].variances()) / nom,
+            histtype="step",
+            label=f"{sig_key} No corr.",
+            color="r",
+            linestyle="--",
+            ax=rax,
+            linewidth=1,
         )
 
     ax.legend()
