@@ -507,8 +507,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         for ijet in get_jets_for_txbb_sf(key):
             txbb_sf_weight *= corrections.restrict_SF(
                 txbb_sf["nominal"],
-                bdt_events[f"H{ijet}TXbb"],
-                bdt_events[f"H{ijet}Pt"],
+                bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                bdt_events[f"H{ijet}Pt"].to_numpy(),
                 txbb_range,
                 pt_range,
             )
@@ -568,8 +568,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         for ijet in get_jets_for_txbb_sf(key):
             corr_up *= corrections.restrict_SF(
                 txbb_sf["corr_up"],
-                bdt_events[f"H{ijet}TXbb"],
-                bdt_events[f"H{ijet}Pt"],
+                bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                bdt_events[f"H{ijet}Pt"].to_numpy(),
                 txbb_range,
                 pt_range,
                 txbb_sf["corr3x_up"],
@@ -577,8 +577,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             )
             corr_dn *= corrections.restrict_SF(
                 txbb_sf["corr_dn"],
-                bdt_events[f"H{ijet}TXbb"],
-                bdt_events[f"H{ijet}Pt"],
+                bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                bdt_events[f"H{ijet}Pt"].to_numpy(),
                 txbb_range,
                 pt_range,
                 txbb_sf["corr3x_dn"],
@@ -596,15 +596,15 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 for ijet in get_jets_for_txbb_sf(key):
                     nominal *= corrections.restrict_SF(
                         txbb_sf["nominal"],
-                        bdt_events[f"H{ijet}TXbb"],
-                        bdt_events[f"H{ijet}Pt"],
+                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                        bdt_events[f"H{ijet}Pt"].to_numpy(),
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                     )
                     stat_up *= corrections.restrict_SF(
                         txbb_sf["stat_up"],
-                        bdt_events[f"H{ijet}TXbb"],
-                        bdt_events[f"H{ijet}Pt"],
+                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                        bdt_events[f"H{ijet}Pt"].to_numpy(),
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                         txbb_sf["stat3x_up"] if wp == "WP1" else None,
@@ -612,8 +612,8 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     )
                     stat_dn *= corrections.restrict_SF(
                         txbb_sf["stat_dn"],
-                        bdt_events[f"H{ijet}TXbb"],
-                        bdt_events[f"H{ijet}Pt"],
+                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
+                        bdt_events[f"H{ijet}Pt"].to_numpy(),
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                         txbb_sf["stat3x_dn"] if wp == "WP1" else None,
