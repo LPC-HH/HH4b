@@ -114,14 +114,14 @@ def restrict_SF(
     return sf
 
 
-def _load_ttbar_sfs(year: str, corr: str):
+def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     year_ = None
     if "2022" in year:
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
     return correctionlib.CorrectionSet.from_file(
-        f"{package_path}/corrections/data/ttbarcorr_{year_}.json"
+        f"{package_path}/corrections/data/ttbar_sfs/{txbb_version}/ttbarcorr_{year_}.json"
     )[f"ttbar_corr_{corr}_{year_}"]
 
 
