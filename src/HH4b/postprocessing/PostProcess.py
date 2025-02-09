@@ -9,6 +9,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
 
+import awkward as ak
 import hist
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,7 +18,6 @@ import mplhep as hep
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-import awkward as ak
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
@@ -113,6 +113,7 @@ label_by_mass = {
     "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
 }
 
+
 def get_jets_for_txbb_sf(key: str):
     # TODO: correct application of bb-tagging SF based on gen-matching to H(bb) or Z(bb)
     # for now, assuming mostly V=Z(bb) passes selection
@@ -124,6 +125,7 @@ def get_jets_for_txbb_sf(key: str):
         return [1]
     else:
         return []
+
 
 def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(
@@ -494,13 +496,21 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # TXbbWeight
         txbb_sf_weight = np.ones(nevents)
-        all_txbb_bins = ak.Array([txbbsfs_decorr_txbb_wps[args.txbb][wp] for wp in txbbsfs_decorr_txbb_wps[args.txbb]])
-        all_pt_bins = ak.Array([txbbsfs_decorr_pt_bins[args.txbb][wp] for wp in txbbsfs_decorr_pt_bins[args.txbb]])
+        all_txbb_bins = ak.Array(
+            [txbbsfs_decorr_txbb_wps[args.txbb][wp] for wp in txbbsfs_decorr_txbb_wps[args.txbb]]
+        )
+        all_pt_bins = ak.Array(
+            [txbbsfs_decorr_pt_bins[args.txbb][wp] for wp in txbbsfs_decorr_pt_bins[args.txbb]]
+        )
         txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
         pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
         for ijet in get_jets_for_txbb_sf(key):
             txbb_sf_weight *= corrections.restrict_SF(
-                txbb_sf["nominal"], bdt_events[f"H{ijet}TXbb"], bdt_events[f"H{ijet}Pt"], txbb_range, pt_range
+                txbb_sf["nominal"],
+                bdt_events[f"H{ijet}TXbb"],
+                bdt_events[f"H{ijet}Pt"],
+                txbb_range,
+                pt_range,
             )
 
         # remove training events if asked
@@ -573,14 +583,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 pt_range,
                 txbb_sf["corr3x_dn"],
                 txbbsfs_decorr_txbb_wps[args.txbb]["WP1"],
-        )
-        bdt_events["weight_TXbbSF_correlatedUp"] = (
-            bdt_events["weight"] * corr_up / txbb_sf_weight
-        )
-        bdt_events["weight_TXbbSF_correlatedDown"] = (
-            bdt_events["weight"] * corr_dn / txbb_sf_weight
-        )
-            
+            )
+        bdt_events["weight_TXbbSF_correlatedUp"] = bdt_events["weight"] * corr_up / txbb_sf_weight
+        bdt_events["weight_TXbbSF_correlatedDown"] = bdt_events["weight"] * corr_dn / txbb_sf_weight
+
         # uncorrelated signal xbb up/dn variations in bins
         for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
             for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
