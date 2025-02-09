@@ -69,19 +69,25 @@ def _load_txbb_sfs(
             vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 
+    closest_unc = np.where(vals["final", "central"] > 1, vals["final", "low"], vals["final", "high"])
+    diff_from_one = np.abs(vals["final", "central"] - 1)
+    inflation_factor = np.where(diff_from_one > closest_unc, diff_from_one/closest_unc, 1)
+    inflation_factor_high = np.where(vals["final", "central"] < 1, inflation_factor, 1)
+    inflation_factor_low = np.where(vals["final", "central"] > 1, inflation_factor, 1)
+
     corr_err_high = np.sqrt(np.maximum(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2, 0))
     corr_err_low = np.sqrt(np.maximum(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2, 0))
 
     txbb_sf = {
         "nominal": dense_lookup(vals["final", "central"], edges),
-        "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"], edges),
-        "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"], edges),
-        "stat3x_up": dense_lookup(vals["final", "central"] + 3 * vals["stats", "high"], edges),
-        "stat3x_dn": dense_lookup(vals["final", "central"] - 3 * vals["stats", "low"], edges),
-        "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
-        "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
-        "corr3x_up": dense_lookup(vals["final", "central"] + 3 * corr_err_high, edges),
-        "corr3x_dn": dense_lookup(vals["final", "central"] - 3 * corr_err_low, edges),
+        "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"] * inflation_factor_high, edges),
+        "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"] * inflation_factor_low, edges),
+        "stat3x_up": dense_lookup(vals["final", "central"] + vals["stats", "high"] * inflation_factor_high, edges),
+        "stat3x_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"] * inflation_factor_low, edges),
+        "corr_up": dense_lookup(vals["final", "central"] + corr_err_high * inflation_factor_high, edges),
+        "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low * inflation_factor_low, edges),
+        "corr3x_up": dense_lookup(vals["final", "central"] + corr_err_high * inflation_factor_high, edges),
+        "corr3x_dn": dense_lookup(vals["final", "central"] - corr_err_low * inflation_factor_low, edges),
     }
 
     return txbb_sf
