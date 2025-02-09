@@ -17,6 +17,7 @@ import mplhep as hep
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+import awkward as ak
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
 from HH4b.boosted.TrainBDT import get_legtitle
@@ -112,6 +113,17 @@ label_by_mass = {
     "H2PNetMass": r"$m^{2}_\mathrm{reg}$ (GeV)",
 }
 
+def get_jets_for_txbb_sf(key: str):
+    # TODO: correct application of bb-tagging SF based on gen-matching to H(bb) or Z(bb)
+    # for now, assuming mostly V=Z(bb) passes selection
+    # apply to both jets in HH, VH, VV processes
+    # apply to only first jet in single-H or single-V processes
+    if "hh4b" in key or key in ["vhtobb", "diboson"]:
+        return [1, 2]
+    elif key in ["novhhtobb", "tthtobb", "vjets"]:
+        return [1]
+    else:
+        return []
 
 def get_bdt_training_keys(bdt_model: str):
     inferences_dir = Path(
@@ -485,27 +497,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # TXbbWeight
         txbb_sf_weight = np.ones(nevents)
-        txbb_range = [0.92, 1]
-        pt_range = [200, 100000]
-        h1pt = bdt_events["H1Pt"].to_numpy()
-        h2pt = bdt_events["H2Pt"].to_numpy()
-        h1txbb = bdt_events["H1TXbb"].to_numpy()
-        h2txbb = bdt_events["H2TXbb"].to_numpy()
-        # TODO: correct application of bb-tagging SF based on gen-matching to H(bb) or Z(bb)
-        # for now, assuming mostly V=Z(bb) passes selection
-        # apply to both jets in HH, VH, VV processes
-        # apply to only first jet in single-H or single-V processes
-        if "hh4b" in key or key in ["vhtobb", "diboson"]:
-            txbb_sf_weight1 = corrections.restrict_SF(
-                txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range
-            )
-            txbb_sf_weight2 = corrections.restrict_SF(
-                txbb_sf["nominal"], h2txbb, h2pt, txbb_range, pt_range
-            )
-            txbb_sf_weight = txbb_sf_weight1 * txbb_sf_weight2
-        elif key in ["novhhtobb", "tthtobb", "vjets"]:
-            txbb_sf_weight = corrections.restrict_SF(
-                txbb_sf["nominal"], h1txbb, h1pt, txbb_range, pt_range
+        all_txbb_bins = ak.Array([txbbsfs_decorr_txbb_wps[args.txbb][wp] for wp in txbbsfs_decorr_txbb_wps[args.txbb]])
+        all_pt_bins = ak.Array([txbbsfs_decorr_pt_bins[args.txbb][wp] for wp in txbbsfs_decorr_pt_bins[args.txbb]])
+        txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
+        pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
+        for ijet in get_jets_for_txbb_sf(key):
+            txbb_sf_weight *= corrections.restrict_SF(
+                txbb_sf["nominal"], bdt_events[f"H{ijet}TXbb"], bdt_events[f"H{ijet}Pt"], txbb_range, pt_range
             )
 
         # remove training events if asked
@@ -557,115 +555,73 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # save total corrected weight
         bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight * txbb_sf_weight
 
-        if "hh" in key:
-            h1pt = bdt_events["H1Pt"].to_numpy()
-            h2pt = bdt_events["H2Pt"].to_numpy()
-            h1txbb = bdt_events["H1TXbb"].to_numpy()
-            h2txbb = bdt_events["H2TXbb"].to_numpy()
-            txbb_range = [0.92, 1]
-            pt_range = [200, 100000]
-            # correlated signal xbb up/dn variations
-            corr_up1 = corrections.restrict_SF(
+        # correlated signal xbb up/dn variations
+        corr_up = np.ones(nevents)
+        corr_dn = np.ones(nevents)
+        for ijet in get_jets_for_txbb_sf(key):
+            corr_up *= corrections.restrict_SF(
                 txbb_sf["corr_up"],
-                h1txbb,
-                h1pt,
+                bdt_events[f"H{ijet}TXbb"],
+                bdt_events[f"H{ijet}Pt"],
                 txbb_range,
                 pt_range,
                 txbb_sf["corr3x_up"],
                 txbbsfs_decorr_txbb_wps[args.txbb]["WP1"],
             )
-            corr_up2 = corrections.restrict_SF(
-                txbb_sf["corr_up"],
-                h2txbb,
-                h2pt,
-                txbb_range,
-                pt_range,
-                txbb_sf["corr3x_up"],
-                txbbsfs_decorr_txbb_wps[args.txbb]["WP1"],
-            )
-            corr_dn1 = corrections.restrict_SF(
+            corr_dn *= corrections.restrict_SF(
                 txbb_sf["corr_dn"],
-                h1txbb,
-                h1pt,
+                bdt_events[f"H{ijet}TXbb"],
+                bdt_events[f"H{ijet}Pt"],
                 txbb_range,
                 pt_range,
                 txbb_sf["corr3x_dn"],
                 txbbsfs_decorr_txbb_wps[args.txbb]["WP1"],
-            )
-            corr_dn2 = corrections.restrict_SF(
-                txbb_sf["corr_dn"],
-                h2txbb,
-                h2pt,
-                txbb_range,
-                pt_range,
-                txbb_sf["corr3x_dn"],
-                txbbsfs_decorr_txbb_wps[args.txbb]["WP1"],
-            )
-            bdt_events["weight_TXbbSF_correlatedUp"] = (
-                bdt_events["weight"] * corr_up1 * corr_up2 / txbb_sf_weight
-            )
-            bdt_events["weight_TXbbSF_correlatedDown"] = (
-                bdt_events["weight"] * corr_dn1 * corr_dn2 / txbb_sf_weight
-            )
-            # uncorrelated signal xbb up/dn variations in bins
-            for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
-                for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
-                    nominal1 = corrections.restrict_SF(
+        )
+        bdt_events["weight_TXbbSF_correlatedUp"] = (
+            bdt_events["weight"] * corr_up / txbb_sf_weight
+        )
+        bdt_events["weight_TXbbSF_correlatedDown"] = (
+            bdt_events["weight"] * corr_dn / txbb_sf_weight
+        )
+            
+        # uncorrelated signal xbb up/dn variations in bins
+        for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
+            for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
+                nominal = np.ones(nevents)
+                stat_up = np.ones(nevents)
+                stat_dn = np.ones(nevents)
+                for ijet in get_jets_for_txbb_sf(key):
+                    nominal *= corrections.restrict_SF(
                         txbb_sf["nominal"],
-                        h1txbb,
-                        h1pt,
+                        bdt_events[f"H{ijet}TXbb"],
+                        bdt_events[f"H{ijet}Pt"],
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                     )
-                    nominal2 = corrections.restrict_SF(
-                        txbb_sf["nominal"],
-                        h2txbb,
-                        h2pt,
-                        txbbsfs_decorr_txbb_wps[args.txbb][wp],
-                        txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
-                    )
-                    stat_up1 = corrections.restrict_SF(
+                    stat_up *= corrections.restrict_SF(
                         txbb_sf["stat_up"],
-                        h1txbb,
-                        h1pt,
+                        bdt_events[f"H{ijet}TXbb"],
+                        bdt_events[f"H{ijet}Pt"],
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                         txbb_sf["stat3x_up"] if wp == "WP1" else None,
                         txbbsfs_decorr_txbb_wps[args.txbb]["WP1"] if wp == "WP1" else None,
                     )
-                    stat_up2 = corrections.restrict_SF(
-                        txbb_sf["stat_up"],
-                        h2txbb,
-                        h2pt,
-                        txbbsfs_decorr_txbb_wps[args.txbb][wp],
-                        txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
-                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
-                        txbbsfs_decorr_txbb_wps[args.txbb]["WP1"] if wp == "WP1" else None,
-                    )
-                    stat_dn1 = corrections.restrict_SF(
+                    stat_dn *= corrections.restrict_SF(
                         txbb_sf["stat_dn"],
-                        h1txbb,
-                        h1pt,
+                        bdt_events[f"H{ijet}TXbb"],
+                        bdt_events[f"H{ijet}Pt"],
                         txbbsfs_decorr_txbb_wps[args.txbb][wp],
                         txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
                         txbb_sf["stat3x_dn"] if wp == "WP1" else None,
                         txbbsfs_decorr_txbb_wps[args.txbb]["WP1"] if wp == "WP1" else None,
                     )
-                    stat_dn2 = corrections.restrict_SF(
-                        txbb_sf["stat_dn"],
-                        h2txbb,
-                        h2pt,
-                        txbbsfs_decorr_txbb_wps[args.txbb][wp],
-                        txbbsfs_decorr_pt_bins[args.txbb][wp][j : j + 2],
-                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
-                        txbbsfs_decorr_txbb_wps[args.txbb]["WP1"] if wp == "WP1" else None,
-                    )
-                    bdt_events[
-                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}Up"
-                    ] = (bdt_events["weight"] * stat_up1 * stat_up2 / (nominal1 * nominal2))
-                    bdt_events[
-                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}Down"
-                    ] = (bdt_events["weight"] * stat_dn1 * stat_dn2 / (nominal1 * nominal2))
+                bdt_events[
+                    f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}Up"
+                ] = (bdt_events["weight"] * stat_up / nominal)
+                bdt_events[
+                    f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}Down"
+                ] = (bdt_events["weight"] * stat_dn / nominal)
 
         if key == "ttbar":
             # ttbar xbb up/dn variations in bins
