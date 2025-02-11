@@ -909,10 +909,10 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
 def get_nevents_nosignal(events, cut, mass, mass_window):
     cut_mass = (
-        (events[mass] >= 60)
-        & (events[mass] <= mass_window[0])
-        & (events[mass] >= mass_window[1])
-        & (events[mass] <= 220)
+        ((events[mass] >= 60)
+        & (events[mass] <= mass_window[0]))
+        | ((events[mass] >= mass_window[1])
+        & (events[mass] <= 220))
     )
 
     # get yield NOT in Higgs mass window
