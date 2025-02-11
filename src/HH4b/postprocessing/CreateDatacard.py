@@ -39,6 +39,7 @@ from HH4b.hh_vars import (
     sig_keys_ggf,
     sig_keys_vbf,
     ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
@@ -379,35 +380,18 @@ uncorr_year_shape_systs = {
             "2023BPix": ["2023BPix"],
         },
     ),
-    "ttbarSF_Xbb_bin_0_0.8": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.8_0.94": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.94_0.99": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.99_1": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
 }
+
+for i in range(len(ttbarsfs_decorr_txbb_bins[args.txbb]) - 1):
+    label = f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
+    uncorr_year_shape_systs[label] = Syst(
+        name=name,
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    )
 
 for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
     for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
