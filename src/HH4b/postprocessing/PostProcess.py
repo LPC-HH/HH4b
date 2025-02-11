@@ -680,6 +680,11 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # bdt_events = bdt_events[mask_vetovbf]
         # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
+        if args.txbb == "pnet-legacy":
+            txbb_presel = 0.8
+        elif args.txbb in ["glopart-v2", "pnet-v12"]:
+            txbb_presel = 0.3
+
         for jshift in jshifts:
             logger.info(f"Inference and selection for jshift {jshift}")
             h1pt = check_get_jec_var("H1Pt", jshift)
@@ -694,7 +699,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
                 & (bdt_events[h2pt] >= args.pt_second)
-                & (bdt_events["H1TXbb"] >= 0.8)
+                & (bdt_events["H1TXbb"] >= txbb_presel)
                 & (bdt_events[h2mass] >= 60)
                 & (bdt_events[h2mass] <= 220)
                 & (bdt_events[h1mass] >= 60)
@@ -903,16 +908,17 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
 
 def get_nevents_nosignal(events, cut, mass, mass_window):
-    cut_mass = (events[mass] >= mass_window[0]) & (events[mass] <= mass_window[1])
+    cut_mass = (events[mass] >= 60) & (events[mass] <= mass_window[0]) & (events[mass] >= mass_window[1]) & (events[mass] <= 220)
 
     # get yield NOT in Higgs mass window
-    return np.sum(events["weight"][cut & ~cut_mass])
+    return np.sum(events["weight"][cut & cut_mass])
 
 
 def scan_fom(
     method: str,
     events_combined: pd.DataFrame,
     get_cut: Callable,
+    get_anti_cut: Callable,
     xbb_cuts: np.ArrayLike,
     bdt_cuts: np.ArrayLike,
     mass_window: list[float],
@@ -924,8 +930,6 @@ def scan_fom(
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
-    print(list(bdt_cuts) + [1.0])
-    print(list(xbb_cuts) + [1.0])
     h_sb = hist.Hist(
         hist.axis.Variable(list(bdt_cuts) + [1.0], name="bdt_cut"),
         hist.axis.Variable(list(xbb_cuts) + [1.0], name="xbb_cut"),
@@ -957,13 +961,11 @@ def scan_fom(
     for xbb_cut in xbb_cuts:
         figure_of_merits = []
         cuts = []
-        min_fom = 1000
-        min_nevents = []
 
         for bdt_cut in bdt_cuts:
             if method == "abcd":
                 nevents_sig, nevents_bkg, _ = abcd(
-                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
+                    events_combined, get_cut, get_anti_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
                 )
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
@@ -982,35 +984,20 @@ def scan_fom(
                 raise ValueError("Invalid FOM")
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
-            if True:
-                cuts.append(bdt_cut)
-                figure_of_merits.append(figure_of_merit)
-                h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
-                h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
-                h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
-                h_sideband.fill(bdt_cut, xbb_cut, weight=nevents_sideband)
-                all_b.append(nevents_bkg)
-                all_b_unc.append(np.sqrt(nevents_bkg))
-                all_s.append(nevents_sig)
-                all_sideband_events.append(nevents_sideband)
-                all_xbb_cuts.append(xbb_cut)
-                all_bdt_cuts.append(bdt_cut)
-                all_fom.append(figure_of_merit)
-                if figure_of_merit < min_fom:
-                    min_fom = figure_of_merit
-                    min_nevents = [nevents_bkg, nevents_sig, nevents_sideband]
-
-        if len(cuts) > 0:
-            cuts = np.array(cuts)
-            figure_of_merits = np.array(figure_of_merits)
-            smallest = np.argmin(figure_of_merits)
-            if not min_nevents:
-                print("No valid FoM found for this scan")
-            else:
-                print(
-                    f"{xbb_cut:.3f} {cuts[smallest]:.2f} FigureOfMerit: {figure_of_merits[smallest]:.2f} "
-                    f"BG: {min_nevents[0]:.2f} S: {min_nevents[1]:.2f} S/B: {min_nevents[1]/min_nevents[0]:.2f} Sideband: {min_nevents[2]:.2f}"
-                )
+            # save all cuts for finetuning constraint after            
+            cuts.append(bdt_cut)
+            figure_of_merits.append(figure_of_merit)
+            h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
+            h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
+            h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
+            h_sideband.fill(bdt_cut, xbb_cut, weight=nevents_sideband)
+            all_b.append(nevents_bkg)
+            all_b_unc.append(np.sqrt(nevents_bkg))
+            all_s.append(nevents_sig)
+            all_sideband_events.append(nevents_sideband)
+            all_xbb_cuts.append(xbb_cut)
+            all_bdt_cuts.append(bdt_cut)
+            all_fom.append(figure_of_merit)
 
     all_fom = np.array(all_fom)
     all_b = np.array(all_b)
@@ -1041,6 +1028,23 @@ def scan_fom(
     plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
     plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
 
+
+def get_anti_cuts(args, region: str):
+
+    def anti_cut_vbf(events):
+        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
+        cut_bdt = events["bdt_score_vbf"] < 0.6
+        return cut_xbb & cut_bdt
+    
+    def anti_cut_ggf(events):
+        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
+        cut_bdt = events["bdt_score"] < 0.6
+        return cut_xbb & cut_bdt
+    
+    if region == "vbf":
+        return anti_cut_vbf
+    else:
+        return anti_cut_ggf
 
 def get_cuts(args, region: str):
     xbb_cut_bin1 = args.txbb_wps[0]
@@ -1206,7 +1210,7 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
+def abcd(events_dict, get_cut, get_anti_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
@@ -1230,7 +1234,7 @@ def abcd(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all
         # region B
         dicts[key].append(get_nevents_nosignal(events, cut, mass, mass_window))
 
-        cut = (events["bdt_score"] < 0.6) & (events["H2TXbb"] < 0.8)
+        cut = get_anti_cut(events)
 
         # region C
         dicts[key].append(get_nevents_signal(events, cut, mass, mass_window))
@@ -1315,8 +1319,7 @@ def postprocess_run3(args):
         processes.remove("qcd")
         bg_keys.remove("qcd")
         bg_keys_combined.remove("qcd")
-    print("bg keys", bg_keys)
-    print("bg_keys_combined ", bg_keys_combined)
+
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
         # not needed at the moment
@@ -1338,6 +1341,7 @@ def postprocess_run3(args):
     if args.bdt_roc:
         print("Making BDT ROC curve")
         bdt_roc(events_combined, plot_dir, args.txbb)
+        # to make ROC curves for JMR variations
         # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_up")
         # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_down")
 
@@ -1354,6 +1358,7 @@ def postprocess_run3(args):
         ) = abcd(
             events_combined,
             get_cuts(args, "bin1"),
+            get_anti_cuts(args, "bin1"),
             args.txbb_wps[0],
             args.bdt_wps[0],
             args.mass,
@@ -1365,6 +1370,7 @@ def postprocess_run3(args):
         s_binVBF, b_binVBF, _ = abcd(
             events_combined,
             get_cuts(args, "vbf"),
+            get_anti_cuts(args, "vbf"),
             args.txbb_wps[0],
             args.bdt_wps[0],
             args.mass,
@@ -1420,6 +1426,7 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
+                get_anti_cuts(args, "vbf"),
                 np.arange(0.7, 0.85, 0.0025),
                 np.arange(0.9, 0.999, 0.0025),
                 mass_window,
@@ -1442,6 +1449,7 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin1"),
+                get_anti_cuts(args, "bin1"),
                 np.arange(0.8, 0.999, 0.0025),
                 np.arange(0.8, 0.999, 0.0025),
                 mass_window,
@@ -1464,8 +1472,9 @@ def postprocess_run3(args):
                 args.method,
                 events_combined,
                 get_cuts(args, "bin2"),
-                np.arange(0.6, args.txbb_wps[0], 0.0025),
-                np.arange(0.6, args.bdt_wps[0], 0.0025),
+                get_anti_cuts(args, "bin2"),
+                np.arange(0.7, args.txbb_wps[0], 0.0025),
+                np.arange(0.7, args.bdt_wps[0], 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
