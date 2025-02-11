@@ -178,10 +178,10 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
         nevents = len(events_dict["bbFatJetPt"][0])
         ttbar_weight = np.ones(nevents)
         if key == "ttbar":
-            tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ")
+            tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
             ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
 
-            tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2")
+            tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
             tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
                 tt_tau32_sf, bdt_events, "H1T32"
             )
@@ -197,11 +197,15 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             #    corrections.ttbar_SF(year, bdt_events, "Xbb", "H1TXbb")[0]
             #     * corrections.ttbar_SF(year, bdt_events, "Xbb", "H2TXbb")[0]
             # )
-
+            """
             if args.txbb == "pnet-legacy":
                 tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
+            elif args.txbb == "glopart-v2":
+                tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
             else:
                 tt_xbb_sf = corrections._load_ttbar_sfs(year, "dummy_Xbb")
+            """
+            tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
             # tt_xbb_sf = corrections._load_ttbar_sfs(year, f"{args.txbb}_Xbb")
             tempw1, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H1TXbb")
             tempw2, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H2TXbb")
