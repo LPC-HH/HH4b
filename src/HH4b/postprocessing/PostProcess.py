@@ -908,7 +908,12 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
 
 def get_nevents_nosignal(events, cut, mass, mass_window):
-    cut_mass = (events[mass] >= 60) & (events[mass] <= mass_window[0]) & (events[mass] >= mass_window[1]) & (events[mass] <= 220)
+    cut_mass = (
+        (events[mass] >= 60)
+        & (events[mass] <= mass_window[0])
+        & (events[mass] >= mass_window[1])
+        & (events[mass] <= 220)
+    )
 
     # get yield NOT in Higgs mass window
     return np.sum(events["weight"][cut & cut_mass])
@@ -965,7 +970,15 @@ def scan_fom(
         for bdt_cut in bdt_cuts:
             if method == "abcd":
                 nevents_sig, nevents_bkg, _ = abcd(
-                    events_combined, get_cut, get_anti_cut, xbb_cut, bdt_cut, mass, mass_window, bg_keys, sig_key
+                    events_combined,
+                    get_cut,
+                    get_anti_cut,
+                    xbb_cut,
+                    bdt_cut,
+                    mass,
+                    mass_window,
+                    bg_keys,
+                    sig_key,
                 )
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
@@ -984,7 +997,7 @@ def scan_fom(
                 raise ValueError("Invalid FOM")
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
-            # save all cuts for finetuning constraint after            
+            # save all cuts for finetuning constraint after
             cuts.append(bdt_cut)
             figure_of_merits.append(figure_of_merit)
             h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
@@ -1035,16 +1048,17 @@ def get_anti_cuts(args, region: str):
         cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
         cut_bdt = events["bdt_score_vbf"] < 0.6
         return cut_xbb & cut_bdt
-    
+
     def anti_cut_ggf(events):
         cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
         cut_bdt = events["bdt_score"] < 0.6
         return cut_xbb & cut_bdt
-    
+
     if region == "vbf":
         return anti_cut_vbf
     else:
         return anti_cut_ggf
+
 
 def get_cuts(args, region: str):
     xbb_cut_bin1 = args.txbb_wps[0]
@@ -1210,7 +1224,17 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
     return nevents_sig, nevents_bkg, {}
 
 
-def abcd(events_dict, get_cut, get_anti_cut, txbb_cut, bdt_cut, mass, mass_window, bg_keys_all, sig_key="hh4b"):
+def abcd(
+    events_dict,
+    get_cut,
+    get_anti_cut,
+    txbb_cut,
+    bdt_cut,
+    mass,
+    mass_window,
+    bg_keys_all,
+    sig_key="hh4b",
+):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
