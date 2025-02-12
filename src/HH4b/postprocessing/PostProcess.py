@@ -991,14 +991,6 @@ def scan_fom(
             else:
                 raise ValueError("Invalid FOM")
 
-            print(f"xbb_cut: {xbb_cut}")
-            print(f"bdt_cut: {bdt_cut}")
-            print(f"nevents_sig: {nevents_sig}")
-            print(f"nevents_bkg: {nevents_bkg}")
-            print(f"nevents_sideband: {nevents_sideband}")
-            print(f"FOM: {figure_of_merit}")
-            print()
-
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             # save all cuts for finetuning constraint after
             h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
