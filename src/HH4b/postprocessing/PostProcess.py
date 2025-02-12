@@ -989,7 +989,7 @@ def scan_fom(
                 figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
             else:
                 raise ValueError("Invalid FOM")
-            
+
             print(f"xbb_cut: {xbb_cut}")
             print(f"bdt_cut: {bdt_cut}")
             print(f"nevents_sig: {nevents_sig}")
