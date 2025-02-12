@@ -715,6 +715,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
             # define category
             bdt_events[category] = 5  # all events
+
+            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
+                bdt_events[bdt_score] > args.bdt_wps[2]
+            )
+            bdt_events.loc[mask_fail, category] = 4
+
             if args.vbf:
                 bdt_score_vbf = check_get_jec_var("bdt_score_vbf", jshift)
                 mask_vbf = (bdt_events[bdt_score_vbf] > args.vbf_bdt_wp) & (
@@ -759,11 +765,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 & ~(mask_vbf)
             )
             bdt_events.loc[mask_bin3, category] = 3
-
-            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
-                bdt_events[bdt_score] > args.bdt_wps[2]
-            )
-            bdt_events.loc[mask_fail, category] = 4
 
         # save cutflows for nominal variables
         cutflow_dict[key][f"H1Msd > 40 & H2Pt > {args.pt_second} & H1Pt > {args.pt_first}"] = (
