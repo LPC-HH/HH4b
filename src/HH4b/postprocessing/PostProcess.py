@@ -961,9 +961,6 @@ def scan_fom(
     all_bdt_cuts = []
     all_fom = []
     for xbb_cut in xbb_cuts:
-        figure_of_merits = []
-        cuts = []
-
         for bdt_cut in bdt_cuts:
             if method == "abcd":
                 nevents_sig, nevents_bkg, _ = abcd(
@@ -992,11 +989,17 @@ def scan_fom(
                 figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
             else:
                 raise ValueError("Invalid FOM")
+            
+            print(f"xbb_cut: {xbb_cut}")
+            print(f"bdt_cut: {bdt_cut}")
+            print(f"nevents_sig: {nevents_sig}")
+            print(f"nevents_bkg: {nevents_bkg}")
+            print(f"nevents_sideband: {nevents_sideband}")
+            print(f"FOM: {figure_of_merit}")
+            print()
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             # save all cuts for finetuning constraint after
-            cuts.append(bdt_cut)
-            figure_of_merits.append(figure_of_merit)
             h_sb.fill(bdt_cut, xbb_cut, weight=figure_of_merit)
             h_b.fill(bdt_cut, xbb_cut, weight=nevents_bkg)
             h_b_unc.fill(bdt_cut, xbb_cut, weight=np.sqrt(nevents_bkg))
@@ -1471,8 +1474,8 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "bin1"),
                 get_anti_cuts(args, "bin1"),
-                np.arange(0.8, 0.999, 0.0025),
-                np.arange(0.8, 0.999, 0.0025),
+                np.arange(0.9, 0.999, 0.0025),
+                np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin1",
