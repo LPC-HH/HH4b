@@ -356,10 +356,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
-    else:
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
+    tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
 
     # get function
     make_bdt_dataframe = importlib.import_module(
@@ -674,11 +671,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         mask_hlt = bdt_events["hlt"] == 1
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
-
-        # Veto VBF (temporary! from Run-2 veto)
-        # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
-        # bdt_events = bdt_events[mask_vetovbf]
-        # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8
