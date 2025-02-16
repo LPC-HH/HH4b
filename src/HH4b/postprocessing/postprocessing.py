@@ -24,7 +24,8 @@ from HH4b.hh_vars import (
     jmsr_values,
     sig_keys,
     syst_keys,
-    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_ggfbdt_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
     txbb_strings,
     txbbsfs_decorr_pt_bins,
@@ -188,14 +189,24 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             years=years + ["2022-2023"],
         )
 
-    for i in range(len(ttbarsfs_decorr_bdt_bins[bdt_version]) - 1):
+    for i in range(len(ttbarsfs_decorr_ggfbdt_bins[bdt_version]) - 1):
         weight_shifts[
-            f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[bdt_version][i]}_{ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}"
+            f"ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[bdt_version][i]}_{ttbarsfs_decorr_ggfbdt_bins[bdt_version][i+1]}"
         ] = Syst(
             samples=["ttbar"],
-            label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[bdt_version][i]}, {ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}]",
+            label=f"ttbar SF ggF BDT bin [{ttbarsfs_decorr_ggfbdt_bins[bdt_version][i]}, {ttbarsfs_decorr_ggfbdt_bins[bdt_version][i+1]}]",
             years=years + ["2022-2023"],
         )
+
+    if bdt_version in ttbarsfs_decorr_vbfbdt_bins:
+        for i in range(len(ttbarsfs_decorr_vbfbdt_bins[bdt_version]) - 1):
+            weight_shifts[
+                f"ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[bdt_version][i]}_{ttbarsfs_decorr_vbfbdt_bins[bdt_version][i+1]}"
+            ] = Syst(
+                samples=["ttbar"],
+                label=f"ttbar SF VBF BDT bin [{ttbarsfs_decorr_vbfbdt_bins[bdt_version][i]}, {ttbarsfs_decorr_vbfbdt_bins[bdt_version][i+1]}]",
+                years=years + ["2022-2023"],
+            )
 
     for wp in txbbsfs_decorr_txbb_wps[txbb_version]:
         for j in range(len(txbbsfs_decorr_pt_bins[txbb_version][wp]) - 1):
