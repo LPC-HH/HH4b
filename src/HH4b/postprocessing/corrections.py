@@ -125,9 +125,9 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     )[f"ttbar_corr_{corr}_{year_}"]
 
 
-def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str):
+def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str, bdt_score: str):
     return correctionlib.CorrectionSet.from_file(
-        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
+        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_{bdt_score}_finebin_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]
 
 
