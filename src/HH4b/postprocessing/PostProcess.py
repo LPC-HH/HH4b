@@ -698,10 +698,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     vbfbdtsf_up[~mask_vbf] = np.ones(np.sum(~mask_vbf))
                     vbfbdtsf_dn[~mask_vbf] = np.ones(np.sum(~mask_vbf))
                     bdt_events[
-                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}Up"
+                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}Up"
                     ] = (bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf)
                     bdt_events[
-                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}Down"
+                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}Down"
                     ] = (bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf)
 
         if key != "data":
