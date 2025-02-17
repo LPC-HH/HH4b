@@ -460,7 +460,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
             label=r"BDT ggF score",
             # bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
             # bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
-            bins=[0, 0.0299999, 0.6374999, 0.9074999, 1],
+            bins=[0, 0.0299999, 0.7549999, 0.9399999, 1],
             reg=False,
         ),
         ShapeVar(
@@ -474,7 +474,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
             label=r"BDT VBF score",
             # bins=[0, 0.03, 0.3, 0.68, 0.9, 1],
             # bins=[0, 0.03, 0.3, 0.5, 0.7, 0.93, 1],  # if I move to 0.92 I get disagreement
-            bins=[0, 0.0299999, 0.6374999, 0.9824999, 1],
+            bins=[0, 0.0299999, 0.6374999, 0.9666666, 1],
             reg=False,
         ),
     ]
