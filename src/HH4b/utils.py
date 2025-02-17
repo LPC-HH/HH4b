@@ -351,7 +351,9 @@ def load_samples(
                 non_empty_passed_list = []
                 for parquet_file in parquet_path.glob("*.parquet"):
                     if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
                         non_empty_passed_list.append(df_sample)
                 events = pd.concat(non_empty_passed_list)
             except Exception:
@@ -361,7 +363,9 @@ def load_samples(
                 non_empty_passed_list = []
                 for parquet_file in parquet_path.glob("*.parquet"):
                     if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
                         non_empty_passed_list.append(df_sample)
                 events = pd.concat(non_empty_passed_list)
                 continue
