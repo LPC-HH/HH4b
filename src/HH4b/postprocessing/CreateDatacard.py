@@ -39,8 +39,8 @@ from HH4b.hh_vars import (
     sig_keys_ggf,
     sig_keys_vbf,
     ttbarsfs_decorr_ggfbdt_bins,
-    ttbarsfs_decorr_vbfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
