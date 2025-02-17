@@ -38,7 +38,8 @@ from HH4b.hh_vars import (
     qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
-    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_ggfbdt_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
@@ -333,9 +334,9 @@ corr_year_shape_systs = {
     ),
 }
 
-for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
-    label = f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
-    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
+for i in range(len(ttbarsfs_decorr_ggfbdt_bins[args.bdt_model]) - 1):
+    label = f"ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_ggf_bdt_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
     corr_year_shape_systs[label] = Syst(
         name=name,
         prior="shape",
@@ -343,6 +344,16 @@ for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
         convert_shape_to_lnN=True,
     )
 
+if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins:
+    for i in range(len(ttbarsfs_decorr_vbfbdt_bins[args.bdt_model]) - 1):
+        label = f"ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
+        name = f"{CMS_PARAMS_LABEL}_ttbar_sf_vbf_bdt_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
+        corr_year_shape_systs[label] = Syst(
+            name=name,
+            prior="shape",
+            samples=["ttbar"],
+            convert_shape_to_lnN=True,
+        )
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
