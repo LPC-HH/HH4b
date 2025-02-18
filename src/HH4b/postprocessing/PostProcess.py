@@ -40,7 +40,7 @@ from HH4b.postprocessing import (
     get_weight_shifts,
     load_run3_samples,
 )
-from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist
+from HH4b.utils import ShapeVar, check_get_jec_var, get_var_mapping, singleVarHist, discretize_var
 
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
@@ -454,7 +454,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
         bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
         bdt_events["H1TXbb"] = events_dict[txbb_strings[args.txbb]][0]
+        bdt_events["H1DiscTXbb"] = discretize_var(events_dict[txbb_strings[args.txbb]][0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1])
         bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
+        bdt_events["H2DiscTXbb"] = discretize_var(events_dict[txbb_strings[args.txbb]][1], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1])
         bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
         bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
         if key in hh_vars.jmsr_keys:
@@ -1189,7 +1191,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         ShapeVar(var="H1Msd", label=r"$m_{SD}^{1}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H2Msd", label=r"$m_{SD}^{2}$ (GeV)", bins=[30, 0, 300]),
         ShapeVar(var="H1TXbb", label=r"Xbb$^{1}$ " + txbb_label, bins=[30, 0, 1]),
+        ShapeVar(var="H1DiscTXbb", label=r"Discretized Xbb$^{1}$ " + txbb_label, bins=[6, 1, 7]),
         ShapeVar(var="H2TXbb", label=r"Xbb$^{2}$ " + txbb_label, bins=[30, 0, 1]),
+        ShapeVar(var="H2DiscTXbb", label=r"Discretized Xbb$^{2}$ " + txbb_label, bins=[6, 1, 7]),
         ShapeVar(var="H1PNetMass", label=r"$m_{reg}^{1}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
         ShapeVar(var="H2PNetMass", label=r"$m_{reg}^{2}$ (GeV) " + txbb_label, bins=[30, 0, 300]),
         ShapeVar(var="HHPt", label=r"HH $p_{T}$ (GeV)", bins=[30, 0, 4000]),
