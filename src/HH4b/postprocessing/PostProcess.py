@@ -25,8 +25,9 @@ from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
     samples_run3,
-    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_ggfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
@@ -159,7 +160,6 @@ def add_bdt_scores(
         events[f"bdt_score{jlabel}"] = (
             preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
         )
-        # events[f"bdt_score_vbf{jlabel}"] = preds[:, 1] / (preds[:, 1] + bg_tot)
         events[f"bdt_score_vbf{jlabel}"] = (
             preds[:, 1] / (preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3])
             if bdt_disc
@@ -265,7 +265,6 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
                 idx = find_nearest(rocs["merged"]["thresholds"], th)
                 pths[th][0].append(rocs["merged"]["tpr"][idx])
                 pths[th][1].append(rocs["merged"]["fpr"][idx])
-            # print(vbf_in_sig_key, " isig ",isig, sig_key, pths)
             for k, th in enumerate(plot_thresholds):
                 if isig == 0:
                     ax.scatter(
@@ -356,10 +355,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    if args.bdt_model == "24May31_lr_0p02_md_8_AK4Away":
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model)
-    else:
-        tt_bdtshape_sf = corrections._load_ttbar_bdtshape_sfs("dummy", "dummy")
+    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
+    correct_vbfbdtshape = (
+        args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
+    )
+    if correct_vbfbdtshape:
+        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+            "cat5", args.bdt_model, "bdt_score_vbf"
+        )
 
     # get function
     make_bdt_dataframe = importlib.import_module(
@@ -536,6 +539,20 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # tt corrections
         ttbar_weight = np.ones(nevents)
+        if args.vbf:
+            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
+                bdt_events["H2TXbb"] > args.vbf_txbb_wp
+            )
+            if not args.vbf_priority:
+                mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
+                    bdt_events["bdt_score"] > args.bdt_wps[0]
+                )
+                # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+                mask_vbf = mask_vbf & ~(mask_bin1)
+        else:
+            # if no VBF region, set all events to "fail VBF"
+            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+
         if key == "ttbar":
             ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
             tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
@@ -554,7 +571,14 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             txbbsf = tempw1 * tempw2
 
             # inclusive bdt shape correction
-            bdtsf, _, _ = corrections.ttbar_SF(tt_bdtshape_sf, bdt_events, "bdt_score")
+            ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
+            bdtsf = ggfbdtsf
+            # use bdt_vbf correction for vbf category if it exists
+            if correct_vbfbdtshape:
+                vbfbdtsf, _, _ = corrections.ttbar_SF(
+                    tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
+                )
+                bdtsf[mask_vbf] = vbfbdtsf[mask_vbf]
 
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
@@ -643,19 +667,42 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 ] = (bdt_events["weight"] * tempw1_dn * tempw2_dn / (tempw1 * tempw2))
 
             # bdt up/dn variations in bins
-            for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
-                tempw, tempw_up, tempw_dn = corrections.ttbar_SF(
-                    tt_bdtshape_sf,
+            for i in range(len(ttbarsfs_decorr_ggfbdt_bins[args.bdt_model]) - 1):
+                ggfbdtsf, ggfbdtsf_up, ggfbdtsf_dn = corrections.ttbar_SF(
+                    tt_ggfbdtshape_sf,
                     bdt_events,
                     "bdt_score",
-                    ttbarsfs_decorr_bdt_bins[args.bdt_model][i : i + 2],
+                    ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i : i + 2],
                 )
+                if correct_vbfbdtshape:
+                    # only use ggf correction/uncertainty outside of vbf category
+                    ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
+                    ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
+                    ggfbdtsf_dn[mask_vbf] = np.ones(np.sum(mask_vbf))
                 bdt_events[
-                    f"weight_ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}Up"
-                ] = (bdt_events["weight"] * tempw_up / tempw)
+                    f"weight_ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}Up"
+                ] = (bdt_events["weight"] * ggfbdtsf_up / ggfbdtsf)
                 bdt_events[
-                    f"weight_ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}Down"
-                ] = (bdt_events["weight"] * tempw_dn / tempw)
+                    f"weight_ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}Down"
+                ] = (bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf)
+            if correct_vbfbdtshape:
+                for i in range(len(ttbarsfs_decorr_vbfbdt_bins[args.bdt_model]) - 1):
+                    vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
+                        tt_vbfbdtshape_sf,
+                        bdt_events,
+                        "bdt_score_vbf",
+                        ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i : i + 2],
+                    )
+                    # only use vbf correction/uncertainty inside of vbf category
+                    vbfbdtsf[~mask_vbf] = np.ones(np.sum(~mask_vbf))
+                    vbfbdtsf_up[~mask_vbf] = np.ones(np.sum(~mask_vbf))
+                    vbfbdtsf_dn[~mask_vbf] = np.ones(np.sum(~mask_vbf))
+                    bdt_events[
+                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}Up"
+                    ] = (bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf)
+                    bdt_events[
+                        f"weight_ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}Down"
+                    ] = (bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf)
 
         if key != "data":
             bdt_events["weight_triggerUp"] = (
@@ -674,11 +721,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         mask_hlt = bdt_events["hlt"] == 1
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
-
-        # Veto VBF (temporary! from Run-2 veto)
-        # mask_vetovbf = (bdt_events["H1Pt"] > 300) & (bdt_events["H2Pt"] > 300) & ~((bdt_events["VBFjjMass"] > 500) & (bdt_events["VBFjjDeltaEta"] > 4))
-        # bdt_events = bdt_events[mask_vetovbf]
-        # cutflow_dict[key]["Veto VBF"] = np.sum(bdt_events["weight"].to_numpy())
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8

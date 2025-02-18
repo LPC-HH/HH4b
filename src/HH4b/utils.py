@@ -39,6 +39,7 @@ from .hh_vars import (
 )
 
 logger = logging.getLogger("HH4b.utils")
+logger.setLevel(logging.DEBUG)
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
@@ -347,11 +348,26 @@ def load_samples(
 
             logger.debug(f"Loading {sample}")
             try:
-                events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
+                non_empty_passed_list = []
+                for parquet_file in parquet_path.glob("*.parquet"):
+                    if not pd.read_parquet(parquet_file).empty:
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
+                        non_empty_passed_list.append(df_sample)
+                events = pd.concat(non_empty_passed_list)
             except Exception:
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
+                non_empty_passed_list = []
+                for parquet_file in parquet_path.glob("*.parquet"):
+                    if not pd.read_parquet(parquet_file).empty:
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
+                        non_empty_passed_list.append(df_sample)
+                events = pd.concat(non_empty_passed_list)
                 continue
 
             # no events?
