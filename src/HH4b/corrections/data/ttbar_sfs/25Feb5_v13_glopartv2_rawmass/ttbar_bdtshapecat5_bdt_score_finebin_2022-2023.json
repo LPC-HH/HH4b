@@ -1,0 +1,96 @@
+{
+    "schema_version": 2,
+    "corrections": [
+        {
+            "name": "ttbar_corr_bdtshape_2022-2023",
+            "description": "ttbar correction bdtshape for 2022-2023",
+            "version": 1,
+            "inputs": [
+                {
+                    "name": "bdtshape",
+                    "type": "real",
+                    "description": "bdtshape"
+                },
+                {
+                    "name": "systematic",
+                    "type": "string",
+                    "description": "Systematic variation"
+                }
+            ],
+            "output": {
+                "name": "weight",
+                "type": "real",
+                "description": "ttbar efficiency"
+            },
+            "data": {
+                "nodetype": "category",
+                "input": "systematic",
+                "content": [
+                    {
+                        "key": "nominal",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.0299999,
+                                0.7549999,
+                                0.9399999,
+                                1.0
+                            ],
+                            "content": [
+                                0.950119440384803,
+                                0.9586806722444497,
+                                0.5658130006582595,
+                                0.5871484549271228
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_up",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.0299999,
+                                0.7549999,
+                                0.9399999,
+                                1.0
+                            ],
+                            "content": [
+                                0.017598344921773257,
+                                0.011320714936509657,
+                                0.06850030044052702,
+                                0.36610982343311027
+                            ],
+                            "flow": 1.0
+                        }
+                    },
+                    {
+                        "key": "stat_dn",
+                        "value": {
+                            "nodetype": "binning",
+                            "input": "bdtshape",
+                            "edges": [
+                                0.0,
+                                0.0299999,
+                                0.7549999,
+                                0.9399999,
+                                1.0
+                            ],
+                            "content": [
+                                0.01728113400070108,
+                                0.011189348815085043,
+                                0.06143754810676816,
+                                0.2399325676897292
+                            ],
+                            "flow": 1.0
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
