@@ -20,6 +20,7 @@ import awkward as ak
 import correctionlib
 import numpy as np
 import uproot
+from coffea import util as cutil
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
@@ -411,3 +412,115 @@ def get_jetveto_event(jets: JetArray, year: str):
 
     event_sel = ~(ak.any((jets.pt > 15) & jet_veto, axis=1))
     return event_sel
+
+btagWPs = {
+    "M_deepJet": {  # noqa: RUF012
+        "2022": 0.3086,
+        "2022EE": 0.3196,
+        "2023": 0.2431,
+        "2023BPix": 0.2435,
+    },
+    "M_particleNet": {  # noqa: RUF012
+        "2022": 0.245,
+        "2022EE": 0.2605,
+        "2023": 0.1917,
+        "2023BPix": 0.1919,
+    }
+}
+
+btagbranch = {
+    "deepJet": "btagDeepFlavB",
+    "particleNet": "btagPNetB",
+}
+
+def get_btag_weights(
+    year: str,
+    jets: JetArray,
+    jet_selector: ak.Array,
+    wp: str = "M",
+    algo: str = "particleNet",
+    systematics: bool = False,
+):
+    """
+    Following https://twiki.cern.ch/twiki/bin/view/CMS/BTagSFMethods#1b_Event_reweighting_using_scale 1a
+    """
+
+    # for 2023, the SFs are not yet in the common repository
+    cset_sf = None
+    if "2023" in year:
+        cset_sf = correctionlib.CorrectionSet.from_file(package_path + f"/corrections/data/btv_sfs/btagging_{year}.json")
+
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("btagging", year))
+
+    efflookup = cutil.load(package_path + f"/corrections/data/btv_effs/btageff_{algo}_{wp}_{year}.coffea")
+
+    def _btagSF(jets, flavour, syst="central"):
+        j, nj = ak.flatten(jets), ak.num(jets)
+        hadronFlavour = np.array(j.hadronFlavour)
+        if (cset_sf is not None) and (flavour == "bc"):
+            # use tnp for particleNet for 2023 eras
+            corrs = cset_sf[f"{algo}_tnp"]
+            # since c-tagging SFs are not available, replace c(4) by 5 in hadronFlavor
+            hadronFlavour[hadronFlavour == 4] = 5
+        else:
+            corrs = cset[f"{algo}_comb"] if flavour == "bc" else cset[f"{algo}_light"]
+        sf = corrs.evaluate(
+            syst,
+            wp,
+            hadronFlavour,
+            np.array(abs(j.eta)),
+            np.array(j.pt),
+        )
+        return ak.unflatten(sf, nj)
+
+    lightJets = jets[jet_selector & (jets.hadronFlavour == 0)]
+    bcJets = jets[jet_selector & (jets.hadronFlavour > 0)]
+
+    lightEff = efflookup(lightJets.pt, abs(lightJets.eta), lightJets.hadronFlavour)
+    bcEff = efflookup(bcJets.pt, abs(bcJets.eta), bcJets.hadronFlavour)
+
+    lightSF = _btagSF(lightJets, "light")
+    bcSF = _btagSF(bcJets, "bc")
+
+    lightPass = lightJets[btagbranch[algo]] > btagWPs[f"{wp}_{algo}"][year]
+    bcPass = bcJets[btagbranch[algo]] > btagWPs[f"{wp}_{algo}"][year]
+
+    # 1a method
+    # https://btv-wiki.docs.cern.ch/PerformanceCalibration/fixedWPSFRecommendations/
+    def _combine(eff, sf, passbtag):
+        # tagged SF = SF*eff / eff = SF
+        tagged_sf = ak.prod(sf[passbtag], axis=-1)
+        # untagged SF = (1 - SF*eff) / (1 - eff)
+        untagged_sf = ak.prod(((1 - sf * eff) / (1 - eff))[~passbtag], axis=-1)
+        return ak.fill_none(tagged_sf * untagged_sf, 1.0)
+
+    ret_weights = {}
+
+    # one common multiplicative SF is to be applied to the nominal prediction
+    bc = _combine(bcEff, bcSF, bcPass)
+    light = _combine(lightEff, lightSF, lightPass)
+    ret_weights["weight_btag"] = bc * light
+
+    # print("Weight btag", bc * light)
+
+    # Separate uncertainties are applied for b/c jets and light jets
+    if systematics:
+        ret_weights[f"weight_btagSFlight{year}Up"] = _combine(lightEff, _btagSF(lightJets, "light", syst="up"), lightPass)
+        ret_weights[f"weight_btagSFlight{year}Down"] = _combine(
+            lightEff, _btagSF(lightJets, "light", syst="down"), lightPass
+        )
+
+        ret_weights[f"weight_btagSFbc{year}Up"] = _combine(bcEff, _btagSF(bcJets, "bc", syst="up"), bcPass)
+        ret_weights[f"weight_btagSFbc{year}Down"] = _combine(bcEff, _btagSF(bcJets, "bc", syst="down"), bcPass)
+
+        if "2023" not in year:
+            ret_weights["weight_btagSFlightCorrelatedUp"] = _combine(
+                lightEff, _btagSF(lightJets, "light", syst="up_correlated"), lightPass
+            )
+            ret_weights["weight_btagSFlightCorrelatedDown"] = _combine(
+                lightEff, _btagSF(lightJets, "light", syst="down_correlated"), lightPass
+            )
+            ret_weights["weight_btagSFbcCorrelatedUp"] = _combine(bcEff, _btagSF(bcJets, "bc", syst="up_correlated"), bcPass)
+            ret_weights["weight_btagSFbcCorrelatedDown"] = _combine(bcEff, _btagSF(bcJets, "bc", syst="down_correlated"), bcPass)
+
+    return ret_weights

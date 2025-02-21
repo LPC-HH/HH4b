@@ -20,6 +20,8 @@ from .corrections import (
     JECs,
     add_pileup_weight,
     get_jmsr,
+    get_btag_weights,
+    add_ps_weight,
 )
 from .GenSelection import gen_selection_Hbb, gen_selection_HHbbbb, gen_selection_Top
 from .objects import (
@@ -422,9 +424,11 @@ class ttSkimmer(SkimmerABC):
 
         # b-tagged and dPhi from muon < 2
         # consider btagDeepFlavB for 2022 only (problem with v12 private production)
+        btag_discr = "particleNet"
         if year == "2022" and (
             self._nano_version == "v12_private" or self._nano_version == "v12v2_private"
         ):
+            btag_discr = "deepJet"
             ak4_jet_selector_btag_muon = ak4_jet_selector * (
                 (ak4_jets.btagDeepFlavB > self.btag_medium_deepJet[year])
                 * (np.abs(ak4_jets.delta_phi(muon)) < self.ak4_jet_selection["delta_phi_muon"])
@@ -485,6 +489,16 @@ class ttSkimmer(SkimmerABC):
             else np.ones(len(events)).astype(bool)
         )
 
+        # compute b-tagging weights
+        btag_weights = get_btag_weights(
+            year, 
+            ak4_jets, 
+            ak4_jet_selector_btag_muon, 
+            wp="M", 
+            algo=btag_discr, 
+            systematics=True
+        )
+
         totals_dict = {"nevents": n_events}
 
         if isData:
@@ -496,7 +510,13 @@ class ttSkimmer(SkimmerABC):
                 dataset,
                 gen_weights,
                 gen_selected,
+                btag_weights,
             )
+            # add b-tagging weights as uncertainties
+            for btag_key, btag_weight in btag_weights.items():
+                if key != "weight_btag":
+                    weights_dict[btag_key] = btag_weight.to_numpy()
+            # add weights to skimmed dictionary
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
 
@@ -527,12 +547,15 @@ class ttSkimmer(SkimmerABC):
         dataset,
         gen_weights,
         gen_selected,
+        btag_weights,
     ) -> tuple[dict, dict]:
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
         add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        add_ps_weight(weights, events.PSWeight)
+        weights.add("btag", btag_weights["weight_btag"].to_numpy())
 
         logger.debug("weights", extra=weights._weights.keys())
 
