@@ -8,6 +8,12 @@ import numpy as np
 import pandas as pd
 import uproot
 
+import matplotlib.pyplot as plt
+import mplhep as hep
+
+plt.style.use(hep.style.CMS)
+hep.style.use("CMS")
+
 import HH4b.plotting as plotting
 import HH4b.utils as utils
 from HH4b.utils import ShapeVar
@@ -207,8 +213,56 @@ samples_tt = {
     },
 }
 
+def plot_variations(h_nom,h_variations,label_nom,labels_variations,plot_dir,name,xlabel,ylim=None):
+    fig, (ax, rax) = plt.subplots(
+        2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
+    )
+    nom_vals = h_nom.values()
+    hep.histplot(
+        h_nom,
+        histtype="step",
+        label=label_nom,
+        yerr=False,
+        color="k",
+        ax=ax,
+        linewidth=2,
+    )
+    colours = ["#81C14B", "#1f78b4"]
 
-def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
+    for ivar, h_variation in enumerate(h_variations):
+        hep.histplot(
+            h_variation,
+            histtype="step",
+            yerr=False,
+            label=labels_variations[ivar],
+            color=colours[ivar],
+            ax=ax,
+            linewidth=2,
+        )
+
+        hep.histplot(
+            h_variation / nom_vals,
+            histtype="step",
+            color=colours[ivar],
+            ax=rax,
+        )
+
+    ax.legend()
+    ax.set_ylim(0)
+    ax.set_ylabel("Events")
+    ax.set_title(name, y=1.08)
+
+    rax.set_ylim([0, 2])
+    if ylim is not None:
+        rax.set_ylim(ylim)
+    rax.set_xlabel(xlabel)
+    rax.set_ylabel("Variation / Nominal")
+    rax.grid(axis="y")
+
+    plt.savefig(f"{plot_dir}/{name}.png", bbox_inches="tight")
+    plt.close()
+
+def save_to_file(out_file, hists_pass, hists_fail, save_variations=True):
     """
     Save histograms to file
     """
@@ -265,7 +319,11 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
         [
             hists_pass[var][{"Sample": sample}]
             for sample in hists_pass[var].axes[0]
-            if sample in ["diboson", "qcd", "vjetslnu"]
+            if sample in [
+                #"diboson", 
+                #"qcd", 
+                "vjetslnu"
+            ]
         ]
     )
     f_out["other_fail_nominal"] = sum(
@@ -285,23 +343,23 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=False):
     if save_variations:
         # save templates for variations
         variationmap = {
-            "ScaleUp": "JMS_up",
-            "ScaleDown": "JMS_down",
-            "SmearUp": "JMR_up",
-            "SmearDown": "JMR_down",
+            "scaleUp": "JMS_up",
+            "scaleDown": "JMS_down",
+            "smearUp": "JMR_up",
+            "smearDown": "JMR_down",
         }
         # catp2 templates
         for variation in variationmap:
             f_out[f"catp2_pass_{variation}"] = sum(
                 [
-                    hists_pass[var][{"Sample": sample}]
+                    hists_pass[f"{var}_{variationmap[variation]}"][{"Sample": sample}]
                     for sample in hists_pass[f"{var}_{variationmap[variation]}"].axes[0]
                     if sample in ["W_matched", "singletop"]
                 ]
             )
             f_out[f"catp2_fail_{variation}"] = sum(
                 [
-                    hists_fail[var][{"Sample": sample}]
+                    hists_fail[f"{var}_{variationmap[variation]}"][{"Sample": sample}]
                     for sample in hists_fail[f"{var}_{variationmap[variation]}"].axes[0]
                     if sample in ["W_matched"]
                 ]
@@ -316,12 +374,33 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
     """
 
     def get_wtagger(events):
-        return (events["ak8FatJetParTPXqq"][0]) / (
+        return (events["ak8FatJetParTPXqq"][0] + events["ak8FatJetParTPXcs"][0]) / (
             events["ak8FatJetParTPXqq"][0]
+            + events["ak8FatJetParTPXcs"][0]
             + events["ak8FatJetParTPQCD0HF"][0]
             + events["ak8FatJetParTPQCD1HF"][0]
             + events["ak8FatJetParTPQCD2HF"][0]
         )
+
+    # def get_wtagger(events):
+    #     return (events["ak8FatJetParTPXqq"][0] + events["ak8FatJetParTPXcs"][0]) / (
+    #         events["ak8FatJetParTPXqq"][0]
+    #         + events["ak8FatJetParTPXcs"][0]
+    #         + events["ak8FatJetParTPQCD0HF"][0]
+    #         + events["ak8FatJetParTPQCD1HF"][0]
+    #         + events["ak8FatJetParTPQCD2HF"][0]
+    #         + events["ak8FatJetParTPTopbW"][0]
+    #     )
+    # def get_wtagger(events):
+    #     return (events["ak8FatJetParTPXqq"][0] + events["ak8FatJetParTPXcs"][0] + events["ak8FatJetParTPTopW"][0]) / (
+    #         events["ak8FatJetParTPXqq"][0]
+    #         + events["ak8FatJetParTPXcs"][0]
+    #         + events["ak8FatJetParTPQCD0HF"][0]
+    #         + events["ak8FatJetParTPQCD1HF"][0]
+    #         + events["ak8FatJetParTPQCD2HF"][0]
+    #         + events["ak8FatJetParTPTopbW"][0]
+    #         + events["ak8FatJetParTPTopW"][0]
+    #     )
 
     ev_dict = {}
     for key in events_dict:
@@ -348,6 +427,12 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
                 "weight": events["finalWeight"],
                 # customize W tagger
                 "WTagger": get_wtagger(events),
+                "WTXcs": (events["ak8FatJetParTPXcs"][0]) / (
+                            events["ak8FatJetParTPXcs"][0]
+                            + events["ak8FatJetParTPQCD0HF"][0]
+                            + events["ak8FatJetParTPQCD1HF"][0]
+                            + events["ak8FatJetParTPQCD2HF"][0]
+                        ), 
                 "WPXqq": events["ak8FatJetParTPXqq"][0],
                 "WPTopW": events["ak8FatJetParTPTopW"][0],
                 "WPTopbW": events["ak8FatJetParTPTopbW"][0],
@@ -364,7 +449,14 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
             ev_dataframe["WMass_JMR_down"] = events[f"ak8FatJet{mass}_JMR_down"][0]
             ev_dataframe["WMass_JMR_up"] = events[f"ak8FatJet{mass}_JMR_up"][0]
 
+            #if key == "ttbar":
+            #    print(key)
+            #    print("JMR nominal ", events[f"ak8FatJet{mass}"][0])
+            #    print("JMR down ", events[f"ak8FatJet{mass}_JMR_down"][0])
+            #    print("JMR up ", events[f"ak8FatJet{mass}_JMR_up"][0])
+
         # identify ttbar jets matched and unmatched to top quark decays
+        # TODO: apply singletop
         if key == "ttbar":
             # jet matched to 2 hadronic quarks
             has_2_daughter_qs = np.array(events["ak8FatJetNumQMatchedTop1"] == 2) != np.array(
@@ -414,6 +506,14 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
         ev_dict_pass[key] = ev_dict[key][wtagger_mask]
         ev_dict_fail[key] = ev_dict[key][wtagger_maskinv]
 
+    # print efficiency
+    npass = np.sum(ev_dict_pass["W_matched"]["weight"])
+    nall = np.sum(ev_dict["W_matched"]["weight"])
+    print("W matched efficiency: ", npass, nall, npass/nall)
+    npass = np.sum(ev_dict_pass["unmatched"]["weight"])
+    nall = np.sum(ev_dict["unmatched"]["weight"])
+    print("unmatched efficiency: ", npass, nall, npass/nall)
+
     return ev_dict, ev_dict_pass, ev_dict_fail
 
 
@@ -421,24 +521,20 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
 @click.option(
     "--dir-name",
     help="directory name",
-    default="/eos/uscms/store/user/cmantill/bbbb/ttSkimmer/24Oct14_v12v2_private_signal/",
+    default="/eos/uscms/store/user/cmantill/bbbb/ttSkimmer/24Nov6_v12v2_private_signal/", # version where GloParT mass is fixed
 )
 @click.option("--year-group", default="2022All", type=click.Choice(["2022All", "2023All"]))
 @click.option("--tag", required=True)
-def jmsr_templates(dir_name, year_group, tag):
+@click.option("--mass", default="ParTmassVis", type=click.Choice(["ParTmassVis","PNetMass","PNetMassLegacy"]))
+def jmsr_templates(dir_name, year_group, tag, mass):
     # group years
     years_to_process = {
         "2022All": ["2022", "2022EE"],
         "2023All": ["2023", "2023BPix"],
     }[year_group]
 
-    # mass branch to measure JMSR
-    mass = "ParTmassVis"
-    # mass = "PNetMass"
-    # mass = "PNetMassLegacy"
-
     # pt mask
-    pt_mask = [0, 1000]
+    pt_mask = [300, 1000]
 
     # columns to load for all samples
     load_columns = [
@@ -447,6 +543,7 @@ def jmsr_templates(dir_name, year_group, tag):
         ("ak8FatJetMsd", 1),
         (f"ak8FatJet{mass}", 1),
         ("ak8FatJetParTPXqq", 1),
+        ("ak8FatJetParTPXcs", 1),
         ("ak8FatJetParTPTopW", 1),
         ("ak8FatJetParTPTopbW", 1),
         ("ak8FatJetParTPQCD0HF", 1),
@@ -481,7 +578,8 @@ def jmsr_templates(dir_name, year_group, tag):
     control_plot_vars = [
         # 3.33 gev bins
         ShapeVar(var="WMass", label=r"W Mass (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
-        ShapeVar(var="WMsd", label=r"W Msd (GeV)", bins=[30, 50, 200], plot_args={"log": False}),
+        #ShapeVar(var="WMsd", label=r"W Msd (GeV)", bins=[30, 50, 200], plot_args={"log": False}),
+        ShapeVar(var="WMsd", label=r"W Msd (GeV)", bins=[21, 55, 125], plot_args={"log": False}),
         ShapeVar(
             var="WPt", label=r"W p$_{T}$ (GeV)", bins=[30, 300, 800], plot_args={"log": False}
         ),
@@ -489,6 +587,9 @@ def jmsr_templates(dir_name, year_group, tag):
         # plot extra discriminators
         ShapeVar(
             var="WPXqq", label=r"ParT Xqq probability", bins=[30, 0, 1], plot_args={"log": True}
+        ),
+        ShapeVar(
+            var="WTXcs", label=r"ParT TXcs discriminator", bins=[30, 0, 1], plot_args={"log": True}
         ),
         ShapeVar(
             var="WPTopW", label=r"ParT TopW probability", bins=[30, 0, 1], plot_args={"log": True}
@@ -522,6 +623,10 @@ def jmsr_templates(dir_name, year_group, tag):
             plot_args={"log": False},
         ),
     ]
+
+    # variables to make stack plots for
+    vars_stack = ["WMass","WMsd"]
+    vars_stack_nopf = ["WTagger","WPTopW","WPTopbW","WPXqq","WTXcs","WPTopW","WPTopbW"]
 
     ev_dict = {}
     ev_dict_pass = {}
@@ -569,7 +674,7 @@ def jmsr_templates(dir_name, year_group, tag):
             ev_dict_fail[year_group] = events_fail
 
     # create plotting directory
-    odir = f"{tag}/pt{pt_mask[0]-pt_mask[1]}/{year_group}"
+    odir = f"{tag}/pt{pt_mask[0]}-{pt_mask[1]}/{year_group}"
     os.system(f"mkdir -p {odir}")
 
     hists_all = {}
@@ -591,11 +696,19 @@ def jmsr_templates(dir_name, year_group, tag):
             )
 
         # plot histograms
-        for hname, h in {
-            f"{odir}/{shape_var.var}": hists_all[shape_var.var],
-            f"{odir}/{shape_var.var}_pass": hists_pass[shape_var.var],
-            f"{odir}/{shape_var.var}_fail": hists_fail[shape_var.var],
-        }.items():
+        if shape_var.var in vars_stack:
+            h_to_plot = {
+                f"{odir}/{shape_var.var}": hists_all[shape_var.var],
+                f"{odir}/{shape_var.var}_pass": hists_pass[shape_var.var],
+                f"{odir}/{shape_var.var}_fail": hists_fail[shape_var.var],
+            }
+        elif shape_var.var in vars_stack_nopf:
+            h_to_plot = {
+                f"{odir}/{shape_var.var}": hists_all[shape_var.var],
+            }
+        else:
+            h_to_plot = {}
+        for hname, h in h_to_plot.items():
             plotting.ratioHistPlot(
                 h,
                 year_group,
@@ -615,13 +728,38 @@ def jmsr_templates(dir_name, year_group, tag):
                 # ylim_low=0,
             )
 
+    # plot variations
+    vars_notstack = {
+        "WMass_JMS": ["WMass","WMass_JMS_down","WMass_JMS_up"],
+        "WMass_JMR": ["WMass","WMass_JMR_down","WMass_JMR_up",]
+    }
+    for name,hvars in vars_notstack.items():
+        plot_variations(
+            hists_pass[hvars[0]][{"Sample": "W_matched"}],
+            [hists_pass[i][{"Sample": "W_matched"}] for i in hvars[1:]],
+            "Nominal",
+            ["Down","Up"],
+            odir,
+            f"{name}_pass",
+            "W Mass (GeV)",
+        )
+        plot_variations(
+            hists_fail[hvars[0]][{"Sample": "W_matched"}],
+            [hists_fail[i][{"Sample": "W_matched"}] for i in hvars[1:]],
+            "Nominal",
+            ["Down","Up"],
+            odir,
+            f"{name}_fail",
+            "W Mass (GeV)",
+        )
+
     # create template directory
     template_directory = f"TnPSF/run3_templates/{year_group}/{tag}"
     os.system(f"mkdir -p {template_directory}")
-    out_file = f"{template_directory}/topCR_pt{pt_mask[0]-pt_mask[1]}.root"
+    out_file = f"{template_directory}/topCR_pt{pt_mask[0]}-{pt_mask[1]}.root"
 
-    # save Wmass template
-    # TODO: save variations (e.g. WMass_JMS_down)
+    # save Wmass template and variations
+    print(f"Save to file: {out_file}")
     save_to_file(out_file, hists_pass, hists_fail)
 
 
