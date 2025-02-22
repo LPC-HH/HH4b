@@ -810,7 +810,17 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up", "JES_up", "JES_down", "JER_up", "JER_down"]:
+            for jshift in [
+                "",
+                "JMS_down",
+                "JMS_up",
+                "JMR_down",
+                "JMR_up",
+                "JES_up",
+                "JES_down",
+                "JER_up",
+                "JER_down",
+            ]:
                 bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
                 skimmed_events = {
                     **skimmed_events,
@@ -1098,18 +1108,19 @@ class bbbbSkimmer(SkimmerABC):
         self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
     ):
         """Calculates BDT"""
+
         def disc_TXbb(txbb_array):
             # define binning
             bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
 
             # discretize the TXbb variable into len(bins)-1  integer categories
             bin_indices = np.digitize(txbb_array, bins)
-            
+
             # clip just to be safe
             bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
-            
+
             return bin_indices
-        
+
         key_map = get_var_mapping(jshift)
 
         # makedataframe from v13_glopartv2
