@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import vector
+
 from HH4b.utils import discretize_var
 
 """
@@ -96,7 +97,10 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("H2Pt"): h2.pt,
             key_map("H1eta"): h1.eta,
             # xbb
-            key_map("H1Xbb"): discretize_var(events[key_map("bbFatJetParTTXbb")].to_numpy()[:, 0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]),
+            key_map("H1Xbb"): discretize_var(
+                events[key_map("bbFatJetParTTXbb")].to_numpy()[:, 0],
+                bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1],
+            ),
             # ratios
             key_map("H1Pt_HHmass"): h1.pt / hh.mass,
             key_map("H2Pt_HHmass"): h2.pt / hh.mass,
