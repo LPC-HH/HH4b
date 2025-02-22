@@ -179,31 +179,32 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         # "FSRPartonShower": Syst(samples=sig_keys_ggf + ["vjets"], label="FSR Parton Shower"),
     }
 
-    for i in range(len(ttbarsfs_decorr_txbb_bins[txbb_version]) - 1):
-        weight_shifts[
-            f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[txbb_version][i]}_{ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}"
-        ] = Syst(
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
+    ttsf_bdtshape_bins = ttbarsfs_decorr_bdt_bins.get(txbb_version, bdt_version)
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(txbb_version, "glopart-v2")
+    TXbb_wps = txbbsfs_decorr_txbb_wps.get(txbb_version, "glopart-v2")
+
+    for i in range(len(ttsf_xbb_bins) - 1):
+        weight_shifts[f"ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"] = Syst(
             samples=["ttbar"],
-            label=f"ttbar SF Xbb bin [{ttbarsfs_decorr_txbb_bins[txbb_version][i]}, {ttbarsfs_decorr_txbb_bins[txbb_version][i+1]}]",
+            label=f"ttbar SF Xbb bin [{ttsf_xbb_bins[i]}, {ttsf_xbb_bins[i+1]}]",
             years=years + ["2022-2023"],
         )
 
-    for i in range(len(ttbarsfs_decorr_bdt_bins[bdt_version]) - 1):
-        weight_shifts[
-            f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[bdt_version][i]}_{ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}"
-        ] = Syst(
+    for i in range(len(ttsf_bdtshape_bins) - 1):
+        weight_shifts[f"ttbarSF_BDT_bin_{ttsf_bdtshape_bins[i]}_{ttsf_bdtshape_bins[i+1]}"] = Syst(
             samples=["ttbar"],
-            label=f"ttbar SF BDT bin [{ttbarsfs_decorr_bdt_bins[bdt_version][i]}, {ttbarsfs_decorr_bdt_bins[bdt_version][i+1]}]",
+            label=f"ttbar SF BDT bin [{ttsf_bdtshape_bins[i]}, {ttsf_bdtshape_bins[i+1]}]",
             years=years + ["2022-2023"],
         )
 
-    for wp in txbbsfs_decorr_txbb_wps[txbb_version]:
-        for j in range(len(txbbsfs_decorr_pt_bins[txbb_version][wp]) - 1):
+    for wp in TXbb_wps:
+        for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
             weight_shifts[
-                f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}_{txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}"
+                f"TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
             ] = Syst(
                 samples=sig_keys,
-                label=f"TXbb SF uncorrelated {wp}, pT bin [{txbbsfs_decorr_pt_bins[txbb_version][wp][j]}, {txbbsfs_decorr_pt_bins[txbb_version][wp][j+1]}]",
+                label=f"TXbb SF uncorrelated {wp}, pT bin [{TXbb_pt_corr_bins[wp][j]}, {TXbb_pt_corr_bins[wp][j+1]}]",
                 years=years + ["2022-2023"],
             )
     return weight_shifts
