@@ -1,5 +1,3 @@
-# TODO: Check if this is correct for available datasets
-
 # Golden JSON
 from __future__ import annotations
 
@@ -11,7 +9,6 @@ LUMI = {  # in pb^-1
     "2023BPix": 9516.0,  # runD
 }
 
-# TODO: split over sources of JECs
 jecs = {
     "JES": "JES_jes",
     "JER": "JER",

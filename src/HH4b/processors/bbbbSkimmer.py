@@ -59,6 +59,8 @@ gen_selection_dict = {
     "WtoLNu-": gen_selection_V,
     "DYto2L-": gen_selection_V,
     "ZZ": gen_selection_VV,
+    "WW": gen_selection_VV,
+    "WZ": gen_selection_VV,
     "ZH": gen_selection_VV,
     "TTto4Q": gen_selection_Top,
     "TTto2L2Nu": gen_selection_Top,
@@ -379,7 +381,7 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "24Nov7_v5_glopartv2_rawmass"
+        bdt_model_name = "25Feb5_v13_glopartv2_rawmass"
         self.bdt_model = xgb.XGBClassifier()
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -607,6 +609,7 @@ class bbbbSkimmer(SkimmerABC):
                 vars_dict = gen_selection_dict[d](
                     events, jets, fatjets_xbb, selection_args, P4, "bbFatJet"
                 )
+                genVars = {**genVars, **vars_dict}
                 # match fatjets
                 vars_dict = gen_selection_dict[d](
                     events, jets, fatjets, selection_args, P4, "ak8FatJet"
@@ -807,9 +810,7 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up"] + list(
-                self.jecs.values()
-            ):
+            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up", "JES_up", "JES_down", "JER_up", "JER_down"]:
                 bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
                 skimmed_events = {
                     **skimmed_events,
@@ -1097,10 +1098,21 @@ class bbbbSkimmer(SkimmerABC):
         self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
     ):
         """Calculates BDT"""
+        def disc_TXbb(txbb_array):
+            # define binning
+            bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+
+            # discretize the TXbb variable into len(bins)-1  integer categories
+            bin_indices = np.digitize(txbb_array, bins)
+            
+            # clip just to be safe
+            bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
+            
+            return bin_indices
+        
         key_map = get_var_mapping(jshift)
 
-        # makedataframe from v5_glopartv2
-        # 24Nov7_v5_glopartv2_rawmass
+        # makedataframe from v13_glopartv2
         # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
@@ -1153,12 +1165,8 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,
                 key_map("H1eta"): h1.eta,
-                # "H2eta": h2.eta,
                 # xbb
-                key_map("H1Xbb"): bbFatJetVars[key_map("bbFatJetPNetPXbbLegacy")][:, 0],
-                key_map("H1QCDb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbLegacy")][:, 0],
-                key_map("H1QCDbb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbbLegacy")][:, 0],
-                key_map("H1QCDothers"): bbFatJetVars[key_map("bbFatJetPNetPQCD0HFLegacy")][:, 0],
+                key_map("H1Xbb"): disc_TXbb(bbFatJetVars[key_map("bbFatJetParTTXbb")][:, 0]),
                 # ratios
                 key_map("H1Pt_HHmass"): h1.pt / hh.mass,
                 key_map("H2Pt_HHmass"): h2.pt / hh.mass,
