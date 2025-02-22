@@ -337,7 +337,7 @@ def gen_selection_V(
         ak.argmin(fatjets.metric_table(vs), axis=2), fatjets["VMatch"] == 1
     )
 
-    # match V daugthers to fatjet
+    # match V daughters to fatjet
     d_v1 = daughters[:, 0]
     matched_mask = fatjets.metric_table(d_v1) < 0.8
     fatjets["NumQMatched"] = ak.sum(matched_mask, axis=2)
