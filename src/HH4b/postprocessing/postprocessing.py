@@ -24,8 +24,9 @@ from HH4b.hh_vars import (
     jmsr_values,
     sig_keys,
     syst_keys,
-    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_ggfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     txbb_strings,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
@@ -180,7 +181,9 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
     }
 
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
-    ttsf_bdtshape_bins = ttbarsfs_decorr_bdt_bins.get(txbb_version, bdt_version)
+    ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
+        bdt_version, "25Feb5_v13_glopartv2_rawmass"
+    )
     TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(txbb_version, "glopart-v2")
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(txbb_version, "glopart-v2")
 
@@ -191,15 +194,28 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             years=years + ["2022-2023"],
         )
 
-    for i in range(len(ttsf_bdtshape_bins) - 1):
-        weight_shifts[f"ttbarSF_BDT_bin_{ttsf_bdtshape_bins[i]}_{ttsf_bdtshape_bins[i+1]}"] = Syst(
+    for i in range(len(ttsf_ggfbdtshape_bins) - 1):
+        weight_shifts[
+            f"ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}"
+        ] = Syst(
             samples=["ttbar"],
-            label=f"ttbar SF BDT bin [{ttsf_bdtshape_bins[i]}, {ttsf_bdtshape_bins[i+1]}]",
+            label=f"ttbar SF ggF BDT bin [{ttsf_ggfbdtshape_bins[i]}, {ttsf_ggfbdtshape_bins[i+1]}]",
             years=years + ["2022-2023"],
         )
 
+    if bdt_version in ttbarsfs_decorr_vbfbdt_bins:
+        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins[bdt_version]
+        for i in range(len(ttsf_vbfbdtshape_bins) - 1):
+            weight_shifts[
+                f"ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}"
+            ] = Syst(
+                samples=["ttbar"],
+                label=f"ttbar SF VBF BDT bin [{ttsf_vbfbdtshape_bins[i]}, {ttsf_vbfbdtshape_bins[i+1]}]",
+                years=years + ["2022-2023"],
+            )
+
     for wp in TXbb_wps:
-        for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
+        for j in range(len(TXbb_wps[wp]) - 1):
             weight_shifts[
                 f"TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
             ] = Syst(

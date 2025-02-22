@@ -28,6 +28,7 @@ parser.add_argument(
 parser.add_argument("--tag", default="", help="tag for jobs", type=str)
 parser.add_argument("--year", default="2017", help="year", type=str)
 parser.add_argument("--user", default="rkansal", help="user", type=str)
+parser.add_argument("--location", default="fermilab", help="fermilab or ucsd", type=str)
 run_utils.add_bool_arg(parser, "submit-missing", default=False, help="submit missing files")
 run_utils.add_bool_arg(
     parser,
@@ -38,8 +39,10 @@ run_utils.add_bool_arg(
 
 args = parser.parse_args()
 
-
-eosdir = f"/eos/uscms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
+if args.location == "fermilab":
+    eosdir = f"/eos/uscms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
+elif args.location == "ucsd":
+    eosdir = f"/ceph/cms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
 
 samples = listdir(eosdir)
 jdls = [jdl for jdl in listdir(f"condor/{args.processor}/{args.tag}/") if jdl.endswith(".jdl")]
