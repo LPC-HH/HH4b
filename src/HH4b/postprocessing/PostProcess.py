@@ -1383,7 +1383,7 @@ def postprocess_run3(args):
     # different for glopart-v2
     elif args.txbb == "glopart-v2":
         fom_window_by_mass["H2PNetMass"] = [110, 155]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
+        blind_window_by_mass["H2PNetMass"] = [100, 140]  # only blind 2 bins
     # different for pnet-v12
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
@@ -1700,7 +1700,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mass-bins",
         type=int,
-        default=10,
+        default=20,
         choices=[10, 15, 20],
         help="width of mass bins",
     )
