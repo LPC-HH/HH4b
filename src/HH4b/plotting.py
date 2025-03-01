@@ -587,8 +587,12 @@ def ratioHistPlot(
             else "Stat. MC Uncertainty"
         )
 
-        bg_tot = sum([hists[sample, :] for sample in bg_keys])
-        bg_err_tot_mcstat = np.sqrt(bg_tot.variances())
+        # this version has an issue:
+        # bg_tot no longer weighted, returns None for variances
+        # bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        # bg_err_tot_mcstat = np.sqrt(bg_tot.variances())
+        # compute summed variance manually
+        bg_err_tot_mcstat = np.sqrt(sum([hists[sample, :].variances() for sample in bg_keys]))
         # print("mcstat ",bg_err_tot_mcstat)
 
         plot_shaded = False
