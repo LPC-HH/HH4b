@@ -215,7 +215,7 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             )
 
     for wp in TXbb_wps:
-        for j in range(len(TXbb_wps[wp]) - 1):
+        for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
             weight_shifts[
                 f"TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
             ] = Syst(
