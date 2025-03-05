@@ -7,6 +7,8 @@ Author: Raghav Kansal
 from __future__ import annotations
 
 import contextlib
+import logging
+import logging.config
 import pickle
 import time
 import warnings
@@ -35,6 +37,9 @@ from .hh_vars import (
     syst_keys,
     years,
 )
+
+logger = logging.getLogger("HH4b.utils")
+logger.setLevel(logging.DEBUG)
 
 MAIN_DIR = "./"
 CUT_MAX_VAL = 9999.0
@@ -290,9 +295,8 @@ def load_samples(
     columns: list = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
-    reorder_txbb: bool = True,  # temporary fix for sorting by given Txbb
-    txbb: str = "bbFatJetPNetTXbbLegacy",
-    # select_testing: bool = False,
+    reorder_txbb: bool = False,  # temporary fix for sorting by given Txbb
+    txbb_str: str = "bbFatJetPNetTXbbLegacy",
     load_weight_noxsec: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -312,9 +316,13 @@ def load_samples(
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
 
     """
+    events_dict = {}
+
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
-    events_dict = {}
+
+    logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
+    logger.debug(f"Samples to load {samples}")
 
     # label - key of sample in events_dict
     # selector - string used to select directories to load in for this sample
@@ -338,8 +346,29 @@ def load_samples(
                 warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-            print(f"Loading {sample}")
-            events = pd.read_parquet(parquet_path, filters=filters, columns=load_columns)
+            logger.debug(f"Loading {sample}")
+            try:
+                non_empty_passed_list = []
+                for parquet_file in parquet_path.glob("*.parquet"):
+                    if not pd.read_parquet(parquet_file).empty:
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
+                        non_empty_passed_list.append(df_sample)
+                events = pd.concat(non_empty_passed_list)
+            except Exception:
+                warnings.warn(
+                    f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
+                )
+                non_empty_passed_list = []
+                for parquet_file in parquet_path.glob("*.parquet"):
+                    if not pd.read_parquet(parquet_file).empty:
+                        df_sample = pd.read_parquet(
+                            parquet_file, filters=filters, columns=load_columns
+                        )
+                        non_empty_passed_list.append(df_sample)
+                events = pd.concat(non_empty_passed_list)
+                continue
 
             # no events?
             if not len(events):
@@ -347,7 +376,7 @@ def load_samples(
                 continue
 
             if reorder_txbb:
-                _reorder_txbb(events, txbb)
+                _reorder_txbb(events, txbb_str)
 
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
@@ -371,7 +400,7 @@ def load_samples(
                     events["finalWeight"] = events["weight"] / n_events
 
             events_dict[label].append(events)
-            print(f"Loaded {sample: <50}: {len(events)} entries")
+            logger.info(f"Loaded {sample: <50}: {len(events)} entries")
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
@@ -956,3 +985,17 @@ def multi_rebin_hist(h: Hist, axes_edges: dict[str, list[float]], flow: bool = T
         h = remove_hist_overflow(h)
 
     return h
+
+
+def discretize_var(var_array, bins=None):
+
+    if bins is None:
+        bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+
+    # discretize the variable into len(bins)-1  integer categories
+    bin_indices = np.digitize(var_array, bins)
+
+    # clip just to be safe
+    bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
+
+    return bin_indices

@@ -37,10 +37,11 @@ do
 done
 
 pip install -e .
+pip install -r requirements.txt
 
 # run code
 # pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} ${region} ${apply_selection} ${save_root}
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} --txbb ${txbb} ${region} ${save_root}
 
 #move output to t2s
 for t2_prefix in ${t2_prefixes}

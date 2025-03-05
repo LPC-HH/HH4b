@@ -90,7 +90,7 @@ goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$yea
 # Set up fit args
 ####################################################################################################
 
-templates_dir="/home/users/cmantill/hh/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
+templates_dir="/home/users/woodson/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
 cards_dir="cards/f_tests/${cards_tag}/"
 mkdir -p "${cards_dir}"
 echo "Saving datacards to ${cards_dir}"
@@ -138,7 +138,9 @@ do
     if [ ! -f "${cards_dir}/${model_name}/fail.txt" ]; then
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
-        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" --regions ${region_}
+        --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" \
+        --regions ${region_} --no-jesr --bdt-model 25Feb5_v13_glopartv2_rawmass \
+        --sig-samples hh4b vbfhh4b --txbb glopart-v2
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
