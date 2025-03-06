@@ -325,7 +325,9 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_syst + load_columns_thy if load_systematics else load_columns_year
+                load_columns_year + load_columns_syst + load_columns_thy
+                if load_systematics
+                else load_columns_year
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
@@ -669,9 +671,7 @@ def get_templates(
                             else:
                                 # pdf uncertainty is the norm of each variation (corresponding to 103 eigenvectors) - nominal
                                 nom_vals = h[sample, :].values()
-                                abs_unc = np.linalg.norm(
-                                    (whists.values() - nom_vals), axis=0
-                                )
+                                abs_unc = np.linalg.norm((whists.values() - nom_vals), axis=0)
                                 # cap at 100% uncertainty
                                 rel_unc = np.clip(abs_unc / nom_vals, 0, 1)
                                 shape_up = nom_vals * (1 + rel_unc)
