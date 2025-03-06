@@ -296,8 +296,8 @@ sig_keys_vbf = [
 ]
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
-# keys that require running up/down systematics
-syst_keys = sig_keys + bg_keys
+# bkg keys that require running up/down systematics
+syst_keys = bg_keys
 syst_keys.remove("qcd")
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]

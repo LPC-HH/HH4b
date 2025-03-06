@@ -160,7 +160,7 @@ for jshift in jec_shifts:
         (f"VBFJetPt_{jshift}", 2),
     ]
 # load scale and pdf weights
-load_columns_syst += [
+load_columns_thy = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
 ]
@@ -183,7 +183,7 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
         ),
         # "pileup": Syst(samples=fit_mcs, label="Pileup"),
-        "scale": Syst(samples=sig_keys + ["ttbar"], label="QCDScaleAcc"),
+        "scale": Syst(samples=sig_keys, label="QCDScaleAcc"),
         "pdf": Syst(samples=sig_keys, label="PDFAcc"),
         # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower"),
         # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower"),
@@ -258,13 +258,16 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
+    samples_sig = {
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in sig_keys
+    }
     samples_syst = {
         sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in syst_keys
     }
     samples_nosyst = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year]
-        if sample not in syst_keys
+        if sample not in syst_keys + sig_keys
     }
 
     # add extra branches if needed
@@ -284,7 +287,7 @@ def load_run3_samples(
                 1 - events_dict[key][("bbFatJetrawFactor", 1)]
             )
 
-    # load samples that do no need systematics (e.g. data)
+    # load samples that do not need systematics (e.g. data)
     events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
@@ -298,7 +301,7 @@ def load_run3_samples(
         ),
     }
 
-    # load samples that need systematics
+    # load bkg samples that need systematics
     events_dict_syst = {
         **utils.load_samples(
             input_dir,
@@ -314,16 +317,35 @@ def load_run3_samples(
         ),
     }
 
+    # load sig samples that need more systematics
+    events_dict_sig = {
+        **utils.load_samples(
+            input_dir,
+            samples_sig,
+            year,
+            filters=filters,
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst + load_columns_thy if load_systematics else load_columns_year
+            ),
+            reorder_txbb=reorder_txbb,
+            txbb_str=txbb_str,
+            variations=False,
+        ),
+    }
+
     if txbb_version == "glopart-v2":
         correct_mass(events_dict_nosyst, mass_str)
         correct_mass(events_dict_syst, mass_str)
+        correct_mass(events_dict_sig, mass_str)
 
     if scale_and_smear:
         add_rawmass(events_dict_nosyst, mass_str)
         add_rawmass(events_dict_syst, mass_str)
+        add_rawmass(events_dict_sig, mass_str)
         events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
+        events_dict_syst = scale_smear_mass(events_dict_sig, year, mass_str)
 
-    events_dict = {**events_dict_nosyst, **events_dict_syst}
+    events_dict = {**events_dict_nosyst, **events_dict_syst, **events_dict_sig}
 
     return events_dict
 
@@ -649,7 +671,7 @@ def get_templates(
                                 nom_vals = h[sample, :].values()
                                 abs_unc = np.linalg.norm(
                                     (whists.values() - nom_vals), axis=0
-                                )  # / np.sqrt(103)
+                                )
                                 # cap at 100% uncertainty
                                 rel_unc = np.clip(abs_unc / nom_vals, 0, 1)
                                 shape_up = nom_vals * (1 + rel_unc)
