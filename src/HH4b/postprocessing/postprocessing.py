@@ -159,6 +159,11 @@ for jshift in jec_shifts:
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
     ]
+# load scale and pdf weights
+load_columns_syst += [
+    ("scale_weights", 6),
+    ("pdf_weights", 103),
+]
 
 # only the BG MC samples that are used in the fits
 fit_bgs = ["ttbar", "vhtobb", "diboson", "vjets", "tthtobb"]
@@ -177,11 +182,11 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         "TXbbSF_correlated": Syst(
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
         ),
-        "pileup": Syst(samples=fit_mcs, label="Pileup"),
+        # "pileup": Syst(samples=fit_mcs, label="Pileup"),
         "scale": Syst(samples=sig_keys + ["ttbar"], label="QCDScaleAcc"),
         "pdf": Syst(samples=sig_keys, label="PDFAcc"),
-        "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower"),
-        "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower"),
+        # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower"),
+        # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower"),
     }
 
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
