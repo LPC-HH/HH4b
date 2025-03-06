@@ -190,7 +190,7 @@ class bbbbSkimmer(SkimmerABC):
     def __init__(
         self,
         xsecs=None,
-        save_systematics=False,
+        save_systematics=True,
         region="signal",
         nano_version="v12",
         txbb="glopart-v2",
