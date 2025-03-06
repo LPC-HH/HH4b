@@ -343,7 +343,7 @@ def load_run3_samples(
         add_rawmass(events_dict_syst, mass_str)
         add_rawmass(events_dict_sig, mass_str)
         events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
-        events_dict_syst = scale_smear_mass(events_dict_sig, year, mass_str)
+        events_dict_sig = scale_smear_mass(events_dict_sig, year, mass_str)
 
     events_dict = {**events_dict_nosyst, **events_dict_syst, **events_dict_sig}
 
