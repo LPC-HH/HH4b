@@ -162,7 +162,7 @@ for jshift in jec_shifts:
 # load scale and pdf weights
 load_columns_thy = [
     ("scale_weights", 6),
-    ("pdf_weights", 103),
+    ("pdf_weights", 101),  # FIXME: update to 103 once we have the full set
 ]
 
 # only the BG MC samples that are used in the fits
@@ -287,17 +287,22 @@ def load_run3_samples(
                 1 - events_dict[key][("bbFatJetrawFactor", 1)]
             )
 
-    # load samples that do not need systematics (e.g. data)
-    events_dict_nosyst = {
+    # load sig samples that need more systematics
+    events_dict_sig = {
         **utils.load_samples(
             input_dir,
-            samples_nosyst,
+            samples_sig,
             year,
             filters=filters,
-            columns=utils.format_columns(load_columns_year),
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst + load_columns_thy
+                if load_systematics
+                else load_columns_year
+            ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
-            variations=False,
+            variations=True,
+            weight_shifts={},
         ),
     }
 
@@ -317,18 +322,14 @@ def load_run3_samples(
         ),
     }
 
-    # load sig samples that need more systematics
-    events_dict_sig = {
+    # load samples that do not need systematics (e.g. data)
+    events_dict_nosyst = {
         **utils.load_samples(
             input_dir,
-            samples_sig,
+            samples_nosyst,
             year,
             filters=filters,
-            columns=utils.format_columns(
-                load_columns_year + load_columns_syst + load_columns_thy
-                if load_systematics
-                else load_columns_year
-            ),
+            columns=utils.format_columns(load_columns_year),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             variations=False,
