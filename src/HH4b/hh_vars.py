@@ -281,7 +281,12 @@ bg_keys = list(common_samples_bg.keys())
 bg_keys.remove("data")
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
-sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
+sig_keys_ggf = [
+    "hh4b",
+    # "hh4b-kl0",  # drop for now due to missing scale weight in 2023
+    "hh4b-kl2p45",
+    "hh4b-kl5"
+]
 sig_keys_vbf = [
     "vbfhh4b",
     "vbfhh4b-k2v0",
