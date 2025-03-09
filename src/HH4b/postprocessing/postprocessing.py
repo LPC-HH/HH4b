@@ -183,7 +183,11 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
         ),
         # "pileup": Syst(samples=fit_mcs, label="Pileup", years=years + ["2022-2023"]),
-        "scale": Syst(samples=sig_keys, label="QCDScaleAcc", years=years + ["2022-2023"]),
+        "scale": Syst(
+            samples=sig_keys,  # + "ttbar", # FIXME: add back ttbar later
+            label="QCDScaleAcc", 
+            years=years + ["2022-2023"]
+            ),
         "pdf": Syst(samples=sig_keys, label="PDFAcc", years=years + ["2022-2023"]),
         # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]),
         # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),

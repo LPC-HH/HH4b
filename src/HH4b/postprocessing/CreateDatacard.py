@@ -131,7 +131,6 @@ parser.add_argument(
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
-add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 add_bool_arg(
@@ -155,7 +154,7 @@ blind_window = [110, 140]
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1, 1]
+        args.nTF = [0, 0, 0, 0]
     else:
         args.nTF = [0]
 
@@ -209,7 +208,7 @@ hist_names = {}  # names of hist files for the samples
 for key in all_sig_keys:
     # check in case single sig sample is specified
     if args.sig_samples is None or key in args.sig_samples:
-        # TODO: change names to match HH combination convention
+        # change names to match HH combination convention
         mc_samples[key] = mc_samples_sig[key]
         sig_keys.append(key)
 
@@ -252,18 +251,6 @@ nuisance_params = {
         diff_samples=True,
     ),
     "QCDscale_qqHH": Syst(prior="lnN", samples=sig_keys_vbf, value=1.0003, value_down=0.9996),
-    # "QCDscale_ggH": Syst(
-    #     prior="lnN",
-    #     samples=ggfh_keys,
-    #     value=1.039,
-    # ),
-    # "alpha_s": for single Higgs backgrounds
-    # f"{CMS_PARAMS_LABEL}_triggerEffSF_uncorrelated": Syst(
-    #     prior="lnN", samples=all_mc, diff_regions=True
-    # ),
-    # THU_HH: combined Scale+mtop uncertainty from
-    # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH#Latest_recommendations_for_gluon
-    # remove for use with inference (assuming correct kl-dependent implementation there)
     "THU_HH": Syst(
         prior="lnN",
         samples=sig_keys_ggf,
@@ -286,32 +273,13 @@ if args.ttbar_rate_param:
         }
     }
 
-# add temporary uncertainties
-if args.temp_uncs:
-    temp_nps = {
-        "lumi_pileup": Syst(prior="lnN", samples=all_mc, value=1.04),
-        "signal_eff": Syst(prior="lnN", samples=sig_keys, value=1.1, pass_only=True),
-        "top_mistag": Syst(prior="lnN", samples=["ttbar"], value=1.1, pass_only=True),
-    }
-    nuisance_params = {**nuisance_params, **temp_nps}
-
 nuisance_params_dict = {
     param: rl.NuisanceParameter(param, syst.prior) for param, syst in nuisance_params.items()
 }
 
 # dictionary of correlated shape systematics: name in templates -> name in cards, etc.
 corr_year_shape_systs = {
-    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=nonres_sig_keys_ggf + ["V+Jets"]),
-    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=nonres_sig_keys_ggf + ["V+Jets"]),
-    # TODO: should we be applying QCDscale for "others" process?
-    # https://github.com/LPC-HH/HHLooper/blob/master/python/prepare_card_SR_final.py#L290
-    # "QCDscale": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ggHHQCDacc", prior="shape", samples=nonres_sig_keys_ggf
-    # ),
-    # "PDFalphaS": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
-    # ),
-    # "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    # "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -332,12 +300,12 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
-    "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys),
-    "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys),
+    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys),
+    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys),
     "scale": Syst(
         name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
         prior="shape",
-        samples=sig_keys + ["ttbar"],
+        samples=sig_keys, # + ["ttbar"],  # FIXME: add back ttbar later
         samples_corr=False,
     ),
     "pdf": Syst(
@@ -370,7 +338,7 @@ if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins:
         )
 
 uncorr_year_shape_systs = {
-    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(
         name="CMS_res_j",
         prior="shape",
@@ -440,7 +408,7 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMS"]
 
 if not args.jesr:
-    # del corr_year_shape_systs["JES_AbsoluteScale"]
+    # del corr_year_shape_systs["JES"]
     del uncorr_year_shape_systs["JER"]
 
 if args.ttbar_rate_param:
@@ -454,7 +422,16 @@ if args.ttbar_rate_param:
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    if syst.decorrelate_regions:
+    if not syst.samples_corr:
+        # separate nuisance param for each affected sample
+        for sample in syst.samples:
+            if sample not in mc_samples:
+                continue
+            shape_systs_dict[f"{skey}_{sample}"] = rl.NuisanceParameter(
+                f"{syst.name}_{mc_samples[sample]}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    elif syst.decorrelate_regions:
+        # separate nuisance param for each region
         for region in signal_regions + ["fail"]:
             shape_systs_dict[f"{skey}_{region}"] = rl.NuisanceParameter(
                 f"{syst.name}_{region}", "lnN" if syst.convert_shape_to_lnN else "shape"
@@ -648,7 +625,6 @@ def fill_regions(
                     val = val[region]
                     val_down = val_down[region] if val_down is not None else val_down
                 if syst.diff_samples:
-                    print(skey)
                     val = val[sample_name]
                     val_down = val_down[sample_name] if val_down is not None else val_down
 
@@ -688,12 +664,15 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
-                if syst.decorrelate_regions:
-                    sample.setParamEffect(
-                        shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down
-                    )
+                if not syst.samples_corr:
+                    # separate syst if not correlated across samples
+                    sdkey = f"{skey}_{sample_name}"            
+                elif syst.decorrelate_regions:
+                    # separate syst if not correlated across regions
+                    sdkey = f"{skey}_{region_noblinded}"
                 else:
-                    sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
+                    sdkey = skey
+                sample.setParamEffect(shape_systs_dict[sdkey], effect_up, effect_down)
 
             # uncorrelated shape systematics
             for skey, syst in uncorr_year_shape_systs.items():

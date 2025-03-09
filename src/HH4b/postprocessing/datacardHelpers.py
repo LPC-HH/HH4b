@@ -33,6 +33,7 @@ class Syst:
     diff_samples: bool = False
 
     samples: list[str] = None  # samples affected by it
+    samples_corr: bool = True  # if it's correlated between samples
     # in case of uncorrelated unc., which years to split into
     # dictionary of label -> list of years to keep correlated
     uncorr_years: dict[str, list[str]] = field(

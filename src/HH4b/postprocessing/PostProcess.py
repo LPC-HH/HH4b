@@ -1458,9 +1458,8 @@ def postprocess_run3(args):
 
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
-        # not needed at the moment
         scaled_by_years = {
-            # "vbfhh4b-k2v2": ["2022", "2022EE"],
+            "diboson": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
