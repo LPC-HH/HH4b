@@ -263,10 +263,14 @@ def load_run3_samples(
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
     samples_syst_sig = {
-        sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample in syst_keys and sample in sig_keys)
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if (sample in syst_keys and sample in sig_keys)
     }
     samples_syst_bg = {
-        sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample in syst_keys and sample not in sig_keys)
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if (sample in syst_keys and sample not in sig_keys)
     }
     samples_nosyst = {
         sample: samples_run3[year][sample]

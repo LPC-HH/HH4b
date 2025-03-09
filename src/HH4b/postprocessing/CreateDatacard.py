@@ -685,7 +685,9 @@ def fill_regions(
                     elif sample_name in sig_keys_vbf:
                         prod_mode = "qqHH"
                     else:
-                        raise NotImplementedError(f"Splitting Syst by production mode for Sample {sample_name} not yet implemented")
+                        raise NotImplementedError(
+                            f"Splitting Syst by production mode for Sample {sample_name} not yet implemented"
+                        )
                     sdkey = f"{skey}_{prod_mode}"
                 else:
                     sdkey = skey
