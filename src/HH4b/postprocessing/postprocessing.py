@@ -262,16 +262,16 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    samples_sig = {
-        sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in sig_keys
+    samples_syst_sig = {
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample in syst_keys and sample in sig_keys)
     }
-    samples_syst = {
-        sample: samples_run3[year][sample] for sample in samples_run3[year] if sample in syst_keys
+    samples_syst_bg = {
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample in syst_keys and sample not in sig_keys)
     }
     samples_nosyst = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year]
-        if sample not in syst_keys + sig_keys
+        if sample not in syst_keys
     }
 
     # add extra branches if needed
@@ -292,10 +292,10 @@ def load_run3_samples(
             )
 
     # load sig samples that need more systematics
-    events_dict_sig = {
+    events_dict_syst_sig = {
         **utils.load_samples(
             input_dir,
-            samples_sig,
+            samples_syst_sig,
             year,
             filters=filters,
             columns=utils.format_columns(
@@ -311,10 +311,10 @@ def load_run3_samples(
     }
 
     # load bkg samples that need systematics
-    events_dict_syst = {
+    events_dict_syst_bg = {
         **utils.load_samples(
             input_dir,
-            samples_syst,
+            samples_syst_bg,
             year,
             filters=filters,
             columns=utils.format_columns(
@@ -342,17 +342,17 @@ def load_run3_samples(
 
     if txbb_version == "glopart-v2":
         correct_mass(events_dict_nosyst, mass_str)
-        correct_mass(events_dict_syst, mass_str)
-        correct_mass(events_dict_sig, mass_str)
+        correct_mass(events_dict_syst_bg, mass_str)
+        correct_mass(events_dict_syst_sig, mass_str)
 
     if scale_and_smear:
         add_rawmass(events_dict_nosyst, mass_str)
-        add_rawmass(events_dict_syst, mass_str)
-        add_rawmass(events_dict_sig, mass_str)
-        events_dict_syst = scale_smear_mass(events_dict_syst, year, mass_str)
-        events_dict_sig = scale_smear_mass(events_dict_sig, year, mass_str)
+        add_rawmass(events_dict_syst_bg, mass_str)
+        add_rawmass(events_dict_syst_sig, mass_str)
+        events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
+        events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
 
-    events_dict = {**events_dict_nosyst, **events_dict_syst, **events_dict_sig}
+    events_dict = {**events_dict_nosyst, **events_dict_syst_bg, **events_dict_syst_sig}
 
     return events_dict
 
