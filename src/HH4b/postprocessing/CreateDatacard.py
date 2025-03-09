@@ -305,7 +305,7 @@ corr_year_shape_systs = {
     "scale": Syst(
         name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
         prior="shape",
-        samples=sig_keys, # + ["ttbar"],  # FIXME: add back ttbar later
+        samples=sig_keys,  # + ["ttbar"],  # FIXME: add back ttbar later
         samples_corr=False,
     ),
     "pdf": Syst(
@@ -666,7 +666,7 @@ def fill_regions(
                 )
                 if not syst.samples_corr:
                     # separate syst if not correlated across samples
-                    sdkey = f"{skey}_{sample_name}"            
+                    sdkey = f"{skey}_{sample_name}"
                 elif syst.decorrelate_regions:
                     # separate syst if not correlated across regions
                     sdkey = f"{skey}_{region_noblinded}"
