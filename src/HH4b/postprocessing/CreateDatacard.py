@@ -300,19 +300,21 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
-    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys),
-    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys),
+    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
+    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
     "scale": Syst(
         name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
         prior="shape",
         samples=sig_keys,  # + ["ttbar"],  # FIXME: add back ttbar later
-        samples_corr=False,
+        samples_corr=True,
+        separate_prod_modes=True,
     ),
     "pdf": Syst(
         name=f"{CMS_PARAMS_LABEL}_PDFacc",
         prior="shape",
         samples=sig_keys,
-        samples_corr=False,
+        samples_corr=True,
+        separate_prod_modes=True,
     ),
 }
 
@@ -435,6 +437,12 @@ for skey, syst in corr_year_shape_systs.items():
         for region in signal_regions + ["fail"]:
             shape_systs_dict[f"{skey}_{region}"] = rl.NuisanceParameter(
                 f"{syst.name}_{region}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    elif syst.separate_prod_modes:
+        # separate nuisance param for each production mode
+        for prod_mode in ["ggf", "vbf"]:
+            shape_systs_dict[f"{skey}_{prod_mode}"] = rl.NuisanceParameter(
+                f"{syst.name}_{prod_mode}", "lnN" if syst.convert_shape_to_lnN else "shape"
             )
     else:
         shape_systs_dict[skey] = rl.NuisanceParameter(
@@ -670,6 +678,10 @@ def fill_regions(
                 elif syst.decorrelate_regions:
                     # separate syst if not correlated across regions
                     sdkey = f"{skey}_{region_noblinded}"
+                elif syst.separate_prod_modes:
+                    # separate syst if not correlated across production modes
+                    prod_mode = "ggf" if sample_name in sig_keys_ggf else "vbf"
+                    sdkey = f"{skey}_{prod_mode}"
                 else:
                     sdkey = skey
                 sample.setParamEffect(shape_systs_dict[sdkey], effect_up, effect_down)
