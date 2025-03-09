@@ -440,7 +440,7 @@ for skey, syst in corr_year_shape_systs.items():
             )
     elif syst.separate_prod_modes:
         # separate nuisance param for each production mode
-        for prod_mode in ["ggf", "vbf"]:
+        for prod_mode in ["ggHH", "qqHH"]:
             shape_systs_dict[f"{skey}_{prod_mode}"] = rl.NuisanceParameter(
                 f"{syst.name}_{prod_mode}", "lnN" if syst.convert_shape_to_lnN else "shape"
             )
@@ -680,7 +680,12 @@ def fill_regions(
                     sdkey = f"{skey}_{region_noblinded}"
                 elif syst.separate_prod_modes:
                     # separate syst if not correlated across production modes
-                    prod_mode = "ggf" if sample_name in sig_keys_ggf else "vbf"
+                    if sample_name in sig_keys_ggf:
+                        prod_mode = "ggHH"
+                    elif sample_name in sig_keys_vbf:
+                        prod_mode = "qqHH"
+                    else:
+                        raise NotImplementedError(f"Splitting Syst by production mode for Sample {sample_name} not yet implemented")
                     sdkey = f"{skey}_{prod_mode}"
                 else:
                     sdkey = skey
