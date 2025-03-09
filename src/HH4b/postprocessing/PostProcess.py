@@ -126,7 +126,7 @@ def get_jets_for_txbb_sf(key: str):
     # for now, assuming mostly V=Z(bb) passes selection
     # apply to both jets in HH, VH, VV processes
     # apply to only first jet in single-H or single-V processes
-    if "hh4b" in key or key in ["vhtobb", "diboson"]:
+    if key in hh_vars.sig_keys or key in ["vhtobb", "diboson"]:
         return [1, 2]
     elif key in ["novhhtobb", "tthtobb", "vjets"]:
         return [1]
@@ -524,6 +524,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        # scale, pdf weights
+        if key in hh_vars.sig_keys:
+            for i in range(6):
+                bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+            for i in range(101):
+                bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
         bdt_events["event"] = events_dict["event"].to_numpy()
@@ -915,8 +921,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
-        if "hh" in key:
+        if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
+            for i in range(6):
+                columns += [f"scale_weights_{i}"]
+            for i in range(101):
+                columns += [f"pdf_weights_{i}"]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
         columns = list(set(columns))
@@ -1434,9 +1444,12 @@ def postprocess_run3(args):
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
     if not args.control_plots and not args.bdt_roc:
-        processes.remove("qcd")
-        bg_keys.remove("qcd")
-        bg_keys_combined.remove("qcd")
+        if "qcd" in processes:
+            processes.remove("qcd")
+        if "qcd" in bg_keys:
+            bg_keys.remove("qcd")
+        if "qcd" in bg_keys_combined:
+            bg_keys_combined.remove("qcd")
 
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,

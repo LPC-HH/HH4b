@@ -182,11 +182,11 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         "TXbbSF_correlated": Syst(
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
         ),
-        # "pileup": Syst(samples=fit_mcs, label="Pileup"),
-        "scale": Syst(samples=sig_keys, label="QCDScaleAcc"),
-        "pdf": Syst(samples=sig_keys, label="PDFAcc"),
-        # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower"),
-        # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower"),
+        # "pileup": Syst(samples=fit_mcs, label="Pileup", years=years + ["2022-2023"]),
+        "scale": Syst(samples=sig_keys, label="QCDScaleAcc", years=years + ["2022-2023"]),
+        "pdf": Syst(samples=sig_keys, label="PDFAcc", years=years + ["2022-2023"]),
+        # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]),
+        # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),
     }
 
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
@@ -527,7 +527,7 @@ def _get_qcdvar_hists(
 ):
     """Get histograms for QCD scale and PDF variations"""
     wkey = f"{wshift}_weights"
-    cols = list(events[wkey].columns)
+    cols = sorted([int(col.split("_")[-1]) for col in events.columns if wkey in col])
     h = Hist(
         hist.axis.StrCategory([str(i) for i in cols], name="Sample"),
         *[shape_var.axis for shape_var in shape_vars],
@@ -538,7 +538,7 @@ def _get_qcdvar_hists(
         h.fill(
             Sample=str(i),
             **fill_data,
-            weight=events[wkey][i],
+            weight=events[f"{wkey}_{i}"],
         )
     return h
 
