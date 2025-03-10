@@ -396,7 +396,7 @@ class bbbbSkimmer(SkimmerABC):
         # initialize all values with 5% and 10% variation
         self.jms_values = dict.fromkeys(["2022","2022EE","2023","2023BPix"])
         self.jmr_values = dict.fromkeys(["2022","2022EE","2023","2023BPix"])
-        for jmsr_year in self.jms_values.keys():
+        for jmsr_year in self.jms_values:
             self.jms_values[jmsr_year] = {k: [1.0, 0.95, 1.05] for k in self.jmsr_vars}
             self.jmr_values[jmsr_year] = {k: [1.0, 0.9, 1.1] for k in self.jmsr_vars}
             if "2022" in jmsr_year:
