@@ -273,13 +273,12 @@ def _normalize_weights(
             weights = events[wkey].to_numpy()
             n_weights = weights.shape[1]
             events[wkey] = weights / totals[f"np_{wkey}"][:n_weights]
-            if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
-                if "VBF" in sample:
-                    warnings.warn(
-                        f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
-                        stacklevel=0,
-                    )
-                    events[wkey] = events[wkey].to_numpy() * xsecs[sample] * LUMI[year]
+            if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]) and "VBF" in sample:
+                warnings.warn(
+                    f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
+                    stacklevel=0,
+                )
+                events[wkey] = events[wkey].to_numpy() * xsecs[sample] * LUMI[year]
 
 
 def _reorder_txbb(events: pd.DataFrame, txbb):
