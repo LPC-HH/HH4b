@@ -393,6 +393,18 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
+        # initialize all values with 5% and 10% variation
+        self.jms_values = dict.fromkeys(["2022","2022EE","2023","2023BPix"])
+        self.jmr_values = dict.fromkeys(["2022","2022EE","2023","2023BPix"])
+        for jmsr_year in self.jms_values.keys():
+            self.jms_values[jmsr_year] = {k: [1.0, 0.95, 1.05] for k in self.jmsr_vars}
+            self.jmr_values[jmsr_year] = {k: [1.0, 0.9, 1.1] for k in self.jmsr_vars}
+            if "2022" in jmsr_year:
+                self.jms_values[jmsr_year]["ParTmassVis"] = [1.0106, 1.0071, 1.0141]
+                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0354, 1.028, 1.042]
+            else:
+                self.jms_values[jmsr_year]["ParTmassVis"] = [0.9711, 0.9654, 0.9768]
+                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0181, 1.0005, 1.0357]
 
         # FatJet Vars
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
@@ -586,14 +598,13 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        if self._region == "signal":
-            # TODO: add variations per variable
+        if self._region == "pre-sel" or self._region == "signal":
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
                 jmsr_vars=self.jmsr_vars,
-                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jms_values=self.jms_values[year],
+                jmr_values=self.jmr_values[year],
                 isData=isData,
             )
 
@@ -1075,7 +1086,7 @@ class bbbbSkimmer(SkimmerABC):
             weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTto"):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
