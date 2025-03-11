@@ -985,3 +985,17 @@ def multi_rebin_hist(h: Hist, axes_edges: dict[str, list[float]], flow: bool = T
         h = remove_hist_overflow(h)
 
     return h
+
+
+def discretize_var(var_array, bins=None):
+
+    if bins is None:
+        bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+
+    # discretize the variable into len(bins)-1  integer categories
+    bin_indices = np.digitize(var_array, bins)
+
+    # clip just to be safe
+    bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
+
+    return bin_indices
