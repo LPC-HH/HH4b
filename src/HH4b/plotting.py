@@ -350,6 +350,7 @@ def ratioHistPlot(
     energy: str = "13.6",
     add_pull: bool = False,
     reweight_qcd: bool = False,
+    qcd_norm: float = None,
     save_pdf: bool = True,
 ):
     """
@@ -389,6 +390,8 @@ def ratioHistPlot(
         plot_significance (bool): plot Asimov significance below ratio plot
         significance_dir (str): "Direction" for significance. i.e. a > cut ("right"), a < cut ("left"), or per-bin ("bin").
         axrax (Tuple): optionally input ax and rax instead of creating new ones
+        reweight_qcd (bool): reweight qcd process to agree with data-othermc
+        qcd_norm (float): normalization to reweight qcd process, if not None
     """
 
     # copy hists and bg_keys so input objects are not changed
@@ -453,11 +456,16 @@ def ratioHistPlot(
 
     # re-weight qcd
     kfactor = {sample: 1 for sample in bg_keys}
-    if reweight_qcd:
+    if reweight_qcd and qcd_norm is None:
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
         if bg_yield > 0:
             kfactor["qcd"] = data_yield / bg_yield
+        print("kfactor ", kfactor["qcd"], qcd_norm)
+    elif reweight_qcd:
+        kfactor["qcd"] = qcd_norm
+    else:
+        kfactor["qcd"] = 1.0
 
     # background samples
     if len(bg_keys) > 0:
@@ -571,12 +579,21 @@ def ratioHistPlot(
 
     # print(hists.axes[1].widths)
 
+    bg_err_tot_mcstat = None
     if bg_err_mcstat:
         bg_err_label = (
             "Stat. MC Uncertainty (excl. Multijet)"
             if exclude_qcd_mcstat
             else "Stat. MC Uncertainty"
         )
+
+        # this version has an issue:
+        # bg_tot no longer weighted, returns None for variances
+        # bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        # bg_err_tot_mcstat = np.sqrt(bg_tot.variances())
+        # compute summed variance manually
+        bg_err_tot_mcstat = np.sqrt(sum([hists[sample, :].variances() for sample in bg_keys]))
+        # print("mcstat ",bg_err_tot_mcstat)
 
         plot_shaded = False
 
@@ -607,8 +624,9 @@ def ratioHistPlot(
                         yerr=yerr,
                         histtype="errorbar",
                         markersize=0,
-                        color="gray",
+                        color="black",
                         label=bg_err_label,
+                        xerr=True,
                     )
                 else:
                     hep.histplot(
@@ -617,7 +635,8 @@ def ratioHistPlot(
                         yerr=yerr,
                         histtype="errorbar",
                         markersize=0,
-                        color="gray",
+                        color="black",
+                        xerr=True,
                     )
 
         if plot_shaded:
@@ -707,6 +726,7 @@ def ratioHistPlot(
             histtype="errorbar",
             markersize=20,
             color="black",
+            xerr=True,
             capsize=0,
         )
         rax.set_xlabel(hists.axes[1].label)
@@ -718,6 +738,16 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err[0].values()) / tot_val, 2),
                 np.repeat((bg_err[1].values()) / tot_val, 2),
+                color="black",
+                alpha=0.1,
+                hatch="//",
+                linewidth=0,
+            )
+        if bg_err_tot_mcstat is not None:
+            ax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat((bg_err_tot_mcstat) / tot_val, 2),
+                np.repeat((bg_err_tot_mcstat) / tot_val, 2),
                 color="black",
                 alpha=0.1,
                 hatch="//",
@@ -842,6 +872,8 @@ def ratioHistPlot(
         plt.show()
     else:
         plt.close()
+
+    return kfactor.get("qcd", 1.0)
 
 
 def subtractedHistPlot(
