@@ -1242,7 +1242,7 @@ def get_v12v2_private():
             "Diboson": {
                 "WW": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/woodson/2023BPix/diboson/WW_TuneCP5_13p6TeV_pythia8/",
                 "WZ": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/woodson/2023BPix/diboson/WZ_TuneCP5_13p6TeV_pythia8/",
-                "ZZ": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/woodson/2023BPix/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
+                "ZZ": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/cmantill/2023BPix/diboson/ZZ_TuneCP5_13p6TeV_pythia8/",
             },
             "VJets": {
                 "WtoLNu-2Jets_0J": "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/woodson/2023BPix/VJets/WtoLNu-2Jets_0J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/",

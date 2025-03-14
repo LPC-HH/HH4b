@@ -59,6 +59,8 @@ gen_selection_dict = {
     "WtoLNu-": gen_selection_V,
     "DYto2L-": gen_selection_V,
     "ZZ": gen_selection_VV,
+    "WW": gen_selection_VV,
+    "WZ": gen_selection_VV,
     "ZH": gen_selection_VV,
     "TTto4Q": gen_selection_Top,
     "TTto2L2Nu": gen_selection_Top,
@@ -188,7 +190,7 @@ class bbbbSkimmer(SkimmerABC):
     def __init__(
         self,
         xsecs=None,
-        save_systematics=False,
+        save_systematics=True,
         region="signal",
         nano_version="v12",
         txbb="glopart-v2",
@@ -379,7 +381,7 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "24Nov7_v5_glopartv2_rawmass"
+        bdt_model_name = "25Feb5_v13_glopartv2_rawmass"
         self.bdt_model = xgb.XGBClassifier()
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -391,6 +393,18 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
+        # initialize all values with 5% and 10% variation
+        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        for jmsr_year in self.jms_values:
+            self.jms_values[jmsr_year] = {k: [1.0, 0.95, 1.05] for k in self.jmsr_vars}
+            self.jmr_values[jmsr_year] = {k: [1.0, 0.9, 1.1] for k in self.jmsr_vars}
+            if "2022" in jmsr_year:
+                self.jms_values[jmsr_year]["ParTmassVis"] = [1.0106, 1.0071, 1.0141]
+                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0354, 1.028, 1.042]
+            else:
+                self.jms_values[jmsr_year]["ParTmassVis"] = [0.9711, 0.9654, 0.9768]
+                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0181, 1.0005, 1.0357]
 
         # FatJet Vars
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
@@ -584,14 +598,13 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        if self._region == "signal":
-            # TODO: add variations per variable
+        if self._region == "pre-sel" or self._region == "signal":
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
                 jmsr_vars=self.jmsr_vars,
-                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jms_values=self.jms_values[year],
+                jmr_values=self.jmr_values[year],
                 isData=isData,
             )
 
@@ -607,6 +620,7 @@ class bbbbSkimmer(SkimmerABC):
                 vars_dict = gen_selection_dict[d](
                     events, jets, fatjets_xbb, selection_args, P4, "bbFatJet"
                 )
+                genVars = {**genVars, **vars_dict}
                 # match fatjets
                 vars_dict = gen_selection_dict[d](
                     events, jets, fatjets, selection_args, P4, "ak8FatJet"
@@ -807,9 +821,17 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up"] + list(
-                self.jecs.values()
-            ):
+            for jshift in [
+                "",
+                "JMS_down",
+                "JMS_up",
+                "JMR_down",
+                "JMR_up",
+                "JES_up",
+                "JES_down",
+                "JER_up",
+                "JER_down",
+            ]:
                 bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
                 skimmed_events = {
                     **skimmed_events,
@@ -1064,7 +1086,7 @@ class bbbbSkimmer(SkimmerABC):
             weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTto"):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
@@ -1097,10 +1119,22 @@ class bbbbSkimmer(SkimmerABC):
         self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
     ):
         """Calculates BDT"""
+
+        def disc_TXbb(txbb_array):
+            # define binning
+            bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+
+            # discretize the TXbb variable into len(bins)-1  integer categories
+            bin_indices = np.digitize(txbb_array, bins)
+
+            # clip just to be safe
+            bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
+
+            return bin_indices
+
         key_map = get_var_mapping(jshift)
 
-        # makedataframe from v5_glopartv2
-        # 24Nov7_v5_glopartv2_rawmass
+        # makedataframe from v13_glopartv2
         # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
@@ -1153,12 +1187,8 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,
                 key_map("H1eta"): h1.eta,
-                # "H2eta": h2.eta,
                 # xbb
-                key_map("H1Xbb"): bbFatJetVars[key_map("bbFatJetPNetPXbbLegacy")][:, 0],
-                key_map("H1QCDb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbLegacy")][:, 0],
-                key_map("H1QCDbb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbbLegacy")][:, 0],
-                key_map("H1QCDothers"): bbFatJetVars[key_map("bbFatJetPNetPQCD0HFLegacy")][:, 0],
+                key_map("H1Xbb"): disc_TXbb(bbFatJetVars[key_map("bbFatJetParTTXbb")][:, 0]),
                 # ratios
                 key_map("H1Pt_HHmass"): h1.pt / hh.mass,
                 key_map("H2Pt_HHmass"): h2.pt / hh.mass,
