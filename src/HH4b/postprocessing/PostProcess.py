@@ -126,7 +126,7 @@ def get_jets_for_txbb_sf(key: str):
     # for now, assuming mostly V=Z(bb) passes selection
     # apply to both jets in HH, VH, VV processes
     # apply to only first jet in single-H or single-V processes
-    if "hh4b" in key or key in ["vhtobb", "diboson"]:
+    if key in hh_vars.sig_keys or key in ["vhtobb", "diboson"]:
         return [1, 2]
     elif key in ["novhhtobb", "tthtobb", "vjets"]:
         return [1]
@@ -524,6 +524,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        # scale, pdf weights
+        if key in hh_vars.sig_keys:
+            for i in range(6):
+                bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+            for i in range(101):
+                bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
         bdt_events["event"] = events_dict["event"].to_numpy()
@@ -574,7 +580,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
-        nominal_weight = bdt_events["weight"]
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
@@ -624,7 +629,13 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
         # save total corrected weight
-        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight * txbb_sf_weight
+        bdt_events["weight"] *= trigger_weight * ttbar_weight * txbb_sf_weight
+        # also correct pdf/scale weights
+        if key in hh_vars.sig_keys:
+            for i in range(6):
+                bdt_events[f"scale_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
+            for i in range(101):
+                bdt_events[f"pdf_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
         # correlated signal xbb up/dn variations
         corr_up = np.ones(nevents)
@@ -915,8 +926,12 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
-        if "hh" in key:
+        if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
+            for i in range(6):
+                columns += [f"scale_weights_{i}"]
+            for i in range(101):
+                columns += [f"pdf_weights_{i}"]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"]
         columns = list(set(columns))
@@ -1434,15 +1449,17 @@ def postprocess_run3(args):
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
     if not args.control_plots and not args.bdt_roc:
-        processes.remove("qcd")
-        bg_keys.remove("qcd")
-        bg_keys_combined.remove("qcd")
+        if "qcd" in processes:
+            processes.remove("qcd")
+        if "qcd" in bg_keys:
+            bg_keys.remove("qcd")
+        if "qcd" in bg_keys_combined:
+            bg_keys_combined.remove("qcd")
 
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
-        # not needed at the moment
         scaled_by_years = {
-            # "vbfhh4b-k2v2": ["2022", "2022EE"],
+            "diboson": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
