@@ -44,7 +44,7 @@ python3 scalesmear.py  -i run3_templates/2023All/Nov7/topCR_pt300-1000.root --pl
 - Old files `<input_name>.root` will have the smear/scale Up/Down variations obtained from the event dictionary
 
 3. Generate datacards
-````
+```
 python3 sf.py --fit single -t   run3_templates/2023All/Nov7/topCR_pt300-1000_var.root  -o run3_templates/2023All/Nov7/topCR_pt300-1000_var_scale2smear0p5/ --scale 2 --smear 0.5
 ```
 Then output will look like:
@@ -148,3 +148,129 @@ scaleSF 1.003, 1.002, 1.003
 smearSF 1.177 +/- 0.036 (3.06%)
 smearSF 1.177, 1.141, 1.213
 ```
+
+## Interpretation of "weighted" Templates
+
+https://indico.cern.ch/event/1470867/contributions/6210658/attachments/2960153/5288894/25.01.17_JMAR_Supp2.pdf
+
+https://indico.cern.ch/event/1382617/contributions/5831259/attachments/2807626/4899444/Top_W_SFs_Run3.pdf
+
+https://indico.cern.ch/event/1379091/contributions/5865451/attachments/2850282/4987507/DeepDive.pdf
+
+10% jet mass smearing relative to the resolution https://twiki.cern.ch/twiki/bin/view/CMS/JetResolution#Smearing_procedures 
+
+- JMS apply 100 ± 10% scaling on the mSD variable
+
+## With full dataset (Mar12)
+
+
+```
+cd TnPSF
+python3 scalesmear.py  -i run3_templates/2022All/Mar12/topCR_pt-1000.root --plot --scale 2 --smear 0.5
+python3 scalesmear.py  -i run3_templates/2023All/Mar12/topCR_pt-1000.root --plot --scale 2 --smear 0.5
+
+python3 sf.py --fit single -t run3_templates/2022All/Mar12/topCR_pt-1000_var.root  -o run3_templates/2022All/Mar12/topCR_pt-1000_var_scale2smear0p5/ --scale 2 --smear 0.5 --year 2022
+python3 sf.py --fit single -t run3_templates/2023All/Mar12/topCR_pt-1000_var.root  -o run3_templates/2023All/Mar12/topCR_pt-1000_var_scale2smear0p5/ --scale 2 --smear 0.5 --year 2023
+
+python3 sf.py --fit single -t run3_templates/2022All/Mar12/topCR_pt300-1000.root  -o run3_templates/2022All/Mar12/topCR_pt300-1000_scale1smear1/ --scale 1 --smear 1 --no-var --year 2022
+python3 sf.py --fit single -t run3_templates/2023All/Mar12/topCR_pt300-1000.root  -o run3_templates/2023All/Mar12/topCR_pt300-1000_scale1smear1/ --scale 1 --smear 1 --no-var --year 2023
+```
+
+- 2022 morphing
+```
+cd run3_templates/2022All/Mar12/topCR_pt-1000_var_scale2smear0p5/
+source build.sh
+combine -M FitDiagnostics --expectSignal 1 -d model_combined.root --cminDefaultMinimizerStrategy 0 --robustFit=1 --saveShapes --saveWithUncertainties --rMin 0.5 --rMax 1.5
+  [WARNING] Found [effSF_un] at boundary. 
+  [WARNING] Found [CMS_smear] at boundary. 
+
+ --- FitDiagnostics ---
+Best fit effSF: 0.843424  -0.057169/+0.0592123  (68% CL)
+Done in 0.02 min (cpu), 0.02 min (real)
+
+python3 ../../../../results.py --year 2022All  --scale 2 --smear 0.5
+{'CMS_scale': {'val': 0.236, 'unc': 0.098}, 'CMS_smear': {'val': 0.831, 'unc': 0.186}, 'effSF': {'val': 0.843, 'unc': 0.058}, 'effSF_un': {'val': 0.678, 'unc': 0.485}}
+{'CMS_scale': {'unc': 0.098, 'val': 0.236},
+ 'CMS_smear': {'unc': 0.186, 'val': 0.831},
+ 'V_SF': 0.843,
+ 'V_SF_ERR': 0.058,
+ 'effSF': {'unc': 0.058, 'val': 0.843},
+ 'effSF_un': {'unc': 0.485, 'val': 0.678},
+ 'shift_SF': 0.944,
+ 'shift_SF_ERR': 0.392,
+ 'smear_SF': 1.2077499999999999,
+ 'smear_SF_ERR': 0.0465}
+Mean 84.54, Sigma 7.55
+scaleSF 1.011 +/- 0.0046 (0.46%)
+scaleSF 1.011, 1.0065, 1.016
+smearSF 1.208 +/- 0.046 (3.85%)
+smearSF 1.208, 1.161, 1.254
+
+cp ../../../../run_impacts_scale.sh .
+cp ../../../../run_impacts_smear.sh .
+cp ../../../../run_impacts.sh .
+```
+
+- 2022 weighted
+```
+Best fit effSF: 0.891044  -0.0355897/+0.0370009  (68% CL)
+
+python3 ../../../../results.py --year 2022All  --scale 1 --smear 1
+ {'CMS_scale': {'val': 0.109, 'unc': 0.035}, 'CMS_smear': {'val': 0.35, 'unc': 0.073}, 'effSF': {'val': 0.891, 'unc': 0.037}, 'effSF_un': {'val': 1.425, 'unc': 0.169}}
+{'CMS_scale': {'unc': 0.035, 'val': 0.109},
+ 'CMS_smear': {'unc': 0.073, 'val': 0.35},
+ 'V_SF': 0.891,
+ 'V_SF_ERR': 0.037,
+ 'effSF': {'unc': 0.037, 'val': 0.891},
+ 'effSF_un': {'unc': 0.169, 'val': 1.425},
+ 'shift_SF': 0.109,
+ 'shift_SF_ERR': 0.035,
+ 'smear_SF': 1.35,
+ 'smear_SF_ERR': 0.073}
+
+ ```
+
+- 2023 morphing
+```
+  [WARNING] Found [effSF_un] at boundary. 
+
+ --- FitDiagnostics ---
+Best fit effSF: 0.753472  -0.0521676/+0.0549683  (68% CL)
+Done in 0.02 min (cpu), 0.02 min (real)
+
+python3 ../../../../results.py --year 2023All  --scale 2 --smear 0.5
+ {'CMS_scale': {'val': -0.302, 'unc': 0.093}, 'CMS_smear': {'val': 0.494, 'unc': 0.231}, 'effSF': {'val': 0.753, 'unc': 0.054}, 'effSF_un': {'val': 1.656, 'unc': 0.57}}
+ {'CMS_scale': {'unc': 0.093, 'val': -0.302},
+ 'CMS_smear': {'unc': 0.231, 'val': 0.494},
+ 'V_SF': 0.753,
+ 'V_SF_ERR': 0.054,
+ 'effSF': {'unc': 0.054, 'val': 0.753},
+ 'effSF_un': {'unc': 0.57, 'val': 1.656},
+ 'shift_SF': -1.208,
+ 'shift_SF_ERR': 0.372,
+ 'smear_SF': 1.1235,
+ 'smear_SF_ERR': 0.05775}
+
+ Mean 82.74, Sigma 7.40
+scaleSF 0.985 +/- 0.0045 (0.46%)
+scaleSF 0.985, 0.9809, 0.990
+smearSF 1.123 +/- 0.058 (5.14%)
+smearSF 1.123, 1.066, 1.181
+```
+
+- 2023 weighted
+```
+Best fit effSF: 0.854538  -0.0374485/+0.0395075  (68% CL)
+
+{'CMS_scale': {'val': -0.133, 'unc': 0.036}, 'CMS_smear': {'val': 0.335, 'unc': 0.087}, 'effSF': {'val': 0.855, 'unc': 0.039}, 'effSF_un': {'val': 1.118, 'unc': 0.144}}
+{'CMS_scale': {'unc': 0.036, 'val': -0.133},
+ 'CMS_smear': {'unc': 0.087, 'val': 0.335},
+ 'V_SF': 0.855,
+ 'V_SF_ERR': 0.039,
+ 'effSF': {'unc': 0.039, 'val': 0.855},
+ 'effSF_un': {'unc': 0.144, 'val': 1.118},
+ 'shift_SF': -0.133,
+ 'shift_SF_ERR': 0.036,
+ 'smear_SF': 1.335,
+ 'smear_SF_ERR': 0.087}
+ ```

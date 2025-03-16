@@ -664,10 +664,11 @@ def jmsr_templates(dir_name, year_group, tag, mass):
 
         events, events_pass, events_fail = get_ev_dataframe(events_dict, mass, pt_mask)
 
-        if year in ev_dict:
-            ev_dict[year_group] = pd.concat([ev_dict[year_group], events])
-            ev_dict_pass[year_group] = pd.concat([ev_dict_pass[year_group], events_pass])
-            ev_dict_fail[year_group] = pd.concat([ev_dict_fail[year_group], events_fail])
+        if year_group in ev_dict:
+            for key in ev_dict[year_group]:
+                ev_dict[year_group][key] = pd.concat([ev_dict[year_group][key], events[key]])
+                ev_dict_pass[year_group][key] = pd.concat([ev_dict_pass[year_group][key], events_pass[key]])
+                ev_dict_fail[year_group][key] = pd.concat([ev_dict_fail[year_group][key], events_fail[key]])
         else:
             ev_dict[year_group] = events
             ev_dict_pass[year_group] = events_pass
