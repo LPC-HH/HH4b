@@ -56,8 +56,8 @@ gen_selection_dict = {
     "Hto2B": gen_selection_Hbb,
     "Wto2Q-": gen_selection_V,
     "Zto2Q-": gen_selection_V,
-    #"WtoLNu-": gen_selection_V,
-    #"DYto2L-": gen_selection_V,
+    # "WtoLNu-": gen_selection_V,
+    # "DYto2L-": gen_selection_V,
     "ZZ": gen_selection_VV,
     "WW": gen_selection_VV,
     "WZ": gen_selection_VV,
@@ -824,14 +824,14 @@ class bbbbSkimmer(SkimmerABC):
             jshifts = [""]
             if not isData and isJECs:
                 jshifts += [
-                "JMS_down",
-                "JMS_up",
-                "JMR_down",
-                "JMR_up",
-                "JES_up",
-                "JES_down",
-		"JER_up",
-                "JER_down",
+                    "JMS_down",
+                    "JMS_up",
+                    "JMR_down",
+                    "JMR_up",
+                    "JES_up",
+                    "JES_down",
+                    "JER_up",
+                    "JER_down",
                 ]
             for jshift in jshifts:
                 bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
