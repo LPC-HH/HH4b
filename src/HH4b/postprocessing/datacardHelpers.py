@@ -33,6 +33,8 @@ class Syst:
     diff_samples: bool = False
 
     samples: list[str] = None  # samples affected by it
+    samples_corr: bool = True  # if it's correlated between samples
+    separate_prod_modes: bool = False  # if it's uncorrelated between ggF and VBF
     # in case of uncorrelated unc., which years to split into
     # dictionary of label -> list of years to keep correlated
     uncorr_years: dict[str, list[str]] = field(
@@ -46,6 +48,11 @@ class Syst:
         if isinstance(self.value, dict) and not (self.diff_regions or self.diff_samples):
             raise RuntimeError(
                 "Value for systematic is a dictionary but neither ``diff_regions`` nor ``diff_samples`` is set."
+            )
+
+        if self.decorrelate_regions and self.separate_prod_modes:
+            raise NotImplementedError(
+                "Decorrelated regions and separate production modes not implemented yet!"
             )
 
 
