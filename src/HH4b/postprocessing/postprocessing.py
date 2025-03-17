@@ -166,7 +166,7 @@ load_columns_thy = [
 ]
 
 # only the BG MC samples that are used in the fits
-fit_bgs = ["ttbar", "vhtobb", "diboson", "vjets", "tthtobb"]
+fit_bgs = ["ttbar", "vhtobb", "zz", "nozzdiboson", "vjets", "tthtobb"]
 fit_mcs = sig_keys + fit_bgs
 
 
@@ -736,7 +736,8 @@ def get_templates(
                         "tthtobb",
                         "vhtobb",
                         "singletop",
-                        "diboson",
+                        "zz",
+                        "nozzdiboson",
                         "vjets",
                         "vjetslnu",
                         "ttbar",
