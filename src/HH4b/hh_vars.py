@@ -55,7 +55,8 @@ common_samples_bg = {
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
-    "diboson": ["ZZ", "WW", "WZ"],
+    "zz": ["ZZ"],
+    "nozzdiboson": ["WW", "WZ"],
     "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
 }
 
@@ -420,15 +421,16 @@ jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2023": {"nom": 0.974, "down": 0.969, "up": 0.968},
     "2023BPix": {"nom": 0.974, "down": 0.969, "up": 0.968},
 }
-jmsr_keys = sig_keys + ["vhtobb", "diboson"]
-
+jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
 jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
 jmsr_res["bbFatJetPNetMassLegacy"]["vhtobb"] = 14.4 * 80.0 / 125.0
-jmsr_res["bbFatJetPNetMassLegacy"]["diboson"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetPNetMassLegacy"]["zz"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetPNetMassLegacy"]["nozzdiboson"] = 14.4 * 80.0 / 125.0
 jmsr_res["bbFatJetParTmassVis"] = {sig_key: 10.7 for sig_key in sig_keys}
 jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 10.7 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"]["diboson"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["zz"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["nozzdiboson"] = 10.7 * 80.0 / 125.0
 
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]

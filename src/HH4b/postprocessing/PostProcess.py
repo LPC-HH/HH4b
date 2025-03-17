@@ -126,9 +126,9 @@ def get_jets_for_txbb_sf(key: str):
     # for now, assuming mostly V=Z(bb) passes selection
     # apply to both jets in HH, VH, VV processes
     # apply to only first jet in single-H or single-V processes
-    if key in hh_vars.sig_keys or key in ["vhtobb", "diboson"]:
+    if key in hh_vars.sig_keys or key in ["vhtobb", "zz"]:
         return [1, 2]
-    elif key in ["novhhtobb", "tthtobb", "vjets"]:
+    elif key in ["novhhtobb", "tthtobb", "vjets", "nozzdiboson"]:
         return [1]
     else:
         return []
@@ -1459,8 +1459,7 @@ def postprocess_run3(args):
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
         scaled_by_years = {
-            # FIXME: only ZZ missing in 2023BPix, but this will incorrectly scale all diboson
-            # "diboson": ["2022", "2022EE", "2023"],
+            "zz": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
