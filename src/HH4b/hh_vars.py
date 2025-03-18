@@ -211,6 +211,8 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
 }
+# remove missing ZZ sample
+del samples_run3["2023BPix"]["zz"]
 
 samples_2018 = {
     "hh4b": [
