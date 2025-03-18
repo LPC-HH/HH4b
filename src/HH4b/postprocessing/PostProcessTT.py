@@ -275,7 +275,7 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             & (bdt_events["H1T32"] < 0.6)
             & (bdt_events["H1PNetMass"] > 150)
             & (bdt_events["H1PNetMass"] < 200)
-            & (bdt_events["H2PNetMass"] > 50)
+            & (bdt_events["H2PNetMass"] > 60)
             & (bdt_events["H2PNetMass"] < 250)
         )
         bdt_events.loc[mask_bin5, "Category"] = 5
