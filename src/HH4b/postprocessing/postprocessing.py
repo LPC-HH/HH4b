@@ -361,7 +361,9 @@ def load_run3_samples(
     return events_dict
 
 
-def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: str, morphing_formula: bool=True):
+def scale_smear_mass(
+    events_dict: dict[str, pd.DataFrame], year: str, mass_str: str, morphing_formula: bool = True
+):
     jms_nom = jmsr_values[mass_str]["JMS"][year]["nom"]
     jmr_nom = jmsr_values[mass_str]["JMR"][year]["nom"]
     rng = np.random.default_rng(seed=42)
@@ -373,7 +375,11 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
             x = events_dict[key][mass_str].to_numpy(copy=True)
             random_smear = rng.standard_normal(size=x.shape)
             x_smear = x * jms_nom
-            x_smear *= (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[mass_str][key] / x) if morphing_formula else (1 + random_smear * max(jmr_nom - 1, 0))
+            x_smear *= (
+                (1 + random_smear * np.sqrt(jmr_nom * jmr_nom - 1) * jmsr_res[mass_str][key] / x)
+                if morphing_formula
+                else (1 + random_smear * max(jmr_nom - 1, 0))
+            )
 
             for i in range(2):
                 events_dict[key][(f"{mass_str}Raw", i)] = x[:, i]
@@ -387,7 +393,11 @@ def scale_smear_mass(events_dict: dict[str, pd.DataFrame], year: str, mass_str: 
                         jms = jms_nom
                         jmr = jmsr_values[mass_str]["JMR"][year][shift]
                     x_smear = x * jms
-                    x_smear *= (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x) if morphing_formula else (1 + random_smear * max(jmr - 1, 0))
+                    x_smear *= (
+                        (1 + random_smear * np.sqrt(jmr * jmr - 1) * jmsr_res[mass_str][key] / x)
+                        if morphing_formula
+                        else (1 + random_smear * max(jmr - 1, 0))
+                    )
                     for i in range(2):
                         events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
     return events_dict
