@@ -412,17 +412,30 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
 # numbers from template-morphing fit
 jmsr_values["bbFatJetParTmassVis"] = {}
 jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
-    "2022": {"nom": 1.144, "down": 1.098, "up": 1.190},
-    "2022EE": {"nom": 1.144, "down": 1.098, "up": 1.190},
-    "2023": {"nom": 1.089, "down": 1.025, "up": 1.152},
-    "2023BPix": {"nom": 1.089, "down": 1.025, "up": 1.152},
+    "2022": {"nom": 1.208, "down": 1.161, "up": 1.254},
+    "2022EE": {"nom": 1.208, "down": 1.161, "up": 1.254},
+    "2023": {"nom": 1.123, "down": 1.066, "up": 1.181},
+    "2023BPix": {"nom": 1.123, "down": 1.066, "up": 1.181},
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
-    "2022": {"nom": 1.008, "down": 1.005, "up": 1.012},
-    "2022EE": {"nom": 1.008, "down": 1.005, "up": 1.012},
-    "2023": {"nom": 0.974, "down": 0.969, "up": 0.968},
-    "2023BPix": {"nom": 0.974, "down": 0.969, "up": 0.968},
+    "2022": {"nom": 1.011, "down": 1.006, "up": 1.016},
+    "2022EE": {"nom": 1.011, "down": 1.006, "up": 1.016},
+    "2023": {"nom": 0.985, "down": 0.98, "up": 0.99},
+    "2023BPix": {"nom": 0.985, "down": 0.98, "up": 0.99},
 }
+# numbers from weighted template fit (to be verified)
+# jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
+#     "2022": {"nom": 1.0354, "down": 1.028, "up": 1.042},
+#     "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
+#     "2023": {"nom": 1.0181, "down": 1.0005, "up": 1.0357},
+#     "2023BPix": {"nom": 1.0181, "down": 1.0005, "up": 1.0357},
+# }
+# jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
+#     "2022": {"nom": 1.0106, "down": 1.0071, "up": 1.0141},
+#     "2022EE": {"nom": 1.0106, "down": 1.0071, "up": 1.0141},
+#     "2023": {"nom": 0.9711, "down": 0.9654, "up": 0.9768},
+#     "2023BPix": {"nom": 0.9711, "down": 0.9654, "up": 0.9768},
+# }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
 jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
