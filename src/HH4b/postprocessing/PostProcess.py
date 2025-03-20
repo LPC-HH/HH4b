@@ -375,25 +375,21 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    # tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
-
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score"
-    )
-    correct_vbfbdtshape = True
-    if correct_vbfbdtshape:
-        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score_vbf"
+    if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins:     
+        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")        
+        correct_vbfbdtshape = (
+            args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
         )
-    """
-    correct_vbfbdtshape = (
-        args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
-    )
-    if correct_vbfbdtshape:
-        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", args.bdt_model, "bdt_score_vbf"
+        if correct_vbfbdtshape:
+            tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+                "cat5", args.bdt_model, "bdt_score_vbf"
+            )
+    else:
+        print("Using default ttbar SFs for BDT: 25Feb5_v13_glopartv2_rawmass")
+        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+            "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score"
         )
-    """
+        correct_vbfbdtshape = False
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
@@ -401,9 +397,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
         args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
     )
-    ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
-    )
+    if correct_vbfbdtshape:
+        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
+            args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
+        )
     TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, "glopart-v2")
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, "glopart-v2")
 
