@@ -171,6 +171,19 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1]
         )
+    elif (
+        preds.shape[1] == 5
+    ):  # multi-class BDT with ggF HH, VBF HH(K2V=0), VBF HH(K2V=1), QCD, ttbar classes
+        bg_tot = np.sum(preds[:, 3:], axis=1)
+        events[f"bdt_score{jlabel}"] = (
+            preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
+        )
+        events[f"bdt_score_vbf{jlabel}"] = (
+            (preds[:, 1] + preds[:, 2])
+            / (preds[:, 1] + preds[:, 2] + preds[:, 3] + weight_ttbar * preds[:, 4])
+            if bdt_disc
+            else preds[:, 1]
+        )
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -362,7 +375,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
+    # tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
+
+    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score"
+    )
+    correct_vbfbdtshape = True
+    if correct_vbfbdtshape:
+        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+            "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score_vbf"
+        )
+    """
     correct_vbfbdtshape = (
         args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
     )
@@ -370,6 +393,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
             "cat5", args.bdt_model, "bdt_score_vbf"
         )
+    """
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
