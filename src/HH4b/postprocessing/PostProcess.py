@@ -375,8 +375,10 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins:     
-        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")        
+    if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins:
+        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+            "cat5", args.bdt_model, "bdt_score"
+        )
         correct_vbfbdtshape = (
             args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
         )
