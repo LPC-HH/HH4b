@@ -375,33 +375,28 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins:     
-        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")        
-        correct_vbfbdtshape = (
-            args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
+    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5", 
+        args.bdt_model if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins else "25Feb5_v13_glopartv2_rawmass", 
+        "bdt_score"
         )
-        if correct_vbfbdtshape:
-            tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-                "cat5", args.bdt_model, "bdt_score_vbf"
-            )
-    else:
-        print("Using default ttbar SFs for BDT: 25Feb5_v13_glopartv2_rawmass")
-        tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", "25Feb5_v13_glopartv2_rawmass", "bdt_score"
+    tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+            "cat5", 
+            args.bdt_model if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins else "25Feb5_v13_glopartv2_rawmass", 
+            "bdt_score_vbf"
         )
-        correct_vbfbdtshape = False
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, "glopart-v2")
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"])
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
+        args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
     )
-    if correct_vbfbdtshape:
+    if args.correct_vbf_bdt_shape:
         ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-            args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
+            args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
         )
-    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, "glopart-v2")
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, "glopart-v2")
 
     # load TXbb SFs
@@ -640,7 +635,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
             bdtsf = ggfbdtsf
             # use bdt_vbf correction for vbf category if it exists
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 vbfbdtsf, _, _ = corrections.ttbar_SF(
                     tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
                 )
@@ -746,7 +741,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     "bdt_score",
                     ttsf_ggfbdtshape_bins[i : i + 2],
                 )
-                if correct_vbfbdtshape:
+                if args.correct_vbf_bdt_shape:
                     # only use ggf correction/uncertainty outside of vbf category
                     ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
                     ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
@@ -757,7 +752,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 bdt_events[
                     f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down"
                 ] = (bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf)
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 for i in range(len(ttsf_vbfbdtshape_bins) - 1):
                     vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
                         tt_vbfbdtshape_sf,
@@ -1847,6 +1842,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
+    run_utils.add_bool_arg(
+        parser, "correct-vbf-bdt-shape", default=True, help="Correct ttbar BDT_VBF shape"
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
 
