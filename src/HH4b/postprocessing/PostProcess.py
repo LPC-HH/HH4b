@@ -376,19 +376,29 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
     tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5", 
-        args.bdt_model if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins else "25Feb5_v13_glopartv2_rawmass", 
-        "bdt_score"
-        )
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score",
+    )
     tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", 
-            args.bdt_model if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins else "25Feb5_v13_glopartv2_rawmass", 
-            "bdt_score_vbf"
-        )
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score_vbf",
+    )
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"])
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
+        args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
+    )
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
         args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
     )
