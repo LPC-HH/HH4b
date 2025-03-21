@@ -362,7 +362,7 @@ def load_run3_samples(
 
 
 def scale_smear_mass(
-    events_dict: dict[str, pd.DataFrame], year: str, mass_str: str, morphing_formula: bool = True
+    events_dict: dict[str, pd.DataFrame], year: str, mass_str: str, morphing_formula: bool = False
 ):
     jms_nom = jmsr_values[mass_str]["JMS"][year]["nom"]
     jmr_nom = jmsr_values[mass_str]["JMR"][year]["nom"]
