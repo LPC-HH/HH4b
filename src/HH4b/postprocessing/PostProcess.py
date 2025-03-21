@@ -1594,7 +1594,7 @@ def postprocess_run3(args):
                 plot_dir,
                 "fom_vbf",
                 bg_keys=bg_keys,
-                sig_key="vbfhh4b-k2v0",
+                sig_key=args.fom_vbf_sample,
                 mass=args.mass,
             )
 
@@ -1835,7 +1835,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
-
+    parser.add_argument(
+        "--fom-vbf-sample",
+        type=str,
+        default="vbfhh4b-k2v0",
+        help="VBF sample to use for FOM scan",
+        choices=["vbfhh4b", "vbfhh4b-k2v0"],
+    )
     run_utils.add_bool_arg(
         parser,
         "bdt-disc",
