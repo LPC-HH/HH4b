@@ -126,9 +126,9 @@ def get_jets_for_txbb_sf(key: str):
     # for now, assuming mostly V=Z(bb) passes selection
     # apply to both jets in HH, VH, VV processes
     # apply to only first jet in single-H or single-V processes
-    if key in hh_vars.sig_keys or key in ["vhtobb", "diboson"]:
+    if key in hh_vars.sig_keys or key in ["vhtobb", "zz"]:
         return [1, 2]
-    elif key in ["novhhtobb", "tthtobb", "vjets"]:
+    elif key in ["novhhtobb", "tthtobb", "vjets", "nozzdiboson"]:
         return [1]
     else:
         return []
@@ -168,6 +168,19 @@ def add_bdt_scores(
         )
         events[f"bdt_score_vbf{jlabel}"] = (
             preds[:, 1] / (preds[:, 1] + preds[:, 2] + weight_ttbar * preds[:, 3])
+            if bdt_disc
+            else preds[:, 1]
+        )
+    elif (
+        preds.shape[1] == 5
+    ):  # multi-class BDT with ggF HH, VBF HH(K2V=0), VBF HH(K2V=1), QCD, ttbar classes
+        bg_tot = np.sum(preds[:, 3:], axis=1)
+        events[f"bdt_score{jlabel}"] = (
+            preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
+        )
+        events[f"bdt_score_vbf{jlabel}"] = (
+            (preds[:, 1] + preds[:, 2])
+            / (preds[:, 1] + preds[:, 2] + preds[:, 3] + weight_ttbar * preds[:, 4])
             if bdt_disc
             else preds[:, 1]
         )
@@ -362,26 +375,39 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
-    correct_vbfbdtshape = (
-        args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
+    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score",
     )
-    if correct_vbfbdtshape:
-        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", args.bdt_model, "bdt_score_vbf"
-        )
+    tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score_vbf",
+    )
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, "glopart-v2")
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
+        args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
+    )
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
+        args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
     )
-    ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
-    )
-    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, "glopart-v2")
-    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, "glopart-v2")
+    if args.correct_vbf_bdt_shape:
+        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
+            args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
+        )
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
+    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
     if args.txbb == "pnet-legacy":
@@ -619,7 +645,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
             bdtsf = ggfbdtsf
             # use bdt_vbf correction for vbf category if it exists
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 vbfbdtsf, _, _ = corrections.ttbar_SF(
                     tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
                 )
@@ -725,7 +751,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     "bdt_score",
                     ttsf_ggfbdtshape_bins[i : i + 2],
                 )
-                if correct_vbfbdtshape:
+                if args.correct_vbf_bdt_shape:
                     # only use ggf correction/uncertainty outside of vbf category
                     ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
                     ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
@@ -736,7 +762,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 bdt_events[
                     f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down"
                 ] = (bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf)
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 for i in range(len(ttsf_vbfbdtshape_bins) - 1):
                     vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
                         tt_vbfbdtshape_sf,
@@ -1459,8 +1485,7 @@ def postprocess_run3(args):
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
         scaled_by_years = {
-            # FIXME: only ZZ missing in 2023BPix, but this will incorrectly scale all diboson
-            # "diboson": ["2022", "2022EE", "2023"],
+            "zz": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
@@ -1569,7 +1594,7 @@ def postprocess_run3(args):
                 plot_dir,
                 "fom_vbf",
                 bg_keys=bg_keys,
-                sig_key="vbfhh4b-k2v0",
+                sig_key=args.fom_vbf_sample,
                 mass=args.mass,
             )
 
@@ -1810,7 +1835,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
-
+    parser.add_argument(
+        "--fom-vbf-sample",
+        type=str,
+        default="vbfhh4b-k2v0",
+        help="VBF sample to use for FOM scan",
+        choices=["vbfhh4b", "vbfhh4b-k2v0"],
+    )
     run_utils.add_bool_arg(
         parser,
         "bdt-disc",
@@ -1827,6 +1858,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
+    )
+    run_utils.add_bool_arg(
+        parser, "correct-vbf-bdt-shape", default=True, help="Correct ttbar BDT_VBF shape"
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
 
