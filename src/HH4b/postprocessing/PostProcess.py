@@ -407,7 +407,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
         )
     TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
-    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, "glopart-v2")
+    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
     if args.txbb == "pnet-legacy":
