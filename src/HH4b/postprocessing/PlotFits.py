@@ -66,17 +66,17 @@ def plot_fits(args):
         fit_shape_var = ShapeVar(
             "H2Msd",
             r"Jet 2 $m_\mathrm{SD}$ (GeV)",
-            [16, 60, 220],
+            [8, 60, 220],
             reg=False,
-            blind_window=[110, 140],
+            blind_window=[100, 140],
         )
     else:
         fit_shape_var = ShapeVar(
             "H2PNetMass",
             r"Jet 2 $m_\mathrm{reg}$ (GeV)",
-            [16, 60, 220],
+            [8, 60, 220],
             reg=True,
-            blind_window=[110, 140],
+            blind_window=[100, 140],
         )
 
     shape_vars = [fit_shape_var]
