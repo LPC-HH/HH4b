@@ -412,29 +412,29 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
 jmsr_values["bbFatJetParTmassVis"] = {}
 # numbers from template-morphing fit
 # jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
-#     "2022": {"nom": 1.208, "down": 1.161, "up": 1.254},
-#     "2022EE": {"nom": 1.208, "down": 1.161, "up": 1.254},
-#     "2023": {"nom": 1.123, "down": 1.066, "up": 1.181},
-#     "2023BPix": {"nom": 1.123, "down": 1.066, "up": 1.181},
+#     "2022": {"nom": 1.14, "down": 1.12, "up": 1.16},
+#     "2022EE": {"nom": 1.14, "down": 1.12, "up": 1.16},
+#     "2023": {"nom": 1.095, "down": 1.052, "up": 1.139},
+#     "2023BPix": {"nom": 1.095, "down": 1.052, "up": 1.139},
 # }
 # jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
-#     "2022": {"nom": 1.011, "down": 1.006, "up": 1.016},
-#     "2022EE": {"nom": 1.011, "down": 1.006, "up": 1.016},
-#     "2023": {"nom": 0.985, "down": 0.98, "up": 0.99},
-#     "2023BPix": {"nom": 0.985, "down": 0.98, "up": 0.99},
+#     "2022": {"nom": 1.015, "down": 1.0102, "up": 1.020},
+#     "2022EE": {"nom": 1.015, "down": 1.0102, "up": 1.020},
+#     "2023": {"nom": 0.974, "down": 0.967, "up": 0.981},
+#     "2023BPix": {"nom": 0.74, "down": 0.967, "up": 0.981},
 # }
 # numbers from weighted template fit
 jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
     "2022": {"nom": 1.0354, "down": 1.028, "up": 1.042},
     "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
-    "2023": {"nom": 1.0181, "down": 1.0005, "up": 1.0357},
-    "2023BPix": {"nom": 1.0181, "down": 1.0005, "up": 1.0357},
+    "2023": {"nom": 1.0335, "down": 1.025, "up": 1.042},
+    "2023BPix": {"nom": 1.0335, "down": 1.025, "up": 1.042},
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
-    "2022": {"nom": 1.0106, "down": 1.0071, "up": 1.0141},
-    "2022EE": {"nom": 1.0106, "down": 1.0071, "up": 1.0141},
-    "2023": {"nom": 0.9711, "down": 0.9654, "up": 0.9768},
-    "2023BPix": {"nom": 0.9711, "down": 0.9654, "up": 0.9768},
+    "2022": {"nom": 1.011, "down": 1.007, "up": 1.014},
+    "2022EE": {"nom": 1.011, "down": 1.007, "up": 1.014},
+    "2023": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
+    "2023BPix": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
 }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
