@@ -421,7 +421,7 @@ jmsr_values["bbFatJetParTmassVis"] = {}
 #     "2022": {"nom": 1.015, "down": 1.0102, "up": 1.020},
 #     "2022EE": {"nom": 1.015, "down": 1.0102, "up": 1.020},
 #     "2023": {"nom": 0.974, "down": 0.967, "up": 0.981},
-#     "2023BPix": {"nom": 0.74, "down": 0.967, "up": 0.981},
+#     "2023BPix": {"nom": 0.974, "down": 0.967, "up": 0.981},
 # }
 # numbers from weighted template fit
 jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
