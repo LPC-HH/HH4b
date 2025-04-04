@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import json
 import sys
+
 
 def load_json_file(file_path):
     """
@@ -13,7 +16,7 @@ def load_json_file(file_path):
         dict: A dictionary containing the data from the JSON file, or None if an error occurs.
     """
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path) as file:
             data = json.load(file)
             return data
     except FileNotFoundError:
@@ -23,8 +26,9 @@ def load_json_file(file_path):
         print(f"Error: Invalid JSON format in file: {file_path}")
         return None
     except Exception as e:
-         print(f"An unexpected error occurred: {e}")
-         return None
+        print(f"An unexpected error occurred: {e}")
+        return None
+
 
 # Check if the correct number of arguments is provided
 if len(sys.argv) != 3:
@@ -38,9 +42,9 @@ loaded_data = load_json_file(file_path)
 
 for param in loaded_data:
     if "_In" in param:
-        global_obs = param 
+        global_obs = param
         nuisance = param.split("_In")[0]
         loaded_data[global_obs]["value"] = loaded_data[nuisance]["value"]
 
-with open(file_path, 'w') as json_file:
+with open(file_path, "w") as json_file:
     json.dump(loaded_data, json_file, indent=4)
