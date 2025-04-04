@@ -170,7 +170,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("diboson", "diboson"),
+        ("zz", "ZZ"),
+        ("nozzdiboson", "other_diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
@@ -219,7 +220,7 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
-jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
 
 br_hbb_values = {key: 1.0124**2 for key in sig_keys}
