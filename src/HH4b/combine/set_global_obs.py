@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 
 
 def load_json_file(file_path):
@@ -16,7 +17,7 @@ def load_json_file(file_path):
         dict: A dictionary containing the data from the JSON file, or None if an error occurs.
     """
     try:
-        with open(file_path) as file:
+        with Path.open(file_path) as file:
             data = json.load(file)
             return data
     except FileNotFoundError:
@@ -46,5 +47,5 @@ for param in loaded_data:
         nuisance = param.split("_In")[0]
         loaded_data[global_obs]["value"] = loaded_data[nuisance]["value"]
 
-with open(file_path, "w") as json_file:
+with Path.open(file_path, "w") as json_file:
     json.dump(loaded_data, json_file, indent=4)
