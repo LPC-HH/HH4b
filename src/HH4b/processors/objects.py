@@ -114,11 +114,28 @@ def good_ak4jets(jets: JetArray, year: str):
 
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     # 2 working points: tight and tightLepVeto
-    sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
+    sel = (jets.pt > 15) & (abs(jets.eta) < 4.7)
 
     if year == "2018":
         pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
         sel = sel & pu_id
+    else:
+        jetidtightbit = (jets.jetId & 2) == 2
+        jetidtight = (
+            ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
+            | (
+                ((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0))
+                & jetidtightbit
+                & (jets.neHEF >= 0.99)
+            )
+            | (((np.abs(jets.eta) > 3.0)) & jetidtightbit & (jets.neEmEF < 0.4))
+        )
+
+        jetidtightlepveto = (
+            (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
+        ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
+
+        sel = sel & jetidtight & jetidtightlepveto
 
     return sel
 
@@ -307,8 +324,7 @@ def vbf_jets(
     muons = muons[muons.pt > muon_pt]
 
     ak4_sel = (
-        jets.isTight
-        & (jets.pt >= pt)
+        (jets.pt >= pt)
         & (np.abs(jets.eta) <= eta_max)
         & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
         & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
@@ -339,8 +355,7 @@ def ak4_jets_awayfromak8(
     muons = muons[muons.pt > muon_pt]
 
     ak4_sel = (
-        jets.isTight
-        & (jets.pt >= pt)
+        (jets.pt >= pt)
         & (np.abs(jets.eta) <= eta_max)
         & (ak.all(jets.metric_table(fatjets) > dr_fatjets, axis=2))
         & ak.all(jets.metric_table(electrons) > dr_leptons, axis=2)
