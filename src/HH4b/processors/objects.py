@@ -120,6 +120,7 @@ def good_ak4jets(jets: JetArray, year: str):
         pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
         sel = sel & pu_id
     else:
+        # Copying https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
         jetidtightbit = (jets.jetId & 2) == 2
         jetidtight = (
             ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
