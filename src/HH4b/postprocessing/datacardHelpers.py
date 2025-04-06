@@ -33,6 +33,8 @@ class Syst:
     diff_samples: bool = False
 
     samples: list[str] = None  # samples affected by it
+    samples_corr: bool = True  # if it's correlated between samples
+    separate_prod_modes: bool = False  # if it's uncorrelated between ggF and VBF
     # in case of uncorrelated unc., which years to split into
     # dictionary of label -> list of years to keep correlated
     uncorr_years: dict[str, list[str]] = field(
@@ -46,6 +48,11 @@ class Syst:
         if isinstance(self.value, dict) and not (self.diff_regions or self.diff_samples):
             raise RuntimeError(
                 "Value for systematic is a dictionary but neither ``diff_regions`` nor ``diff_samples`` is set."
+            )
+
+        if self.decorrelate_regions and self.separate_prod_modes:
+            raise NotImplementedError(
+                "Decorrelated regions and separate production modes not implemented yet!"
             )
 
 
@@ -224,7 +231,7 @@ def get_effect_updown(
 def smass(sName):
     if sName in sig_keys_ggf + sig_keys_vbf:
         _mass = 125.0
-    elif sName in ["vhtobb", "diboson"]:
+    elif sName in ["vhtobb", "zz", "nozzdiboson"]:
         _mass = 80.379  # use W mass instead of Z mass = 91.
         # TODO: split W/Z processes?
     else:
@@ -236,7 +243,7 @@ def smorph(templ, sample_name, jms_value, jmr_value):
     if templ is None:
         return None
 
-    for sample_check in sig_keys_ggf + sig_keys_vbf + ["vhtobb", "diboson"]:
+    for sample_check in sig_keys_ggf + sig_keys_vbf + ["vhtobb", "zz", "nozzdiboson"]:
         if sample_check in sample_name:
             return MorphHistW2(templ).get(
                 shift=(jms_value - 1.0) * smass(sample_check), smear=jmr_value
