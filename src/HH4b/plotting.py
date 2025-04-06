@@ -94,6 +94,8 @@ color_by_sample = {
     "qcd": colours["canary"],
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
+    "zz": "orchid",
+    "nozzdiboson": "aquamarine",
     "diboson": "orchid",
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
@@ -122,6 +124,8 @@ label_by_sample = {
     "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
     "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
     "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
+    "zz": "ZZ",
+    "nozzdiboson": "Other VV",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -140,7 +144,8 @@ bg_order_default = [
     "vhtobb",
     "tthtobb",
     "gghtobb",
-    "diboson",
+    "zz",
+    "nozzdiboson",
     "vjets",
     "vjetslnu",
     "ttbar",
@@ -158,75 +163,7 @@ def sigErrRatioPlot(
     name: str = None,
     show: bool = False,
     ylim: list = None,
-):
-    fig, (ax, rax) = plt.subplots(
-        2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
-    )
-
-    nom = h[f"{sig_key}_{wshift}", :].values()
-    hep.histplot(
-        h[f"{sig_key}_{wshift}", :],
-        histtype="step",
-        label=sig_key,
-        yerr=False,
-        color="k",
-        ax=ax,
-        linewidth=2,
-    )
-
-    for skey, shift in [("Up", "up"), ("Down", "down")]:
-        if f"{sig_key}_{wshift}_{shift}" not in h.axes[0]:
-            continue
-
-        colour = {"up": "#81C14B", "down": "#1f78b4"}[shift]
-        hep.histplot(
-            h[f"{sig_key}_{wshift}_{shift}", :],
-            histtype="step",
-            yerr=False,
-            label=f"{sig_key} {skey}",
-            color=colour,
-            ax=ax,
-            linewidth=2,
-        )
-
-        hep.histplot(
-            h[f"{sig_key}_{wshift}_{shift}", :] / nom,
-            histtype="step",
-            label=f"{sig_key} {skey}",
-            color=colour,
-            ax=rax,
-        )
-
-    ax.legend()
-    ax.set_ylim(0)
-    ax.set_ylabel("Events")
-    ax.set_title(title, y=1.08)
-
-    rax.set_ylim([0, 2])
-    if ylim is not None:
-        rax.set_ylim(ylim)
-    rax.set_xlabel(xlabel)
-    rax.legend()
-    rax.set_ylabel("Variation / Nominal")
-    rax.grid(axis="y")
-
-    plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def sigErrRatioPlot(
-    h: Hist,
-    sig_key: str,
-    wshift: str,
-    xlabel: str,
-    title: str = None,
-    plot_dir: str = None,
-    name: str = None,
-    show: bool = False,
-    ylim: list = None,
+    h_uncorr: Hist = None,
 ):
     fig, (ax, rax) = plt.subplots(
         2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
@@ -237,11 +174,23 @@ def sigErrRatioPlot(
         h[f"{sig_key}", :],
         histtype="step",
         label=sig_key,
-        yerr=False,
+        yerr=np.sqrt(h[f"{sig_key}", :].variances()),
         color="k",
         ax=ax,
         linewidth=2,
     )
+
+    if h_uncorr:
+        hep.histplot(
+            h_uncorr[f"{sig_key}", :],
+            histtype="step",
+            label=f"{sig_key} No corr.",
+            yerr=False,
+            color="r",
+            linestyle="--",
+            ax=ax,
+            linewidth=1,
+        )
 
     for skey, shift in [("Up", "up"), ("Down", "down")]:
         if f"{sig_key}_{wshift}_{shift}" not in h.axes[0]:
@@ -255,15 +204,36 @@ def sigErrRatioPlot(
             label=f"{sig_key} {skey}",
             color=colour,
             ax=ax,
-            linewidth=2,
+            linewidth=1,
         )
 
         hep.histplot(
             h[f"{sig_key}_{wshift}_{shift}", :] / nom,
+            yerr=False,
             histtype="step",
             label=f"{sig_key} {skey}",
             color=colour,
             ax=rax,
+        )
+
+    if h_uncorr:
+        hep.histplot(
+            h[f"{sig_key}", :] / nom,
+            yerr=False,
+            histtype="step",
+            label=f"{sig_key}",
+            color="k",
+            ax=rax,
+        )
+        hep.histplot(
+            h_uncorr[f"{sig_key}", :] / nom,
+            yerr=np.sqrt(h_uncorr[f"{sig_key}", :].variances()) / nom,
+            histtype="step",
+            label=f"{sig_key} No corr.",
+            color="r",
+            linestyle="--",
+            ax=rax,
+            linewidth=1,
         )
 
     ax.legend()
@@ -385,6 +355,7 @@ def ratioHistPlot(
     energy: str = "13.6",
     add_pull: bool = False,
     reweight_qcd: bool = False,
+    qcd_norm: float = None,
     save_pdf: bool = True,
 ):
     """
@@ -424,6 +395,8 @@ def ratioHistPlot(
         plot_significance (bool): plot Asimov significance below ratio plot
         significance_dir (str): "Direction" for significance. i.e. a > cut ("right"), a < cut ("left"), or per-bin ("bin").
         axrax (Tuple): optionally input ax and rax instead of creating new ones
+        reweight_qcd (bool): reweight qcd process to agree with data-othermc
+        qcd_norm (float): normalization to reweight qcd process, if not None
     """
 
     # copy hists and bg_keys so input objects are not changed
@@ -488,11 +461,16 @@ def ratioHistPlot(
 
     # re-weight qcd
     kfactor = {sample: 1 for sample in bg_keys}
-    if reweight_qcd:
+    if reweight_qcd and qcd_norm is None:
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
         if bg_yield > 0:
             kfactor["qcd"] = data_yield / bg_yield
+        print("kfactor ", kfactor["qcd"], qcd_norm)
+    elif reweight_qcd:
+        kfactor["qcd"] = qcd_norm
+    else:
+        kfactor["qcd"] = 1.0
 
     # background samples
     if len(bg_keys) > 0:
@@ -606,12 +584,21 @@ def ratioHistPlot(
 
     # print(hists.axes[1].widths)
 
+    bg_err_tot_mcstat = None
     if bg_err_mcstat:
         bg_err_label = (
             "Stat. MC Uncertainty (excl. Multijet)"
             if exclude_qcd_mcstat
             else "Stat. MC Uncertainty"
         )
+
+        # this version has an issue:
+        # bg_tot no longer weighted, returns None for variances
+        # bg_tot = sum([hists[sample, :] for sample in bg_keys])
+        # bg_err_tot_mcstat = np.sqrt(bg_tot.variances())
+        # compute summed variance manually
+        bg_err_tot_mcstat = np.sqrt(sum([hists[sample, :].variances() for sample in bg_keys]))
+        # print("mcstat ",bg_err_tot_mcstat)
 
         plot_shaded = False
 
@@ -642,8 +629,9 @@ def ratioHistPlot(
                         yerr=yerr,
                         histtype="errorbar",
                         markersize=0,
-                        color="gray",
+                        color="black",
                         label=bg_err_label,
+                        xerr=True,
                     )
                 else:
                     hep.histplot(
@@ -652,7 +640,8 @@ def ratioHistPlot(
                         yerr=yerr,
                         histtype="errorbar",
                         markersize=0,
-                        color="gray",
+                        color="black",
+                        xerr=True,
                     )
 
         if plot_shaded:
@@ -742,6 +731,7 @@ def ratioHistPlot(
             histtype="errorbar",
             markersize=20,
             color="black",
+            xerr=True,
             capsize=0,
         )
         rax.set_xlabel(hists.axes[1].label)
@@ -753,6 +743,16 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err[0].values()) / tot_val, 2),
                 np.repeat((bg_err[1].values()) / tot_val, 2),
+                color="black",
+                alpha=0.1,
+                hatch="//",
+                linewidth=0,
+            )
+        if bg_err_tot_mcstat is not None:
+            ax.fill_between(
+                np.repeat(hists.axes[1].edges, 2)[1:-1],
+                np.repeat((bg_err_tot_mcstat) / tot_val, 2),
+                np.repeat((bg_err_tot_mcstat) / tot_val, 2),
                 color="black",
                 alpha=0.1,
                 hatch="//",
@@ -877,6 +877,8 @@ def ratioHistPlot(
         plt.show()
     else:
         plt.close()
+
+    return kfactor.get("qcd", 1.0)
 
 
 def subtractedHistPlot(
@@ -1201,7 +1203,16 @@ def multiROCCurveGrey(
     if xlim is None:
         xlim = [0, 1]
     line_style = {"colors": "lightgrey", "linestyles": "dashed"}
-    th_colours = ["cornflowerblue", "deepskyblue", "mediumblue", "cyan", "cadetblue"]
+    th_colours = [
+        "cornflowerblue",
+        "deepskyblue",
+        "mediumblue",
+        "cyan",
+        "cadetblue",
+        "plum",
+        "purple",
+        "palevioletred",
+    ]
     eff_colours = ["lime", "aquamarine", "greenyellow"]
 
     fig = plt.figure(figsize=(12, 12))

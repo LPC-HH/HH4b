@@ -336,12 +336,20 @@ def gen_selection_V(
     fatjets["VMatchIndex"] = ak.mask(
         ak.argmin(fatjets.metric_table(vs), axis=2), fatjets["VMatch"] == 1
     )
+
+    # match V daughters to fatjet
+    d_v1 = daughters[:, 0]
+    matched_mask = fatjets.metric_table(d_v1) < 0.8
+    fatjets["NumQMatched"] = ak.sum(matched_mask, axis=2)
+
+    # save fatjet matching information
     num_fatjets = 2
     FatJetVars = {
-        f"{fatjet_str}FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "VMatch",
             "VMatchIndex",
+            "NumQMatched",
         ]
     }
 
@@ -410,11 +418,10 @@ def gen_selection_VV(
     )
     num_fatjets = 2
     FatJetVars = {
-        f"{fatjet_str}FatJet{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
         for var in [
             "VMatch",
             "VMatchIndex",
         ]
     }
-
     return {**GenVVars, **FatJetVars}

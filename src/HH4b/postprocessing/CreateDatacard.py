@@ -38,7 +38,9 @@ from HH4b.hh_vars import (
     qcd_key,
     sig_keys_ggf,
     sig_keys_vbf,
-    ttbarsfs_decorr_bdt_bins,
+    ttbarsfs_decorr_ggfbdt_bins,
+    ttbarsfs_decorr_txbb_bins,
+    ttbarsfs_decorr_vbfbdt_bins,
     txbbsfs_decorr_pt_bins,
     txbbsfs_decorr_txbb_wps,
 )
@@ -129,7 +131,6 @@ parser.add_argument(
 )
 add_bool_arg(parser, "mcstats", "add mc stats nuisances", default=True)
 add_bool_arg(parser, "bblite", "use barlow-beeston-lite method", default=True)
-add_bool_arg(parser, "temp-uncs", "Add temporary lumi, pileup, tagger uncs.", default=False)
 add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 add_bool_arg(parser, "ttbar-rate-param", "Add freely floating ttbar rate param", default=False)
 add_bool_arg(
@@ -153,7 +154,7 @@ blind_window = [110, 140]
 
 if args.nTF is None:
     if args.regions == "all":
-        args.nTF = [0, 0, 1, 1]
+        args.nTF = [0, 0, 0, 0]
     else:
         args.nTF = [0]
 
@@ -169,7 +170,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("diboson", "diboson"),
+        ("zz", "ZZ"),
+        ("nozzdiboson", "other_diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
@@ -207,7 +209,7 @@ hist_names = {}  # names of hist files for the samples
 for key in all_sig_keys:
     # check in case single sig sample is specified
     if args.sig_samples is None or key in args.sig_samples:
-        # TODO: change names to match HH combination convention
+        # change names to match HH combination convention
         mc_samples[key] = mc_samples_sig[key]
         sig_keys.append(key)
 
@@ -218,7 +220,7 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
-jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
 
 br_hbb_values = {key: 1.0124**2 for key in sig_keys}
@@ -250,18 +252,6 @@ nuisance_params = {
         diff_samples=True,
     ),
     "QCDscale_qqHH": Syst(prior="lnN", samples=sig_keys_vbf, value=1.0003, value_down=0.9996),
-    # "QCDscale_ggH": Syst(
-    #     prior="lnN",
-    #     samples=ggfh_keys,
-    #     value=1.039,
-    # ),
-    # "alpha_s": for single Higgs backgrounds
-    # f"{CMS_PARAMS_LABEL}_triggerEffSF_uncorrelated": Syst(
-    #     prior="lnN", samples=all_mc, diff_regions=True
-    # ),
-    # THU_HH: combined Scale+mtop uncertainty from
-    # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH#Latest_recommendations_for_gluon
-    # remove for use with inference (assuming correct kl-dependent implementation there)
     "THU_HH": Syst(
         prior="lnN",
         samples=sig_keys_ggf,
@@ -284,32 +274,13 @@ if args.ttbar_rate_param:
         }
     }
 
-# add temporary uncertainties
-if args.temp_uncs:
-    temp_nps = {
-        "lumi_pileup": Syst(prior="lnN", samples=all_mc, value=1.04),
-        "signal_eff": Syst(prior="lnN", samples=sig_keys, value=1.1, pass_only=True),
-        "top_mistag": Syst(prior="lnN", samples=["ttbar"], value=1.1, pass_only=True),
-    }
-    nuisance_params = {**nuisance_params, **temp_nps}
-
 nuisance_params_dict = {
     param: rl.NuisanceParameter(param, syst.prior) for param, syst in nuisance_params.items()
 }
 
 # dictionary of correlated shape systematics: name in templates -> name in cards, etc.
 corr_year_shape_systs = {
-    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=nonres_sig_keys_ggf + ["V+Jets"]),
-    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=nonres_sig_keys_ggf + ["V+Jets"]),
-    # TODO: should we be applying QCDscale for "others" process?
-    # https://github.com/LPC-HH/HHLooper/blob/master/python/prepare_card_SR_final.py#L290
-    # "QCDscale": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ggHHQCDacc", prior="shape", samples=nonres_sig_keys_ggf
-    # ),
-    # "PDFalphaS": Syst(
-    #     name=f"{CMS_PARAMS_LABEL}_ggHHPDFacc", prior="shape", samples=nonres_sig_keys_ggf
-    # ),
-    # "JES_AbsoluteScale": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    # "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -330,11 +301,27 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
+    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
+    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
+    "scale": Syst(
+        name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
+        prior="shape",
+        samples=sig_keys,  # + ["ttbar"],  # FIXME: add back ttbar later
+        samples_corr=True,
+        separate_prod_modes=True,
+    ),
+    "pdf": Syst(
+        name=f"{CMS_PARAMS_LABEL}_PDFacc",
+        prior="shape",
+        samples=sig_keys,
+        samples_corr=True,
+        separate_prod_modes=True,
+    ),
 }
 
-for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
-    label = f"ttbarSF_BDT_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
-    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_bdt_bin_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_bdt_bins[args.bdt_model][i+1]}"
+for i in range(len(ttbarsfs_decorr_ggfbdt_bins[args.bdt_model]) - 1):
+    label = f"ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_ggf_bdt_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
     corr_year_shape_systs[label] = Syst(
         name=name,
         prior="shape",
@@ -342,6 +329,16 @@ for i in range(len(ttbarsfs_decorr_bdt_bins[args.bdt_model]) - 1):
         convert_shape_to_lnN=True,
     )
 
+if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins:
+    for i in range(len(ttbarsfs_decorr_vbfbdt_bins[args.bdt_model]) - 1):
+        label = f"ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
+        name = f"{CMS_PARAMS_LABEL}_ttbar_sf_vbf_bdt_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
+        corr_year_shape_systs[label] = Syst(
+            name=name,
+            prior="shape",
+            samples=["ttbar"],
+            convert_shape_to_lnN=True,
+        )
 
 uncorr_year_shape_systs = {
     # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
@@ -379,35 +376,18 @@ uncorr_year_shape_systs = {
             "2023BPix": ["2023BPix"],
         },
     ),
-    "ttbarSF_Xbb_bin_0_0.8": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0_0p8",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.8_0.94": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p8_0p94",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.94_0.99": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p94_0p99",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
-    "ttbarSF_Xbb_bin_0.99_1": Syst(
-        name=f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_0p99_1",
-        prior="shape",
-        samples=["ttbar"],
-        convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
-    ),
 }
+
+for i in range(len(ttbarsfs_decorr_txbb_bins[args.txbb]) - 1):
+    label = f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
+    uncorr_year_shape_systs[label] = Syst(
+        name=name,
+        prior="shape",
+        samples=["ttbar"],
+        convert_shape_to_lnN=True,
+        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+    )
 
 for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
     for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
@@ -431,7 +411,7 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMS"]
 
 if not args.jesr:
-    # del corr_year_shape_systs["JES_AbsoluteScale"]
+    # del corr_year_shape_systs["JES"]
     del uncorr_year_shape_systs["JER"]
 
 if args.ttbar_rate_param:
@@ -445,10 +425,25 @@ if args.ttbar_rate_param:
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
-    if syst.decorrelate_regions:
+    if not syst.samples_corr:
+        # separate nuisance param for each affected sample
+        for sample in syst.samples:
+            if sample not in mc_samples:
+                continue
+            shape_systs_dict[f"{skey}_{sample}"] = rl.NuisanceParameter(
+                f"{syst.name}_{mc_samples[sample]}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    elif syst.decorrelate_regions:
+        # separate nuisance param for each region
         for region in signal_regions + ["fail"]:
             shape_systs_dict[f"{skey}_{region}"] = rl.NuisanceParameter(
                 f"{syst.name}_{region}", "lnN" if syst.convert_shape_to_lnN else "shape"
+            )
+    elif syst.separate_prod_modes:
+        # separate nuisance param for each production mode
+        for prod_mode in ["ggHH", "qqHH"]:
+            shape_systs_dict[f"{skey}_{prod_mode}"] = rl.NuisanceParameter(
+                f"{syst.name}_{prod_mode}", "lnN" if syst.convert_shape_to_lnN else "shape"
             )
     else:
         shape_systs_dict[skey] = rl.NuisanceParameter(
@@ -639,7 +634,6 @@ def fill_regions(
                     val = val[region]
                     val_down = val_down[region] if val_down is not None else val_down
                 if syst.diff_samples:
-                    print(skey)
                     val = val[sample_name]
                     val_down = val_down[sample_name] if val_down is not None else val_down
 
@@ -679,12 +673,26 @@ def fill_regions(
                     args.epsilon,
                     syst.convert_shape_to_lnN,
                 )
-                if syst.decorrelate_regions:
-                    sample.setParamEffect(
-                        shape_systs_dict[f"{skey}_{region_noblinded}"], effect_up, effect_down
-                    )
+                if not syst.samples_corr:
+                    # separate syst if not correlated across samples
+                    sdkey = f"{skey}_{sample_name}"
+                elif syst.decorrelate_regions:
+                    # separate syst if not correlated across regions
+                    sdkey = f"{skey}_{region_noblinded}"
+                elif syst.separate_prod_modes:
+                    # separate syst if not correlated across production modes
+                    if sample_name in sig_keys_ggf:
+                        prod_mode = "ggHH"
+                    elif sample_name in sig_keys_vbf:
+                        prod_mode = "qqHH"
+                    else:
+                        raise NotImplementedError(
+                            f"Splitting Syst by production mode for Sample {sample_name} not yet implemented"
+                        )
+                    sdkey = f"{skey}_{prod_mode}"
                 else:
-                    sample.setParamEffect(shape_systs_dict[skey], effect_up, effect_down)
+                    sdkey = skey
+                sample.setParamEffect(shape_systs_dict[sdkey], effect_up, effect_down)
 
             # uncorrelated shape systematics
             for skey, syst in uncorr_year_shape_systs.items():

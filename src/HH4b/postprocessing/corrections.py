@@ -114,20 +114,20 @@ def restrict_SF(
     return sf
 
 
-def _load_ttbar_sfs(year: str, corr: str):
+def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     year_ = None
     if "2022" in year:
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
     return correctionlib.CorrectionSet.from_file(
-        f"{package_path}/corrections/data/ttbarcorr_{year_}.json"
+        f"{package_path}/corrections/data/ttbar_sfs/{txbb_version}/ttbarcorr_{year_}.json"
     )[f"ttbar_corr_{corr}_{year_}"]
 
 
-def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str):
+def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str, bdt_score: str):
     return correctionlib.CorrectionSet.from_file(
-        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_2022-2023.json"
+        f"{package_path}/corrections/data/ttbar_sfs/{bdt_model}/ttbar_bdtshape{cat}_{bdt_score}_finebin_2022-2023.json"
     )["ttbar_corr_bdtshape_2022-2023"]
 
 

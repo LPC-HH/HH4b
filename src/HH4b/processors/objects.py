@@ -262,7 +262,7 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["ParTPXtauhtaum"] = fatjets.globalParT_Xtauhtaum
         # T for discriminator
         fatjets["ParTTXbb"] = fatjets.globalParT_XbbVsQCD
-        # Mass Regression
+        # Mass Regression (Raw)
         fatjets["ParTmassRes"] = fatjets.globalParT_massRes * (1 - fatjets.rawFactor) * fatjets.mass
         fatjets["ParTmassVis"] = fatjets.globalParT_massVis * (1 - fatjets.rawFactor) * fatjets.mass
 
