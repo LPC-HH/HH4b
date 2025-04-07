@@ -178,7 +178,7 @@ def plot_fits(args):
                 plot_params = {
                     "hists": hists[shape][region],
                     "sig_keys": sig_keys,
-                    "sig_scale_dict": {key: signal_scale for key in sig_keys},
+                    "sig_scale_dict": dict.fromkeys(sig_keys, signal_scale),
                     "bg_keys": bkg_keys,
                     "bg_err": bgerrs[shape][region],
                     "bg_err_mcstat": bg_err_mcstat[shape],
