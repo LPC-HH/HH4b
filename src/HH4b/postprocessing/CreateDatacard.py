@@ -223,9 +223,9 @@ full_lumi = LUMI[args.year]
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
 
-br_hbb_values = dict.fromkeys(sig_keys, 1.0124 ** 2)
+br_hbb_values = dict.fromkeys(sig_keys, 1.0124**2)
 br_hbb_values.update(dict.fromkeys(single_h_keys, 1.0124))
-br_hbb_values_down = dict.fromkeys(sig_keys, 0.9874 ** 2)
+br_hbb_values_down = dict.fromkeys(sig_keys, 0.9874**2)
 br_hbb_values_down.update(dict.fromkeys(single_h_keys, 0.9874))
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
