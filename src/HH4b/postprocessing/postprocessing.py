@@ -17,7 +17,6 @@ from HH4b.hh_vars import (
     LUMI,
     bg_keys,
     data_key,
-    jecs,
     jec_shifts,
     jmsr,
     jmsr_keys,
@@ -167,7 +166,7 @@ for jshift in jmsr_shifts:
         (f"bdt_score_{jshift}", 2),
         (f"bdt_score_vbf_{jshift}", 2),
     ]
-    
+
 # load scale and pdf weights
 load_columns_thy = [
     ("scale_weights", 6),
@@ -198,8 +197,12 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             years=years + ["2022-2023"],
         ),
         "pdf": Syst(samples=sig_keys, label="PDFAcc", years=years + ["2022-2023"]),
-        "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]),
-        "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),
+        "ISRPartonShower": Syst(
+            samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]
+        ),
+        "FSRPartonShower": Syst(
+            samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]
+        ),
     }
 
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")

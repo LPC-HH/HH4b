@@ -363,7 +363,9 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
+):
 
     # define BDT model
     if rerun_inference:
@@ -982,10 +984,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             for i in range(103):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
-            columns += ["weight_triggerUp", "weight_triggerDown",
-                        "weight_pileupUp", "weight_pileupDown",
-                        "weight_ISRPartonShowerUp", "weight_ISRPartonShowerDown",
-                        "weight_FSRPartonShowerUp", "weight_FSRPartonShowerDown"]
+            columns += [
+                "weight_triggerUp",
+                "weight_triggerDown",
+                "weight_pileupUp",
+                "weight_pileupDown",
+                "weight_ISRPartonShowerUp",
+                "weight_ISRPartonShowerDown",
+                "weight_FSRPartonShowerUp",
+                "weight_FSRPartonShowerDown",
+            ]
         columns = list(set(columns))
 
         if control_plots:
@@ -1492,7 +1500,7 @@ def postprocess_run3(args):
             args.control_plots,
             plot_dir,
             mass_window,
-            args.rerun_inference
+            args.rerun_inference,
         )
         events_dict_postprocess[year] = events
         cutflows[year] = cutflow
@@ -1891,7 +1899,9 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
-    run_utils.add_bool_arg(parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables")
+    run_utils.add_bool_arg(
+        parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
+    )
 
     args = parser.parse_args()
 
