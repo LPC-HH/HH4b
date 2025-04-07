@@ -18,9 +18,11 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     jecs,
+    jec_shifts,
     jmsr,
     jmsr_keys,
     jmsr_res,
+    jmsr_shifts,
     jmsr_values,
     sig_keys,
     syst_keys,
@@ -112,6 +114,7 @@ columns_to_load = {
         ("bbFatJetParTTXbb", 2),
         ("bbFatJetParTPXbb", 2),
         ("bbFatJetParTmassVis", 2),
+        ("bbFatJetParTmassVis_raw", 2),
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
@@ -150,19 +153,25 @@ filters_to_apply = {
 
 load_columns_syst = []
 
-jec_shifts = []
-for key in jecs:
-    for shift in ["up", "down"]:
-        jec_shifts.append(f"{key}_{shift}")
 for jshift in jec_shifts:
     load_columns_syst += [
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
+        (f"bdt_score_{jshift}", 2),
+        (f"bdt_score_vbf_{jshift}", 2),
     ]
+
+for jshift in jmsr_shifts:
+    load_columns_syst += [
+        (f"bbFatJetParTmassVis_{jshift}", 2),
+        (f"bdt_score_{jshift}", 2),
+        (f"bdt_score_vbf_{jshift}", 2),
+    ]
+    
 # load scale and pdf weights
 load_columns_thy = [
     ("scale_weights", 6),
-    ("pdf_weights", 101),  # FIXME: update to 103 once we have the full set
+    ("pdf_weights", 103),
 ]
 
 # only the BG MC samples that are used in the fits
@@ -182,15 +191,15 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         "TXbbSF_correlated": Syst(
             samples=sig_keys, label="TXbb SF correlated", years=years + ["2022-2023"]
         ),
-        # "pileup": Syst(samples=fit_mcs, label="Pileup", years=years + ["2022-2023"]),
+        "pileup": Syst(samples=fit_mcs, label="Pileup", years=years + ["2022-2023"]),
         "scale": Syst(
-            samples=sig_keys,  # + "ttbar", # FIXME: add back ttbar later
+            samples=sig_keys + "ttbar",
             label="QCDScaleAcc",
             years=years + ["2022-2023"],
         ),
         "pdf": Syst(samples=sig_keys, label="PDFAcc", years=years + ["2022-2023"]),
-        # "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]),
-        # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),
+        "ISRPartonShower": Syst(samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]),
+        "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),
     }
 
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
@@ -246,8 +255,8 @@ def load_run3_samples(
     reorder_txbb: bool,
     load_systematics: bool,
     txbb_version: str,
-    scale_and_smear: bool,
     mass_str: str,
+    scale_and_smear: bool = False,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -277,23 +286,6 @@ def load_run3_samples(
         for sample in samples_run3[year]
         if sample not in syst_keys
     }
-
-    # add extra branches if needed
-    def add_rawmass(events_dict, mass_str):
-        for key in events_dict:
-            x = events_dict[key][mass_str].to_numpy(copy=True)
-            events_dict[key][(f"{mass_str}Raw", 0)] = x[:, 0]
-            events_dict[key][(f"{mass_str}Raw", 1)] = x[:, 1]
-
-    # correct mass for glopart-v2; remove once done in skimmer!
-    def correct_mass(events_dict, mass_str):
-        for key in events_dict:
-            events_dict[key][(mass_str, 0)] = events_dict[key][(mass_str, 0)] * (
-                1 - events_dict[key][("bbFatJetrawFactor", 0)]
-            )
-            events_dict[key][(mass_str, 1)] = events_dict[key][(mass_str, 1)] * (
-                1 - events_dict[key][("bbFatJetrawFactor", 1)]
-            )
 
     # load sig samples that need more systematics
     events_dict_syst_sig = {
@@ -344,15 +336,7 @@ def load_run3_samples(
         ),
     }
 
-    if txbb_version == "glopart-v2":
-        correct_mass(events_dict_nosyst, mass_str)
-        correct_mass(events_dict_syst_bg, mass_str)
-        correct_mass(events_dict_syst_sig, mass_str)
-
     if scale_and_smear:
-        add_rawmass(events_dict_nosyst, mass_str)
-        add_rawmass(events_dict_syst_bg, mass_str)
-        add_rawmass(events_dict_syst_sig, mass_str)
         events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
         events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
 
@@ -382,7 +366,7 @@ def scale_smear_mass(
             )
 
             for i in range(2):
-                events_dict[key][(f"{mass_str}Raw", i)] = x[:, i]
+                events_dict[key][(f"{mass_str}_raw", i)] = x[:, i]
                 events_dict[key][(mass_str, i)] = x_smear[:, i]
             for skey in jmsr:
                 for shift in ["up", "down"]:
