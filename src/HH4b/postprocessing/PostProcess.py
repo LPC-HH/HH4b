@@ -463,7 +463,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             reorder_txbb=True,
             load_systematics=True,
             txbb_version=args.txbb,
-            scale_and_smear=True,
+            scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
         )[key]
 
@@ -1891,6 +1891,7 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
+    run_utils.add_bool_arg(parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables")
 
     args = parser.parse_args()
 

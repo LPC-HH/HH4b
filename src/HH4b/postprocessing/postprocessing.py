@@ -255,8 +255,8 @@ def load_run3_samples(
     reorder_txbb: bool,
     load_systematics: bool,
     txbb_version: str,
+    scale_and_smear: bool,
     mass_str: str,
-    scale_and_smear: bool = False,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -337,6 +337,7 @@ def load_run3_samples(
     }
 
     if scale_and_smear:
+        # re-run scaling and smearing of mass variables
         events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
         events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
 
