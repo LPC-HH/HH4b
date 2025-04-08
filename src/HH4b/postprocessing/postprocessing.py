@@ -294,9 +294,7 @@ def load_run3_samples(
         if (sample in syst_keys and sample in sig_keys)
     }
     samples_ttbar = {
-        sample: samples_run3[year][sample]
-        for sample in samples_run3[year]
-        if (sample == "ttbar")
+        sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample == "ttbar")
     }
     samples_syst_bg = {
         sample: samples_run3[year][sample]
@@ -336,7 +334,9 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_syst + load_columns_ttbar if load_systematics else load_columns_year
+                load_columns_year + load_columns_syst + load_columns_ttbar
+                if load_systematics
+                else load_columns_year
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
@@ -379,7 +379,12 @@ def load_run3_samples(
         events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
         events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
 
-    events_dict = {**events_dict_nosyst, **events_dict_ttbar, **events_dict_syst_bg, **events_dict_syst_sig}
+    events_dict = {
+        **events_dict_nosyst,
+        **events_dict_ttbar,
+        **events_dict_syst_bg,
+        **events_dict_syst_sig,
+    }
 
     return events_dict
 
