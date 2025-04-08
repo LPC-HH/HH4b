@@ -170,7 +170,8 @@ mc_samples = OrderedDict(
     [
         ("ttbar", "ttbar"),
         ("vhtobb", "VH_hbb"),
-        ("diboson", "diboson"),
+        ("zz", "ZZ"),
+        ("nozzdiboson", "other_diboson"),
         ("vjets", "vjets"),
         ("tthtobb", "ttH_hbb"),
     ]
@@ -219,13 +220,13 @@ all_mc = list(mc_samples.keys())
 years = hh_years if args.year == "2022-2023" else [args.year]
 full_lumi = LUMI[args.year]
 
-jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
 
-br_hbb_values = {key: 1.0124**2 for key in sig_keys}
-br_hbb_values.update({key: 1.0124 for key in single_h_keys})
-br_hbb_values_down = {key: 0.9874**2 for key in sig_keys}
-br_hbb_values_down.update({key: 0.9874 for key in single_h_keys})
+br_hbb_values = dict.fromkeys(sig_keys, 1.0124**2)
+br_hbb_values.update(dict.fromkeys(single_h_keys, 1.0124))
+br_hbb_values_down = dict.fromkeys(sig_keys, 0.9874**2)
+br_hbb_values_down.update(dict.fromkeys(single_h_keys, 0.9874))
 # dictionary of nuisance params -> (modifier, samples affected by it, value)
 nuisance_params = {
     # https://gitlab.cern.ch/hh/naming-conventions#experimental-uncertainties

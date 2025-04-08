@@ -23,6 +23,11 @@ datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
+if [[ "$inj" == "<i" ]]; then
+    mv inject.json inject_original.json
+    set_global_obs.py inject_original.json inject.json
+fi
+
 law run PlotPullsAndImpacts \
     --version dev \
     --hh-model "$model" \
