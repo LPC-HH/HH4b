@@ -86,6 +86,8 @@ columns_to_load_default = [
     ("AK4JetAwayEta", 2),
     ("AK4JetAwayPhi", 2),
     ("AK4JetAwayMass", 2),
+    ("bdt_score", 1),
+    ("bdt_score_vbf", 1),
 ]
 
 columns_to_load = {
