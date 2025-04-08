@@ -151,7 +151,14 @@ filters_to_apply = {
     ],
 }
 
-load_columns_syst = []
+load_columns_syst = [
+    ("weight_pileupDown", 1),
+    ("weight_pileupUp", 1),
+    ("weight_FSRPartonShowerDown", 1),
+    ("weight_FSRPartonShowerUp", 1),
+    ("weight_ISRPartonShowerDown", 1),
+    ("weight_ISRPartonShowerUp", 1),
+]
 
 for jshift in jec_shifts:
     load_columns_syst += [
@@ -169,7 +176,12 @@ for jshift in jmsr_shifts:
     ]
 load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
-# load scale and pdf weights
+# load scale weights for ttbar
+load_columns_ttbar = [
+    ("scale_weights", 6),
+]
+
+# load scale and pdf weights for signal
 load_columns_thy = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
@@ -200,10 +212,10 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         ),
         "pdf": Syst(samples=sig_keys, label="PDFAcc", years=years + ["2022-2023"]),
         "ISRPartonShower": Syst(
-            samples=sig_keys, label="ISR Parton Shower", years=years + ["2022-2023"]
+            samples=fit_mcs, label="ISR Parton Shower", years=years + ["2022-2023"]
         ),
         "FSRPartonShower": Syst(
-            samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]
+            samples=fit_mcs, label="FSR Parton Shower", years=years + ["2022-2023"]
         ),
     }
 
@@ -281,10 +293,15 @@ def load_run3_samples(
         for sample in samples_run3[year]
         if (sample in syst_keys and sample in sig_keys)
     }
+    samples_ttbar = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if (sample == "ttbar")
+    }
     samples_syst_bg = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year]
-        if (sample in syst_keys and sample not in sig_keys)
+        if (sample in syst_keys and sample not in sig_keys + ["ttbar"])
     }
     samples_nosyst = {
         sample: samples_run3[year][sample]
@@ -308,6 +325,22 @@ def load_run3_samples(
             txbb_str=txbb_str,
             variations=True,
             weight_shifts={},
+        ),
+    }
+
+    # load ttbar
+    events_dict_ttbar = {
+        **utils.load_samples(
+            input_dir,
+            samples_ttbar,
+            year,
+            filters=filters,
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst + load_columns_ttbar if load_systematics else load_columns_year
+            ),
+            reorder_txbb=reorder_txbb,
+            txbb_str=txbb_str,
+            variations=False,
         ),
     }
 
@@ -346,7 +379,7 @@ def load_run3_samples(
         events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
         events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
 
-    events_dict = {**events_dict_nosyst, **events_dict_syst_bg, **events_dict_syst_sig}
+    events_dict = {**events_dict_nosyst, **events_dict_ttbar, **events_dict_syst_bg, **events_dict_syst_sig}
 
     return events_dict
 

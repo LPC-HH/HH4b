@@ -669,9 +669,10 @@ def load_process_run3_samples(
         # save total corrected weight
         bdt_events["weight"] *= trigger_weight * ttbar_weight * txbb_sf_weight
         # also correct pdf/scale weights
-        if key in hh_vars.sig_keys:
+        if key in hh_vars.sig_keys + ["ttbar"]:
             for i in range(6):
                 bdt_events[f"scale_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
+        if key in hh_vars.sig_keys:
             for i in range(101):
                 bdt_events[f"pdf_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
@@ -976,12 +977,13 @@ def load_process_run3_samples(
             ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        if key in hh_vars.sig_keys + ["ttbar"]:
+            for i in range(6):
+                columns += [f"scale_weights_{i}"]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
         if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
-            for i in range(6):
-                columns += [f"scale_weights_{i}"]
             for i in range(103):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
