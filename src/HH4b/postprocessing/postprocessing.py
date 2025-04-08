@@ -113,7 +113,6 @@ columns_to_load = {
         ("bbFatJetParTTXbb", 2),
         ("bbFatJetParTPXbb", 2),
         ("bbFatJetParTmassVis", 2),
-        ("bbFatJetParTmassVis_raw", 2),
         ("bbFatJetParTPQCD0HF", 2),
         ("bbFatJetParTPQCD1HF", 2),
         ("bbFatJetParTPQCD2HF", 2),
@@ -166,6 +165,7 @@ for jshift in jmsr_shifts:
         (f"bdt_score_{jshift}", 2),
         (f"bdt_score_vbf_{jshift}", 2),
     ]
+load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
 # load scale and pdf weights
 load_columns_thy = [
