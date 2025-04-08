@@ -25,6 +25,7 @@ from HH4b.hh_vars import (
     jmsr_values,
     sig_keys,
     sig_keys_ggf,
+    sig_keys_vbf,
     syst_keys,
     ttbarsfs_decorr_ggfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
