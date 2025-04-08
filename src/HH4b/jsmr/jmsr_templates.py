@@ -364,11 +364,21 @@ def save_to_file(out_file, hists_pass, hists_fail, save_variations=True):
                     if sample in ["W_matched"]
                 ]
             )
+            
+        f_out[f"catp2_pass_weighted"] = sum(
+            [
+                hists_pass["WMass_weighted"][{"Sample": sample}]
+                for sample in hists_pass["WMass_weighted"].axes[0]
+                if sample in ["W_matched", "singletop"]
+            ]
+        )
+        
+        
 
     f_out.close()
 
 
-def get_ev_dataframe(events_dict, mass, pt_mask):
+def get_ev_dataframe(events_dict, mass, pt_mask, year):
     """
     Get dataframe with W selection applied
     """
@@ -401,6 +411,19 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
     #         + events["ak8FatJetParTPTopbW"][0]
     #         + events["ak8FatJetParTPTopW"][0]
     #     )
+
+    def scale_smear(x, jms, jmr):
+        np.random.seed(0)
+        random_smear = np.random.normal(size=len(x))
+        return x * jms * (1 + random_smear * max(jmr - 1, 0))
+    
+    jmsr_values = {}
+    if "2022" in year:
+        jmsr_values["jms"] = [1.011, 1.007, 1.014]
+        jmsr_values["jmr"] = [1.035, 1.028, 1.042]
+    else:
+        jmsr_values["jms"] = [0.987, 0.983, 0.99]
+        jmsr_values["jmr"] = [1.0335, 1.025, 1.042]
 
     ev_dict = {}
     for key in events_dict:
@@ -454,6 +477,9 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
             #    print("JMR nominal ", events[f"ak8FatJet{mass}"][0])
             #    print("JMR down ", events[f"ak8FatJet{mass}_JMR_down"][0])
             #    print("JMR up ", events[f"ak8FatJet{mass}_JMR_up"][0])
+
+            # save arbitrary variations using weighted fit numbers
+            ev_dataframe["WMass_weighted"] = scale_smear(ev_dataframe["WMass"], jms=jmsr_values["jms"][0], jmr=jmsr_values["jmr"][0])
 
         # identify ttbar jets matched and unmatched to top quark decays
         # TODO: apply singletop
@@ -622,6 +648,12 @@ def jmsr_templates(dir_name, year_group, tag, mass):
             bins=[21, 55, 125],
             plot_args={"log": False},
         ),
+        ShapeVar(
+            var="WMass_weighted",
+            label=r"W Mass weighted by JMS/JMR (GeV)",
+            bins=[21, 55, 125],
+            plot_args={"log": False},
+        ),
     ]
 
     # variables to make stack plots for
@@ -662,7 +694,7 @@ def jmsr_templates(dir_name, year_group, tag, mass):
             ),
         }
 
-        events, events_pass, events_fail = get_ev_dataframe(events_dict, mass, pt_mask)
+        events, events_pass, events_fail = get_ev_dataframe(events_dict, mass, pt_mask, year)
 
         if year_group in ev_dict:
             for key in ev_dict[year_group]:
