@@ -568,7 +568,8 @@ def load_process_run3_samples(
             for i in range(6):
                 bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
         if key in hh_vars.sig_keys:
-            for i in range(103):
+            n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            for i in range(n_pdf_weights):
                 bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
@@ -986,7 +987,7 @@ def load_process_run3_samples(
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
         if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
-            for i in range(103):
+            for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
             columns += [

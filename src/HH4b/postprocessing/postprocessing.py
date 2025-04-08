@@ -24,6 +24,8 @@ from HH4b.hh_vars import (
     jmsr_shifts,
     jmsr_values,
     sig_keys,
+    sig_keys_ggf,
+    sig_keys_vbf,
     syst_keys,
     ttbarsfs_decorr_ggfbdt_bins,
     ttbarsfs_decorr_txbb_bins,
@@ -181,10 +183,16 @@ load_columns_ttbar = [
     ("scale_weights", 6),
 ]
 
-# load scale and pdf weights for signal
-load_columns_thy = [
+# load scale and pdf weights for ggf signal
+load_columns_ggf = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
+]
+
+# load scale and pdf weights for vbf signal (missing alpha_s variations)
+load_columns_vbf = [
+    ("scale_weights", 6),
+    ("pdf_weights", 101),
 ]
 
 # only the BG MC samples that are used in the fits
@@ -288,10 +296,15 @@ def load_run3_samples(
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
 
-    samples_syst_sig = {
+    samples_syst_ggf = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year]
-        if (sample in syst_keys and sample in sig_keys)
+        if (sample in syst_keys and sample in sig_keys_ggf)
+    }
+    samples_syst_vbf = {
+        sample: samples_run3[year][sample]
+        for sample in samples_run3[year]
+        if (sample in syst_keys and sample in sig_keys_ggf)
     }
     samples_ttbar = {
         sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample == "ttbar")
@@ -307,15 +320,15 @@ def load_run3_samples(
         if sample not in syst_keys
     }
 
-    # load sig samples that need more systematics
-    events_dict_syst_sig = {
+    # load ggf samples
+    events_dict_syst_ggf = {
         **utils.load_samples(
             input_dir,
-            samples_syst_sig,
+            samples_syst_ggf,
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_syst + load_columns_thy
+                load_columns_year + load_columns_syst + load_columns_ggf
                 if load_systematics
                 else load_columns_year
             ),
@@ -326,7 +339,26 @@ def load_run3_samples(
         ),
     }
 
-    # load ttbar
+    # load vbf samples
+    events_dict_syst_vbf = {
+        **utils.load_samples(
+            input_dir,
+            samples_syst_vbf,
+            year,
+            filters=filters,
+            columns=utils.format_columns(
+                load_columns_year + load_columns_syst + load_columns_vbf
+                if load_systematics
+                else load_columns_year
+            ),
+            reorder_txbb=reorder_txbb,
+            txbb_str=txbb_str,
+            variations=True,
+            weight_shifts={},
+        ),
+    }
+
+    # load ttbar samples
     events_dict_ttbar = {
         **utils.load_samples(
             input_dir,
@@ -377,13 +409,15 @@ def load_run3_samples(
     if scale_and_smear:
         # re-run scaling and smearing of mass variables
         events_dict_syst_bg = scale_smear_mass(events_dict_syst_bg, year, mass_str)
-        events_dict_syst_sig = scale_smear_mass(events_dict_syst_sig, year, mass_str)
+        events_dict_syst_ggf = scale_smear_mass(events_dict_syst_ggf, year, mass_str)
+        events_dict_syst_vbf = scale_smear_mass(events_dict_syst_vbf, year, mass_str)
 
     events_dict = {
         **events_dict_nosyst,
         **events_dict_ttbar,
         **events_dict_syst_bg,
-        **events_dict_syst_sig,
+        **events_dict_syst_ggf,
+        **events_dict_syst_vbf,
     }
 
     return events_dict
