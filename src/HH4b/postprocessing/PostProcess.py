@@ -498,7 +498,9 @@ def load_process_run3_samples(
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
                 bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[f"bdt_score_vbf{_jshift}"]
+                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
+                    f"bdt_score_vbf{_jshift}"
+                ]
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
