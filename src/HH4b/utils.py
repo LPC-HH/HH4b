@@ -271,8 +271,7 @@ def _normalize_weights(
         if wkey in events:
             # .to_numpy() makes it way faster
             weights = events[wkey].to_numpy()
-            n_weights = weights.shape[1]
-            events[wkey] = weights / totals[f"np_{wkey}"][:n_weights]
+            events[wkey] = weights / totals[f"np_{wkey}"]
             if (
                 "weight_noxsec" in events
                 and np.all(events["weight"] == events["weight_noxsec"])
