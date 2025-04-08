@@ -480,6 +480,7 @@ def load_process_run3_samples(
         logger.info("Perform inference")
         bdt_events = {}
         for jshift in jshifts:
+            _jshift = f"_{jshift}" if jshift != "" else ""
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
                 events_dict, get_var_mapping(jshift)
             )
@@ -496,8 +497,8 @@ def load_process_run3_samples(
                 # assert bdt_disc is true
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
-                bdt_events[jshift][f"bdt_score{jshift}"] = events_dict[f"bdt_score{jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{jshift}"] = events_dict[f"bdt_score_vbf{jshift}"]
+                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
+                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[f"bdt_score_vbf{_jshift}"]
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
