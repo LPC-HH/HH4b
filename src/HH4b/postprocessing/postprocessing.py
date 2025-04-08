@@ -303,7 +303,7 @@ def load_run3_samples(
     samples_syst_vbf = {
         sample: samples_run3[year][sample]
         for sample in samples_run3[year]
-        if (sample in syst_keys and sample in sig_keys_ggf)
+        if (sample in syst_keys and sample in sig_keys_vbf)
     }
     samples_ttbar = {
         sample: samples_run3[year][sample] for sample in samples_run3[year] if (sample == "ttbar")
