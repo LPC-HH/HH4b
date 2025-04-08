@@ -561,7 +561,7 @@ def load_process_run3_samples(
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
         # scale, pdf weights
-        if key in hh_vars.sig_keys + "ttbar":
+        if key in hh_vars.sig_keys + ["ttbar"]:
             for i in range(6):
                 bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
         if key in hh_vars.sig_keys:

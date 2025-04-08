@@ -192,7 +192,7 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         ),
         "pileup": Syst(samples=fit_mcs, label="Pileup", years=years + ["2022-2023"]),
         "scale": Syst(
-            samples=sig_keys + "ttbar",
+            samples=sig_keys + ["ttbar"],
             label="QCDScaleAcc",
             years=years + ["2022-2023"],
         ),
