@@ -436,11 +436,11 @@ jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
 }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
-jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
+jmsr_res["bbFatJetPNetMassLegacy"] = dict.fromkeys(sig_keys, 14.4)
 jmsr_res["bbFatJetPNetMassLegacy"]["vhtobb"] = 14.4 * 80.0 / 125.0
 jmsr_res["bbFatJetPNetMassLegacy"]["zz"] = 14.4 * 80.0 / 125.0
 jmsr_res["bbFatJetPNetMassLegacy"]["nozzdiboson"] = 14.4 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"] = {sig_key: 10.7 for sig_key in sig_keys}
+jmsr_res["bbFatJetParTmassVis"] = dict.fromkeys(sig_keys, 10.7)
 jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 10.7 * 80.0 / 125.0
 jmsr_res["bbFatJetParTmassVis"]["zz"] = 10.7 * 80.0 / 125.0
 jmsr_res["bbFatJetParTmassVis"]["nozzdiboson"] = 10.7 * 80.0 / 125.0

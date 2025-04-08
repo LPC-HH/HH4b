@@ -460,7 +460,7 @@ def ratioHistPlot(
     ax.set_ylabel("Events")
 
     # re-weight qcd
-    kfactor = {sample: 1 for sample in bg_keys}
+    kfactor = dict.fromkeys(bg_keys, 1)
     if reweight_qcd and qcd_norm is None:
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
