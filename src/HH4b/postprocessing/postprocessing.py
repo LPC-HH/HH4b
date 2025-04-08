@@ -157,15 +157,15 @@ for jshift in jec_shifts:
     load_columns_syst += [
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
-        (f"bdt_score_{jshift}", 2),
-        (f"bdt_score_vbf_{jshift}", 2),
+        (f"bdt_score_{jshift}", 1),
+        (f"bdt_score_vbf_{jshift}", 1),
     ]
 
 for jshift in jmsr_shifts:
     load_columns_syst += [
         (f"bbFatJetParTmassVis_{jshift}", 2),
-        (f"bdt_score_{jshift}", 2),
-        (f"bdt_score_vbf_{jshift}", 2),
+        (f"bdt_score_{jshift}", 1),
+        (f"bdt_score_vbf_{jshift}", 1),
     ]
 load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
