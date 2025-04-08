@@ -284,7 +284,7 @@ hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
 sig_keys_ggf = [
     "hh4b",
-    # "hh4b-kl0",  # drop for now due to missing scale weight in 2023
+    "hh4b-kl0",
     "hh4b-kl2p45",
     "hh4b-kl5",
 ]
