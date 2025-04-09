@@ -204,7 +204,6 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
     }
     bkg_keys = ["qcd", "ttbar"]
 
-
     def get_legtitle(txbb_str):
         title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
         if "part" in txbb_str.lower():
