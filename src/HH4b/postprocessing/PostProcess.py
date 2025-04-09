@@ -20,7 +20,6 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
-from HH4b.boosted.TrainBDT import get_legtitle
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -204,6 +203,27 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
+
+
+    def get_legtitle(txbb_str):
+        title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+        if "part" in txbb_str.lower():
+            title += "$T_{Xbb}^{0}$ > 0.3"
+        else:
+            title += "$T_{Xbb}^{0}$ > 0.8"
+
+        if "legacy" in txbb_str.lower():
+            title += "\n" + "PNet Legacy"
+        elif "part" in txbb_str.lower():
+            title += "\n" + "GloParTv2"
+        else:
+            title += "\n" + "PNet 103X"
+
+        title += "\n" + r"m$_{reg}$ > 50 GeV"
+        title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
+
+        return title
+
     legtitle = get_legtitle(txbb_version)
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
