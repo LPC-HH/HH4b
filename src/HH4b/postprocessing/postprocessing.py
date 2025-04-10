@@ -227,12 +227,12 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         ),
     }
 
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, "glopart-v2")
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, ttbarsfs_decorr_txbb_bins["glopart-v2"])
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        bdt_version, "25Feb5_v13_glopartv2_rawmass"
+        bdt_version, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
     )
-    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(txbb_version, "glopart-v2")
-    TXbb_wps = txbbsfs_decorr_txbb_wps.get(txbb_version, "glopart-v2")
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(txbb_version, txbbsfs_decorr_pt_bins["glopart-v2"])
+    TXbb_wps = txbbsfs_decorr_txbb_wps.get(txbb_version, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     for i in range(len(ttsf_xbb_bins) - 1):
         weight_shifts[f"ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"] = Syst(
