@@ -14,7 +14,6 @@ from __future__ import annotations
 import gzip
 import pathlib
 import pickle
-import random
 
 import awkward as ak
 import correctionlib
