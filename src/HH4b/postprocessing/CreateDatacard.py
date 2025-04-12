@@ -260,8 +260,12 @@ nuisance_params = {
         diff_samples=True,
     ),
     # weight lumi uncertainties by corresponding integrated lumi
-    "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]),
-    "lumi_2023": Syst(prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]),
+    "lumi_2022": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]
+    ),
+    "lumi_2023": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]
+    ),
 }
 if not args.thu_hh:
     del nuisance_params["THU_HH"]
