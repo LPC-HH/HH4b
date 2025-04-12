@@ -363,13 +363,10 @@ def get_jmsr(
             jmr_nom, jmr_down, jmr_up = ((smearing * max(jmr[i] - 1, 0) + 1) for i in range(3))
             jms_nom, jms_down, jms_up = jms
 
-            corr_mass_JMRUp = random.gauss(0.0, jmr[2] - 1.0)
-            corr_mass = max(jmr[0] - 1.0, 0.0) / (jmr[2] - 1.0) * corr_mass_JMRUp
-
             mass_jms = mass * jms_nom
             mass_jmr = mass * jmr_nom
 
-            tdict[""] = mass * jms_nom * (1.0 + corr_mass)
+            tdict[""] = mass * jms_nom * jmr_nom
             tdict["JMS_down"] = mass_jmr * jms_down
             tdict["JMS_up"] = mass_jmr * jms_up
             tdict["JMR_down"] = mass_jms * jmr_down
