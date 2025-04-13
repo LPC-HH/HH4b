@@ -40,6 +40,7 @@ from .GenSelection import (
 )
 from .objects import (
     get_ak8jets,
+    good_ak4jets,
     good_ak8jets,
     good_electrons,
     good_muons,
@@ -522,7 +523,7 @@ class bbbbSkimmer(SkimmerABC):
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
 
-        jets = objects.good_ak4jets(jets, year)
+        jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
 
         if self._region == "semiboosted":
@@ -551,7 +552,7 @@ class bbbbSkimmer(SkimmerABC):
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
-        fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
+        fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
 
         # match txbb string to branch name in fatjet collection
         txbb_order = txbbstr_to_branch[self.txbb]

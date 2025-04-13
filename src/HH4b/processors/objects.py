@@ -13,6 +13,30 @@ from coffea.nanoevents.methods.nanoaod import (
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
 
+def jetid_v12(jets: ak.Array) -> ak.Array:
+    """
+    Jet ID fix for NanoAOD v12 copying
+    # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
+    """
+
+    jetidtightbit = (jets.jetId & 2) == 2
+    jetidtight = (
+        ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
+        | (
+            ((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0))
+            & jetidtightbit
+            & (jets.neHEF >= 0.99)
+        )
+        | ((np.abs(jets.eta) > 3.0) & jetidtightbit & (jets.neEmEF < 0.4))
+    )
+
+    jetidtightlepveto = (
+        (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
+    ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
+
+    return jetidtight, jetidtightlepveto
+
+
 def veto_muons_run2(muons: MuonArray):
     return (
         (muons.pt >= 30)
@@ -108,7 +132,7 @@ def loose_taus(taus: TauArray):
 
 
 # ak4 jet definition
-def good_ak4jets(jets: JetArray, year: str):
+def good_ak4jets(jets: JetArray, year: str, nano_version: str):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
 
@@ -120,21 +144,12 @@ def good_ak4jets(jets: JetArray, year: str):
         pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
         sel = sel & pu_id
     else:
-        # Copying https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
-        jetidtightbit = (jets.jetId & 2) == 2
-        jetidtight = (
-            ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
-            | (
-                ((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0))
-                & jetidtightbit
-                & (jets.neHEF >= 0.99)
-            )
-            | (((np.abs(jets.eta) > 3.0)) & jetidtightbit & (jets.neEmEF < 0.4))
-        )
-
-        jetidtightlepveto = (
-            (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
-        ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
+        if nano_version.startswith("v12"):
+            jetidtight, jetidtightlepveto = jetid_v12(jets)  # v12 jetid fix
+        elif nano_version.startswith(("v13", "v14", "v15")):
+            raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
+        else:
+            jetidtight, jetidtightlepveto = jets.isTight, jets.isTightLepVeto
 
         sel = sel & jetidtight & jetidtightlepveto
 
@@ -294,10 +309,18 @@ def good_ak8jets(
     eta: float,
     msd: float,
     mreg: float,
+    nano_version: str,
     mreg_str="particleNet_mass_legacy",
 ):
+    if nano_version.startswith("v12"):
+        jetidtight, _jetidtightlepveto = jetid_v12(fatjets)  # v12 jetid fix
+    elif nano_version.startswith(("v13", "v14", "v15")):
+        raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
+    else:
+        jetidtight, _jetidtightlepveto = fatjets.isTight, fatjets.isTightLepVeto
+
     fatjet_sel = (
-        fatjets.isTight
+        jetidtight
         & (fatjets.pt > pt)
         & (abs(fatjets.eta) < eta)
         & ((fatjets.msoftdrop > msd) | (fatjets[mreg_str] > mreg))
