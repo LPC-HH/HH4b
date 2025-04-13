@@ -313,7 +313,7 @@ def good_ak8jets(
     mreg_str="particleNet_mass_legacy",
 ):
     if nano_version.startswith("v12"):
-        jetidtight, _jetidtightlepveto = jetid_v12(fatjets)  # v12 jetid fix
+        jetidtight, jetidtightlepveto = jetid_v12(fatjets)  # v12 jetid fix
     elif nano_version.startswith(("v13", "v14", "v15")):
         raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
     else:
