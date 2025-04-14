@@ -1009,9 +1009,7 @@ def load_process_run3_samples(
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
-            columns += [
-                "weight_triggerUp",
-                "weight_triggerDown"] + pileup_ps_weights
+            columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
 
         if control_plots:
