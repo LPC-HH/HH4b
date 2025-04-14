@@ -393,18 +393,21 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-        # initialize all values with 5% and 10% variation
         self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
         self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
         for jmsr_year in self.jms_values:
-            self.jms_values[jmsr_year] = {k: [1.0, 0.95, 1.05] for k in self.jmsr_vars}
-            self.jmr_values[jmsr_year] = {k: [1.0, 0.9, 1.1] for k in self.jmsr_vars}
-            if "2022" in jmsr_year:
-                self.jms_values[jmsr_year]["ParTmassVis"] = [1.0106, 1.0071, 1.0141]
-                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0354, 1.028, 1.042]
-            else:
-                self.jms_values[jmsr_year]["ParTmassVis"] = [0.9711, 0.9654, 0.9768]
-                self.jmr_values[jmsr_year]["ParTmassVis"] = [1.0181, 1.0005, 1.0357]
+            jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
+            jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
+            self.jms_values[jmsr_year]["ParTmassVis"] = [
+                jmr_val["nom"],
+                jmr_val["down"],
+                jmr_val["up"],
+            ]
+            self.jmr_values[jmsr_year]["ParTmassVis"] = [
+                jms_val["nom"],
+                jms_val["down"],
+                jms_val["up"],
+            ]
 
         # FatJet Vars
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
