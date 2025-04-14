@@ -591,15 +591,15 @@ def load_process_run3_samples(
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
             for i in range(n_pdf_weights):
                 bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+        pileup_ps_weights = [
+            "weight_pileupUp",
+            "weight_pileupDown",
+            "weight_ISRPartonShowerUp",
+            "weight_ISRPartonShowerDown",
+            "weight_FSRPartonShowerUp",
+            "weight_FSRPartonShowerDown",
+        ]
         if key != "data":
-            pileup_ps_weights = [
-                "weight_pileupUp",
-                "weight_pileupDown",
-                "weight_ISRPartonShowerUp",
-                "weight_ISRPartonShowerDown",
-                "weight_FSRPartonShowerUp",
-                "weight_FSRPartonShowerDown",
-            ]
             for w in pileup_ps_weights:
                 if w in events_dict:
                     bdt_events[w] = events_dict[w].to_numpy()
