@@ -595,7 +595,7 @@ def load_process_run3_samples(
                 "weight_pileupUp",
                 "weight_pileupDown",
                 "weight_ISRPartonShowerUp",
-                "weightISRPartonShowerDown",
+                "weight_ISRPartonShowerDown",
                 "weight_FSRPartonShowerUp",
                 "weight_FSRPartonShowerDown",
             ]
@@ -1011,14 +1011,7 @@ def load_process_run3_samples(
         if key != "data":
             columns += [
                 "weight_triggerUp",
-                "weight_triggerDown",
-                "weight_pileupUp",
-                "weight_pileupDown",
-                "weight_ISRPartonShowerUp",
-                "weight_ISRPartonShowerDown",
-                "weight_FSRPartonShowerUp",
-                "weight_FSRPartonShowerDown",
-            ]
+                "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
 
         if control_plots:
