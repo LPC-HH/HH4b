@@ -591,7 +591,14 @@ def load_process_run3_samples(
             for i in range(n_pdf_weights):
                 bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
         if key != "data":
-            pileup_ps_weights = ["weight_pileupUp", "weight_pileupDown", "weight_ISRPartonShowerUp", "weightISRPartonShowerDown", "weight_FSRPartonShowerUp", "weight_FSRPartonShowerDown"]
+            pileup_ps_weights = [
+                "weight_pileupUp",
+                "weight_pileupDown",
+                "weight_ISRPartonShowerUp",
+                "weightISRPartonShowerDown",
+                "weight_FSRPartonShowerUp",
+                "weight_FSRPartonShowerDown",
+            ]
             for w in pileup_ps_weights:
                 if w in events_dict:
                     bdt_events[w] = events_dict[w].to_numpy()
@@ -695,11 +702,16 @@ def load_process_run3_samples(
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
         # save corrected weights
-        weights_to_correct = ["weight"] + [f"scale_weights_{i}" for i in range(6)] + [f"pdf_weights_{i}" for i in range(n_pdf_weights)] + pileup_ps_weights
+        weights_to_correct = (
+            ["weight"]
+            + [f"scale_weights_{i}" for i in range(6)]
+            + [f"pdf_weights_{i}" for i in range(n_pdf_weights)]
+            + pileup_ps_weights
+        )
         for w in weights_to_correct:
             if w in bdt_events:
                 bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
-        
+
         # correlated signal xbb up/dn variations
         corr_up = np.ones(nevents)
         corr_dn = np.ones(nevents)
