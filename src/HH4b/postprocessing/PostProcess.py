@@ -586,6 +586,7 @@ def load_process_run3_samples(
         if key in hh_vars.sig_keys + ["ttbar"]:
             for i in range(6):
                 bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+        n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
             for i in range(n_pdf_weights):
