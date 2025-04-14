@@ -590,6 +590,12 @@ def load_process_run3_samples(
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
             for i in range(n_pdf_weights):
                 bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+        if key != "data":
+            pileup_ps_weights = ["weight_pileupUp", "weight_pileupDown", "weight_ISRPartonShowerUp", "weightISRPartonShowerDown", "weight_FSRPartonShowerUp", "weight_FSRPartonShowerDown"]
+            for w in pileup_ps_weights:
+                if w in events_dict:
+                    bdt_events[w] = events_dict[w].to_numpy()
+
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
         bdt_events["event"] = events_dict["event"].to_numpy()
@@ -688,16 +694,12 @@ def load_process_run3_samples(
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
-        # save total corrected weight
-        bdt_events["weight"] *= trigger_weight * ttbar_weight * txbb_sf_weight
-        # also correct pdf/scale weights
-        if key in hh_vars.sig_keys + ["ttbar"]:
-            for i in range(6):
-                bdt_events[f"scale_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
-        if key in hh_vars.sig_keys:
-            for i in range(101):
-                bdt_events[f"pdf_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
-
+        # save corrected weights
+        weights_to_correct = ["weight"] + [f"scale_weights_{i}" for i in range(6)] + [f"pdf_weights_{i}" for i in range(n_pdf_weights)] + pileup_ps_weights
+        for w in weights_to_correct:
+            if w in bdt_events:
+                bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
+        
         # correlated signal xbb up/dn variations
         corr_up = np.ones(nevents)
         corr_dn = np.ones(nevents)
@@ -823,20 +825,6 @@ def load_process_run3_samples(
             bdt_events["weight_triggerDown"] = (
                 bdt_events["weight"] * trigger_weight_dn / trigger_weight
             )
-            bdt_events["weight_pileupUp"] = events_dict["weight_pileupUp"].to_numpy()
-            bdt_events["weight_pileupDown"] = events_dict["weight_pileupDown"].to_numpy()
-            bdt_events["weight_ISRPartonShowerUp"] = events_dict[
-                "weight_ISRPartonShowerUp"
-            ].to_numpy()
-            bdt_events["weight_ISRPartonShowerDown"] = events_dict[
-                "weight_ISRPartonShowerDown"
-            ].to_numpy()
-            bdt_events["weight_FSRPartonShowerUp"] = events_dict[
-                "weight_FSRPartonShowerUp"
-            ].to_numpy()
-            bdt_events["weight_FSRPartonShowerDown"] = events_dict[
-                "weight_FSRPartonShowerDown"
-            ].to_numpy()
         if key == "ttbar":
             bdt_events["weight_ttbarSF_pTjjUp"] = bdt_events["weight"] * ptjjsf
             bdt_events["weight_ttbarSF_pTjjDown"] = bdt_events["weight"] / ptjjsf
