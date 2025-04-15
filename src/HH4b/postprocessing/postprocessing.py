@@ -193,11 +193,15 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
         # "FSRPartonShower": Syst(samples=sig_keys, label="FSR Parton Shower", years=years + ["2022-2023"]),
     }
 
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(txbb_version, ttbarsfs_decorr_txbb_bins["glopart-v2"])
-    ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        bdt_version, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]    
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
+        txbb_version, ttbarsfs_decorr_txbb_bins["glopart-v2"]
     )
-    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(txbb_version, txbbsfs_decorr_pt_bins["glopart-v2"])
+    ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
+        bdt_version, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
+    )
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(
+        txbb_version, txbbsfs_decorr_pt_bins["glopart-v2"]
+    )
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(txbb_version, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     for i in range(len(ttsf_xbb_bins) - 1):
