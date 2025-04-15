@@ -1843,17 +1843,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fom-vbf-samples",
         type=str,
-        nargs="+"
-        default="vbfhh4b-k2v0",
-        help="VBF samples to use for FOM scan",
+        nargs="+",
+        default=["vbfhh4b-k2v0"],
+        help="Samples to use for FOM scan for VBF category",
         choices=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
     )
     parser.add_argument(
         "--fom-ggf-samples",
         type=str,
-        nargs="+"
-        default="hh4b",
-        help="VBF samples to use for FOM scan",
+        nargs="+",
+        default=["hh4b"],
+        help="Samples to use for FOM scan for ggF categories",
         choices=["hh4b", "vbfhh4b"],
     )
     run_utils.add_bool_arg(
