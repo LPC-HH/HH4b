@@ -384,9 +384,7 @@ uncorr_year_shape_systs = {
         },
     ),
 }
-ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
-        args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
-    )
+ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"])
 for i in range(len(ttsf_xbb_bins) - 1):
     label = f"ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"
     name = f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"
