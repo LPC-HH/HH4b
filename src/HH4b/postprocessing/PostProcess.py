@@ -181,7 +181,7 @@ def add_bdt_scores(
             (preds[:, 1] + preds[:, 2])
             / (preds[:, 1] + preds[:, 2] + preds[:, 3] + weight_ttbar * preds[:, 4])
             if bdt_disc
-            else preds[:, 1]
+            else preds[:, 1] + preds[:, 2]
         )
 
 
@@ -1102,7 +1102,7 @@ def scan_fom(
     plot_dir: str,
     plot_name: str,
     bg_keys: list[str],
-    sig_key: str = "hh4b",
+    sig_keys: list[str],
     fom: str = "2sqrt(b)/s",
     mass: str = "H2Msd",
 ):
@@ -1147,11 +1147,11 @@ def scan_fom(
                     mass,
                     mass_window,
                     bg_keys,
-                    sig_key,
+                    sig_keys,
                 )
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
-                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
+                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_keys
                 )
 
             # number of events in data in sideband
@@ -1390,19 +1390,21 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm = qcd_norm_tmp
 
 
-def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
+def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_keys):
     nevents_bkg = get_nevents_data(
         events_dict["data"],
         get_cut(events_dict["data"], txbb_cut, bdt_cut),
         mass,
         mass_window,
     )
-    nevents_sig = get_nevents_signal(
-        events_dict[sig_key],
-        get_cut(events_dict[sig_key], txbb_cut, bdt_cut),
-        mass,
-        mass_window,
-    )
+    nevents_sig = 0
+    for sig_key in sig_keys:
+        nevents_sig += get_nevents_signal(
+            events_dict[sig_key],
+            get_cut(events_dict[sig_key], txbb_cut, bdt_cut),
+            mass,
+            mass_window,
+        )
     return nevents_sig, nevents_bkg, {}
 
 
@@ -1415,7 +1417,7 @@ def abcd(
     mass,
     mass_window,
     bg_keys_all,
-    sig_key="hh4b",
+    sig_keys,
 ):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
@@ -1423,12 +1425,13 @@ def abcd(
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
-    for key in [sig_key, "data"] + bg_keys:
+    s = 0
+    for key in sig_keys + ["data"] + bg_keys:
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
-        if key == sig_key:
-            s = get_nevents_signal(events, cut, mass, mass_window)
+        if key in sig_keys:
+            s += get_nevents_signal(events, cut, mass, mass_window)
             continue
 
         # region A
@@ -1577,7 +1580,7 @@ def postprocess_run3(args):
             args.mass,
             mass_window,
             bg_keys,
-            "hh4b",
+            ["hh4b"],
         )
 
         s_binVBF, b_binVBF, _ = abcd(
@@ -1589,7 +1592,7 @@ def postprocess_run3(args):
             args.mass,
             mass_window,
             bg_keys,
-            "hh4b",
+            ["hh4b"],
         )
 
         # note: need to do this since not all the years have all the samples..
@@ -1640,13 +1643,13 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "vbf"),
                 get_anti_cuts(args, "vbf"),
-                np.arange(0.7, 0.85, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
                 np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
                 bg_keys=bg_keys,
-                sig_key=args.fom_vbf_sample,
+                sig_keys=args.fom_vbf_samples,
                 mass=args.mass,
             )
 
@@ -1669,6 +1672,7 @@ def postprocess_run3(args):
                 plot_dir,
                 "fom_bin1",
                 bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
             )
 
@@ -1686,12 +1690,13 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "bin2"),
                 get_anti_cuts(args, "bin2"),
-                np.arange(0.7, args.txbb_wps[0], 0.0025),
-                np.arange(0.7, args.bdt_wps[0], 0.0025),
+                np.arange(0.5, 0.9, 0.0025),
+                np.arange(0.5, 0.9, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
                 bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
             )
 
@@ -1888,11 +1893,20 @@ if __name__ == "__main__":
         "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
     parser.add_argument(
-        "--fom-vbf-sample",
+        "--fom-vbf-samples",
         type=str,
-        default="vbfhh4b-k2v0",
-        help="VBF sample to use for FOM scan",
-        choices=["vbfhh4b", "vbfhh4b-k2v0"],
+        nargs="+",
+        default=["vbfhh4b-k2v0"],
+        help="Samples to use for FOM scan for VBF category",
+        choices=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+    )
+    parser.add_argument(
+        "--fom-ggf-samples",
+        type=str,
+        nargs="+",
+        default=["hh4b"],
+        help="Samples to use for FOM scan for ggF categories",
+        choices=["hh4b", "vbfhh4b"],
     )
     run_utils.add_bool_arg(
         parser,
