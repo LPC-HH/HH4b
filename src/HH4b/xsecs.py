@@ -296,7 +296,7 @@ def main():
     import json
 
     with open("xsecs.json", "w") as outfile:  # noqa: PTH123
-        json.dump(xsecs, outfile)
+        json.dump(xsecs, outfile, indent=4)
 
 
 if __name__ == "__main__":
