@@ -10,8 +10,8 @@ BR_ZQQ = 0.69911
 BR_ZNUNU = 0.27107
 BR_ZLL = 0.02982
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR at mH=125.40
-BR_HBB = 5.760E-01
-BR_HCC = 2.860E-02
+BR_HBB = 5.760e-01
+BR_HCC = 2.860e-02
 
 xsecs = {}
 
