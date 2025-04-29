@@ -466,11 +466,18 @@ def get_ev_dataframe(events_dict, mass, pt_mask, year):
                 "WMass_JMR_up": events[f"ak8FatJet{mass}"][0],
             }
         )
+        modify_JMS = False
         if key != "data":
-            ev_dataframe["WMass_JMS_down"] = events[f"ak8FatJet{mass}_JMS_down"][0]
-            ev_dataframe["WMass_JMS_up"] = events[f"ak8FatJet{mass}_JMS_up"][0]
-            ev_dataframe["WMass_JMR_down"] = events[f"ak8FatJet{mass}_JMR_down"][0]
-            ev_dataframe["WMass_JMR_up"] = events[f"ak8FatJet{mass}_JMR_up"][0]
+            if modify_JMS:
+                ev_dataframe["WMass_JMS_down"] = scale_smear(ev_dataframe["WMass"], jms=0.95, jmr=1.)
+                ev_dataframe["WMass_JMS_up"] = scale_smear(ev_dataframe["WMass"], jms=1.05, jmr=1.)
+                ev_dataframe["WMass_JMR_down"] = scale_smear(ev_dataframe["WMass"], jms=1., jmr=0.95)
+                ev_dataframe["WMass_JMR_up"] = scale_smear(ev_dataframe["WMass"], jms=1., jmr=1.05)
+            else:
+                ev_dataframe["WMass_JMS_down"] = events[f"ak8FatJet{mass}_JMS_down"][0]
+                ev_dataframe["WMass_JMS_up"] = events[f"ak8FatJet{mass}_JMS_up"][0]
+                ev_dataframe["WMass_JMR_down"] = events[f"ak8FatJet{mass}_JMR_down"][0]
+                ev_dataframe["WMass_JMR_up"] = events[f"ak8FatJet{mass}_JMR_up"][0]
 
             #if key == "ttbar":
             #    print(key)
@@ -560,7 +567,9 @@ def jmsr_templates(dir_name, year_group, tag, mass):
     }[year_group]
 
     # pt mask
-    pt_mask = [300, 1000]
+    #pt_mask = [300, 1000]
+    pt_mask = [300, 400]
+    #pt_mask = [400, 1000]
 
     # columns to load for all samples
     load_columns = [
