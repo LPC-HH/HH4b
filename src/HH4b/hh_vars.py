@@ -12,13 +12,13 @@ years = ["2022", "2022EE", "2023", "2023BPix"]
 
 # in pb^-1
 LUMI = {
-    "2022": 7971.4,
-    "2022EE": 26337.0,
-    "2022All": 34308.0,
-    "2023": 17650.0,
-    "2023BPix": 9451.0,
-    "2023All": 27101.0,
-    "2022-2023": 61409.0,
+    "2022": 7980.5,
+    "2022EE": 26671.6,
+    "2022All": 34652.1,
+    "2023": 18084.4,
+    "2023BPix": 9692.1,
+    "2023All": 27776.5,
+    "2022-2023": 62428.6,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -211,8 +211,6 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
 }
-# remove missing ZZ sample
-del samples_run3["2023BPix"]["zz"]
 
 samples_2018 = {
     "hh4b": [
@@ -286,7 +284,7 @@ hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
 sig_keys_ggf = [
     "hh4b",
-    # "hh4b-kl0",  # drop for now due to missing scale weight in 2023
+    "hh4b-kl0",
     "hh4b-kl2p45",
     "hh4b-kl5",
 ]
@@ -311,38 +309,8 @@ syst_keys.remove("qcd")
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    # "JES": "JES",
+    "JES": "JES",
     "JER": "JER",
-    # #####
-    # # including all sources
-    # #####
-    # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",
-    # "JES_AbsoluteScale": "JES_AbsoluteScale",
-    # "JES_AbsoluteStat": "JES_AbsoluteStat",
-    # "JES_FlavorQCD": "JES_FlavorQCD",
-    # "JES_Fragmentation": "JES_Fragmentation",
-    # "JES_PileUpDataMC": "JES_PileUpDataMC",
-    # "JES_PileUpPtBB": "JES_PileUpPtBB",
-    # "JES_PileUpPtEC1": "JES_PileUpPtEC1",
-    # "JES_PileUpPtEC2": "JES_PileUpPtEC2",
-    # "JES_PileUpPtHF": "JES_PileUpPtHF",
-    # "JES_PileUpPtRef": "JES_PileUpPtRef",
-    # "JES_RelativeFSR": "JES_RelativeFSR",
-    # "JES_RelativeJEREC1": "JES_RelativeJEREC1",
-    # "JES_RelativeJEREC2": "JES_RelativeJEREC2",
-    # "JES_RelativeJERHF": "JES_RelativeJERHF",
-    # "JES_RelativePtBB": "JES_RelativePtBB",
-    # "JES_RelativePtEC1": "JES_RelativePtEC1",
-    # "JES_RelativePtEC2": "JES_RelativePtEC2",
-    # "JES_RelativePtHF": "JES_RelativePtHF",
-    # "JES_RelativeBal": "JES_RelativeBal",
-    # "JES_RelativeSample": "JES_RelativeSample",
-    # "JES_RelativeStatEC": "JES_RelativeStatEC",
-    # "JES_RelativeStatFSR": "JES_RelativeStatFSR",
-    # "JES_RelativeStatHF": "JES_RelativeStatHF",
-    # "JES_SinglePionHCAL": "JES_SinglePionHCAL",
-    # "JES_SinglePionECAL": "JES_SinglePionECAL",
-    # "JES_TimePtEta": "JES_TimePtEta",
 }
 
 jec_shifts = []
