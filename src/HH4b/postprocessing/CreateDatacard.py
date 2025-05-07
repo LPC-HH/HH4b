@@ -259,8 +259,13 @@ nuisance_params = {
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
         diff_samples=True,
     ),
-    # apply 2022 uncertainty to all MC (until 2023 rec.)
-    "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
+    # weight lumi uncertainties by corresponding integrated lumi
+    "lumi_2022": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]
+    ),
+    "lumi_2023": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]
+    ),
 }
 if not args.thu_hh:
     del nuisance_params["THU_HH"]
@@ -280,7 +285,7 @@ nuisance_params_dict = {
 
 # dictionary of correlated shape systematics: name in templates -> name in cards, etc.
 corr_year_shape_systs = {
-    # "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -301,12 +306,12 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
-    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
-    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
+    "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
+    "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
     "scale": Syst(
         name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
         prior="shape",
-        samples=sig_keys,  # + ["ttbar"],  # FIXME: add back ttbar later
+        samples=sig_keys,
         samples_corr=True,
         separate_prod_modes=True,
     ),
@@ -348,7 +353,7 @@ if args.bdt_model in ttsf_vbfbdtshape_bins:
         )
 
 uncorr_year_shape_systs = {
-    # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(
         name="CMS_res_j",
         prior="shape",
@@ -420,7 +425,7 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMS"]
 
 if not args.jesr:
-    # del corr_year_shape_systs["JES"]
+    del corr_year_shape_systs["JES"]
     del uncorr_year_shape_systs["JER"]
 
 if args.ttbar_rate_param:

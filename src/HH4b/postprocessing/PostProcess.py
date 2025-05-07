@@ -20,7 +20,6 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
-from HH4b.boosted.TrainBDT import get_legtitle
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -204,6 +203,26 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
+
+    def get_legtitle(txbb_str):
+        title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+        if "part" in txbb_str.lower():
+            title += "$T_{Xbb}^{0}$ > 0.3"
+        else:
+            title += "$T_{Xbb}^{0}$ > 0.8"
+
+        if "legacy" in txbb_str.lower():
+            title += "\n" + "PNet Legacy"
+        elif "part" in txbb_str.lower():
+            title += "\n" + "GloParTv2"
+        else:
+            title += "\n" + "PNet 103X"
+
+        title += "\n" + r"m$_{reg}$ > 50 GeV"
+        title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
+
+        return title
+
     legtitle = get_legtitle(txbb_version)
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
@@ -363,13 +382,16 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
+):
 
     # define BDT model
-    bdt_model = xgb.XGBClassifier()
-    bdt_model.load_model(
-        fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
-    )
+    if rerun_inference:
+        bdt_model = xgb.XGBClassifier()
+        bdt_model.load_model(
+            fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
+        )
 
     # load tt corrections
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
@@ -462,7 +484,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             reorder_txbb=True,
             load_systematics=True,
             txbb_version=args.txbb,
-            scale_and_smear=True,
+            scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
         )[key]
 
@@ -477,17 +499,27 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         logger.info("Perform inference")
         bdt_events = {}
         for jshift in jshifts:
+            _jshift = f"_{jshift}" if jshift != "" else ""
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
                 events_dict, get_var_mapping(jshift)
             )
-            preds = bdt_model.predict_proba(bdt_events[jshift])
-            add_bdt_scores(
-                bdt_events[jshift],
-                preds,
-                jshift,
-                weight_ttbar=args.weight_ttbar_bdt,
-                bdt_disc=args.bdt_disc,
-            )
+            if rerun_inference:
+                preds = bdt_model.predict_proba(bdt_events[jshift])
+                add_bdt_scores(
+                    bdt_events[jshift],
+                    preds,
+                    jshift,
+                    weight_ttbar=args.weight_ttbar_bdt,
+                    bdt_disc=args.bdt_disc,
+                )
+            else:
+                # assert bdt_disc is true
+                if not args.bdt_disc:
+                    raise ValueError("only BDT discriminant available from skimmer")
+                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
+                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
+                    f"bdt_score_vbf{_jshift}"
+                ]
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -551,11 +583,27 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
         # scale, pdf weights
-        if key in hh_vars.sig_keys:
+        if key in hh_vars.sig_keys + ["ttbar"]:
             for i in range(6):
                 bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
-            for i in range(101):
+        n_pdf_weights = 0
+        if key in hh_vars.sig_keys:
+            n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            for i in range(n_pdf_weights):
                 bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+        pileup_ps_weights = [
+            "weight_pileupUp",
+            "weight_pileupDown",
+            "weight_ISRPartonShowerUp",
+            "weight_ISRPartonShowerDown",
+            "weight_FSRPartonShowerUp",
+            "weight_FSRPartonShowerDown",
+        ]
+        if key != "data":
+            for w in pileup_ps_weights:
+                if w in events_dict:
+                    bdt_events[w] = events_dict[w].to_numpy()
+
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
         bdt_events["event"] = events_dict["event"].to_numpy()
@@ -654,14 +702,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
-        # save total corrected weight
-        bdt_events["weight"] *= trigger_weight * ttbar_weight * txbb_sf_weight
-        # also correct pdf/scale weights
-        if key in hh_vars.sig_keys:
-            for i in range(6):
-                bdt_events[f"scale_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
-            for i in range(101):
-                bdt_events[f"pdf_weights_{i}"] *= trigger_weight * ttbar_weight * txbb_sf_weight
+        # save corrected weights
+        weights_to_correct = (
+            ["weight"]
+            + [f"scale_weights_{i}" for i in range(6)]
+            + [f"pdf_weights_{i}" for i in range(n_pdf_weights)]
+            + pileup_ps_weights
+        )
+        for w in weights_to_correct:
+            if w in bdt_events:
+                bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
         # correlated signal xbb up/dn variations
         corr_up = np.ones(nevents)
@@ -950,16 +1000,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        if key in hh_vars.sig_keys + ["ttbar"]:
+            for i in range(6):
+                columns += [f"scale_weights_{i}"]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
         if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
-            for i in range(6):
-                columns += [f"scale_weights_{i}"]
-            for i in range(101):
+            for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
-            columns += ["weight_triggerUp", "weight_triggerDown"]
+            columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
 
         if control_plots:
@@ -1469,6 +1520,7 @@ def postprocess_run3(args):
             args.control_plots,
             plot_dir,
             mass_window,
+            args.rerun_inference,
         )
         events_dict_postprocess[year] = events
         cutflows[year] = cutflow
@@ -1488,7 +1540,7 @@ def postprocess_run3(args):
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
         scaled_by_years = {
-            "zz": ["2022", "2022EE", "2023"],
+            # "zz": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
@@ -1877,6 +1929,10 @@ if __name__ == "__main__":
         parser, "correct-vbf-bdt-shape", default=True, help="Correct ttbar BDT_VBF shape"
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
+    run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
+    run_utils.add_bool_arg(
+        parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
+    )
 
     args = parser.parse_args()
 
