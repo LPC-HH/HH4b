@@ -40,6 +40,7 @@ from .GenSelection import (
 )
 from .objects import (
     get_ak8jets,
+    good_ak4jets,
     good_ak8jets,
     good_electrons,
     good_muons,
@@ -398,8 +399,13 @@ class bbbbSkimmer(SkimmerABC):
         for jmsr_year in self.jms_values:
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
-            self.jmr_values[jmsr_year] = dict.fromkeys(["ParTmassVis"])
-            self.jms_values[jmsr_year] = dict.fromkeys(["ParTmassVis"])
+            self.jmr_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
+            self.jms_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
+            # default no scaling/smearing
+            for jmsr_var in self.jmsr_vars:
+                self.jmr_values[jmsr_year][jmsr_var] = [1, 1, 1]
+                self.jms_values[jmsr_year][jmsr_var] = [1, 1, 1]
+            # update values for ParTmassVis
             self.jmr_values[jmsr_year]["ParTmassVis"] = [
                 jmr_val["nom"],
                 jmr_val["down"],
@@ -526,15 +532,19 @@ class bbbbSkimmer(SkimmerABC):
             met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
+
+        jets = good_ak4jets(jets, year, self._nano_version)
+        ht = ak.sum(jets.pt, axis=1)
+
         if self._region == "semiboosted":
-            jets_sel = (jets.pt > 30) & (abs(jets.eta) < 2.5) & (jets.isTight)
+            jets_sel = (jets.pt > 30) & (abs(jets.eta) < 2.5)
         else:
-            jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
+            jets_sel = (jets.pt > 15) & (abs(jets.eta) < 4.7)
+
         if not is_run3:
             jets_sel = jets_sel & ((jets.pt >= 50) | (jets.puId >= 6))
 
         jets = jets[jets_sel]
-        ht = ak.sum(jets.pt, axis=1)
         print("ak4", f"{time.time() - start:.2f}")
 
         # AK8 Jets
@@ -552,7 +562,7 @@ class bbbbSkimmer(SkimmerABC):
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
-        fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
+        fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
 
         # match txbb string to branch name in fatjet collection
         txbb_order = txbbstr_to_branch[self.txbb]
@@ -619,17 +629,13 @@ class bbbbSkimmer(SkimmerABC):
 
         # Gen variables - saving HH and bbbb 4-vector info
         genVars = {}
-        for d in gen_selection_dict:
+        for d, gen_func in gen_selection_dict.items():
             if d in dataset:
                 # match fatjets_xbb
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets_xbb, selection_args, P4, "bbFatJet"
-                )
+                vars_dict = gen_func(events, jets, fatjets_xbb, selection_args, P4, "bbFatJet")
                 genVars = {**genVars, **vars_dict}
                 # match fatjets
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets, selection_args, P4, "ak8FatJet"
-                )
+                vars_dict = gen_func(events, jets, fatjets, selection_args, P4, "ak8FatJet")
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
