@@ -25,7 +25,7 @@ def jetid_v12(jets: ak.Array) -> ak.Array:
         | (
             ((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0))
             & jetidtightbit
-            & (jets.neHEF >= 0.99)
+            & (jets.neHEF < 0.99)
         )
         | ((np.abs(jets.eta) > 3.0) & jetidtightbit & (jets.neEmEF < 0.4))
     )
