@@ -153,7 +153,7 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
 
         sel = sel & jetidtight & jetidtightlepveto
 
-    return sel
+    return jets[sel]
 
 
 # apply ak4 b-jet regression
