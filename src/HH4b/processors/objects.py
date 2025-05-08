@@ -19,7 +19,7 @@ def jetid_v12(jets: ak.Array) -> ak.Array:
     # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
     """
 
-    jetidtightbit = (jets.jetId & 2) == 2
+    jetidtightbit = jets.isTight
     jetidtight = (
         ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
         | (
