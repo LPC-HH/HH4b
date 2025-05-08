@@ -398,12 +398,14 @@ class bbbbSkimmer(SkimmerABC):
         for jmsr_year in self.jms_values:
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
-            self.jms_values[jmsr_year]["ParTmassVis"] = [
+            self.jmr_values[jmsr_year] = dict.fromkeys(["ParTmassVis"])
+            self.jms_values[jmsr_year] = dict.fromkeys(["ParTmassVis"])
+            self.jmr_values[jmsr_year]["ParTmassVis"] = [
                 jmr_val["nom"],
                 jmr_val["down"],
                 jmr_val["up"],
             ]
-            self.jmr_values[jmsr_year]["ParTmassVis"] = [
+            self.jms_values[jmsr_year]["ParTmassVis"] = [
                 jms_val["nom"],
                 jms_val["down"],
                 jms_val["up"],
