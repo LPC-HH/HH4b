@@ -1462,8 +1462,8 @@ def get_v12v2_private():
                 ],
                 "Muon_Run2024I": [
                     "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024I-v1/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon1_Run2024I-v2/",
-                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon0_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024I-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024I-v1/",
                     "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024I-v2/",
                 ],
             },
