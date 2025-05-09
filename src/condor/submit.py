@@ -47,12 +47,14 @@ def main(args):
             proxy = "/home/users/rkansal/x509up_u31735"
         elif username == "dprimosc":
             proxy = "/tmp/x509up_u150012"  # "/home/users/dprimosc/x509up_u150012"
+        elif username == "woodson":
+            proxy = "/home/users/woodson/x509up_u31135"
     else:
         raise ValueError(f"Invalid site {args.site}")
 
     if args.site not in args.save_sites:
         warnings.warn(
-            f"Your local sit e {args.site} is not in save sites {args.save_sites}!", stacklevel=1
+            f"Your local site {args.site} is not in save sites {args.save_sites}!", stacklevel=1
         )
 
     t2_prefixes = [t2_redirectors[site] for site in args.save_sites]
@@ -134,7 +136,7 @@ def main(args):
                     Path(f"{localcondor}.log").unlink()
 
                 if args.submit:
-                    os.system("condor_submit %s" % localcondor)  # noqa: UP031
+                    os.system(f"condor_submit {localcondor}")
                 else:
                     print("To submit ", localcondor)
                 nsubmit = nsubmit + 1

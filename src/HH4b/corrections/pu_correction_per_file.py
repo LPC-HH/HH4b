@@ -55,9 +55,9 @@ def main():
     h_npu = hist.Hist(npu_axis)
     bins = h_npu.to_numpy()[1]
 
-    for sample in files:
+    for sample, files_sample in files.items():
         h_npu = hist.Hist(npu_axis)
-        for fname in files[sample]:
+        for fname in files_sample:
             events = NanoEventsFactory.from_root(fname, schemaclass=NanoAODSchema).events()
             # h_npu.fill(events.Pileup.nTrueInt.to_numpy())
             # print(events.Pileup.nTrueInt.to_numpy())
