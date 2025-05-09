@@ -8,6 +8,8 @@ Based on https://github.com/rkansal47/HHbbVV/blob/main/src/HHbbVV/postprocessing
 Authors: Raghav Kansal
 """
 
+# ruff: noqa: PLC0206
+
 from __future__ import annotations
 
 # from utils import add_bool_arg
@@ -337,7 +339,7 @@ def fill_regions(
         region_noblinded = region.split("MCBlinded")[0]
         blind_str = "MCBlinded" if region.endswith("MCBlinded") else ""
 
-        logging.info("starting region: %s" % region)
+        logging.info(f"starting region: {region}")
         ch = rl.Channel(region.replace("_", ""))  # can't have '_'s in name
         model.addChannel(ch)
 
@@ -347,7 +349,7 @@ def fill_regions(
                 logging.info(f"\nSkipping {sample_name} in {region} region\n")
                 continue
 
-            logging.info("get templates for: %s" % sample_name)
+            logging.info(f"get templates for: {sample_name}")
 
             sample_template = region_templates[sample_name, :]
 
@@ -527,7 +529,7 @@ def alphabet_fit(
             # don't subtract signals (#TODO: do we want to subtract SM signal?)
             if sample.sampletype == rl.Sample.SIGNAL:
                 continue
-            logging.debug("subtracting %s from qcd" % sample._name)
+            logging.debug(f"subtracting {sample._name} from qcd")
             initial_qcd -= sample.getExpectation(nominal=True)
 
         if np.any(initial_qcd < 0.0):
