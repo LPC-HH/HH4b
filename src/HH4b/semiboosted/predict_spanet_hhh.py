@@ -50,7 +50,7 @@ def build_inputs(events, MIN_PT=20, MIN_FJPT=200, MIN_FJMASS=0):
     Jets_arrays = {}
     Higgs_vars = ["mass", "pt", "eta", "sinphi", "cosphi", "dr"]
     for i in range(njets):
-        name = "Jet%s" % i
+        name = f"Jet{i}"
         Higgs_list = []
         for j in range(1, njets):
             if i == j:

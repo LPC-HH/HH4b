@@ -136,7 +136,7 @@ def main(args):
                     Path(f"{localcondor}.log").unlink()
 
                 if args.submit:
-                    os.system("condor_submit %s" % localcondor)
+                    os.system(f"condor_submit {localcondor}")
                 else:
                     print("To submit ", localcondor)
                 nsubmit = nsubmit + 1
