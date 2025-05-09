@@ -435,10 +435,10 @@ def scale_smear_mass(
     rng = np.random.default_rng(seed=42)
 
     # formula for smearing and scaling
-    for key in events_dict:
+    for key, events in events_dict.items():
         if key in jmsr_keys:
             print(f"scaling and smearing mass for {key} {year}")
-            x = events_dict[key][f"{mass_str}_raw"].to_numpy(copy=True)
+            x = events[f"{mass_str}_raw"].to_numpy(copy=True)
             random_smear = rng.standard_normal(size=x.shape)
             x_smear = x * jms_nom
             x_smear *= (
@@ -448,7 +448,7 @@ def scale_smear_mass(
             )
 
             for i in range(2):
-                events_dict[key][(mass_str, i)] = x_smear[:, i]
+                events[(mass_str, i)] = x_smear[:, i]
             for skey in jmsr:
                 for shift in ["up", "down"]:
                     if skey == "JMS":
@@ -464,7 +464,7 @@ def scale_smear_mass(
                         else (1 + random_smear * max(jmr - 1, 0))
                     )
                     for i in range(2):
-                        events_dict[key][(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
+                        events[(f"{mass_str}_{skey}_{shift}", i)] = x_smear[:, i]
     return events_dict
 
 

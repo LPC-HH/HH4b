@@ -221,8 +221,8 @@ def preprocess_data(
         keys=training_keys,
     )
 
-    for key in weights_bdt:
-        logger.info(f"Total {key} pre-normalization: {np.sum(weights_bdt[key]):.3f}")
+    for key, weight_bdt in weights_bdt.items():
+        logger.info(f"Total {key} pre-normalization: {np.sum(weight_bdt):.3f}")
 
     # weights
     if run2_wapproach:
@@ -535,9 +535,9 @@ def evaluate_model(
 
         h_bdt = hist.Hist(bdt_axis, cat_axis)
         h_bdt_weight = hist.Hist(bdt_axis, cat_axis)
-        for key in scores:
-            h_bdt.fill(bdt=scores[key], cat=key)
-            h_bdt_weight.fill(scores[key], key, weight=weights[key])
+        for key, score in scores.items():
+            h_bdt.fill(bdt=score, cat=key)
+            h_bdt_weight.fill(score, key, weight=weights[key])
 
         hists = {
             "weight": h_bdt_weight,
@@ -786,12 +786,11 @@ def evaluate_model(
     for txbb_cut in txbb_cuts:
         hist_h2 = hist.Hist(h2_mass_axis, cut_axis, cat_axis)
         hist_h2_msd = hist.Hist(h2_msd_axis, cut_axis, cat_axis)
-        for key in txbb_dict:
+        for key, h2_txbb in txbb_dict.items():
             if key not in training_keys:
                 continue
             h2_mass = mass_dict[key]
             h2_msd = msd_dict[key]
-            h2_txbb = txbb_dict[key]
             for cut in bdt_cuts:
                 mask = (scores[key] >= cut) & (h2_txbb >= txbb_cut)
                 hist_h2.fill(h2_mass[mask], str(cut), key)

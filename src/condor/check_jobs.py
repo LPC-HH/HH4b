@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import os
-from os import listdir
 from pathlib import Path
 
 import numpy as np
@@ -44,8 +43,8 @@ if args.location == "fermilab":
 elif args.location == "ucsd":
     eosdir = f"/ceph/cms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
 
-samples = listdir(eosdir)
-jdls = [jdl for jdl in listdir(f"condor/{args.processor}/{args.tag}/") if jdl.endswith(".jdl")]
+samples = Path.iterdir(eosdir)
+jdls = [jdl for jdl in Path.iterdir(f"condor/{args.processor}/{args.tag}/") if jdl.endswith(".jdl")]
 
 jdl_dict = {}
 for sample in samples:
@@ -110,7 +109,8 @@ for sample in samples:
             continue
 
         outs_parquet = [
-            int(out.split(".")[0].split("_")[-1]) for out in listdir(f"{eosdir}/{sample}/parquet")
+            int(out.split(".")[0].split("_")[-1])
+            for out in Path.iterdir(f"{eosdir}/{sample}/parquet")
         ]
         print(f"Out parquets: {outs_parquet}")
 
@@ -119,7 +119,7 @@ for sample in samples:
         continue
 
     outs_pickles = [
-        int(out.split(".")[0].split("_")[-1]) for out in listdir(f"{eosdir}/{sample}/pickles")
+        int(out.split(".")[0].split("_")[-1]) for out in Path.iterdir(f"{eosdir}/{sample}/pickles")
     ]
 
     if args.processor == "trigger":
