@@ -6,7 +6,6 @@
             "Hbb": { "files_per_job": 10 },
             "VBFHH": { "files_per_job": 5, "chunksize": 2500},
             "QCD": { "files_per_job": 5,  "chunksize": 8000},
-            #"VJets": { "files_per_job": 10 },
             "VJets": { "subsamples": [
                 "WtoLNu-2Jets_0J",
                 "WtoLNu-2Jets_1J",
@@ -50,7 +49,6 @@
             "Hbb": { "files_per_job": 10 },
             "VBFHH": { "files_per_job": 5, "chunksize": 2500},
             "QCD": { "files_per_job": 5,  "chunksize": 8000},
-            #"VJets": { "files_per_job": 10 },
             "VJets": { "subsamples": [
                 "WtoLNu-2Jets_0J",
                 "WtoLNu-2Jets_1J",
@@ -94,7 +92,6 @@
             "Hbb": { "files_per_job": 10 },
             "VBFHH": { "files_per_job": 5, "chunksize": 2500},
             "QCD": { "files_per_job": 5,  "chunksize": 8000},
-            #"VJets": { "files_per_job": 10 },
             "VJets": { "subsamples": [
                 "WtoLNu-2Jets_0J",
                 "WtoLNu-2Jets_1J",
@@ -138,7 +135,6 @@
             "Hbb": { "files_per_job": 10 },
             "VBFHH": { "files_per_job": 5, "chunksize": 2500},
             "QCD": { "files_per_job": 5,  "chunksize": 8000},
-            #"VJets": { "files_per_job": 10 },
             "VJets": { "subsamples": [
                 "WtoLNu-2Jets_0J",
                 "WtoLNu-2Jets_1J",
@@ -170,7 +166,7 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800",
                 ],
-                "files_per_job": 4,  "chunksize": 8000 },
+                "files_per_job": 2,  "chunksize": 8000 },
             "Diboson": { "files_per_job": 10 },
             "SingleTop": { "files_per_job": 10 },
             "JetMET": { "files_per_job": 10 }
