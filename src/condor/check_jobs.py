@@ -52,9 +52,9 @@ jdls = [
 jdl_dict = {}
 for sample in samples:
     x = [
-        int(jdl[:-4].split("_")[-1])
+        int(str(jdl)[:-4].split("_")[-1])
         for jdl in jdls
-        if jdl.split("_")[0] == args.year and "_".join(jdl.split("_")[1:-1]) == sample
+        if str(jdl).split("_")[0] == args.year and "_".join(str(jdl).split("_")[1:-1]) == sample
     ]
     if len(x) > 0:
         jdl_dict[sample] = np.sort(x)[-1] + 1
