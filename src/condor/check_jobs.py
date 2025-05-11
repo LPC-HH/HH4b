@@ -43,7 +43,8 @@ if args.location == "fermilab":
 elif args.location == "ucsd":
     eosdir = f"/ceph/cms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
 
-samples = Path.iterdir(eosdir)
+samples = Path(eosdir).iterdir()
+
 jdls = [
     jdl for jdl in Path(f"condor/{args.processor}/{args.tag}/").iterdir() if jdl.suffix == ".jdl"
 ]
