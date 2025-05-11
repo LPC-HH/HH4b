@@ -44,7 +44,9 @@ elif args.location == "ucsd":
     eosdir = f"/ceph/cms/store/user/{args.user}/bbbb/{args.processor}/{args.tag}/{args.year}/"
 
 samples = Path.iterdir(eosdir)
-jdls = [jdl for jdl in Path.iterdir(f"condor/{args.processor}/{args.tag}/") if jdl.endswith(".jdl")]
+jdls = [
+    jdl for jdl in Path(f"condor/{args.processor}/{args.tag}/").iterdir() if jdl.suffix == ".jdl"
+]
 
 jdl_dict = {}
 for sample in samples:
