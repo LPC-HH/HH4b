@@ -66,6 +66,7 @@ gen_selection_dict = {
     "TTto4Q": gen_selection_Top,
     "TTto2L2Nu": gen_selection_Top,
     "TTtoLNu2Q": gen_selection_Top,
+    # TODO: @Zichun add for Zbb
 }
 
 # map txbb string to branch name
@@ -96,6 +97,7 @@ class bbbbSkimmer(SkimmerABC):
 
     # key is name in nano files, value will be the name in the skimmed output
     skim_vars = {  # noqa: RUF012
+        # TODO: @Zichun check if anything else is needed for Zbb
         "Jet": {
             **P4,
             "rawFactor": "rawFactor",
@@ -146,6 +148,8 @@ class bbbbSkimmer(SkimmerABC):
         "pnet-v12": 0.3,
         "glopart-v2": 0.3,
     }
+
+    # TODO: @Zichun check if anything else is needed for Zbb
 
     fatjet_selection = {  # noqa: RUF012
         "pt": 250,
@@ -328,6 +332,29 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
+            "zbb": {
+                "2022": [
+                    "AK8PFJet420_MassSD30",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                ],
+                "2022EE": [
+                    "AK8PFJet420_MassSD30",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                ],
+                "2023": [
+                    "AK8PFJet420_MassSD30",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
+                "2023BPix": [
+                    "AK8PFJet420_MassSD30",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
+            },
         }
         HLTs["pre-sel"] = HLTs["signal"]
 
@@ -382,11 +409,14 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "25Feb5_v13_glopartv2_rawmass"
-        self.bdt_model = xgb.XGBClassifier()
-        self.bdt_model.load_model(
-            fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
-        )
+        if self._region == "signal":
+            bdt_model_name = "25Feb5_v13_glopartv2_rawmass"
+            self.bdt_model = xgb.XGBClassifier()
+            self.bdt_model.load_model(
+                fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
+            )
+        else:
+            self.bdt_model = None
 
         # JMSR
         self.jmsr_vars = ["msoftdrop", "particleNet_mass"]
@@ -722,6 +752,8 @@ class bbbbSkimmer(SkimmerABC):
                     label = "" if shift == "" else "_" + shift
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
+        # TODO: @Zichun copy ^ JECs and JMSR for Zbb. (on ak8FatJet vars rather than bbFatJet vars)
+
         # Event variables
         met_pt = met.pt
         eventVars = {
@@ -1001,6 +1033,9 @@ class bbbbSkimmer(SkimmerABC):
                 | (np.sum(ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1, axis=1) == 2)
             )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
+        elif self._region == "zbb":
+            # TODO: @Zichun add (loose) selection for Zbb
+            pass
 
         print("Selection", f"{time.time() - start:.2f}")
 
