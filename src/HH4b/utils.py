@@ -15,6 +15,7 @@ import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
+from os import listdir
 
 import hist
 import numpy as np
@@ -98,13 +99,13 @@ def timer():
 
 def remove_empty_parquets(samples_dir, year):
 
-    full_samples_list = Path.iterdir(f"{samples_dir}/{year}")
+    full_samples_list = listdir(f"{samples_dir}/{year}")
     print("Checking for empty parquets")
 
     for sample in full_samples_list:
         if sample == ".DS_Store":
             continue
-        parquet_files = Path.iterdir(f"{samples_dir}/{year}/{sample}/parquet")
+        parquet_files = listdir(f"{samples_dir}/{year}/{sample}/parquet")
         for f in parquet_files:
             file_path = f"{samples_dir}/{year}/{sample}/parquet/{f}"
             if not len(pd.read_parquet(file_path)):
@@ -116,7 +117,7 @@ def get_cutflow(pickles_path, year, sample_name):
     """Accumulates cutflow over all pickles in ``pickles_path`` directory"""
     from coffea.processor.accumulator import accumulate
 
-    out_pickles = Path.iterdir(pickles_path)
+    out_pickles = listdir(pickles_path)
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
@@ -137,7 +138,7 @@ def get_cutflow(pickles_path, year, sample_name):
 def get_nevents(pickles_path, year, sample_name):
     """Adds up nevents over all pickles in ``pickles_path`` directory"""
     try:
-        out_pickles = Path.iterdir(pickles_path)
+        out_pickles = listdir(pickles_path)
     except:
         return None
 
@@ -164,7 +165,7 @@ def get_pickles(pickles_path, year, sample_name):
     """Accumulates all pickles in ``pickles_path`` directory"""
     from coffea.processor.accumulator import accumulate
 
-    out_pickles = [f for f in Path.iterdir(pickles_path) if f != ".DS_Store"]
+    out_pickles = [f for f in listdir(pickles_path) if f != ".DS_Store"]
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
@@ -329,7 +330,7 @@ def load_samples(
     events_dict = {}
 
     data_dir = Path(data_dir) / year
-    full_samples_list = Path.iterdir(data_dir)  # get all directories in data_dir
+    full_samples_list = listdir(data_dir)  # get all directories in data_dir
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
