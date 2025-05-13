@@ -713,10 +713,7 @@ class bbbbSkimmer(SkimmerABC):
         # AK8 Jet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
         if not isData:
-            fatjet_skimvars = {
-                **fatjet_skimvars,
-                "pt_gen": "MatchedGenJetPt",
-            }
+            fatjet_skimvars = {**fatjet_skimvars, "pt_gen": "MatchedGenJetPt"}
         ak8FatJetVars = {
             f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
             for (var, key) in fatjet_skimvars.items()
@@ -752,7 +749,10 @@ class bbbbSkimmer(SkimmerABC):
                     label = "" if shift == "" else "_" + shift
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
-        # TODO: @Zichun copy ^ JECs and JMSR for Zbb. (on ak8FatJet vars rather than bbFatJet vars)
+        if self._region == "zbb" and isJECs:
+            # TODO: @Zichun copy ^ JECs and JMSR for Zbb. (on ak8FatJet vars rather than bbFatJet vars)
+            # For JMSR, make sure to also save the raw masses, and also corrected mSD using the mSD SFs!
+            pass
 
         # Event variables
         met_pt = met.pt
@@ -773,6 +773,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # Trigger variables
         HLTs = deepcopy(self.HLTs[year])
+        # We should not use != "signal" as a condition, it is hard to understand which skimmer needs this. - Raghav
         if is_run3 and self._region != "signal":
             # add extra paths as variables
             HLTs.extend(
@@ -792,6 +793,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet250_SoftDropMass40_PNetBB0p06",
                 ]
             )
+
         zeros = np.zeros(len(events), dtype="bool")
         HLTVars = {
             trigger: (
