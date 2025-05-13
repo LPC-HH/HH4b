@@ -436,8 +436,8 @@ def load_process_run3_samples(
         txbb_sf = corrections._load_dummy_txbb_sfs(
             TXbb_wps,
             TXbb_pt_corr_bins,
-            sf = 1.0,
-            sf_unc = 0.15,
+            sf=1.0,
+            sf_unc=0.15,
         )
     elif args.txbb == "pnet-legacy":
         txbb_sf = corrections._load_txbb_sfs(
@@ -1934,7 +1934,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
-    run_utils.add_bool_arg(parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15")
+    run_utils.add_bool_arg(
+        parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
+    )
 
     args = parser.parse_args()
 
