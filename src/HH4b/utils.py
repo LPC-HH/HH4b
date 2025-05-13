@@ -14,8 +14,8 @@ import time
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
-from pathlib import Path
 from os import listdir
+from pathlib import Path
 
 import hist
 import numpy as np

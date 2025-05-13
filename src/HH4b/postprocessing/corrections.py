@@ -13,7 +13,9 @@ from numpy.typing import ArrayLike
 package_path = Path(__file__).parent.parent.resolve()
 
 
-def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list], sf: float = 1.0, sf_unc: float = 0.15):
+def _load_dummy_txbb_sfs(
+    txbb_wps: dict[str:list], pt_bins: dict[str:list], sf: float = 1.0, sf_unc: float = 0.15
+):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
 
     txbb_bins = np.array([txbb_wps[wp][0] for wp in txbb_wps] + [1])
@@ -23,7 +25,7 @@ def _load_dummy_txbb_sfs(txbb_wps: dict[str:list], pt_bins: dict[str:list], sf: 
     ones_2d = np.ones(shape=(len(txbb_bins) - 1, len(pt_fine_bins) - 1))
     txbb_sf = {
         "nominal": dense_lookup(sf * ones_2d, edges),
-        "stat_up": dense_lookup((sf + sf_unc)  * ones_2d, edges),
+        "stat_up": dense_lookup((sf + sf_unc) * ones_2d, edges),
         "stat_dn": dense_lookup((sf - sf_unc) * ones_2d, edges),
         "stat3x_up": dense_lookup((sf + sf_unc) * ones_2d, edges),
         "stat3x_dn": dense_lookup((sf - sf_unc) * ones_2d, edges),
