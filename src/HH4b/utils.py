@@ -4,7 +4,7 @@ General utilities for postprocessing.
 Author: Raghav Kansal
 """
 
-# ruff noqa: PTH208
+# ruff: noqa: PTH208
 
 from __future__ import annotations
 
