@@ -1717,6 +1717,7 @@ def postprocess_run3(args):
             "H2TXbb",
             "H2Msd",
             "run",
+            "Category",
             "H2PNetMass",
             "luminosityBlock",
         ]
