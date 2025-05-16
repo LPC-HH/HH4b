@@ -432,7 +432,14 @@ def load_process_run3_samples(
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
-    if args.txbb == "pnet-legacy":
+    if args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
+        txbb_sf = corrections._load_dummy_txbb_sfs(
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            sf=1.0,
+            sf_unc=0.15,
+        )
+    elif args.txbb == "pnet-legacy":
         txbb_sf = corrections._load_txbb_sfs(
             year,
             "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
@@ -447,12 +454,6 @@ def load_process_run3_samples(
             TXbb_wps,
             TXbb_pt_corr_bins,
             args.txbb,
-        )
-    else:
-        # load dummy values
-        txbb_sf = corrections._load_dummy_txbb_sfs(
-            txbbsfs_decorr_txbb_wps["pnet-legacy"],
-            txbbsfs_decorr_pt_bins["pnet-legacy"],
         )
 
     # get function
@@ -1932,6 +1933,9 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
+    )
+    run_utils.add_bool_arg(
+        parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
     )
 
     args = parser.parse_args()
