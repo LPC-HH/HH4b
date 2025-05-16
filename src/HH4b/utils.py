@@ -4,6 +4,8 @@ General utilities for postprocessing.
 Author: Raghav Kansal
 """
 
+# ruff: noqa: PTH208
+
 from __future__ import annotations
 
 import contextlib
@@ -98,7 +100,6 @@ def timer():
 
 
 def remove_empty_parquets(samples_dir, year):
-    from os import listdir
 
     full_samples_list = listdir(f"{samples_dir}/{year}")
     print("Checking for empty parquets")
