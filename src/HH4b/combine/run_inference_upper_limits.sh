@@ -42,14 +42,14 @@ datacards="${card_dir}/passbin3_nomasks.txt${inj}:${card_dir}/passbin2_nomasks.t
 datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
 parameters="C2V=${C2V}"
 
-if [[ "$C2V" == "0" ]]; then
+if [[ "$C2V" != "1" ]]; then
     xmin="0.03"
 else
     xmin="0.75"
 fi
 
 model=hh_model_run23.model_default_run3
-campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotUpperLimitsAtPoint \
     --version dev  \
@@ -60,7 +60,7 @@ law run PlotUpperLimitsAtPoint \
     --x-min "$xmin" \
     --hh-model "$model" \
     --datacard-names "$datacard_names" \
-    --remove-output 4,a,y \
+    --remove-output 0,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c $frozen
