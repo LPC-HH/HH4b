@@ -377,7 +377,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
-            variations=False,
+            variations=True,
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 
@@ -393,7 +394,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
-            variations=False,
+            variations=True,
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 
