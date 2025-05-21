@@ -49,7 +49,7 @@ fi
 card_dir=./
 datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
-campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 law run PlotUpperLimits \
     --version dev  \
