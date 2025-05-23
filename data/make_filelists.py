@@ -1333,6 +1333,122 @@ def get_v12v2_private():
                 ],
             },
         },
+        "2024": {
+            "JetMET": {
+                "JetMET_Run2024B": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024B/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024B/",
+                ],
+                "JetMET_Run2024C": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024C/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024C/",
+                ],
+                "JetMET_Run2024D": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024D/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024D/",
+                ],
+                "JetMET_Run2024E": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024E-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024E-v2/",
+                ],
+                "JetMET_Run2024F": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024F/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024F/",
+                ],
+                "JetMET_Run2024G": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024G/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024G/",
+                ],
+                "JetMET_Run2024H": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024H/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024H/",
+                ],
+                "JetMET_Run2024I": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET0/JetMET0_Run2024I-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/JetMET/JetMET1/JetMET1_Run2024I-v2/",
+                ],
+            },
+            "Muon": {
+                "Muon_Run2024B": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024B/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024B/",
+                ],
+                "Muon_Run2024C": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024C/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024C/",
+                ],
+                "Muon_Run2024D": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024D/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024D/",
+                ],
+                "Muon_Run2024E": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024E-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024E-v2/",
+                ],
+                "Muon_Run2024F": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024F/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024F/",
+                ],
+                "Muon_Run2024G": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024G/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024G/",
+                ],
+                "Muon_Run2024H": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024H/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024H/",
+                ],
+                "Muon_Run2024I": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon0/Muon0_Run2024I-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/Muon/Muon1/Muon1_Run2024I-v2/",
+                ],
+            },
+            "EGamma": {
+                "EGamma_Run2024B": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024B/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024B/",
+                ],
+                "EGamma_Run2024C": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024C/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024C/",
+                ],
+                "EGamma_Run2024D": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024D/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024D/",
+                ],
+                "EGamma_Run2024E": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024E-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024E-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024E-v2/",
+                ],
+                "EGamma_Run2024F": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024F/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024F/",
+                ],
+                "EGamma_Run2024G": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024G/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024G/",
+                ],
+                "EGamma_Run2024H": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024H/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024H/",
+                ],
+                "EGamma_Run2024I": [
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma0/EGamma0_Run2024I-v2/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024I-v1/",
+                    "/store/user/lpcdihiggsboost/NanoAOD_v12_ParT/sixie/2024/EGamma/EGamma1/EGamma1_Run2024I-v2/",
+                ],
+            },
+        },
     }
 
 

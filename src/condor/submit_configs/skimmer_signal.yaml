@@ -171,4 +171,8 @@
             "SingleTop": { "files_per_job": 10 },
             "JetMET": { "files_per_job": 10 }
         },
+    "2024":
+        {
+            "JetMET": { "files_per_job": 10 }
+        },
 }

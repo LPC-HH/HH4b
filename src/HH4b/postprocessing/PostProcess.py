@@ -487,6 +487,7 @@ def load_process_run3_samples(
             txbb_version=args.txbb,
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
+            bdt_version=args.bdt_model,
         )[key]
 
         # inference and assign score

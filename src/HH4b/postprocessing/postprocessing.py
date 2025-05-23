@@ -286,6 +286,7 @@ def load_run3_samples(
     txbb_version: str,
     scale_and_smear: bool,
     mass_str: str,
+    bdt_version: str,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -339,7 +340,7 @@ def load_run3_samples(
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             variations=True,
-            weight_shifts={},
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 
@@ -358,7 +359,7 @@ def load_run3_samples(
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             variations=True,
-            weight_shifts={},
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 
@@ -376,7 +377,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
-            variations=False,
+            variations=True,
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 
@@ -392,7 +394,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
-            variations=False,
+            variations=True,
+            weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
     }
 

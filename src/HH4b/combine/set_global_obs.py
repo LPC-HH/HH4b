@@ -17,7 +17,7 @@ def load_json_file(file_path):
         dict: A dictionary containing the data from the JSON file, or None if an error occurs.
     """
     try:
-        with Path.open(file_path) as file:
+        with Path(file_path).open("r") as file:
             data = json.load(file)
             return data
     except FileNotFoundError:
@@ -33,19 +33,24 @@ def load_json_file(file_path):
 
 # Check if the correct number of arguments is provided
 if len(sys.argv) != 3:
-    print("Usage: python set_global_obs.py inject_original.json inject.json")
+    print("Usage: set_global_obs.py inject_original.json inject.json")
     sys.exit(1)
 
 
 original_file_path = sys.argv[1]
 file_path = sys.argv[2]
-loaded_data = load_json_file(file_path)
+
+print(f"Loading {original_file_path}")
+loaded_data = load_json_file(original_file_path)
 
 for param in loaded_data:
     if "_In" in param:
         global_obs = param
         nuisance = param.split("_In")[0]
-        loaded_data[global_obs]["value"] = loaded_data[nuisance]["value"]
+        val = loaded_data[nuisance]["value"]
+        print(f"Setting global observable {global_obs}={val}")
+        loaded_data[global_obs]["value"] = val
 
-with Path.open(file_path, "w") as json_file:
+print(f"Creating {file_path}")
+with Path(file_path).open("w") as json_file:
     json.dump(loaded_data, json_file, indent=4)
