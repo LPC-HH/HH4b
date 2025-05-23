@@ -1757,6 +1757,43 @@ def postprocess_run3(args):
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
+    if args.event_list:
+
+        import uproot
+
+        eventlist_dict = [
+            "event",
+            "bdt_score",
+            "bdt_score_vbf",
+            "H2TXbb",
+            "H2Msd",
+            "run",
+            "Category",
+            "H2PNetMass",
+            "luminosityBlock",
+        ]
+
+        eventlist_folder = args.event_list_dir
+        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
+
+        for year, year_dict in events_dict_postprocess.items():
+            for key, tree_df in year_dict.items():
+                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
+                    event_list = tree_df[eventlist_dict]
+                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
+
+                    # Define the ROOT file path
+                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
+
+                    # Check if the ROOT file already exists
+                    if Path(file_path).exists():
+                        # File exists, use update mode to append the new tree
+                        with uproot.update(file_path) as file:
+                            file[key] = array_to_save  # Append new tree
+                    else:
+                        # File doesn't exist, create a new one
+                        with uproot.recreate(file_path) as file:
+                            file[key] = array_to_save  # Create the first tree
 
     # combined templates
     # skip for time
@@ -1915,6 +1952,18 @@ if __name__ == "__main__":
         "bdt-disc",
         default=True,
         help="use BDT discriminant defined as BDT_ggF/VBF = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise use P_ggF/VBF",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "event-list",
+        default=False,
+        help="generates event list that passes boosted selection for the purpose of overlap removal",
+    )
+    parser.add_argument(
+        "--event-list-dir",
+        type=str,
+        default="event_lists",
+        help="folder to save the event list for each year",
     )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
