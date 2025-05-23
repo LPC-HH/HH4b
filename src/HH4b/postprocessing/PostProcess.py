@@ -1760,9 +1760,6 @@ def postprocess_run3(args):
 
         import uproot
 
-        # importing these may be inefficient. Alternatives?
-
-        # list of branches to save that Marina asked for
         eventlist_dict = [
             "event",
             "bdt_score",
@@ -1778,10 +1775,9 @@ def postprocess_run3(args):
         eventlist_folder = args.event_list_dir
         Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
 
-        for year, ev_dict in events_dict_postprocess:
-            for key in ev_dict:
+        for year, year_dict in events_dict_postprocess.items():
+            for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    tree_df = ev_dict[key]
                     event_list = tree_df[eventlist_dict]
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 
