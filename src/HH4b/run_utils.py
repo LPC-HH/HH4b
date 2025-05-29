@@ -215,7 +215,7 @@ def parse_common_args(parser):
         "--region",
         help="region",
         default="signal",
-        choices=["pre-sel", "signal", "semiboosted", "semilep-tt", "had-tt"],
+        choices=["pre-sel", "signal", "semiboosted", "semilep-tt", "had-tt", "zbb"],
         type=str,
     )
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
