@@ -157,7 +157,7 @@ class bbbbSkimmer(SkimmerABC):
     }
     # fatjet selection for the TXbb SF measurement using the Zbb method
     zbb_fatjet_selection = {  # noqa: RUF012
-        "pt": 250,
+        "pt": 200,
         "eta": 2.4,
         "msd": 0,
         "mreg": 0,
