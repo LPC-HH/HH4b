@@ -425,3 +425,138 @@ def gen_selection_VV(
         ]
     }
     return {**GenVVars, **FatJetVars}
+
+
+def gen_selection_ZbbSF_Z(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list,  # noqa: ARG001
+    skim_vars: dict,
+    fatjet_str: str,
+):
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
+    # get Z boson
+    zs = events.GenPart[(abs(events.GenPart.pdgId) == Z_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)]
+
+    # Get Z boson properties
+    GenZVars = {f"GenZ{key}": pad_val(zs[var], 1, axis=1) for (var, key) in skim_vars.items()}
+
+    daughters = zs.children
+    daughter0 = daughters[:, :, 0]
+    daughter1 = daughters[:, :, 1]
+    daughter0_pdgId = ak.firsts(abs(daughter0.pdgId))
+    daughter1_pdgId = ak.firsts(abs(daughter1.pdgId))
+
+    # Get Q1 and Q2 properties
+    GenQ1Vars = {
+        f"GenQ1{key}": pad_val(daughter0[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+    GenQ2Vars = {
+        f"GenQ2{key}": pad_val(daughter1[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+
+    is_Z_bb = (daughter0_pdgId == b_PDGID) & (daughter1_pdgId == b_PDGID)
+    is_Z_cc = (daughter0_pdgId == c_PDGID) & (daughter1_pdgId == c_PDGID)
+    is_Z_ss = (daughter0_pdgId == s_PDGID) & (daughter1_pdgId == s_PDGID)
+    is_Z_uu = (daughter0_pdgId == u_PDGID) & (daughter1_pdgId == u_PDGID)
+    is_Z_dd = (daughter0_pdgId == d_PDGID) & (daughter1_pdgId == d_PDGID)
+
+    GenZVars["GenZBB"] = is_Z_bb.to_numpy()
+    GenZVars["GenZCC"] = is_Z_cc.to_numpy()
+    GenZVars["GenZSS"] = is_Z_ss.to_numpy()
+    GenZVars["GenZUU"] = is_Z_uu.to_numpy()
+    GenZVars["GenZDD"] = is_Z_dd.to_numpy()
+    GenZVars["GenZLight"] = (is_Z_dd | is_Z_uu | is_Z_ss).to_numpy()
+
+    # Whether fatjets are matched to Z and daughters
+    matched_to_z = ak.any(fatjets.metric_table(zs) < 0.8, axis=2)
+    matched_to_d1 = ak.any(fatjets.metric_table(daughter0) < 0.8, axis=2)
+    matched_to_d2 = ak.any(fatjets.metric_table(daughter1) < 0.8, axis=2)
+    matched = matched_to_z & matched_to_d1 & matched_to_d2
+    fatjets["VMatch"] = matched_to_z
+    fatjets["Q1Match"] = matched_to_d1
+    fatjets["Q2Match"] = matched_to_d2
+    fatjets["VQQMatch"] = matched
+
+    num_fatjets = 2
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "VMatch",
+            "Q1Match",
+            "Q2Match",
+            "VQQMatch",
+        ]
+    }
+    return {**GenZVars, **GenQ1Vars, **GenQ2Vars, **FatJetVars}
+
+
+def gen_selection_ZbbSF_W(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list,  # noqa: ARG001
+    skim_vars: dict,
+    fatjet_str: str,
+):
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
+    # get W boson
+    ws = events.GenPart[(abs(events.GenPart.pdgId) == W_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)]
+
+    # Get W boson properties
+    GenWVars = {f"GenW{key}": pad_val(ws[var], 1, axis=1) for (var, key) in skim_vars.items()}
+
+    daughters = ws.children
+    daughter0 = daughters[:, :, 0]
+    daughter1 = daughters[:, :, 1]
+    daughter0_pdgId = ak.firsts(abs(daughter0.pdgId))
+    daughter1_pdgId = ak.firsts(abs(daughter1.pdgId))
+
+    # Get Q1 and Q2 properties
+    GenQ1Vars = {
+        f"GenQ1{key}": pad_val(daughter0[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+    GenQ2Vars = {
+        f"GenQ2{key}": pad_val(daughter1[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+
+    is_W_cs = ((daughter0_pdgId == c_PDGID) & (daughter1_pdgId == s_PDGID)) | (
+        (daughter0_pdgId == s_PDGID) & (daughter1_pdgId == c_PDGID)
+    )
+    is_W_ud = ((daughter0_pdgId == u_PDGID) & (daughter1_pdgId == d_PDGID)) | (
+        (daughter0_pdgId == d_PDGID) & (daughter1_pdgId == u_PDGID)
+    )
+
+    GenWVars["GenWCS"] = is_W_cs.to_numpy()
+    GenWVars["GenWUD"] = is_W_ud.to_numpy()
+
+    # Whether fatjets are matched to W and daughters
+    matched_to_w = ak.any(fatjets.metric_table(ws) < 0.8, axis=2)
+    matched_to_d1 = ak.any(fatjets.metric_table(daughter0) < 0.8, axis=2)
+    matched_to_d2 = ak.any(fatjets.metric_table(daughter1) < 0.8, axis=2)
+    matched = matched_to_w & matched_to_d1 & matched_to_d2
+    fatjets["VMatch"] = matched_to_w
+    fatjets["Q1Match"] = matched_to_d1
+    fatjets["Q2Match"] = matched_to_d2
+    fatjets["VQQMatch"] = matched
+
+    num_fatjets = 2
+    FatJetVars = {
+        f"{fatjet_str}{var}": pad_val(fatjets[var], num_fatjets, axis=1)
+        for var in [
+            "VMatch",
+            "Q1Match",
+            "Q2Match",
+            "VQQMatch",
+        ]
+    }
+    return {**GenWVars, **GenQ1Vars, **GenQ2Vars, **FatJetVars}

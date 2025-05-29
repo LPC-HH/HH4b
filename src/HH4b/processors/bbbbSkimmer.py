@@ -37,6 +37,8 @@ from .GenSelection import (
     gen_selection_Top,
     gen_selection_V,
     gen_selection_VV,
+    gen_selection_ZbbSF_W,
+    gen_selection_ZbbSF_Z,
 )
 from .objects import (
     get_ak8jets,
@@ -66,7 +68,6 @@ gen_selection_dict = {
     "TTto4Q": gen_selection_Top,
     "TTto2L2Nu": gen_selection_Top,
     "TTtoLNu2Q": gen_selection_Top,
-    # TODO: @Zichun add for Zbb
 }
 
 # map txbb string to branch name
@@ -97,7 +98,6 @@ class bbbbSkimmer(SkimmerABC):
 
     # key is name in nano files, value will be the name in the skimmed output
     skim_vars = {  # noqa: RUF012
-        # TODO: @Zichun check if anything else is needed for Zbb
         "Jet": {
             **P4,
             "rawFactor": "rawFactor",
@@ -149,12 +149,17 @@ class bbbbSkimmer(SkimmerABC):
         "glopart-v2": 0.3,
     }
 
-    # TODO: @Zichun check if anything else is needed for Zbb
-
     fatjet_selection = {  # noqa: RUF012
         "pt": 250,
         "eta": 2.5,
         "msd": 50,
+        "mreg": 0,
+    }
+    # fatjet selection for the TXbb SF measurement using the Zbb method
+    zbb_fatjet_selection = {  # noqa: RUF012
+        "pt": 250,
+        "eta": 2.4,
+        "msd": 0,
         "mreg": 0,
     }
 
@@ -179,6 +184,14 @@ class bbbbSkimmer(SkimmerABC):
         "dr_leptons": 0.4,
     }
 
+    zbb_top_veto_ak4_selection = {  # noqa: RUF012
+        "pt": 30,
+        "eta_max": 2.4,
+        "id": "medium",
+        "dr_fatjets": 0.8,
+        "dr_leptons": 0.0,
+    }
+
     semi_boosted_ak4jets_selection = {  # noqa: RUF012
         "pt": 30,
         "eta_max": 2.5,
@@ -190,6 +203,11 @@ class bbbbSkimmer(SkimmerABC):
     ak4_bjet_lepton_selection = {  # noqa: RUF012
         "electron_pt": 5,
         "muon_pt": 7,
+    }
+
+    zbb_top_veto_lepton_selection = {  # noqa: RUF012
+        "electron_pt": 0,
+        "muon_pt": 0,
     }
 
     def __init__(
@@ -334,22 +352,26 @@ class bbbbSkimmer(SkimmerABC):
             },
             "zbb": {
                 "2022": [
+                    "AK8PFJet500",
                     "AK8PFJet420_MassSD30",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
                 "2022EE": [
+                    "AK8PFJet500",
                     "AK8PFJet420_MassSD30",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                 ],
                 "2023": [
+                    "AK8PFJet500",
                     "AK8PFJet420_MassSD30",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
                 "2023BPix": [
+                    "AK8PFJet500",
                     "AK8PFJet420_MassSD30",
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
@@ -403,8 +425,21 @@ class bbbbSkimmer(SkimmerABC):
         - == 2 AK8 jets with pT>450 and mSD>50
         - == 2 AK8 jets with Xbb>0.1
         - == 2 AK8 jets with Tau3OverTau2<0.46
+        zbb region:
+        - HLT OR for both data and MC
+        - >=2 AK8 jets
+        - Keep the two TXbb leading AK8 jets
+        - One AK8 jet with pT>250 and mSD>40
+        - The other AK8 jet with pT>200
+        - 0 veto leptons
+        - no b-tagged AK4 jets with pT>30, |eta|<2.4, and dR(ak4, fatjet0_xbb) > 0.8
         """
         self._region = region
+
+        if self._region == "zbb":
+            # update fatjet selection for Zbb region
+            gen_selection_dict["Zto2Q-"] = gen_selection_ZbbSF_Z
+            gen_selection_dict["Wto2Q-"] = gen_selection_ZbbSF_W
 
         self._accumulator = processor.dict_accumulator({})
 
@@ -510,6 +545,8 @@ class bbbbSkimmer(SkimmerABC):
             or "WW" in dataset
             or "ZZ" in dataset
             or "WZ" in dataset
+            or "Zto2Q" in dataset
+            or "Wto2Q" in dataset
         )
 
         # gen-weights
@@ -592,7 +629,14 @@ class bbbbSkimmer(SkimmerABC):
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
-        fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
+        if self._region == "zbb":
+            fatjets = good_ak8jets(
+                fatjets, **self.zbb_fatjet_selection, nano_version=self._nano_version
+            )
+        else:
+            fatjets = good_ak8jets(
+                fatjets, **self.fatjet_selection, nano_version=self._nano_version
+            )
 
         # match txbb string to branch name in fatjet collection
         txbb_order = txbbstr_to_branch[self.txbb]
@@ -604,7 +648,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
-        if self._region == "signal" and isJECs:
+        if (self._region == "signal" or self._region == "zbb") and isJECs:
             for jec_var in ["pt"]:
                 tdict = {"": fatjets_xbb[jec_var]}
                 for key, shift in self.jecs.items():
@@ -632,6 +676,20 @@ class bbbbSkimmer(SkimmerABC):
                 **self.ak4_bjet_lepton_selection,
                 sort_by="nearest",
             )
+        elif self._region == "zbb":
+            # any Ak4 jets with
+            # - pT > 30 GeV
+            # - |eta| < 2.4
+            # - dR(ak4, fatjet0_xbb) > 0.8
+            # will eventually need all these jets to be below btag medium threshold
+            ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
+                jets,
+                fatjets_xbb[:, :1],
+                events,
+                **self.zbb_top_veto_ak4_selection,
+                **self.zbb_top_veto_lepton_selection,
+                sort_by="none",
+            )
         else:
             ak4_jets_awayfromak8 = objects.ak4_jets_awayfromak8(
                 jets,
@@ -643,7 +701,7 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        if self._region == "pre-sel" or self._region == "signal":
+        if self._region == "pre-sel" or self._region == "signal" or self._region == "zbb":
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
@@ -748,11 +806,23 @@ class bbbbSkimmer(SkimmerABC):
                     # overwrite saved mass vars with corrected ones
                     label = "" if shift == "" else "_" + shift
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
+        elif self._region == "zbb" and isJECs:
+            # JECs and JMSR for Zbb
+            # FatJet JEC variables
+            for var in ["pt"]:
+                key = self.skim_vars["FatJet"][var]
+                for shift, vals in jec_shifted_bbfatjetvars[var].items():
+                    if shift != "":
+                        bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, 2, axis=1)
 
-        if self._region == "zbb" and isJECs:
-            # TODO: @Zichun copy ^ JECs and JMSR for Zbb. (on ak8FatJet vars rather than bbFatJet vars)
-            # For JMSR, make sure to also save the raw masses, and also corrected mSD using the mSD SFs!
-            pass
+            # FatJet JMSR
+            for var in self.jmsr_vars:
+                key = fatjet_skimvars[var]
+                bbFatJetVars[f"bbFatJet{key}_raw"] = bbFatJetVars[f"bbFatJet{key}"]
+                for shift, vals in bb_jmsr_shifted_vars[var].items():
+                    # overwrite saved mass vars with corrected ones
+                    label = "" if shift == "" else "_" + shift
+                    bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
         # Event variables
         met_pt = met.pt
@@ -774,7 +844,7 @@ class bbbbSkimmer(SkimmerABC):
         # Trigger variables
         HLTs = deepcopy(self.HLTs[year])
         # We should not use != "signal" as a condition, it is hard to understand which skimmer needs this. - Raghav
-        if is_run3 and self._region != "signal":
+        if is_run3 and self._region != "signal" and self._region != "zbb":
             # add extra paths as variables
             HLTs.extend(
                 [
@@ -1036,8 +1106,71 @@ class bbbbSkimmer(SkimmerABC):
             )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
         elif self._region == "zbb":
-            # TODO: @Zichun add (loose) selection for Zbb
-            pass
+            # >=2 AK8 jets
+            add_selection("num_ak8jets", eventVars["nFatJets"] >= 2, *selection_args)
+
+            # FatJet0 with pT>250, mSD>40
+            cut_pt_lead = (
+                np.sum(
+                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 250)
+                    & (bbFatJetVars["bbFatJetMsd"][:, :2] >= 40),
+                    axis=1,
+                )
+            ) >= 1
+            add_selection("ak8_ptmSD_lead", cut_pt_lead, *selection_args)
+
+            # FatJet1 with pT>200
+            cut_pt_subl = (
+                np.sum(
+                    bbFatJetVars["bbFatJetPt"][:, :2] >= 200,
+                    axis=1,
+                )
+            ) >= 2  # >=2 because we already have the lead fatjet
+            add_selection("ak8_pt_subl", cut_pt_subl, *selection_args)
+            # eta cut already done
+
+            def del_phi(phi1, phi2):
+                return np.abs((phi1 - phi2 + np.pi) % (2 * np.pi) - np.pi)
+
+            # back-to-back AK8 jets
+            zbb_ak8jets_dphi = np.abs(
+                del_phi(bbFatJetVars["bbFatJetPhi"][:, 0], bbFatJetVars["bbFatJetPhi"][:, 1])
+            )
+            add_selection("ak8_back2back", zbb_ak8jets_dphi >= (np.pi / 2), *selection_args)
+
+            # >= 1 AK8 jet with ParT/PNet Xbb >= 0.1
+            cut_txbb = (np.sum(bbFatJetVars["bbFatJetParTTXbb"][:, :2] >= 0.1, axis=1) >= 1) | (
+                np.sum(bbFatJetVars["bbFatJetPNetTXbbLegacy"][:, :2] >= 0.1, axis=1) >= 1
+            )
+            add_selection("ak8bb_txbb", cut_txbb, *selection_args)
+
+            # HT > 1000
+            add_selection("ht1000", eventVars["ht"] >= 1000, *selection_args)
+
+            # 0 veto leptons
+            # TODO: check if this is correct
+            add_selection(
+                "0lep",
+                (ak.sum(veto_muon_sel, axis=1) == 0) & (ak.sum(veto_electron_sel, axis=1) == 0),
+                *selection_args,
+            )
+
+            # top veto: no medium b-tagged AK4 jets with pT>30, |eta|<2.4, and dR(ak4, bbFatJet0) > 0.8
+            medium_btag_th_dict = {
+                "2022": 0.3086,
+                "2022EE": 0.3196,
+                "2023": 0.2431,
+                "2023BPix": 0.2435,
+            }
+            # no medium b-tagged AK4 jets with pT>30, |eta|<2.4, and dR(ak4, bbFatJet0) > 0.8
+            cut_top_veto = (
+                ak.sum(
+                    ak4_jets_awayfromak8.btagDeepFlavB >= medium_btag_th_dict[year],
+                    axis=1,
+                )
+                == 0
+            )
+            add_selection("top_veto", cut_top_veto, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
