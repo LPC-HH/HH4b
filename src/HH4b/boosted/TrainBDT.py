@@ -1143,7 +1143,7 @@ def main(args):
             year,
             samples_run3,
             reorder_txbb=True,
-            bdt_version=args.bdt_model,
+            # bdt_version=args.bdt_model,
             # txbb_str=args.txbb_str,
             load_systematics=False,
             txbb_version=args.txbb,
@@ -1376,15 +1376,6 @@ if __name__ == "__main__":
         default=3,
         help="BDT's maximum depth",
         type=int,
-    )
-    # CAUTION: the bdt-model flag is a quick fix
-    # it's needed because we perform inference in load_run3_samples()
-    # use an arbitrary model that works, should not affect training
-    parser.add_argument(
-        "--bdt-model",
-        type=str,
-        default="25Feb5_v13_glopartv2_rawmass",
-        help="BDT model to load",
     )
     add_bool_arg(parser, "evaluate-only", "Only evaluation, no training", default=False)
     add_bool_arg(parser, "multiclass", "Classify each background separately", default=True)
