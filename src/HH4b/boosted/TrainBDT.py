@@ -1106,7 +1106,7 @@ def main(args):
     model_dir = Path(f"./bdt_trainings_run3/{args.model_name}/")
     model_dir.mkdir(exist_ok=True, parents=True)
 
-    if args.year == "2022-2023":
+    if args.year[0] == "2022-2023":
         years = ["2022", "2022EE", "2023", "2023BPix"]
     else:
         years = args.year
@@ -1143,7 +1143,8 @@ def main(args):
             year,
             samples_run3,
             reorder_txbb=True,
-            txbb_str=args.txbb_str,
+            bdt_version=args.bdt_model,
+            # txbb_str=args.txbb_str,
             load_systematics=False,
             txbb_version=args.txbb,
             scale_and_smear=False,  # TODO: train with scale and smear corrections
@@ -1376,7 +1377,15 @@ if __name__ == "__main__":
         help="BDT's maximum depth",
         type=int,
     )
-
+    # CAUTION: the bdt-model flag is a quick fix
+    # it's needed because we perform inference in load_run3_samples()
+    # use an arbitrary model that works, should not affect training
+    parser.add_argument(
+        "--bdt-model",
+        type=str,
+        default="25Feb5_v13_glopartv2_rawmass",
+        help="BDT model to load",
+    )
     add_bool_arg(parser, "evaluate-only", "Only evaluation, no training", default=False)
     add_bool_arg(parser, "multiclass", "Classify each background separately", default=True)
     add_bool_arg(
