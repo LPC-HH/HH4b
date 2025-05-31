@@ -822,9 +822,8 @@ def ratioHistPlot(
 
         # if math.isinf(yhist[5]):
         # blind!
-        yhist[5] = 0
-        yhist[6] = 0
-        yhist[7] = 0
+        yhist[2] = 0
+        yhist[3] = 0
 
         hep.histplot(
             yhist,
