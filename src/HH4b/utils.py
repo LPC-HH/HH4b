@@ -98,13 +98,15 @@ def timer():
 
 def remove_empty_parquets(samples_dir, year):
 
-    full_samples_list = Path.iterdir(f"{samples_dir}/{year}")
+    full_samples_list = [str(p.name) for p in Path(f"{samples_dir}/{year}").iterdir()]
     print("Checking for empty parquets")
 
     for sample in full_samples_list:
         if sample == ".DS_Store":
             continue
-        parquet_files = Path.iterdir(f"{samples_dir}/{year}/{sample}/parquet")
+        parquet_files = [
+            str(p.name) for p in Path(f"{samples_dir}/{year}/{sample}/parquet").iterdir()
+        ]
         for f in parquet_files:
             file_path = f"{samples_dir}/{year}/{sample}/parquet/{f}"
             if not len(pd.read_parquet(file_path)):
@@ -116,7 +118,7 @@ def get_cutflow(pickles_path, year, sample_name):
     """Accumulates cutflow over all pickles in ``pickles_path`` directory"""
     from coffea.processor.accumulator import accumulate
 
-    out_pickles = Path.iterdir(pickles_path)
+    out_pickles = [str(p.name) for p in Path(pickles_path).iterdir()]
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
@@ -137,7 +139,7 @@ def get_cutflow(pickles_path, year, sample_name):
 def get_nevents(pickles_path, year, sample_name):
     """Adds up nevents over all pickles in ``pickles_path`` directory"""
     try:
-        out_pickles = Path.iterdir(pickles_path)
+        out_pickles = [str(p.name) for p in Path(pickles_path).iterdir()]
     except:
         return None
 
@@ -164,7 +166,7 @@ def get_pickles(pickles_path, year, sample_name):
     """Accumulates all pickles in ``pickles_path`` directory"""
     from coffea.processor.accumulator import accumulate
 
-    out_pickles = [f for f in Path.iterdir(pickles_path) if f != ".DS_Store"]
+    out_pickles = [str(p.name) for p in Path.iterdir(pickles_path) if str(p.name) != ".DS_Store"]
 
     file_name = out_pickles[0]
     with Path(f"{pickles_path}/{file_name}").open("rb") as file:
@@ -329,7 +331,9 @@ def load_samples(
     events_dict = {}
 
     data_dir = Path(data_dir) / year
-    full_samples_list = Path.iterdir(data_dir)  # get all directories in data_dir
+    full_samples_list = [
+        str(p.name) for p in Path.iterdir(data_dir)
+    ]  # get all directories in data_dir
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
@@ -370,14 +374,6 @@ def load_samples(
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
-                non_empty_passed_list = []
-                for parquet_file in parquet_path.glob("*.parquet"):
-                    if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(
-                            parquet_file, filters=filters, columns=load_columns
-                        )
-                        non_empty_passed_list.append(df_sample)
-                events = pd.concat(non_empty_passed_list)
                 continue
 
             # no events?

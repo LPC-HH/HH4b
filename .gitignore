@@ -179,6 +179,7 @@ src/HH4b/boosted/**/*.png
 src/HH4b/boosted/**/*.pdf
 src/HH4b/boosted/**/*roc_dict.pkl
 src/HH4b/boosted/**/*.pkl
+src/HH4b/zbb/**/*.pkl
 
 running_jobs.txt
 
