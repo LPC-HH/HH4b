@@ -8,6 +8,8 @@ Based on https://github.com/rkansal47/HHbbVV/blob/main/src/HHbbVV/postprocessing
 Authors: Raghav Kansal
 """
 
+# ruff: noqa: PLC0206
+
 from __future__ import annotations
 
 # from utils import add_bool_arg
@@ -259,8 +261,13 @@ nuisance_params = {
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
         diff_samples=True,
     ),
-    # apply 2022 uncertainty to all MC (until 2023 rec.)
-    "lumi_2022": Syst(prior="lnN", samples=all_mc, value=1.014),
+    # weight lumi uncertainties by corresponding integrated lumi
+    "lumi_2022": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]
+    ),
+    "lumi_2023": Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]
+    ),
 }
 if not args.thu_hh:
     del nuisance_params["THU_HH"]
@@ -280,7 +287,7 @@ nuisance_params_dict = {
 
 # dictionary of correlated shape systematics: name in templates -> name in cards, etc.
 corr_year_shape_systs = {
-    # "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
+    "JES": Syst(name="CMS_scale_j", prior="shape", samples=all_mc),
     "ttbarSF_pTjj": Syst(
         name=f"{CMS_PARAMS_LABEL}_ttbar_sf_ptjj",
         prior="shape",
@@ -301,12 +308,12 @@ corr_year_shape_systs = {
         pass_only=True,
         convert_shape_to_lnN=True,
     ),
-    # "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
-    # "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
+    "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
+    "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
     "scale": Syst(
         name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
         prior="shape",
-        samples=sig_keys,  # + ["ttbar"],  # FIXME: add back ttbar later
+        samples=sig_keys,
         samples_corr=True,
         separate_prod_modes=True,
     ),
@@ -319,9 +326,16 @@ corr_year_shape_systs = {
     ),
 }
 
-for i in range(len(ttbarsfs_decorr_ggfbdt_bins[args.bdt_model]) - 1):
-    label = f"ttbarSF_ggF_BDT_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
-    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_ggf_bdt_bin_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_ggfbdt_bins[args.bdt_model][i+1]}"
+ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
+    args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
+)
+ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
+    args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
+)
+
+for i in range(len(ttsf_ggfbdtshape_bins) - 1):
+    label = f"ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_ggf_bdt_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}"
     corr_year_shape_systs[label] = Syst(
         name=name,
         prior="shape",
@@ -329,10 +343,10 @@ for i in range(len(ttbarsfs_decorr_ggfbdt_bins[args.bdt_model]) - 1):
         convert_shape_to_lnN=True,
     )
 
-if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins:
-    for i in range(len(ttbarsfs_decorr_vbfbdt_bins[args.bdt_model]) - 1):
-        label = f"ttbarSF_VBF_BDT_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
-        name = f"{CMS_PARAMS_LABEL}_ttbar_sf_vbf_bdt_bin_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i]}_{ttbarsfs_decorr_vbfbdt_bins[args.bdt_model][i+1]}"
+if args.bdt_model in ttsf_vbfbdtshape_bins:
+    for i in range(len(ttsf_vbfbdtshape_bins) - 1):
+        label = f"ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}"
+        name = f"{CMS_PARAMS_LABEL}_ttbar_sf_vbf_bdt_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}"
         corr_year_shape_systs[label] = Syst(
             name=name,
             prior="shape",
@@ -341,7 +355,7 @@ if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins:
         )
 
 uncorr_year_shape_systs = {
-    # "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
     "JER": Syst(
         name="CMS_res_j",
         prior="shape",
@@ -377,10 +391,10 @@ uncorr_year_shape_systs = {
         },
     ),
 }
-
-for i in range(len(ttbarsfs_decorr_txbb_bins[args.txbb]) - 1):
-    label = f"ttbarSF_Xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
-    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_{ttbarsfs_decorr_txbb_bins[args.txbb][i]}_{ttbarsfs_decorr_txbb_bins[args.txbb][i+1]}"
+ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"])
+for i in range(len(ttsf_xbb_bins) - 1):
+    label = f"ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"
+    name = f"{CMS_PARAMS_LABEL}_ttbar_sf_xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}"
     uncorr_year_shape_systs[label] = Syst(
         name=name,
         prior="shape",
@@ -388,11 +402,13 @@ for i in range(len(ttbarsfs_decorr_txbb_bins[args.txbb]) - 1):
         convert_shape_to_lnN=True,
         uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
     )
+TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
+TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
-for wp in txbbsfs_decorr_txbb_wps[args.txbb]:
-    for j in range(len(txbbsfs_decorr_pt_bins[args.txbb][wp]) - 1):
-        label = f"TXbbSF_uncorrelated_{wp}_pT_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}"
-        name = f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{txbbsfs_decorr_pt_bins[args.txbb][wp][j]}_{txbbsfs_decorr_pt_bins[args.txbb][wp][j+1]}"
+for wp in TXbb_wps:
+    for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
+        label = f"TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
+        name = f"{CMS_PARAMS_LABEL}_txbb_sf_uncorrelated_{wp}_pt_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
         uncorr_year_shape_systs[label] = Syst(
             name=name,
             prior="shape",
@@ -411,7 +427,7 @@ if not args.jmsr:
     del uncorr_year_shape_systs["JMS"]
 
 if not args.jesr:
-    # del corr_year_shape_systs["JES"]
+    del corr_year_shape_systs["JES"]
     del uncorr_year_shape_systs["JER"]
 
 if args.ttbar_rate_param:
@@ -568,7 +584,7 @@ def fill_regions(
         region_noblinded = region.split(MCB_LABEL)[0]
         blind_str = MCB_LABEL if region.endswith(MCB_LABEL) else ""
 
-        logging.info("starting region: %s" % region)
+        logging.info(f"starting region: {region}")
         ch = rl.Channel(region.replace("_", ""))  # can't have '_'s in name
         model.addChannel(ch)
 
@@ -578,7 +594,7 @@ def fill_regions(
                 logging.info(f"\nSkipping {sample_name} in {region} region\n")
                 continue
 
-            logging.info("get templates for: %s" % sample_name)
+            logging.info(f"get templates for: {sample_name}")
 
             sample_template = region_templates[sample_name, :]
 

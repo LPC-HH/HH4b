@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import os
 import pickle
-from os import listdir
 from pathlib import Path
 
 from coffea.processor.accumulator import accumulate
@@ -71,17 +70,19 @@ if __name__ == "__main__":
     print("Inputs directory:", indir)
     print("Outputs directory:", outdir)
 
-    files = [indir + "/" + file for file in listdir(indir) if file.endswith(".pkl")]
+    files = [indir + "/" + file for file in Path.iterdir(indir) if file.endswith(".pkl")]
     out_dict = {}
 
     if args.r:
-        samples = [d for d in listdir(indir) if (Path(indir) / d / "pickles").is_dir()]
+        samples = [d for d in Path.iterdir(indir) if (Path(indir) / d / "pickles").is_dir()]
 
         for sample in samples:
             print(sample)
             pickle_path = f"{indir}/{sample}/pickles/"
             sample_files = [
-                pickle_path + "/" + file for file in listdir(pickle_path) if file.endswith(".pkl")
+                pickle_path + "/" + file
+                for file in Path.iterdir(pickle_path)
+                if file.endswith(".pkl")
             ]
 
             if args.separate_samples:
