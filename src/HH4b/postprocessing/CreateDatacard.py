@@ -301,13 +301,6 @@ corr_year_shape_systs = {
         convert_shape_to_lnN=True,
     ),
     "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
-    "TXbbSF_correlated": Syst(
-        name=f"{CMS_PARAMS_LABEL}_txbb_sf_correlated",
-        prior="shape",
-        samples=sig_keys,
-        pass_only=True,
-        convert_shape_to_lnN=True,
-    ),
     "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
     "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
     "scale": Syst(
@@ -415,10 +408,8 @@ for wp in TXbb_wps:
             samples=sig_keys,
             convert_shape_to_lnN=True,
             uncorr_years={
-                "2022": ["2022"],
-                "2022EE": ["2022EE"],
-                "2023": ["2023"],
-                "2023BPix": ["2023BPix"],
+                "2022": ["2022", "2022EE"],
+                "2023": ["2023", "2023BPix"],
             },
         )
 
