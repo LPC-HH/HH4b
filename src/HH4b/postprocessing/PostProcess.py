@@ -450,7 +450,7 @@ def load_process_run3_samples(
     elif args.txbb == "glopart-v2":
         txbb_sf = corrections._load_txbb_sfs(
             year,
-            "sf_glopart-v2_freezeSFs_trial20241011",
+            "sf_glopart-v2_zbb",
             TXbb_wps,
             TXbb_pt_corr_bins,
             args.txbb,
