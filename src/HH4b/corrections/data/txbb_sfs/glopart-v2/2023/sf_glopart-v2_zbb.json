@@ -6,49 +6,49 @@
             "low": 0.13
         }
     },
-    "WP1_pt450to100000": {    
+    "WP1_pt450to100000": {
         "final": {
             "central": 1.07,
             "high": 0.17,
             "low": 0.14
         }
     },
-    "WP2_pt250to450": {        
+    "WP2_pt250to450": {
         "final": {
             "central": 1.0,
             "high": 0.20,
             "low": 0.17
         }
     },
-    "WP2_pt450to100000": {       
+    "WP2_pt450to100000": {
         "final": {
             "central": 0.99,
             "high": 0.20,
             "low": 0.17
         }
     },
-    "WP3_pt250to450": {        
+    "WP3_pt250to450": {
         "final": {
             "central": 1.0,
             "high": 0.29,
             "low": 0.27
         }
     },
-    "WP3_pt450to100000": {        
+    "WP3_pt450to100000": {
         "final": {
             "central": 0.93,
             "high": 0.27,
             "low": 0.25
         }
     },
-    "WP4_pt250to450": {        
+    "WP4_pt250to450": {
         "final": {
             "central": 1.0,
             "high": 0.52,
             "low": 0.52
         }
     },
-    "WP4_pt450to100000": {    
+    "WP4_pt450to100000": {
         "final": {
             "central": 1.0,
             "high": 0.52,
