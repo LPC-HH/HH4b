@@ -267,7 +267,7 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
             weight_shifts[
                 f"TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}"
             ] = Syst(
-                samples=sig_keys,
+                samples=sig_keys + ["vhtobb", "zz", "novhhtobb", "tthtobb", "vjets", "nozzdiboson"],
                 label=f"TXbb SF uncorrelated {wp}, pT bin [{TXbb_pt_corr_bins[wp][j]}, {TXbb_pt_corr_bins[wp][j+1]}]",
                 years=years + ["2022-2023"],
             )

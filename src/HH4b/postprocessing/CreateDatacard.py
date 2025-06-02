@@ -405,7 +405,7 @@ for wp in TXbb_wps:
         uncorr_year_shape_systs[label] = Syst(
             name=name,
             prior="shape",
-            samples=sig_keys,
+            samples=sig_keys + ["vhtobb", "zz", "tthtobb", "vjets", "nozzdiboson"],
             convert_shape_to_lnN=True,
             uncorr_years={
                 "2022": ["2022", "2022EE"],
