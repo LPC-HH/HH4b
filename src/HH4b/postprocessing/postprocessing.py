@@ -627,6 +627,8 @@ def get_templates(
     systematics: dict,  # noqa: ARG001
     template_dir: str = "",
     bg_keys: list[str] = bg_keys,
+    bg_order: list[str] | None = None,
+    bg_err_mcstat: bool = True,
     plot_dir: Path = "",
     prev_cutflow: pd.DataFrame | None = None,
     weight_key: str = "weight",
@@ -797,25 +799,35 @@ def get_templates(
                     "hists": h,
                     "sig_keys": sig_keys if plot_sig_keys is None else plot_sig_keys,
                     "bg_keys": bg_keys,
-                    "bg_order": [
-                        "vbfhtobb",
-                        "gghtobb",
-                        "tthtobb",
-                        "vhtobb",
-                        "singletop",
-                        "zz",
-                        "nozzdiboson",
-                        "vjets",
-                        "vjetslnu",
-                        "ttbar",
-                        "qcd",
-                    ],
+                    "bg_order": (
+                        [
+                            "vbfhtobb",
+                            "gghtobb",
+                            "tthtobb",
+                            "vhtobb",
+                            "singletop",
+                            "zz",
+                            "nozzdiboson",
+                            "vjets",
+                            "vjetslnu",
+                            "hbb",
+                            "Wto2Q",
+                            "Zto2Q_unmatched",
+                            "Zto2Q_QQ",
+                            "Zto2Q_CC",
+                            "Zto2Q_BB",
+                            "ttbar",
+                            "qcd",
+                        ]
+                        if bg_order is None
+                        else bg_order
+                    ),
                     "sig_scale_dict": sig_scale_dict if pass_region else None,
                     "show": show,
                     "year": year,
                     "ylim": pass_ylim if pass_region else fail_ylim,
                     "plot_data": not (rname == "pass" and blind_pass),
-                    "bg_err_mcstat": True,
+                    "bg_err_mcstat": bg_err_mcstat,
                     "reweight_qcd": False,
                 }
                 if do_jshift:

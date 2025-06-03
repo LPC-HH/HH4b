@@ -109,6 +109,7 @@ color_by_sample = {
     "Zto2Q_QQ": "darkgreen",
     "Zto2Q_unmatched": "darkblue",
     "Wto2Q": "slategray",
+    "hbb": "aquamarine",
 }
 
 label_by_sample = {
@@ -147,6 +148,7 @@ label_by_sample = {
     "Zto2Q_QQ": r"$\mathrm{Z} \to \mathrm{q\bar{q}}$",
     "Zto2Q_unmatched": "Z Unmatched",
     "Wto2Q": r"$\mathrm{W} \to \mathrm{q\bar{q}}$",
+    "hbb": r"$\mathrm{H} \to \mathrm{b\bar{b}}$",
 }
 
 bg_order_default = [
@@ -156,10 +158,13 @@ bg_order_default = [
     "gghtobb",
     "zz",
     "nozzdiboson",
-    "Zto2Q_CC" "Zto2Q_QQ" "Zto2Q_unmatched",
-    "Wto2Q",
     "vjets",
     "vjetslnu",
+    "Zto2Q_bb",
+    "Zto2Q_CC",
+    "Zto2Q_QQ",
+    "Zto2Q_unmatched",
+    "Wto2Q",
     "ttbar",
     "qcd",
 ]
