@@ -427,7 +427,7 @@ def gen_selection_VV(
     return {**GenVVars, **FatJetVars}
 
 
-def gen_selection_ZbbSF_Z(
+def gen_selection_ZbbSF_ZQQ(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
     fatjets: FatJetArray,
@@ -496,7 +496,69 @@ def gen_selection_ZbbSF_Z(
     return {**GenZVars, **GenQ1Vars, **GenQ2Vars, **FatJetVars}
 
 
-def gen_selection_ZbbSF_W(
+def gen_selection_ZbbSF_DYto2L(
+    events: NanoEventsArray,
+    jets: JetArray,  # noqa: ARG001
+    fatjets: FatJetArray,
+    selection_args: list,  # noqa: ARG001
+    skim_vars: dict,
+    fatjet_str: str,
+):
+    assert fatjet_str in [
+        "bbFatJet",
+        "ak8FatJet",
+    ], "fatjet_str parameter must be bbFatJet or ak8FatJet"
+
+    # get Z boson
+    zs = events.GenPart[(abs(events.GenPart.pdgId) == Z_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)]
+
+    # Get Z boson properties
+    GenZVars = {f"GenZ{key}": pad_val(zs[var], 1, axis=1) for (var, key) in skim_vars.items()}
+
+    # off-shell Z might not be present
+    # find the first leptons and antileptons
+    daughters = events.GenPart[
+        (
+            (abs(events.GenPart.pdgId) == ELE_PDGID)
+            | (abs(events.GenPart.pdgId) == MU_PDGID)
+            | (abs(events.GenPart.pdgId) == TAU_PDGID)
+        )
+        * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    daughter0 = daughters[daughters.pdgId < 0][:, 0:1]  # first lepton
+    daughter1 = daughters[daughters.pdgId > 0][:, 0:1]  # first antilepton
+    daughter0_pdgId = ak.firsts(abs(daughter0.pdgId))
+    daughter1_pdgId = ak.firsts(abs(daughter1.pdgId))
+
+    # Get Lep1 and Lep2 properties
+    GenLep1Vars = {
+        f"GenLep1{key}": pad_val(daughter0[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+    GenLep2Vars = {
+        f"GenLep2{key}": pad_val(daughter1[var], 1, axis=1) for (var, key) in skim_vars.items()
+    }
+
+    is_Z_ee = (daughter0_pdgId == ELE_PDGID) & (daughter1_pdgId == ELE_PDGID)
+    is_Z_mumu = (daughter0_pdgId == MU_PDGID) & (daughter1_pdgId == MU_PDGID)
+    is_Z_tautau = (daughter0_pdgId == TAU_PDGID) & (daughter1_pdgId == TAU_PDGID)
+    GenZVars["GenZEleEle"] = is_Z_ee.to_numpy()
+    GenZVars["GenZMuMu"] = is_Z_mumu.to_numpy()
+    GenZVars["GenZTauTau"] = is_Z_tautau.to_numpy()
+
+    # Whether fatjets are matched to Z and daughters
+    matched_to_z = ak.any(fatjets.metric_table(zs) < 0.8, axis=2)
+    matched_to_lep1 = ak.any(fatjets.metric_table(daughter0) < 0.8, axis=2)
+    matched_to_lep2 = ak.any(fatjets.metric_table(daughter1) < 0.8, axis=2)
+    matched = matched_to_z & matched_to_lep1 & matched_to_lep2
+    fatjets["ZMatch"] = matched_to_z
+    fatjets["L1Match"] = matched_to_lep1
+    fatjets["L2Match"] = matched_to_lep2
+    fatjets["ZLLMatch"] = matched
+
+    return {**GenZVars, **GenLep1Vars, **GenLep2Vars}
+
+
+def gen_selection_ZbbSF_WQQ(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
     fatjets: FatJetArray,

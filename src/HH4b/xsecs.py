@@ -235,6 +235,14 @@ xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
 xsecs["DYto2L-2Jets_MLL-50_1J"] = 1017.0
 xsecs["DYto2L-2Jets_MLL-50_2J"] = 385.5
 
+xsecs["DYto2L-4Jets_MLL-50to120_HT-40to70"] = 316.7
+xsecs["DYto2L-4Jets_MLL-50to120_HT-70to100"] = 140.1
+xsecs["DYto2L-4Jets_MLL-50to120_HT-100to400"] = 179.6
+xsecs["DYto2L-4Jets_MLL-50to120_HT-400to800"] = 6.742
+xsecs["DYto2L-4Jets_MLL-50to120_HT-800to1500"] = 0.693
+xsecs["DYto2L-4Jets_MLL-50to120_HT-1500to2500"] = 0.05047
+xsecs["DYto2L-4Jets_MLL-50to120_HT-2500"] = 0.00346
+
 ########################################################
 # Cross Sections for 13 TeV.
 ########################################################

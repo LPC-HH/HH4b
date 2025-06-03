@@ -37,8 +37,9 @@ from .GenSelection import (
     gen_selection_Top,
     gen_selection_V,
     gen_selection_VV,
-    gen_selection_ZbbSF_W,
-    gen_selection_ZbbSF_Z,
+    gen_selection_ZbbSF_DYto2L,
+    gen_selection_ZbbSF_WQQ,
+    gen_selection_ZbbSF_ZQQ,
 )
 from .objects import (
     get_ak8jets,
@@ -377,6 +378,26 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
+            "zbb-DYLL-data": {
+                "2022": [
+                    "Mu50",
+                ],
+                "2022EE": [
+                    "Mu50",
+                ],
+                "2023": [
+                    "Mu50",
+                ],
+                "2023BPix": [
+                    "Mu50",
+                ],
+            },
+            "zbb-Zto2Q-DYLL": {
+                "2022": [],
+                "2022EE": [],
+                "2023": [],
+                "2023BPix": [],
+            },
         }
         HLTs["pre-sel"] = HLTs["signal"]
 
@@ -438,8 +459,16 @@ class bbbbSkimmer(SkimmerABC):
 
         if self._region == "zbb":
             # update fatjet selection for Zbb region
-            gen_selection_dict["Zto2Q-"] = gen_selection_ZbbSF_Z
-            gen_selection_dict["Wto2Q-"] = gen_selection_ZbbSF_W
+            gen_selection_dict["Zto2Q-"] = gen_selection_ZbbSF_ZQQ
+            gen_selection_dict["Wto2Q-"] = gen_selection_ZbbSF_WQQ
+        # Correction measurement for Zbb SF
+        elif self._region == "zbb-Zto2Q-DYLL":
+            gen_selection_dict["Zto2Q-"] = gen_selection_ZbbSF_ZQQ
+            gen_selection_dict["DYto2L-"] = gen_selection_ZbbSF_DYto2L
+            self.met_filters = []  # no met filters for this region
+        elif self._region == "zbb-DYLL-data":
+            gen_selection_dict["DYto2L-"] = gen_selection_ZbbSF_DYto2L
+            self.met_filters = []  # no met filters for this region
 
         self._accumulator = processor.dict_accumulator({})
 
@@ -638,13 +667,17 @@ class bbbbSkimmer(SkimmerABC):
                 fatjets, **self.fatjet_selection, nano_version=self._nano_version
             )
 
-        # match txbb string to branch name in fatjet collection
-        txbb_order = txbbstr_to_branch[self.txbb]
-        # match txbb string to branch name in skimmerVars
-        txbb_str = txbbstr_to_skimmer[self.txbb]
+        if self._region in ("zbb-DYLL-data", "zbb-Zto2Q-DYLL"):
+            # no need for fatjets
+            fatjets_xbb = fatjets
+        else:
+            # match txbb string to branch name in fatjet collection
+            txbb_order = txbbstr_to_branch[self.txbb]
+            # match txbb string to branch name in skimmerVars
+            txbb_str = txbbstr_to_skimmer[self.txbb]
 
-        # fatjets ordered by txbb
-        fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
+            # fatjets ordered by txbb
+            fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
         # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
@@ -844,7 +877,11 @@ class bbbbSkimmer(SkimmerABC):
         # Trigger variables
         HLTs = deepcopy(self.HLTs[year])
         # We should not use != "signal" as a condition, it is hard to understand which skimmer needs this. - Raghav
-        if is_run3 and self._region != "signal" and self._region != "zbb":
+        if (
+            is_run3
+            and self._region != "signal"
+            and self._region not in ("zbb", "zbb-DYLL-data", "zbb-Zto2Q-DYLL")
+        ):
             # add extra paths as variables
             HLTs.extend(
                 [
@@ -934,6 +971,9 @@ class bbbbSkimmer(SkimmerABC):
             **trigObjFatJetVars,
             **vbfJetVars,
         }
+        if self._region == "zbb-Zto2Q-DYLL":
+            # only need gen-level information for this region
+            skimmed_events = genVars
 
         if self._region == "signal":
             jshifts = [""]
@@ -994,6 +1034,9 @@ class bbbbSkimmer(SkimmerABC):
         if (not is_run3) and (not isData) and self._region == "signal":
             # in run2 we do not apply the trigger to MC
             apply_trigger = False
+        if self._region == "zbb-Zto2Q-DYLL":
+            # in Zbb-Zto2Q-DYLL region we do not apply any selection
+            apply_trigger = False
         if apply_trigger:
             add_selection("trigger", HLT_triggered, *selection_args)
 
@@ -1002,10 +1045,15 @@ class bbbbSkimmer(SkimmerABC):
         for mf in self.met_filters:
             if mf in events.Flag.fields:
                 cut_metfilters = cut_metfilters & events.Flag[mf]
-        add_selection("met_filters", cut_metfilters, *selection_args)
+        apply_met_filters = True
+        if self._region == "zbb-Zto2Q-DYLL":
+            # in Zbb-Zto2Q-DYLL region we do not apply any met filters
+            apply_met_filters = False
+        if apply_met_filters:
+            add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
-        if is_run3:
+        if is_run3 and (self._region not in ("zbb-Zto2Q-DYLL", "zbb-DYLL-data")):
             cut_jetveto = get_jetveto_event(jets, year)
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
@@ -1105,6 +1153,7 @@ class bbbbSkimmer(SkimmerABC):
                 | (np.sum(ak8FatJetVars["ak8FatJetPNetTXbbLegacy"] >= 0.1, axis=1) == 2)
             )
             add_selection("ak8bb_txbb", cut_txbb, *selection_args)
+
         elif self._region == "zbb":
             # >=2 AK8 jets
             add_selection("num_ak8jets", eventVars["nFatJets"] >= 2, *selection_args)
@@ -1171,6 +1220,11 @@ class bbbbSkimmer(SkimmerABC):
                 == 0
             )
             add_selection("top_veto", cut_top_veto, *selection_args)
+
+        elif self._region == "zbb-Zto2Q-DYLL":
+            # dummy selection for Zbb-Zto2Q-DYLL region
+            # to be compatible with selection.all(*selection.names)
+            add_selection("dummy", eventVars["nFatJets"] >= 0, *selection_args)
 
         print("Selection", f"{time.time() - start:.2f}")
 
