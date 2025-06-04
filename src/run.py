@@ -137,10 +137,11 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
         try:
             out, metrics = run(fileset, "Events", processor_instance=p)
             break
-        except FileNotFoundError as e:
+        except (FileNotFoundError, TypeError) as e:
+            # TypeError can happen in coffea if the file is not found
             import time
 
-            print("Error!")
+            print(f"Error with fileset {fileset.keys()} on iteration {i}")
             print(e)
             if i < 2:
                 print("Retrying in 1 minute")
