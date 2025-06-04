@@ -180,6 +180,8 @@ src/HH4b/boosted/**/*.pdf
 src/HH4b/boosted/**/*roc_dict.pkl
 src/HH4b/boosted/**/*.pkl
 src/HH4b/zbb/**/*.pkl
+src/HH4b/zbb/**/*.pdf
+src/HH4b/zbb/**/*.csv
 
 running_jobs.txt
 

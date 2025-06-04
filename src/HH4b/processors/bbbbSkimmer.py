@@ -42,6 +42,7 @@ from .GenSelection import (
     gen_selection_ZbbSF_ZQQ,
 )
 from .objects import (
+    ZbbSF_global_highPt_muons,
     get_ak8jets,
     good_ak4jets,
     good_ak8jets,
@@ -467,7 +468,6 @@ class bbbbSkimmer(SkimmerABC):
             gen_selection_dict["DYto2L-"] = gen_selection_ZbbSF_DYto2L
             self.met_filters = []  # no met filters for this region
         elif self._region == "zbb-DYLL-data":
-            gen_selection_dict["DYto2L-"] = gen_selection_ZbbSF_DYto2L
             self.met_filters = []  # no met filters for this region
 
         self._accumulator = processor.dict_accumulator({})
@@ -658,7 +658,7 @@ class bbbbSkimmer(SkimmerABC):
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
-        if self._region == "zbb":
+        if self._region in ("zbb", "zbb-DYLL-data", "zbb-Zto2Q-DYLL"):
             fatjets = good_ak8jets(
                 fatjets, **self.zbb_fatjet_selection, nano_version=self._nano_version
             )
@@ -1225,6 +1225,53 @@ class bbbbSkimmer(SkimmerABC):
             # dummy selection for Zbb-Zto2Q-DYLL region
             # to be compatible with selection.all(*selection.names)
             add_selection("dummy", eventVars["nFatJets"] >= 0, *selection_args)
+
+        elif self._region == "zbb-DYLL-data":
+            global_highPt_muon_sel = ZbbSF_global_highPt_muons(events.Muon)
+            global_highPt_muons = events.Muon[global_highPt_muon_sel]
+
+            # >= global high-pT muons
+            cut_global_highPt_muons = ak.count(global_highPt_muons.pt, axis=1) >= 2
+            add_selection("global_highPt_muons", cut_global_highPt_muons, *selection_args)
+
+            # choose the leading two muons
+            global_highPt_muons = global_highPt_muons[
+                ak.argsort(global_highPt_muons.pt, ascending=False)
+            ]
+            dimuons = global_highPt_muons[:, :2]
+
+            # no other veto muons
+            # muons that are not selected
+            other_muons = ak.concatenate(
+                [global_highPt_muons[:, 2:], events.Muon[~global_highPt_muon_sel]], axis=1
+            )
+            other_loose_sel = veto_muons(other_muons)
+            cut_no_extra_loose = ak.sum(other_loose_sel, axis=1) == 0
+            add_selection("no_extra_loose_muons", cut_no_extra_loose, *selection_args)
+
+            # require that one has pT > 60 GeV
+            cut_dimuon_pt = ak.sum(dimuons.pt > 60, axis=1) >= 1
+            add_selection("dimuon_pt", cut_dimuon_pt, *selection_args)
+
+            # require that the two muons to have opposite charge
+            cut_dimuon_charge = ak.sum(dimuons.charge, axis=1) == 0
+            add_selection("dimuon_charge", cut_dimuon_charge, *selection_args)
+
+            # >= AK8 jet with dR > 0.8 from both dimuons
+            cut_iso_fatjet = ak.any(ak.all(fatjets.metric_table(dimuons) > 0.8, axis=2), axis=1)
+            add_selection("ak8_iso", cut_iso_fatjet, *selection_args)
+
+            muon1_p4 = {
+                f"Muon1{key}": pad_val(dimuons[:, 0:1][var], 1, axis=1) for (var, key) in P4.items()
+            }
+            muon2_p4 = {
+                f"Muon2{key}": pad_val(dimuons[:, 1:2][var], 1, axis=1) for (var, key) in P4.items()
+            }
+            skimmed_events = {
+                # only need the dimuon p4 for Zbb-Zto2Q-DYLL region
+                **muon1_p4,
+                **muon2_p4,
+            }
 
         print("Selection", f"{time.time() - start:.2f}")
 

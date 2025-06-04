@@ -1,0 +1,82 @@
+{
+    "2022": {
+        "VJets": {
+            "subsamples": [
+                "DYto2L-4Jets_MLL-50to120_HT-40to70",
+                "DYto2L-4Jets_MLL-50to120_HT-70to100",
+                "DYto2L-4Jets_MLL-50to120_HT-100to400",
+                "DYto2L-4Jets_MLL-50to120_HT-400to800",
+                "DYto2L-4Jets_MLL-50to120_HT-800to1500",
+                "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
+                "DYto2L-4Jets_MLL-50to120_HT-2500"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Muon": {"files_per_job": 10}
+    },
+    "2022EE": {
+        "VJets": {
+            "subsamples": [
+                "DYto2L-4Jets_MLL-50to120_HT-40to70",
+                "DYto2L-4Jets_MLL-50to120_HT-70to100",
+                "DYto2L-4Jets_MLL-50to120_HT-100to400",
+                "DYto2L-4Jets_MLL-50to120_HT-400to800",
+                "DYto2L-4Jets_MLL-50to120_HT-800to1500",
+                "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
+                "DYto2L-4Jets_MLL-50to120_HT-2500"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Muon": {"files_per_job": 10}
+    },
+    "2023": {
+        "VJets": {
+            "subsamples": [
+                "DYto2L-4Jets_MLL-50to120_HT-40to70",
+                "DYto2L-4Jets_MLL-50to120_HT-70to100",
+                "DYto2L-4Jets_MLL-50to120_HT-100to400",
+                "DYto2L-4Jets_MLL-50to120_HT-400to800",
+                "DYto2L-4Jets_MLL-50to120_HT-800to1500",
+                "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
+                "DYto2L-4Jets_MLL-50to120_HT-2500"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Muon": {"files_per_job": 10}
+    },
+    "2023BPix": {
+        "VJets": {
+            "subsamples": [
+                "DYto2L-4Jets_MLL-50to120_HT-40to70",
+                "DYto2L-4Jets_MLL-50to120_HT-70to100",
+                "DYto2L-4Jets_MLL-50to120_HT-100to400",
+                "DYto2L-4Jets_MLL-50to120_HT-400to800",
+                "DYto2L-4Jets_MLL-50to120_HT-800to1500",
+                "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
+                "DYto2L-4Jets_MLL-50to120_HT-2500"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Muon": {"files_per_job": 10}
+    }
+}

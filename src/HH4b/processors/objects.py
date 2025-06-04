@@ -107,6 +107,16 @@ def good_muons(muons: MuonArray):
     return sel
 
 
+def ZbbSF_global_highPt_muons(muons: MuonArray, pt_min: float = 30.0):
+    sel = (
+        (muons.pt >= pt_min)
+        & (np.abs(muons.eta) < 2.4)
+        & (muons.isGlobal != 0)
+        & (muons.highPtId != 0)
+    )
+    return sel
+
+
 def good_electrons(electrons: ElectronArray):
     sel = (
         (electrons.pt >= 30)
