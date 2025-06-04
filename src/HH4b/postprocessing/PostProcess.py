@@ -978,8 +978,9 @@ def load_process_run3_samples(
                 columns += [f"scale_weights_{i}"]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
-        if key in hh_vars.sig_keys:
+        if key in hh_vars.sig_keys + ["vhtobb", "zz", "novhhtobb", "tthtobb", "vjets", "nozzdiboson"]:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
+        if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
