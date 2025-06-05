@@ -17,6 +17,15 @@
             "files_per_job": 10,
             "chunksize": 8000
         },
+        "Diboson": {
+            "subsamples": [
+                "WW",
+                "WZ",
+                "ZZ"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
         "Muon": {"files_per_job": 10}
     },
     "2022EE": {
@@ -34,6 +43,15 @@
             "chunksize": 8000
         },
         "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Diboson": {
+            "subsamples": [
+                "WW",
+                "WZ",
+                "ZZ"
+            ],
             "files_per_job": 10,
             "chunksize": 8000
         },
@@ -57,6 +75,15 @@
             "files_per_job": 10,
             "chunksize": 8000
         },
+        "Diboson": {
+            "subsamples": [
+                "WW",
+                "WZ",
+                "ZZ"
+            ],
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
         "Muon": {"files_per_job": 10}
     },
     "2023BPix": {
@@ -74,6 +101,15 @@
             "chunksize": 8000
         },
         "TT": {
+            "files_per_job": 10,
+            "chunksize": 8000
+        },
+        "Diboson": {
+            "subsamples": [
+                "WW",
+                "WZ",
+                "ZZ"
+            ],
             "files_per_job": 10,
             "chunksize": 8000
         },
