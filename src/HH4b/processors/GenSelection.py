@@ -499,7 +499,7 @@ def gen_selection_ZbbSF_ZQQ(
 def gen_selection_ZbbSF_DYto2L(
     events: NanoEventsArray,
     jets: JetArray,  # noqa: ARG001
-    fatjets: FatJetArray,
+    fatjets: FatJetArray,  # noqa: ARG001
     selection_args: list,  # noqa: ARG001
     skim_vars: dict,
     fatjet_str: str,
@@ -518,12 +518,9 @@ def gen_selection_ZbbSF_DYto2L(
     # off-shell Z might not be present
     # find the first leptons and antileptons
     daughters = events.GenPart[
-        (
-            (abs(events.GenPart.pdgId) == ELE_PDGID)
-            | (abs(events.GenPart.pdgId) == MU_PDGID)
-            | (abs(events.GenPart.pdgId) == TAU_PDGID)
-        )
-        * events.GenPart.hasFlags(GEN_FLAGS)
+        (abs(events.GenPart.pdgId) == ELE_PDGID)
+        | (abs(events.GenPart.pdgId) == MU_PDGID)
+        | (abs(events.GenPart.pdgId) == TAU_PDGID)
     ]
     daughter0 = daughters[daughters.pdgId < 0][:, 0:1]  # first lepton
     daughter1 = daughters[daughters.pdgId > 0][:, 0:1]  # first antilepton
@@ -544,16 +541,6 @@ def gen_selection_ZbbSF_DYto2L(
     GenZVars["GenZEleEle"] = is_Z_ee.to_numpy()
     GenZVars["GenZMuMu"] = is_Z_mumu.to_numpy()
     GenZVars["GenZTauTau"] = is_Z_tautau.to_numpy()
-
-    # Whether fatjets are matched to Z and daughters
-    matched_to_z = ak.any(fatjets.metric_table(zs) < 0.8, axis=2)
-    matched_to_lep1 = ak.any(fatjets.metric_table(daughter0) < 0.8, axis=2)
-    matched_to_lep2 = ak.any(fatjets.metric_table(daughter1) < 0.8, axis=2)
-    matched = matched_to_z & matched_to_lep1 & matched_to_lep2
-    fatjets["ZMatch"] = matched_to_z
-    fatjets["L1Match"] = matched_to_lep1
-    fatjets["L2Match"] = matched_to_lep2
-    fatjets["ZLLMatch"] = matched
 
     return {**GenZVars, **GenLep1Vars, **GenLep2Vars}
 
