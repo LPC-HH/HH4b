@@ -27,12 +27,6 @@ def _load_dummy_txbb_sfs(
         "nominal": dense_lookup(sf * ones_2d, edges),
         "stat_up": dense_lookup((sf + sf_unc) * ones_2d, edges),
         "stat_dn": dense_lookup((sf - sf_unc) * ones_2d, edges),
-        "stat3x_up": dense_lookup((sf + sf_unc) * ones_2d, edges),
-        "stat3x_dn": dense_lookup((sf - sf_unc) * ones_2d, edges),
-        "corr_up": dense_lookup(sf * ones_2d, edges),
-        "corr_dn": dense_lookup(sf * ones_2d, edges),
-        "corr3x_up": dense_lookup(sf * ones_2d, edges),
-        "corr3x_dn": dense_lookup(sf * ones_2d, edges),
     }
 
     return txbb_sf
@@ -55,8 +49,6 @@ def _load_txbb_sfs(
         ("final", "central"),
         ("final", "high"),
         ("final", "low"),
-        ("stats", "high"),
-        ("stats", "low"),
     ]
     vals = {key: [] for key in keys}
 
@@ -71,19 +63,10 @@ def _load_txbb_sfs(
             vals[key1, key2].append(wval)
     vals = {key: np.array(val) for key, val in list(vals.items())}
 
-    corr_err_high = np.sqrt(np.maximum(vals["final", "high"] ** 2 - vals["stats", "high"] ** 2, 0))
-    corr_err_low = np.sqrt(np.maximum(vals["final", "low"] ** 2 - vals["stats", "low"] ** 2, 0))
-
     txbb_sf = {
         "nominal": dense_lookup(vals["final", "central"], edges),
-        "stat_up": dense_lookup(vals["final", "central"] + vals["stats", "high"], edges),
-        "stat_dn": dense_lookup(vals["final", "central"] - vals["stats", "low"], edges),
-        "stat3x_up": dense_lookup(vals["final", "central"] + 3 * vals["stats", "high"], edges),
-        "stat3x_dn": dense_lookup(vals["final", "central"] - 3 * vals["stats", "low"], edges),
-        "corr_up": dense_lookup(vals["final", "central"] + corr_err_high, edges),
-        "corr_dn": dense_lookup(vals["final", "central"] - corr_err_low, edges),
-        "corr3x_up": dense_lookup(vals["final", "central"] + 3 * corr_err_high, edges),
-        "corr3x_dn": dense_lookup(vals["final", "central"] - 3 * corr_err_low, edges),
+        "stat_up": dense_lookup(vals["final", "central"] + vals["final", "high"], edges),
+        "stat_dn": dense_lookup(vals["final", "central"] - vals["final", "low"], edges),
     }
 
     return txbb_sf
