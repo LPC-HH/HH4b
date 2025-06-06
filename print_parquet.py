@@ -6,6 +6,8 @@ import pandas as pd
 
 np.set_printoptions(threshold=np.inf)
 
+print("hello")
+
 
 @click.command()
 @click.argument("filename")
