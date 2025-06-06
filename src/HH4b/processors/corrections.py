@@ -62,12 +62,13 @@ def get_pog_json(obj: str, year: str) -> str:
         print(f"No json for {obj}")
 
     year = get_UL_year(year) if year == "2018" else year
-    if "2022" in year or "2023" in year:
+    if "2022" in year or "2023" in year or "2024" in year:
         year = {
             "2022": "2022_Summer22",
             "2022EE": "2022_Summer22EE",
             "2023": "2023_Summer23",
             "2023BPix": "2023_Summer23BPix",
+            "2024": "2024_Winter24",
         }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -401,6 +402,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+        "2024": "Winter24Prompt2024BCDEFGHI_V1",
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0

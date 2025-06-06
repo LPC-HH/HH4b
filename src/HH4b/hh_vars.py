@@ -18,6 +18,7 @@ LUMI = {
     "2023": 18084.4,
     "2023BPix": 9692.1,
     "2023All": 27776.5,
+    "2024": 1.0,
     "2022-2023": 62428.6,
     "2018": 59830.0,
     "2017": 41480.0,
@@ -370,12 +371,14 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMR"] = {
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
     "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
     "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
     "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
     "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"] = {}
 # numbers from template-morphing fit
@@ -397,12 +400,14 @@ jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
     "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
     "2023": {"nom": 1.0335, "down": 1.025, "up": 1.042},
     "2023BPix": {"nom": 1.0335, "down": 1.025, "up": 1.042},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2022": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2022EE": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2023": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
     "2023BPix": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}

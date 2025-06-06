@@ -240,6 +240,15 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
                 ],
+                "2024": [
+                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                    "AK8PFJet230_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass40",
+                    "AK8PFJet420_MassSD30",
+                ]
             },
             # TODO: add semiboosted HLT
             "semiboosted": {
@@ -394,8 +403,8 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
-        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
+        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         for jmsr_year in self.jms_values:
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
@@ -466,7 +475,7 @@ class bbbbSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix", "2024"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
         isData = not hasattr(events, "genWeight")
 
@@ -512,26 +521,47 @@ class bbbbSkimmer(SkimmerABC):
             electrons = events.Electron[good_electron_sel]
             electrons["id"] = electrons.charge * (11)
 
+        # AK8 Jets
+        fatjets = get_ak8jets(events.FatJet)  # this adds all our extra variables e.g. TXbb
+
         # AK4 Jets
-        num_jets = 4
-        jets, jec_shifted_jetvars = JEC_loader.get_jec_jets(
-            events,
-            events.Jet,
-            year,
-            isData,
-            jecs=self.jecs,
-            fatjets=False,
-            applyData=True,
-            dataset=dataset,
-            nano_version=self._nano_version,
-        )
+        if "ak4" in JEC_loader.jet_factory:
+            jets, jec_shifted_jetvars = JEC_loader.get_jec_jets(
+                events,
+                events.Jet,
+                year,
+                isData,
+                jecs=self.jecs,
+                fatjets=False,
+                applyData=True,
+                dataset=dataset,
+                nano_version=self._nano_version,
+            )
+            print("ak4 JECs", f"{time.time() - start:.2f}")
+            fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
+                events,
+                fatjets,
+                year,
+                isData,
+                jecs=self.jecs,
+                fatjets=True,
+                applyData=True,
+                dataset=dataset,
+                nano_version=self._nano_version,
+            )
+            print("ak8 JECs", f"{time.time() - start:.2f}")
+        else:
+            jets = events.Jet
+            jec_shifted_jetvars = {}
+            jec_shifted_fatjetvars = {}
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
         else:
-            met = events.MET
-
-        print("ak4 JECs", f"{time.time() - start:.2f}")
+            if "MET" in events.fields:
+                met = events.MET
+            else:
+                met = events.PuppiMET
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
@@ -547,20 +577,7 @@ class bbbbSkimmer(SkimmerABC):
         jets = jets[jets_sel]
         print("ak4", f"{time.time() - start:.2f}")
 
-        # AK8 Jets
-        fatjets = get_ak8jets(events.FatJet)  # this adds all our extra variables e.g. TXbb
-        fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
-            events,
-            fatjets,
-            year,
-            isData,
-            jecs=self.jecs,
-            fatjets=True,
-            applyData=True,
-            dataset=dataset,
-            nano_version=self._nano_version,
-        )
-        print("ak8 JECs", f"{time.time() - start:.2f}")
+
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
 
@@ -658,6 +675,7 @@ class bbbbSkimmer(SkimmerABC):
                 "pt_gen": "MatchedGenJetPt",
             }
 
+        num_jets = 4
         ak4JetVars = {
             f"ak4Jet{key}": pad_val(jets[var], num_jets, axis=1)
             for (var, key) in jet_skimvars.items()
