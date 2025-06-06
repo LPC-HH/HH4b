@@ -538,7 +538,7 @@ class bbbbSkimmer(SkimmerABC):
                 nano_version=self._nano_version,
             )
             print("ak4 JECs", f"{time.time() - start:.2f}")
-            fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
+            fatjets, _ = JEC_loader.get_jec_jets(
                 events,
                 fatjets,
                 year,
@@ -553,15 +553,11 @@ class bbbbSkimmer(SkimmerABC):
         else:
             jets = events.Jet
             jec_shifted_jetvars = {}
-            jec_shifted_fatjetvars = {}
 
         if JEC_loader.met_factory is not None:
             met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
         else:
-            if "MET" in events.fields:
-                met = events.MET
-            else:
-                met = events.PuppiMET
+            met = events.MET if "MET" in events.fields else events.PuppiMET
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
