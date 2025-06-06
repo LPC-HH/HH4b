@@ -248,7 +248,7 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet400_SoftDropMass40",
                     "AK8PFJet420_MassSD30",
-                ]
+                ],
             },
             # TODO: add semiboosted HLT
             "semiboosted": {
@@ -576,8 +576,6 @@ class bbbbSkimmer(SkimmerABC):
 
         jets = jets[jets_sel]
         print("ak4", f"{time.time() - start:.2f}")
-
-
 
         fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
 
