@@ -20,7 +20,6 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
-from HH4b.boosted.TrainBDT import get_legtitle
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -126,9 +125,9 @@ def get_jets_for_txbb_sf(key: str):
     # for now, assuming mostly V=Z(bb) passes selection
     # apply to both jets in HH, VH, VV processes
     # apply to only first jet in single-H or single-V processes
-    if "hh4b" in key or key in ["vhtobb", "diboson"]:
+    if key in hh_vars.sig_keys or key in ["vhtobb", "zz"]:
         return [1, 2]
-    elif key in ["novhhtobb", "tthtobb", "vjets"]:
+    elif key in ["novhhtobb", "tthtobb", "vjets", "nozzdiboson"]:
         return [1]
     else:
         return []
@@ -171,6 +170,19 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1]
         )
+    elif (
+        preds.shape[1] == 5
+    ):  # multi-class BDT with ggF HH, VBF HH(K2V=0), VBF HH(K2V=1), QCD, ttbar classes
+        bg_tot = np.sum(preds[:, 3:], axis=1)
+        events[f"bdt_score{jlabel}"] = (
+            preds[:, 0] / (preds[:, 0] + bg_tot) if bdt_disc else preds[:, 0]
+        )
+        events[f"bdt_score_vbf{jlabel}"] = (
+            (preds[:, 1] + preds[:, 2])
+            / (preds[:, 1] + preds[:, 2] + preds[:, 3] + weight_ttbar * preds[:, 4])
+            if bdt_disc
+            else preds[:, 1] + preds[:, 2]
+        )
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -191,6 +203,26 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         "vbfhh4b-k2v0": "bdt_score_vbf",
     }
     bkg_keys = ["qcd", "ttbar"]
+
+    def get_legtitle(txbb_str):
+        title = r"FatJet p$_T^{(0,1)}$ > 250 GeV" + "\n"
+        if "part" in txbb_str.lower():
+            title += "$T_{Xbb}^{0}$ > 0.3"
+        else:
+            title += "$T_{Xbb}^{0}$ > 0.8"
+
+        if "legacy" in txbb_str.lower():
+            title += "\n" + "PNet Legacy"
+        elif "part" in txbb_str.lower():
+            title += "\n" + "GloParTv2"
+        else:
+            title += "\n" + "PNet 103X"
+
+        title += "\n" + r"m$_{reg}$ > 50 GeV"
+        title += "\n" + r"m$_{SD}^{0}$ > 40 GeV"
+
+        return title
+
     legtitle = get_legtitle(txbb_version)
 
     if "bdt_score_vbf" not in events_combined["ttbar"]:
@@ -350,41 +382,64 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         plt.close()
 
 
-def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot_dir, mass_window):
+def load_process_run3_samples(
+    args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
+):
 
     # define BDT model
-    bdt_model = xgb.XGBClassifier()
-    bdt_model.load_model(
-        fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
-    )
+    if rerun_inference:
+        bdt_model = xgb.XGBClassifier()
+        bdt_model.load_model(
+            fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
+        )
 
     # load tt corrections
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs("cat5", args.bdt_model, "bdt_score")
-    correct_vbfbdtshape = (
-        args.bdt_model in ttbarsfs_decorr_vbfbdt_bins and len(ttbarsfs_decorr_vbfbdt_bins) > 0
+    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score",
     )
-    if correct_vbfbdtshape:
-        tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-            "cat5", args.bdt_model, "bdt_score_vbf"
-        )
+    tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
+        "cat5",
+        (
+            args.bdt_model
+            if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins
+            else "25Feb5_v13_glopartv2_rawmass"
+        ),
+        "bdt_score_vbf",
+    )
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
-    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(args.txbb, "glopart-v2")
+    ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
+        args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
+    )
     ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
+        args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
     )
-    ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-        args.bdt_model, "25Feb5_v13_glopartv2_rawmass"
-    )
-    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, "glopart-v2")
-    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, "glopart-v2")
+    if args.correct_vbf_bdt_shape:
+        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
+            args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
+        )
+    TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
+    TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
-    if args.txbb == "pnet-legacy":
+    if args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
+        txbb_sf = corrections._load_dummy_txbb_sfs(
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            sf=1.0,
+            sf_unc=0.15,
+        )
+    elif args.txbb == "pnet-legacy":
         txbb_sf = corrections._load_txbb_sfs(
             year,
             "sf_txbbv11_Jul3_freezeSFs_combinedWPs",
@@ -399,12 +454,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             TXbb_wps,
             TXbb_pt_corr_bins,
             args.txbb,
-        )
-    else:
-        # load dummy values
-        txbb_sf = corrections._load_dummy_txbb_sfs(
-            txbbsfs_decorr_txbb_wps["pnet-legacy"],
-            txbbsfs_decorr_pt_bins["pnet-legacy"],
         )
 
     # get function
@@ -436,8 +485,9 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             reorder_txbb=True,
             load_systematics=True,
             txbb_version=args.txbb,
-            scale_and_smear=True,
+            scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
+            bdt_version=args.bdt_model,
         )[key]
 
         # inference and assign score
@@ -451,17 +501,27 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
         logger.info("Perform inference")
         bdt_events = {}
         for jshift in jshifts:
+            _jshift = f"_{jshift}" if jshift != "" else ""
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
                 events_dict, get_var_mapping(jshift)
             )
-            preds = bdt_model.predict_proba(bdt_events[jshift])
-            add_bdt_scores(
-                bdt_events[jshift],
-                preds,
-                jshift,
-                weight_ttbar=args.weight_ttbar_bdt,
-                bdt_disc=args.bdt_disc,
-            )
+            if rerun_inference:
+                preds = bdt_model.predict_proba(bdt_events[jshift])
+                add_bdt_scores(
+                    bdt_events[jshift],
+                    preds,
+                    jshift,
+                    weight_ttbar=args.weight_ttbar_bdt,
+                    bdt_disc=args.bdt_disc,
+                )
+            else:
+                # assert bdt_disc is true
+                if not args.bdt_disc:
+                    raise ValueError("only BDT discriminant available from skimmer")
+                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
+                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
+                    f"bdt_score_vbf{_jshift}"
+                ]
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -524,6 +584,28 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
 
         # finalWeight: includes genWeight, puWeight
         bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        # scale, pdf weights
+        if key in hh_vars.sig_keys + ["ttbar"]:
+            for i in range(6):
+                bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+        n_pdf_weights = 0
+        if key in hh_vars.sig_keys:
+            n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            for i in range(n_pdf_weights):
+                bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+        pileup_ps_weights = [
+            "weight_pileupUp",
+            "weight_pileupDown",
+            "weight_ISRPartonShowerUp",
+            "weight_ISRPartonShowerDown",
+            "weight_FSRPartonShowerUp",
+            "weight_FSRPartonShowerDown",
+        ]
+        if key != "data":
+            for w in pileup_ps_weights:
+                if w in events_dict:
+                    bdt_events[w] = events_dict[w].to_numpy()
+
         # add event, run, lumi
         bdt_events["run"] = events_dict["run"].to_numpy()
         bdt_events["event"] = events_dict["event"].to_numpy()
@@ -574,7 +656,6 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
-        nominal_weight = bdt_events["weight"]
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
@@ -614,7 +695,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
             bdtsf = ggfbdtsf
             # use bdt_vbf correction for vbf category if it exists
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 vbfbdtsf, _, _ = corrections.ttbar_SF(
                     tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
                 )
@@ -623,8 +704,16 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
 
-        # save total corrected weight
-        bdt_events["weight"] = nominal_weight * trigger_weight * ttbar_weight * txbb_sf_weight
+        # save corrected weights
+        weights_to_correct = (
+            ["weight"]
+            + [f"scale_weights_{i}" for i in range(6)]
+            + [f"pdf_weights_{i}" for i in range(n_pdf_weights)]
+            + pileup_ps_weights
+        )
+        for w in weights_to_correct:
+            if w in bdt_events:
+                bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
         # correlated signal xbb up/dn variations
         corr_up = np.ones(nevents)
@@ -714,7 +803,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                     "bdt_score",
                     ttsf_ggfbdtshape_bins[i : i + 2],
                 )
-                if correct_vbfbdtshape:
+                if args.correct_vbf_bdt_shape:
                     # only use ggf correction/uncertainty outside of vbf category
                     ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
                     ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
@@ -725,7 +814,7 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
                 bdt_events[
                     f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down"
                 ] = (bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf)
-            if correct_vbfbdtshape:
+            if args.correct_vbf_bdt_shape:
                 for i in range(len(ttsf_vbfbdtshape_bins) - 1):
                     vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
                         tt_vbfbdtshape_sf,
@@ -913,12 +1002,17 @@ def load_process_run3_samples(args, year, bdt_training_keys, control_plots, plot
             ]
         if "bdt_score_vbf" in bdt_events:
             columns += [check_get_jec_var("bdt_score_vbf", jshift) for jshift in jshifts]
+        if key in hh_vars.sig_keys + ["ttbar"]:
+            for i in range(6):
+                columns += [f"scale_weights_{i}"]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
-        if "hh" in key:
+        if key in hh_vars.sig_keys:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
+            for i in range(n_pdf_weights):
+                columns += [f"pdf_weights_{i}"]
         if key != "data":
-            columns += ["weight_triggerUp", "weight_triggerDown"]
+            columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
 
         if control_plots:
@@ -1010,7 +1104,7 @@ def scan_fom(
     plot_dir: str,
     plot_name: str,
     bg_keys: list[str],
-    sig_key: str = "hh4b",
+    sig_keys: list[str],
     fom: str = "2sqrt(b)/s",
     mass: str = "H2Msd",
 ):
@@ -1055,11 +1149,11 @@ def scan_fom(
                     mass,
                     mass_window,
                     bg_keys,
-                    sig_key,
+                    sig_keys,
                 )
             else:
                 nevents_sig, nevents_bkg, _ = sideband(
-                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_key
+                    events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_keys
                 )
 
             # number of events in data in sideband
@@ -1298,19 +1392,21 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm = qcd_norm_tmp
 
 
-def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key="hh4b"):
+def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_keys):
     nevents_bkg = get_nevents_data(
         events_dict["data"],
         get_cut(events_dict["data"], txbb_cut, bdt_cut),
         mass,
         mass_window,
     )
-    nevents_sig = get_nevents_signal(
-        events_dict[sig_key],
-        get_cut(events_dict[sig_key], txbb_cut, bdt_cut),
-        mass,
-        mass_window,
-    )
+    nevents_sig = 0
+    for sig_key in sig_keys:
+        nevents_sig += get_nevents_signal(
+            events_dict[sig_key],
+            get_cut(events_dict[sig_key], txbb_cut, bdt_cut),
+            mass,
+            mass_window,
+        )
     return nevents_sig, nevents_bkg, {}
 
 
@@ -1323,7 +1419,7 @@ def abcd(
     mass,
     mass_window,
     bg_keys_all,
-    sig_key="hh4b",
+    sig_keys,
 ):
     bg_keys = bg_keys_all.copy()
     if "qcd" in bg_keys:
@@ -1331,12 +1427,13 @@ def abcd(
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
-    for key in [sig_key, "data"] + bg_keys:
+    s = 0
+    for key in sig_keys + ["data"] + bg_keys:
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
-        if key == sig_key:
-            s = get_nevents_signal(events, cut, mass, mass_window)
+        if key in sig_keys:
+            s += get_nevents_signal(events, cut, mass, mass_window)
             continue
 
         # region A
@@ -1425,6 +1522,7 @@ def postprocess_run3(args):
             args.control_plots,
             plot_dir,
             mass_window,
+            args.rerun_inference,
         )
         events_dict_postprocess[year] = events
         cutflows[year] = cutflow
@@ -1434,15 +1532,17 @@ def postprocess_run3(args):
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
     if not args.control_plots and not args.bdt_roc:
-        processes.remove("qcd")
-        bg_keys.remove("qcd")
-        bg_keys_combined.remove("qcd")
+        if "qcd" in processes:
+            processes.remove("qcd")
+        if "qcd" in bg_keys:
+            bg_keys.remove("qcd")
+        if "qcd" in bg_keys_combined:
+            bg_keys_combined.remove("qcd")
 
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi,
-        # not needed at the moment
         scaled_by_years = {
-            # "vbfhh4b-k2v2": ["2022", "2022EE"],
+            # "zz": ["2022", "2022EE", "2023"],
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
@@ -1482,7 +1582,7 @@ def postprocess_run3(args):
             args.mass,
             mass_window,
             bg_keys,
-            "hh4b",
+            ["hh4b"],
         )
 
         s_binVBF, b_binVBF, _ = abcd(
@@ -1494,7 +1594,7 @@ def postprocess_run3(args):
             args.mass,
             mass_window,
             bg_keys,
-            "hh4b",
+            ["hh4b"],
         )
 
         # note: need to do this since not all the years have all the samples..
@@ -1545,13 +1645,13 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "vbf"),
                 get_anti_cuts(args, "vbf"),
-                np.arange(0.7, 0.85, 0.0025),
+                np.arange(0.8, 0.999, 0.0025),
                 np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_vbf",
                 bg_keys=bg_keys,
-                sig_key="vbfhh4b-k2v0",
+                sig_keys=args.fom_vbf_samples,
                 mass=args.mass,
             )
 
@@ -1574,6 +1674,7 @@ def postprocess_run3(args):
                 plot_dir,
                 "fom_bin1",
                 bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
             )
 
@@ -1591,12 +1692,13 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "bin2"),
                 get_anti_cuts(args, "bin2"),
-                np.arange(0.7, args.txbb_wps[0], 0.0025),
-                np.arange(0.7, args.bdt_wps[0], 0.0025),
+                np.arange(0.5, 0.9, 0.0025),
+                np.arange(0.5, 0.9, 0.0025),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
                 bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
             )
 
@@ -1655,6 +1757,43 @@ def postprocess_run3(args):
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
+    if args.event_list:
+
+        import uproot
+
+        eventlist_dict = [
+            "event",
+            "bdt_score",
+            "bdt_score_vbf",
+            "H2TXbb",
+            "H2Msd",
+            "run",
+            "Category",
+            "H2PNetMass",
+            "luminosityBlock",
+        ]
+
+        eventlist_folder = args.event_list_dir
+        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
+
+        for year, year_dict in events_dict_postprocess.items():
+            for key, tree_df in year_dict.items():
+                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
+                    event_list = tree_df[eventlist_dict]
+                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
+
+                    # Define the ROOT file path
+                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
+
+                    # Check if the ROOT file already exists
+                    if Path(file_path).exists():
+                        # File exists, use update mode to append the new tree
+                        with uproot.update(file_path) as file:
+                            file[key] = array_to_save  # Append new tree
+                    else:
+                        # File doesn't exist, create a new one
+                        with uproot.recreate(file_path) as file:
+                            file[key] = array_to_save  # Create the first tree
 
     # combined templates
     # skip for time
@@ -1792,12 +1931,39 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pt-second", type=float, default=250, help="pt threshold for subleading jet"
     )
-
+    parser.add_argument(
+        "--fom-vbf-samples",
+        type=str,
+        nargs="+",
+        default=["vbfhh4b-k2v0"],
+        help="Samples to use for FOM scan for VBF category",
+        choices=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+    )
+    parser.add_argument(
+        "--fom-ggf-samples",
+        type=str,
+        nargs="+",
+        default=["hh4b"],
+        help="Samples to use for FOM scan for ggF categories",
+        choices=["hh4b", "vbfhh4b"],
+    )
     run_utils.add_bool_arg(
         parser,
         "bdt-disc",
         default=True,
         help="use BDT discriminant defined as BDT_ggF/VBF = P_ggF/VBF / (P_ggF/VBF + P_bkg), otherwise use P_ggF/VBF",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "event-list",
+        default=False,
+        help="generates event list that passes boosted selection for the purpose of overlap removal",
+    )
+    parser.add_argument(
+        "--event-list-dir",
+        type=str,
+        default="event_lists",
+        help="folder to save the event list for each year",
     )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
@@ -1810,7 +1976,17 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
     )
+    run_utils.add_bool_arg(
+        parser, "correct-vbf-bdt-shape", default=True, help="Correct ttbar BDT_VBF shape"
+    )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
+    run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
+    run_utils.add_bool_arg(
+        parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
+    )
+    run_utils.add_bool_arg(
+        parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
+    )
 
     args = parser.parse_args()
 

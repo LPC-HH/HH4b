@@ -40,6 +40,7 @@ from .GenSelection import (
 )
 from .objects import (
     get_ak8jets,
+    good_ak4jets,
     good_ak8jets,
     good_electrons,
     good_muons,
@@ -56,9 +57,11 @@ gen_selection_dict = {
     "Hto2B": gen_selection_Hbb,
     "Wto2Q-": gen_selection_V,
     "Zto2Q-": gen_selection_V,
-    "WtoLNu-": gen_selection_V,
-    "DYto2L-": gen_selection_V,
+    # "WtoLNu-": gen_selection_V,
+    # "DYto2L-": gen_selection_V,
     "ZZ": gen_selection_VV,
+    "WW": gen_selection_VV,
+    "WZ": gen_selection_VV,
     "ZH": gen_selection_VV,
     "TTto4Q": gen_selection_Top,
     "TTto2L2Nu": gen_selection_Top,
@@ -188,7 +191,7 @@ class bbbbSkimmer(SkimmerABC):
     def __init__(
         self,
         xsecs=None,
-        save_systematics=False,
+        save_systematics=True,
         region="signal",
         nano_version="v12",
         txbb="glopart-v2",
@@ -379,7 +382,7 @@ class bbbbSkimmer(SkimmerABC):
         self._accumulator = processor.dict_accumulator({})
 
         # BDT model
-        bdt_model_name = "24Nov7_v5_glopartv2_rawmass"
+        bdt_model_name = "25Feb5_v13_glopartv2_rawmass"
         self.bdt_model = xgb.XGBClassifier()
         self.bdt_model.load_model(
             fname=f"{package_path}/boosted/bdt_trainings_run3/{bdt_model_name}/trained_bdt.model"
@@ -391,6 +394,28 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
+        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        for jmsr_year in self.jms_values:
+            jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
+            jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
+            self.jmr_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
+            self.jms_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
+            # default no scaling/smearing
+            for jmsr_var in self.jmsr_vars:
+                self.jmr_values[jmsr_year][jmsr_var] = [1, 1, 1]
+                self.jms_values[jmsr_year][jmsr_var] = [1, 1, 1]
+            # update values for ParTmassVis
+            self.jmr_values[jmsr_year]["ParTmassVis"] = [
+                jmr_val["nom"],
+                jmr_val["down"],
+                jmr_val["up"],
+            ]
+            self.jms_values[jmsr_year]["ParTmassVis"] = [
+                jms_val["nom"],
+                jms_val["down"],
+                jms_val["up"],
+            ]
 
         # FatJet Vars
         if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
@@ -507,15 +532,19 @@ class bbbbSkimmer(SkimmerABC):
             met = events.MET
 
         print("ak4 JECs", f"{time.time() - start:.2f}")
+
+        jets = good_ak4jets(jets, year, self._nano_version)
+        ht = ak.sum(jets.pt, axis=1)
+
         if self._region == "semiboosted":
-            jets_sel = (jets.pt > 30) & (abs(jets.eta) < 2.5) & (jets.isTight)
+            jets_sel = (jets.pt > 30) & (abs(jets.eta) < 2.5)
         else:
-            jets_sel = (jets.pt > 15) & (jets.isTight) & (abs(jets.eta) < 4.7)
+            jets_sel = (jets.pt > 15) & (abs(jets.eta) < 4.7)
+
         if not is_run3:
             jets_sel = jets_sel & ((jets.pt >= 50) | (jets.puId >= 6))
 
         jets = jets[jets_sel]
-        ht = ak.sum(jets.pt, axis=1)
         print("ak4", f"{time.time() - start:.2f}")
 
         # AK8 Jets
@@ -533,7 +562,7 @@ class bbbbSkimmer(SkimmerABC):
         )
         print("ak8 JECs", f"{time.time() - start:.2f}")
 
-        fatjets = good_ak8jets(fatjets, **self.fatjet_selection)
+        fatjets = good_ak8jets(fatjets, **self.fatjet_selection, nano_version=self._nano_version)
 
         # match txbb string to branch name in fatjet collection
         txbb_order = txbbstr_to_branch[self.txbb]
@@ -584,14 +613,13 @@ class bbbbSkimmer(SkimmerABC):
             )
 
         # JMSR
-        if self._region == "signal":
-            # TODO: add variations per variable
+        if self._region == "pre-sel" or self._region == "signal":
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
                 jmsr_vars=self.jmsr_vars,
-                jms_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
-                jmr_values={key: [1.0, 0.9, 1.1] for key in self.jmsr_vars},
+                jms_values=self.jms_values[year],
+                jmr_values=self.jmr_values[year],
                 isData=isData,
             )
 
@@ -601,16 +629,13 @@ class bbbbSkimmer(SkimmerABC):
 
         # Gen variables - saving HH and bbbb 4-vector info
         genVars = {}
-        for d in gen_selection_dict:
+        for d, gen_func in gen_selection_dict.items():
             if d in dataset:
                 # match fatjets_xbb
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets_xbb, selection_args, P4, "bbFatJet"
-                )
+                vars_dict = gen_func(events, jets, fatjets_xbb, selection_args, P4, "bbFatJet")
+                genVars = {**genVars, **vars_dict}
                 # match fatjets
-                vars_dict = gen_selection_dict[d](
-                    events, jets, fatjets, selection_args, P4, "ak8FatJet"
-                )
+                vars_dict = gen_func(events, jets, fatjets, selection_args, P4, "ak8FatJet")
                 genVars = {**genVars, **vars_dict}
 
         # remove unnecessary ak4 gen variables for signal region
@@ -807,9 +832,19 @@ class bbbbSkimmer(SkimmerABC):
         }
 
         if self._region == "signal":
-            for jshift in ["", "JMS_down", "JMS_up", "JMR_down", "JMR_up"] + list(
-                self.jecs.values()
-            ):
+            jshifts = [""]
+            if not isData and isJECs:
+                jshifts += [
+                    "JMS_down",
+                    "JMS_up",
+                    "JMR_down",
+                    "JMR_up",
+                    "JES_up",
+                    "JES_down",
+                    "JER_up",
+                    "JER_down",
+                ]
+            for jshift in jshifts:
                 bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
                 skimmed_events = {
                     **skimmed_events,
@@ -1064,7 +1099,7 @@ class bbbbSkimmer(SkimmerABC):
             weights_dict[f"single_weight_{key}"] = weights.partial_weight([key])
 
         ###################### alpha_S and PDF variations ######################
-        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTTo"):
+        if ("HHTobbbb" in dataset or "HHto4B" in dataset) or dataset.startswith("TTto"):
             scale_weights = get_scale_weights(events)
             if scale_weights is not None:
                 weights_dict["scale_weights"] = (
@@ -1097,10 +1132,22 @@ class bbbbSkimmer(SkimmerABC):
         self, bbFatJetVars: dict, vbfJetVars: dict, ak4JetAwayVars: dict, met_pt, jshift: str = ""
     ):
         """Calculates BDT"""
+
+        def disc_TXbb(txbb_array):
+            # define binning
+            bins = [0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+
+            # discretize the TXbb variable into len(bins)-1  integer categories
+            bin_indices = np.digitize(txbb_array, bins)
+
+            # clip just to be safe
+            bin_indices = np.clip(bin_indices, 1, len(bins) - 1)
+
+            return bin_indices
+
         key_map = get_var_mapping(jshift)
 
-        # makedataframe from v5_glopartv2
-        # 24Nov7_v5_glopartv2_rawmass
+        # makedataframe from v13_glopartv2
         # NOTE: this bdt assumes mass = raw mass
         jets = vector.array(
             {
@@ -1153,12 +1200,8 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,
                 key_map("H1eta"): h1.eta,
-                # "H2eta": h2.eta,
                 # xbb
-                key_map("H1Xbb"): bbFatJetVars[key_map("bbFatJetPNetPXbbLegacy")][:, 0],
-                key_map("H1QCDb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbLegacy")][:, 0],
-                key_map("H1QCDbb"): bbFatJetVars[key_map("bbFatJetPNetPQCDbbLegacy")][:, 0],
-                key_map("H1QCDothers"): bbFatJetVars[key_map("bbFatJetPNetPQCD0HFLegacy")][:, 0],
+                key_map("H1Xbb"): disc_TXbb(bbFatJetVars[key_map("bbFatJetParTTXbb")][:, 0]),
                 # ratios
                 key_map("H1Pt_HHmass"): h1.pt / hh.mass,
                 key_map("H2Pt_HHmass"): h2.pt / hh.mass,

@@ -22,7 +22,8 @@ def plot_fits(args):
     hist_label_map_inverse = OrderedDict(
         [
             ("qcd", "CMS_bbbb_hadronic_qcd_datadriven"),
-            ("diboson", "diboson"),
+            ("zz", "ZZ"),
+            ("nozzdiboson", "other_diboson"),
             ("vjets", "vjets"),
             ("ttbar", "ttbar"),
             ("vhtobb", "VH_hbb"),
@@ -56,8 +57,8 @@ def plot_fits(args):
     for key in sig_keys:
         hist_label_map_inverse[key] = hist_label_map_inverse_sig[key]
 
-    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "diboson"]
-    bkg_order = ["diboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
+    bkg_keys = ["qcd", "ttbar", "vhtobb", "tthtobb", "vjets", "zz", "nozzdiboson"]
+    bkg_order = ["zz", "nozzdiboson", "vjets", "tthtobb", "vhtobb", "ttbar", "qcd"]
 
     hist_label_map = {val: key for key, val in hist_label_map_inverse.items()}
     samples = list(hist_label_map.values())
@@ -177,7 +178,7 @@ def plot_fits(args):
                 plot_params = {
                     "hists": hists[shape][region],
                     "sig_keys": sig_keys,
-                    "sig_scale_dict": {key: signal_scale for key in sig_keys},
+                    "sig_scale_dict": dict.fromkeys(sig_keys, signal_scale),
                     "bg_keys": bkg_keys,
                     "bg_err": bgerrs[shape][region],
                     "bg_err_mcstat": bg_err_mcstat[shape],

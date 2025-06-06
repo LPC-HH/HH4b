@@ -4,6 +4,8 @@ General utilities for postprocessing.
 Author: Raghav Kansal
 """
 
+# ruff: noqa: PTH208
+
 from __future__ import annotations
 
 import contextlib
@@ -98,7 +100,6 @@ def timer():
 
 
 def remove_empty_parquets(samples_dir, year):
-    from os import listdir
 
     full_samples_list = listdir(f"{samples_dir}/{year}")
     print("Checking for empty parquets")
@@ -232,13 +233,13 @@ def _normalize_weights(
 
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
-        # print(sample)
+
         if "VBF" in sample:
             warnings.warn(
                 f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
                 stacklevel=0,
             )
-            events["weight"] = events["weight"] * xsecs[sample] * LUMI[year]
+            events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
         else:
             raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
@@ -270,7 +271,19 @@ def _normalize_weights(
     for wkey in ["scale_weights", "pdf_weights"]:
         if wkey in events:
             # .to_numpy() makes it way faster
-            events[wkey] = events[wkey].to_numpy() / totals[f"np_{wkey}"]
+            weights = events[wkey].to_numpy()
+            n_weights = weights.shape[1]
+            events[wkey] = weights / totals[f"np_{wkey}"][:n_weights]
+            if (
+                "weight_noxsec" in events
+                and np.all(events["weight"] == events["weight_noxsec"])
+                and "VBF" in sample
+            ):
+                warnings.warn(
+                    f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
+                    stacklevel=0,
+                )
+                events[wkey] = events[wkey].to_numpy() * xsecs[sample] * LUMI[year]
 
 
 def _reorder_txbb(events: pd.DataFrame, txbb):
@@ -779,11 +792,8 @@ def _var_selection(
 
     # OR the different vars
     for cutvar in cut_vars:
-        if (
-            jshift in jmsr_shifts
-            and sample in jmsr_keys
-            or jshift in jec_shifts
-            and sample in syst_keys
+        if (jshift in jmsr_shifts and sample in jmsr_keys) or (
+            jshift in jec_shifts and sample in syst_keys
         ):
             var = check_get_jec_var(cutvar, jshift)
         else:

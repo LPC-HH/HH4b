@@ -21,7 +21,7 @@ P4 = {
 PAD_VAL = -99999
 
 jecs = {
-    "JES": "JES",
+    "JES": "JES_jes",
     "JER": "JER",
     # split JECs (unused for now)
     # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",  # goes in Absolute

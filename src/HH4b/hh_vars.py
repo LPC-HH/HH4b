@@ -12,13 +12,13 @@ years = ["2022", "2022EE", "2023", "2023BPix"]
 
 # in pb^-1
 LUMI = {
-    "2022": 7971.4,
-    "2022EE": 26337.0,
-    "2022All": 34308.0,
-    "2023": 17650.0,
-    "2023BPix": 9451.0,
-    "2023All": 27101.0,
-    "2022-2023": 61409.0,
+    "2022": 7980.5,
+    "2022EE": 26671.6,
+    "2022All": 34652.1,
+    "2023": 18084.4,
+    "2023BPix": 9692.1,
+    "2023All": 27776.5,
+    "2022-2023": 62428.6,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -55,7 +55,8 @@ common_samples_bg = {
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
     "tthtobb": ["ttHto2B_M-125"],
-    "diboson": ["ZZ", "WW", "WZ"],
+    "zz": ["ZZ"],
+    "nozzdiboson": ["WW", "WZ"],
     "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
 }
 
@@ -281,7 +282,12 @@ bg_keys = list(common_samples_bg.keys())
 bg_keys.remove("data")
 hbb_bg_keys = ["gghtobb", "vbfhtobb", "vhtobb", "tthtobb", "novhhtobb"]
 
-sig_keys_ggf = ["hh4b", "hh4b-kl0", "hh4b-kl2p45", "hh4b-kl5"]
+sig_keys_ggf = [
+    "hh4b",
+    "hh4b-kl0",
+    "hh4b-kl2p45",
+    "hh4b-kl5",
+]
 sig_keys_vbf = [
     "vbfhh4b",
     "vbfhh4b-k2v0",
@@ -296,45 +302,15 @@ sig_keys_vbf = [
 ]
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
-# keys that require running up/down systematics
+# bkg keys that require running up/down systematics
 syst_keys = sig_keys + bg_keys
 syst_keys.remove("qcd")
 
 norm_preserving_weights = ["genweight", "pileup", "ISRPartonShower", "FSRPartonShower"]
 
 jecs = {
-    # "JES": "JES",
+    "JES": "JES",
     "JER": "JER",
-    # #####
-    # # including all sources
-    # #####
-    # "JES_AbsoluteMPFBias": "JES_AbsoluteMPFBias",
-    # "JES_AbsoluteScale": "JES_AbsoluteScale",
-    # "JES_AbsoluteStat": "JES_AbsoluteStat",
-    # "JES_FlavorQCD": "JES_FlavorQCD",
-    # "JES_Fragmentation": "JES_Fragmentation",
-    # "JES_PileUpDataMC": "JES_PileUpDataMC",
-    # "JES_PileUpPtBB": "JES_PileUpPtBB",
-    # "JES_PileUpPtEC1": "JES_PileUpPtEC1",
-    # "JES_PileUpPtEC2": "JES_PileUpPtEC2",
-    # "JES_PileUpPtHF": "JES_PileUpPtHF",
-    # "JES_PileUpPtRef": "JES_PileUpPtRef",
-    # "JES_RelativeFSR": "JES_RelativeFSR",
-    # "JES_RelativeJEREC1": "JES_RelativeJEREC1",
-    # "JES_RelativeJEREC2": "JES_RelativeJEREC2",
-    # "JES_RelativeJERHF": "JES_RelativeJERHF",
-    # "JES_RelativePtBB": "JES_RelativePtBB",
-    # "JES_RelativePtEC1": "JES_RelativePtEC1",
-    # "JES_RelativePtEC2": "JES_RelativePtEC2",
-    # "JES_RelativePtHF": "JES_RelativePtHF",
-    # "JES_RelativeBal": "JES_RelativeBal",
-    # "JES_RelativeSample": "JES_RelativeSample",
-    # "JES_RelativeStatEC": "JES_RelativeStatEC",
-    # "JES_RelativeStatFSR": "JES_RelativeStatFSR",
-    # "JES_RelativeStatHF": "JES_RelativeStatHF",
-    # "JES_SinglePionHCAL": "JES_SinglePionHCAL",
-    # "JES_SinglePionECAL": "JES_SinglePionECAL",
-    # "JES_TimePtEta": "JES_TimePtEta",
 }
 
 jec_shifts = []
@@ -402,26 +378,42 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
 }
 jmsr_values["bbFatJetParTmassVis"] = {}
+# numbers from template-morphing fit
+# jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
+#     "2022": {"nom": 1.14, "down": 1.12, "up": 1.16},
+#     "2022EE": {"nom": 1.14, "down": 1.12, "up": 1.16},
+#     "2023": {"nom": 1.095, "down": 1.052, "up": 1.139},
+#     "2023BPix": {"nom": 1.095, "down": 1.052, "up": 1.139},
+# }
+# jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
+#     "2022": {"nom": 1.015, "down": 1.0102, "up": 1.020},
+#     "2022EE": {"nom": 1.015, "down": 1.0102, "up": 1.020},
+#     "2023": {"nom": 0.974, "down": 0.967, "up": 0.981},
+#     "2023BPix": {"nom": 0.974, "down": 0.967, "up": 0.981},
+# }
+# numbers from weighted template fit
 jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
-    "2022": {"nom": 1.144, "down": 1.098, "up": 1.190},
-    "2022EE": {"nom": 1.144, "down": 1.098, "up": 1.190},
-    "2023": {"nom": 1.089, "down": 1.025, "up": 1.152},
-    "2023BPix": {"nom": 1.089, "down": 1.025, "up": 1.152},
+    "2022": {"nom": 1.0354, "down": 1.028, "up": 1.042},
+    "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
+    "2023": {"nom": 1.0335, "down": 1.025, "up": 1.042},
+    "2023BPix": {"nom": 1.0335, "down": 1.025, "up": 1.042},
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
-    "2022": {"nom": 1.009, "down": 1.005, "up": 1.012},
-    "2022EE": {"nom": 1.009, "down": 1.005, "up": 1.012},
-    "2023": {"nom": 0.928, "down": 0.915, "up": 0.942},
-    "2023BPix": {"nom": 0.928, "down": 0.915, "up": 0.942},
+    "2022": {"nom": 1.011, "down": 1.007, "up": 1.014},
+    "2022EE": {"nom": 1.011, "down": 1.007, "up": 1.014},
+    "2023": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
+    "2023BPix": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
 }
-jmsr_keys = sig_keys + ["vhtobb", "diboson"]
+jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
-jmsr_res["bbFatJetPNetMassLegacy"] = {sig_key: 14.4 for sig_key in sig_keys}
+jmsr_res["bbFatJetPNetMassLegacy"] = dict.fromkeys(sig_keys, 14.4)
 jmsr_res["bbFatJetPNetMassLegacy"]["vhtobb"] = 14.4 * 80.0 / 125.0
-jmsr_res["bbFatJetPNetMassLegacy"]["diboson"] = 14.4 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"] = {sig_key: 10.7 for sig_key in sig_keys}
+jmsr_res["bbFatJetPNetMassLegacy"]["zz"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetPNetMassLegacy"]["nozzdiboson"] = 14.4 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"] = dict.fromkeys(sig_keys, 10.7)
 jmsr_res["bbFatJetParTmassVis"]["vhtobb"] = 10.7 * 80.0 / 125.0
-jmsr_res["bbFatJetParTmassVis"]["diboson"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["zz"] = 10.7 * 80.0 / 125.0
+jmsr_res["bbFatJetParTmassVis"]["nozzdiboson"] = 10.7 * 80.0 / 125.0
 
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
@@ -431,7 +423,6 @@ ttbarsfs_decorr_ggfbdt_bins["24May31_lr_0p02_md_8_AK4Away"] = [0.03, 0.3, 0.5, 0
 ttbarsfs_decorr_ggfbdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.03, 0.6375, 0.9075, 1.0]
 ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"] = [0.03, 0.755, 0.94, 1.0]
 ttbarsfs_decorr_vbfbdt_bins = {}
-ttbarsfs_decorr_vbfbdt_bins["24May31_lr_0p02_md_8_AK4Away"] = []
 ttbarsfs_decorr_vbfbdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.975, 1]
 ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"] = [0.9667, 1.0]
 

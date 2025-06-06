@@ -94,6 +94,8 @@ color_by_sample = {
     "qcd": colours["canary"],
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
+    "zz": "orchid",
+    "nozzdiboson": "aquamarine",
     "diboson": "orchid",
     "dibosonvjets": "orchid",
     "vjets": colours["green"],
@@ -122,6 +124,8 @@ label_by_sample = {
     "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
     "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
     "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
+    "zz": "ZZ",
+    "nozzdiboson": "Other VV",
     "diboson": "VV",
     "dibosonvjets": "VV+VJets",
     "ttbar": r"$t\bar{t}$ + Jets",
@@ -140,7 +144,8 @@ bg_order_default = [
     "vhtobb",
     "tthtobb",
     "gghtobb",
-    "diboson",
+    "zz",
+    "nozzdiboson",
     "vjets",
     "vjetslnu",
     "ttbar",
@@ -455,7 +460,7 @@ def ratioHistPlot(
     ax.set_ylabel("Events")
 
     # re-weight qcd
-    kfactor = {sample: 1 for sample in bg_keys}
+    kfactor = dict.fromkeys(bg_keys, 1)
     if reweight_qcd and qcd_norm is None:
         bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
         data_yield = np.sum(hists[data_key, :].values())
