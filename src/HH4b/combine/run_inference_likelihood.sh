@@ -4,7 +4,8 @@
 syst="full"
 inj=""
 param="kl"
-while getopts ":p:is:" opt; do
+unblinded="False"
+while getopts ":p:is:u" opt; do
   case $opt in
     p)
       param=$OPTARG
@@ -14,6 +15,9 @@ while getopts ":p:is:" opt; do
       ;;
     s)
       syst=$OPTARG
+      ;;
+    u)
+      unblinded="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2

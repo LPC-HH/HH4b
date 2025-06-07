@@ -5,7 +5,7 @@ syst="full"
 inj=""
 C2V="1"
 unblinded="False"
-while getopts ":c:isu:" opt; do
+while getopts ":c:is:u" opt; do
   case $opt in
     c)
       C2V=$OPTARG
