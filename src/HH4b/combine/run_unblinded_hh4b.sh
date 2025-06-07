@@ -238,9 +238,9 @@ if [ $dfit = 1 ]; then
     PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesB.root \
     -m 125 -f fitDiagnosticsUnblinded.root:fit_b --postfit --print 2>&1 | tee $outsdir/FitShapesB.txt
 
-    # echo "Fit Shapes"
-    # PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesB.root \
-    # -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
+    echo "Fit Shapes"
+    PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesSB.root \
+    -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapesSB.txt
 fi
 
 if [ "$passbin" == "vbf" ]; then
