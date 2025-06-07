@@ -182,6 +182,8 @@ src/HH4b/boosted/**/*.pkl
 src/HH4b/zbb/**/*.pkl
 src/HH4b/zbb/**/*.pdf
 src/HH4b/zbb/**/*.csv
+src/HH4b/zbb/**/CMSSW_*_*_*/
+!src/HH4b/zbb/templates_zbb/**/*.root
 
 running_jobs.txt
 
