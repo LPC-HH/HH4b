@@ -4,7 +4,8 @@
 syst="full"
 inj=""
 C2V="1"
-while getopts ":c:is:" opt; do
+unblinded="False"
+while getopts ":c:isu:" opt; do
   case $opt in
     c)
       C2V=$OPTARG
@@ -14,6 +15,9 @@ while getopts ":c:is:" opt; do
       ;;
     s)
       syst=$OPTARG
+      ;;
+    u)
+      unblinded="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -63,4 +67,5 @@ law run PlotUpperLimitsAtPoint \
     --remove-output 0,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
+    --unblinded "$unblinded" \
     --file-types pdf,png,root,c $frozen

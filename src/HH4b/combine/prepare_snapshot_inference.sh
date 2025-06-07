@@ -1,8 +1,30 @@
 #!/bin/bash
 
 
-run_blinded_hh4b.sh --workspace --bfit --passbin=0
-extract_fit_result.py higgsCombineSnapshot.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'
+unblinded="False"
+while getopts ":u" opt; do
+  case $opt in
+    u)
+      unblinded="True"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$unblinded" == "True" ]]; then
+    run_unblinded_hh4b.sh --workspace --bfit --passbin=0 --unblinded
+    extract_fit_result.py higgsCombineSnapshotBOnly.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'
+else
+    run_blinded_hh4b.sh --workspace --bfit --passbin=0
+    extract_fit_result.py higgsCombineSnapshot.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'
+fi
 
 combineCards.py fail=fail.txt passvbf=passvbf.txt > passvbf_nomasks.txt
 combineCards.py fail=fail.txt passbin1=passbin1.txt > passbin1_nomasks.txt
