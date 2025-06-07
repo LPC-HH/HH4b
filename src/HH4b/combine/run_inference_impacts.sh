@@ -2,10 +2,14 @@
 # shellcheck disable=SC2086,SC2034
 
 inj=""
-while getopts ":i" opt; do
+unblinded="False"
+while getopts ":iu" opt; do
   case $opt in
     i)
       inj="<i"
+      ;;
+    u)
+      unblinded="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -43,4 +47,5 @@ law run PlotPullsAndImpacts \
     --page 0 \
     --campaign "$campaign" \
     --pull-range 1 \
+    --unblinded "$unblinded" \
     --remove-output 0,a,y
