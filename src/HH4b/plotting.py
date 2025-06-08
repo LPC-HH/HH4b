@@ -821,7 +821,7 @@ def ratioHistPlot(
         # yerr is not used, can be nan
         # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
-        if not args.unblinded:
+        if not unblinded:
             # blind!
             yhist[5] = 0
             yhist[6] = 0
