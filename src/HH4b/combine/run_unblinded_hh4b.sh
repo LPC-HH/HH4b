@@ -238,16 +238,21 @@ if [ $dfit = 1 ]; then
     PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesB.root \
     -m 125 -f fitDiagnosticsUnblinded.root:fit_b --postfit --print 2>&1 | tee $outsdir/FitShapesB.txt
 
-    # echo "Fit Shapes"
-    # PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesB.root \
-    # -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
+    echo "Fit Shapes"
+    PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapesSB.root \
+    -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapesSB.txt
 fi
 
+if [ "$passbin" == "vbf" ]; then
+    passlabel="passvbf"
+else
+    passlabel="passbin${passbin}"
+fi
 
 if [ $gofdata = 1 ]; then
     echo "GoF on data"
     combine -M GoodnessOfFit -d $wsm.root --algo saturated -m 125 --rMin $rmin --rMax $rmax \
-    -n Data -v 9 2>&1 | tee $outsdir/GoF_data.txt
+    -n "Data_${passlabel}" -v 9 2>&1 | tee $outsdir/GoF_data.txt
 fi
 
 
@@ -259,7 +264,7 @@ if [ "$goftoys" = 1 ]; then
 
     combine -M GoodnessOfFit -d $wsm_snapshot.root --algo saturated -m 125 --rMin $rmin --rMax $rmax \
     --snapshotName MultiDimFit  --bypassFrequentistFit --trackParameters r --expectSignal $rexp \
-    -n Toys -v 9 -s "$seed" -t "$numtoys" --saveToys --toysFrequentist 2>&1 | tee $outsdir/GoF_toys.txt
+    -n "Toys_${passlabel}" -v 9 -s "$seed" -t "$numtoys" --saveToys --toysFrequentist 2>&1 | tee $outsdir/GoF_toys.txt
 fi
 
 

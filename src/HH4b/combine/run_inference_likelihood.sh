@@ -55,18 +55,14 @@ datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
-law run PlotUpperLimits \
-    --version dev  \
-    --datacards "$datacards" \
+law run PlotLikelihoodScan \
+    --version dev \
     --hh-model "$model" \
-    --remove-output 0,a,y \
-    --campaign "$campaign" \
-    --use-snapshot False \
-    --file-types pdf,png,root,c \
-    --xsec fb \
-    --pois r \
-    --frozen-groups signal_norm_xsbr \
+    --datacards "$datacards" \
+    --pois "$param" \
     --scan-parameters "$parameters" \
-    --br bbbb \
-    --y-log \
+    --file-types "pdf,png" \
+    --campaign "$campaign" \
+    --remove-output 0,a,y \
+    --use-snapshot False \
     --save-ranges $frozen

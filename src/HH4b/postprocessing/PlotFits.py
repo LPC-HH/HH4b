@@ -84,9 +84,10 @@ def plot_fits(args):
 
     shapes = {
         "prefit": "Pre-Fit",
-        # "postfit": "S+B Post-Fit",
         "postfit": "B-only Post-Fit",
     }
+    if args.unblinded:
+        shapes["postfit"] = "S+B Post-Fit"
 
     selection_regions_labels = {
         "passvbf": "Pass VBF",
@@ -193,6 +194,7 @@ def plot_fits(args):
                     "energy": 13.6,
                     "add_pull": add_pull[shape],
                     "show": False,
+                    "unblinded": args.unblinded,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
@@ -230,6 +232,7 @@ if __name__ == "__main__":
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")
     run_utils.add_bool_arg(parser, "vbf-k2v0-signal", default=False, help="Plot VBF k2v=0 signal")
+    run_utils.add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
 
     args = parser.parse_args()
 
