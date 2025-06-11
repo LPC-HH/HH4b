@@ -104,12 +104,12 @@ color_by_sample = {
     "W_matched": "royalblue",
     "unmatched": "lightsteelblue",
     "singletop": "cadetblue",
-    "Zto2Q_BB": "darkred",
-    "Zto2Q_CC": "forestgreen",
-    "Zto2Q_QQ": "darkgreen",
+    "Zto2Q_BB": "darkpurple",
+    "Zto2Q_CC": "red",
+    "Zto2Q_QQ": "beige",
     "Zto2Q_unmatched": "darkblue",
-    "Wto2Q": "slategray",
-    "hbb": "aquamarine",
+    "Wto2Q": "darkpurple",
+    "hbb": "yellow",
 }
 
 label_by_sample = {
