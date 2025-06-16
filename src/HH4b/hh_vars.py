@@ -33,16 +33,6 @@ common_samples_bg = {
     "qcd": ["QCD_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-    "gghtobb": ["GluGluHto2B_PT-200_M-125"],
-    "vbfhtobb": ["VBFHto2B_M-125"],
-    # "singletop": [
-    #     "TbarBQ_t-channel_4FS",
-    #     "TBbarQ_t-channel_4FS",
-    #     "TWminustoLNu2Q",
-    #     "TWminusto4Q",
-    #     "TbarWplustoLNu2Q",
-    #     "TbarWplusto4Q",
-    # ],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",

@@ -19,8 +19,7 @@ while getopts ":u" opt; do
 done
 
 if [[ "$unblinded" == "True" ]]; then
-    run_unblinded_hh4b.sh --workspace --bfit --passbin=0 --unblinded
-    extract_fit_result.py higgsCombineSnapshotBOnly.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'
+    run_unblinded_hh4b.sh --workspace --bfit --passbin=0
 else
     run_blinded_hh4b.sh --workspace --bfit --passbin=0
     extract_fit_result.py higgsCombineSnapshot.MultiDimFit.mH125.root "w:MultiDimFit" "inject.json" --keep '*'

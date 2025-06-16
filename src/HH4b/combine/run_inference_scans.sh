@@ -69,4 +69,5 @@ law run PlotUpperLimits \
     --scan-parameters "$parameters" \
     --br bbbb \
     --y-log \
+    --unblinded "$unblinded" \
     --save-ranges $frozen
