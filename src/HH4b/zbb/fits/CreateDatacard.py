@@ -45,7 +45,8 @@ from HH4b.postprocessing.datacardHelpers import (
 
 # TXbb scale factor measurement binning
 WPS = [0.95, 0.975, 0.99, 1.0]
-PTS = [350, 550, 10000]
+PTS = [350, 450, 550, 10000]
+# PTS = [350, 450, 500, 550, 10000]
 
 pt_strs = [str(pt) for pt in PTS]
 pt_bins = list(zip(pt_strs[:-1], pt_strs[1:]))
@@ -104,9 +105,8 @@ parser.add_argument(
 parser.add_argument(
     "--nTF",
     default=None,
-    nargs="*",
     type=int,
-    help="order of polynomial for TF. Default is [0]",
+    help="order of polynomial for TF. Default is 0",
 )
 parser.add_argument(
     "--regions",
@@ -145,11 +145,12 @@ print("Transfer factors:", args.nTF)
 
 signal_regions = ALL_PASS_REGIONS if args.regions == "all" else [args.regions]
 
-if args.nTF is None:
-    if args.regions == "all":
-        args.nTF = [0 for _ in ALL_PASS_REGIONS]
-    else:
-        args.nTF = [0]
+if args.regions == "all":
+    args.nTF = [args.nTF for _ in ALL_PASS_REGIONS]
+else:
+    args.nTF = [args.nTF]
+
+print(f"nTF orders: {args.nTF}")
 
 # (name in templates, name in cards)
 mc_samples = OrderedDict(
@@ -211,8 +212,16 @@ nuisance_params = {
 
 if args.year == "2022All":
     del nuisance_params["lumi_2023"]
+    uncorr_years = {
+        "2022All": ["2022All"],
+    }
 elif args.year == "2023All":
     del nuisance_params["lumi_2022"]
+    uncorr_years = {
+        "2023All": ["2023All"],
+    }
+else:
+    raise ValueError(f"Invalid year {args.year}, must be one of ['2022All', '2023All']")
 
 rate_params = {}
 if args.ttbar_rate_param:
@@ -235,34 +244,30 @@ corr_year_shape_systs = {
 }
 
 uncorr_year_shape_systs = {
-    "pileup": Syst(name="CMS_pileup", prior="shape", samples=all_mc),
+    "pileup": Syst(
+        name="CMS_pileup",
+        prior="shape",
+        samples=all_mc,
+        uncorr_years=uncorr_years,
+    ),
     "JER": Syst(
         name="CMS_res_j",
         prior="shape",
         samples=all_mc,
         convert_shape_to_lnN=True,
-        uncorr_years={
-            "2022All": ["2022All"],
-            "2023All": ["2023All"],
-        },
+        uncorr_years=uncorr_years,
     ),
     "JMS": Syst(
         name=f"{CMS_PARAMS_LABEL}_jms",
         prior="shape",
         samples=jmsr_keys,
-        uncorr_years={
-            "2022All": ["2022All"],
-            "2023All": ["2023All"],
-        },
+        uncorr_years=uncorr_years,
     ),
     "JMR": Syst(
         name=f"{CMS_PARAMS_LABEL}_jmr",
         prior="shape",
         samples=jmsr_keys,
-        uncorr_years={
-            "2022All": ["2022All"],
-            "2023All": ["2023All"],
-        },
+        uncorr_years=uncorr_years,
     ),
 }
 

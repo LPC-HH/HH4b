@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TXbb_bins=(0p99to1p0 0p975to0p99 0p95to0p975)
-pt_bins=(550to10000 350to550)
+pt_bins=(350to450 450to550 550to10000)
 years=(2022 2023)
 fit_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 

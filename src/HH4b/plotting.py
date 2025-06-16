@@ -47,6 +47,7 @@ colours = {
     "purple": "#9381FF",
     "slategray": "#63768D",
     "deeppurple": "#36213E",
+    "darkpurple": "#832db6",
     "ashgrey": "#ACBFA4",
     "canary": "#FFE51F",
     "arylideyellow": "#E3C567",
@@ -104,12 +105,12 @@ color_by_sample = {
     "W_matched": "royalblue",
     "unmatched": "lightsteelblue",
     "singletop": "cadetblue",
-    "Zto2Q_BB": "darkpurple",
+    "Zto2Q_BB": colours["darkpurple"],
     "Zto2Q_CC": "red",
     "Zto2Q_QQ": "beige",
     "Zto2Q_unmatched": "darkblue",
-    "Wto2Q": "darkpurple",
-    "hbb": "yellow",
+    "Wto2Q": "brown",
+    "hbb": "darkgreen",
 }
 
 label_by_sample = {
