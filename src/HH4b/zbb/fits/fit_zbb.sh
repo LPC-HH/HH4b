@@ -11,7 +11,7 @@
 # 5) Fit diagnostics (--dfit / -d)
 # 6) GoF on data (--gofdata / -g)
 # 7) GoF on toys (--goftoys / -t),
-# 8) Impacts: initial fit (--impactsi / -i), per-nuisance fits (--impactsf $nuisance), collect (--impactsc $nuisances)
+# 8) Impacts: initial fit (--impactsi / -i), per-nuisance fits (--impacts $nuisance), collect (--impactsc $nuisances)
 # 9) Bias test: run a bias test on toys (using post-fit nuisances) with expected signal strength
 #    given by --bias X.
 #
@@ -35,16 +35,14 @@ significance=0
 dfit=0
 gofdata=0
 goftoys=0
-impactsi=0
-impactsf=0
-impactsc=0
+impacts=0
 seed=42
 numtoys=100
 bias=-1
 passbin=0
 cards_dir=0
 
-options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impactsi,impactsf:,impactsc:,bias:,seed:,numtoys:,passbin:,cards_dir:" -- "$@")
+options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impacts:,bias:,seed:,numtoys:,passbin:,cards_dir:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -70,16 +68,9 @@ while true; do
         -t|--goftoys)
             goftoys=1
             ;;
-        -i|--impactsi)
-            impactsi=1
-            ;;
-        --impactsf)
+        -i|--impacts)
             shift
-            impactsf=$1
-            ;;
-        --impactsc)
-            shift
-            impactsc=$1
+            impacts=$1
             ;;
         --seed)
             shift
@@ -149,7 +140,7 @@ mintol=0.1  # --cminDefaultMinimizerTolerance
 # so this is just to be extra safe.
 unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*}"
 
-# excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
+excludeimpactparams='rgx{.*tf_dataResidual_Bin.*},rgx{.*_mcstat_.*}'
 
 echo "cc args:"
 echo "$ccargs"
@@ -209,13 +200,13 @@ if [ $dfit = 1 ]; then
     --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance "$mintol" --X-rtd MINIMIZER_MaxCalls=400000 \
     -n Unblinded --ignoreCovWarning -v 9 2>&1 | tee $outsdir/FitDiagnostics.txt
 
-    echo "Fit Shapes"
-    PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapes.root \
-    -m 125 -f fitDiagnosticsUnblinded.root:fit_b --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
-
     # echo "Fit Shapes"
     # PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapes.root \
-    # -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
+    # -m 125 -f fitDiagnosticsUnblinded.root:fit_b --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
+
+    echo "Fit Shapes"
+    PostFitShapesFromWorkspace --dataset "$dataset" -w ${wsm}.root --output FitShapes.root \
+    -m 125 -f fitDiagnosticsUnblinded.root:fit_s --postfit --print 2>&1 | tee $outsdir/FitShapes.txt
 fi
 
 
@@ -238,49 +229,29 @@ if [ "$goftoys" = 1 ]; then
 fi
 
 
-if [ "$impactsi" = 1 ]; then
-    echo "Initial fit for impacts"
-    # from https://github.com/cms-analysis/CombineHarvester/blob/f0e0c53298521921abf59c175b5c5616026d203b/CombineTools/python/combine/Impacts.py#L113
-    # combine -M MultiDimFit -m 125 -n "_initialFit_impacts" -d ${wsm_snapshot}.root --snapshotName MultiDimFit \
-    #  --algo singles --redefineSignalPOIs r --floatOtherPOIs 1 --saveInactivePOI 1 -P r --setParameterRanges r=-0.5,20 \
-    # --toysFrequentist --expectSignal 1 --bypassFrequentistFit -t -1 \
-    # "${unblindedparams}" --floatParameters "${freezeparamsblinded}" \
-    # --robustFit 1 --cminDefaultMinimizerStrategy=1 -v 9 2>&1 | tee $outsdir/Impacts_init.txt
 
+if [ "$impacts" != 0 ]; then
+    echo "Submitting jobs for impact scans"
+    # # Impacts module cannot access parameters which were frozen in MultiDimFit, so running impacts
+    # # for each parameter directly using its internal command
+    # # (also need to do this for submitting to condor anywhere other than lxplus)
+    # combine -M MultiDimFit -n _paramFit_impacts_"$impacts" --algo impact --redefineSignalPOIs r -P "$impacts" \
+    # --floatOtherPOIs 1 --saveInactivePOI 1 --snapshotName MultiDimFit -d ${wsm_snapshot}.root \
+    # --robustFit 1 ${unblindedparams} \
+    # --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 -m 125 | tee $outsdir/Impacts_"$impacts".txt
+
+    # Initial fit
     combineTool.py -M Impacts --snapshotName MultiDimFit -m 125 -n "impacts" \
     -d ${wsm_snapshot}.root --doInitialFit --robustFit 1 ${unblindedparams} \
      --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_init.txt
-fi
 
-
-if [ "$impactsf" != 0 ]; then
-    echo "Submitting jobs for impact scans"
-    # Impacts module cannot access parameters which were frozen in MultiDimFit, so running impacts
-    # for each parameter directly using its internal command
-    # (also need to do this for submitting to condor anywhere other than lxplus)
-    combine -M MultiDimFit -n _paramFit_impacts_"$impactsf" --algo impact --redefineSignalPOIs r -P "$impactsf" \
-    --floatOtherPOIs 1 --saveInactivePOI 1 --snapshotName MultiDimFit -d ${wsm_snapshot}.root \
-    --robustFit 1 ${unblindedparams} \
-    --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 -m 125 | tee $outsdir/Impacts_"$impactsf".txt
-
-    # Old Impacts command:
-    # combineTool.py -M Impacts -t -1 --snapshotName MultiDimFit --bypassFrequentistFit --toysFrequentist --expectSignal 1 \
-    # -m 125 -n "impacts" -d ${wsm_snapshot}.root --doFits --robustFit 1 \
-    # --setParameters "${maskblindedargs}" --floatParameters "${freezeparamsblinded}" \
-    # --exclude ${excludeimpactparams} \
-    # --job-mode condor --dry-run \
-    # --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 9 2>&1 | tee $outsdir/Impacts_fits.txt
-fi
-
-
-if [ "$impactsc" != 0 ]; then
-    echo "Collecting impacts"
     combineTool.py -M Impacts --snapshotName MultiDimFit \
-    -m 125 -n "impacts" -d ${wsm_snapshot}.root --named $impactsc \
-    --setParameterRanges r=-0.5,20 -v 1 -o impacts.json 2>&1 | tee $outsdir/Impacts_collect.txt
-
-    plotImpacts.py -i impacts.json -o impacts
+    -m 125 -n "impacts" -d ${wsm_snapshot}.root --doFits --robustFit 1 \
+    --exclude ${excludeimpactparams} \
+    --job-mode interactive --dry-run \
+    --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 9 2>&1 | tee $outsdir/Impacts_fits.txt
 fi
+
 
 
 if [ "$bias" != -1 ]; then
