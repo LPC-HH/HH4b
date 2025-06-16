@@ -574,7 +574,7 @@ def main():
                     cutflows[sample]["Skimmer Preselection"] = events_combined[year][sample][
                         "finalWeight"
                     ].sum()
-                    cutflows[sample]["HLT"] = events_combined[year][sample]["finalWeight"].sum()
+                    cutflows[sample]["HLT"] = events[sample]["finalWeight"].sum()
                 cutflows = pd.DataFrame.from_dict(cutflows).transpose()
 
                 # Create a region
