@@ -398,7 +398,7 @@ def main():
 
     def save_to_root(outfile: Path, templates: dict):
         with uproot.recreate(str(outfile)) as f_out:
-            for category, template in templates:
+            for category, template in templates.items():
                 hist = templates[category]
                 categories, _ = hist.axes
                 for sample in list(categories):
@@ -616,6 +616,7 @@ def main():
                 bg_keys=bkg_keys,
                 bg_order=bg_order,
                 bg_err_mcstat=False,
+                prev_cutflow=cutflows,
                 plot_dir=plot_dir,
                 weight_key="finalWeight",
                 weight_shifts=weight_shifts_final,
