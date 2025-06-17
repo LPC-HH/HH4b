@@ -41,6 +41,21 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Analysis script for Zbb events")
 
     parser.add_argument(
+        "--data-dir",
+        type=str,
+        default="/ceph/cms/store/user/zichun/bbbb/skimmer/ZbbHT25May28_v12v2_private_zbb/",
+        help="Directory containing the Zbb data",
+    )
+
+    parser.add_argument(
+        "--txbb-choice",
+        type=str,
+        default="ParT",
+        choices=["GloParT", "ParT", "PNet", "ParticleNet"],
+        help="Tagger choice for TXbb score (default: 'ParT')",
+    )
+
+    parser.add_argument(
         "--txbb-bins",
         type=float,
         nargs="+",
@@ -56,10 +71,6 @@ def parse_args():
         help="pT bins (default: [350, 450, 550, 10000])",
     )
 
-    # m_low, m_high = 50, 150
-    # bins = 5
-    # n_mass_bins = int((m_high - m_low) / bins)
-
     parser.add_argument(
         "--mass-bin-size", type=int, default=5, help="Size of mass bins (default: 5 GeV)"
     )
@@ -74,12 +85,30 @@ def parse_args():
         action="store_true",
         help="reprocess the data from the ntuples (default: False)",
     )
+    parser.add_argument(
+        "--outdir",
+        type=str,
+        default="zbb_templates",
+        help="Output directory name for templates (default: 'zbb_templates')",
+    )
 
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if "ParT" in args.txbb_choice:
+        txbb_score = "bbFatJetParTTXbb"
+        mass_name = "bbFatJetParTmassVis"
+    elif "PNet" in args.txbb_choice or "ParticleNet" in args.txbb_choice:
+        txbb_score = "bbFatJetPNetTXbbLegacy"
+        mass_name = "bbFatJetPNetMassLegacy"
+    else:
+        raise ValueError(
+            f"Invalid TXbb choice: {args.txbb_choice}. " "Choices: {ParT, ParticleNet}."
+        )
+    print(f"Using TXbb score {txbb_score} and mass variable {mass_name}")
 
     # Columns to load from the ntuples
     sys_vars = ["FSRPartonShower", "ISRPartonShower", "pileup"]
@@ -91,6 +120,7 @@ def main():
         "bbFatJetParTmassVis",
         "bbFatJetPNetMassLegacy",
         "bbFatJetParTTXbb",
+        "bbFatJetPNetTXbbLegacy",
     ]
 
     pt_variations = []
@@ -249,8 +279,6 @@ def main():
         print("Z->2Q corrections are not applied.")
 
     if args.reprocess or not PROCESSED_PATH.exists():
-        path_dir = "/ceph/cms/store/user/zichun/bbbb/skimmer/ZbbHT25May28_v12v2_private_zbb/"
-
         events_dict = {}
         for year in YEARS:
             events_dict[year] = {}
@@ -264,7 +292,7 @@ def main():
                 columns = triggers_cols + base_columns + extra_columns_dict.get(sample, [])
                 dataframes = {
                     **utils.load_samples(
-                        data_dir=path_dir,
+                        data_dir=args.data_dir,
                         samples={sample: sample_list},
                         year=year,
                         columns=utils.format_columns(columns),
@@ -294,7 +322,7 @@ def main():
                     if sample != "data":
                         # evaluate trigger scale factors
                         sf, sf_up, sf_down = eval_trigger_sf(
-                            txbb=df[("bbFatJetParTTXbb", 0)].values,
+                            txbb=df[(txbb_score, 0)].values,
                             pt=df[("bbFatJetPt", 0)].values,
                             msd=df[("bbFatJetMsd", 0)].values,
                             year=year,
@@ -515,7 +543,7 @@ def main():
         weight_shifts_trig_sf = {}
 
     print("Making templates...")
-    out_dir = SCRIPT_DIR / "templates_zbb"
+    out_dir = SCRIPT_DIR / args.outdir
     out_dir.mkdir(parents=True, exist_ok=True)
     for year in YEARS_COMBINED_DICT:
 
@@ -533,13 +561,13 @@ def main():
             # Determine the pt and mass variations
             if jshift == "":
                 pt_branch = "bbFatJetPt0"
-                mass_branch = "bbFatJetParTmassVis0"
+                mass_branch = f"{mass_name}0"
             elif jshift.startswith(("JES", "JER")):
                 pt_branch = f"bbFatJetPt_{jshift}0"
-                mass_branch = "bbFatJetParTmassVis0"
+                mass_branch = f"{mass_name}0"
             elif jshift.startswith(("JMS", "JMR")):
                 pt_branch = "bbFatJetPt0"
-                mass_branch = f"bbFatJetParTmassVis_{jshift}0"
+                mass_branch = f"{mass_name}_{jshift}0"
             else:
                 raise ValueError(f"Unknown jshift: {jshift}")
 
@@ -582,7 +610,7 @@ def main():
                     cuts={
                         pt_branch: [pt_low, pt_high],
                         mass_branch: [m_low, m_high],
-                        "bbFatJetParTTXbb0": [txbb_low, txbb_high],
+                        f"{txbb_score}0": [txbb_low, txbb_high],
                     },
                     label=region_key,
                 )
@@ -591,7 +619,7 @@ def main():
                 cuts={
                     pt_branch: [pt_low, pt_high],
                     mass_branch: [m_low, m_high],
-                    "bbFatJetParTTXbb0": [0.1, min(0.9, min_txbb)],
+                    f"{txbb_score}0": [0.1, min(0.9, min_txbb)],
                 },
                 label="fail",
             )
