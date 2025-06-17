@@ -42,9 +42,20 @@ def _load_txbb_sfs(
     year: str, fname: str, txbb_wps: dict[str:list], pt_bins: dict[str:list], txbb_version: str
 ):
     """Create 2D lookup tables in [Txbb, pT] for Txbb SFs from given year"""
-
+    
+    year_ = None
+    if "2022" in year:
+        year_ = "2022"
+    elif "2023" in year:
+        year_ = "2023"
+    elif "2024" in year:
+        print(f"WARNING: Using 2023 txbb correction for {year}")
+        year_ = "2023"
+    else:
+        year_ = None
+        
     with (
-        package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year}/{fname}.json"
+        package_path / f"corrections/data/txbb_sfs/{txbb_version}/{year_}/{fname}.json"
     ).open() as f:
         txbb_sf = json.load(f)
 
@@ -121,6 +132,9 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     if "2022" in year:
         year_ = "2022"
     elif "2023" in year:
+        year_ = "2023"
+    elif "2024" in year:
+        print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
     return correctionlib.CorrectionSet.from_file(
         f"{package_path}/corrections/data/ttbar_sfs/{txbb_version}/ttbarcorr_{year_}.json"
