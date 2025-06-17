@@ -214,18 +214,20 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
     "2024": {
-         **{"data": [
-             "JetMET_Run2024B",
-             #"JetMET_Run2024C",
-             #"JetMET_Run2024D",
-             #"JetMET_Run2024E",
-             #"JetMET_Run2024F",
-             #"JetMET_Run2024G",
-             #"JetMET_Run2024H",
-             #"JetMET_Run2024I",
-         ]},
+        
+            "data": [
+                "JetMET_Run2024B",
+                # "JetMET_Run2024C",
+                # "JetMET_Run2024D",
+                # "JetMET_Run2024E",
+                # "JetMET_Run2024F",
+                # "JetMET_Run2024G",
+                # "JetMET_Run2024H",
+                # "JetMET_Run2024I",
+            ]
+        ,
         **samples_run3_sig["2024"],
-    }
+    },
 }
 
 samples_2018 = {

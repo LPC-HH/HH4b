@@ -1062,7 +1062,7 @@ def load_process_run3_samples(
                 cutflow_dict[key][cut].round(4) if cut in cutflow_dict[key] else -1.0
                 for key in events_dict_postprocess
             ]
-            
+
     logger.info(f"\nCutflow {cutflow}")
     return events_dict_postprocess, cutflow
 
@@ -1541,8 +1541,8 @@ def postprocess_run3(args):
         if "qcd" in bg_keys_combined:
             bg_keys_combined.remove("qcd")
 
-    print("BKG keys ",bg_keys)
-            
+    print("BKG keys ", bg_keys)
+
     if len(args.years) > 1:
         # list of years available for a given process to scale to full lumi
         available = [y for y in ["2022", "2022EE", "2023", "2023BPix"] if y in args.years]
@@ -1620,14 +1620,22 @@ def postprocess_run3(args):
                 if s in scaled_by:
                     cutflow_sample = 0.0
                     for year in args.years:
-                        if cut in cutflows[year] and s in cutflows[year][cut].index and year in scaled_by_years[s]:
+                        if (
+                            cut in cutflows[year]
+                            and s in cutflows[year][cut].index
+                            and year in scaled_by_years[s]
+                        ):
                             cutflow_sample += cutflows[year][cut].loc[s]
                     cutflow_sample *= scaled_by[s]
                     print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
                 else:
                     cutflow_sample = np.sum(
                         [
-                            cutflows[year][cut].loc[s] if cut in cutflows[year] and s in cutflows[year][cut].index else 0.0
+                            (
+                                cutflows[year][cut].loc[s]
+                                if cut in cutflows[year] and s in cutflows[year][cut].index
+                                else 0.0
+                            )
                             for year in args.years
                         ]
                     )

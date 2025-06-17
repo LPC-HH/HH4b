@@ -522,7 +522,9 @@ def combine_run3_samples(
             lumi_scale = lumi_total / np.sum(
                 [LUMI[year] for year in scale_processes[key] if year in years_run3]
             )
-            print(f"LUMI available: {np.sum([LUMI[year] for year in scale_processes[key] if year in years_run3])}")
+            print(
+                f"LUMI available: {np.sum([LUMI[year] for year in scale_processes[key] if year in years_run3])}"
+            )
             scaled_by[key] = lumi_scale
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
             combined[weight_key] = combined[weight_key] * lumi_scale
