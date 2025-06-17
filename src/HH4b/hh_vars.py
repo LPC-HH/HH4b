@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix"]
+years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
 
 # in pb^-1
 LUMI = {
@@ -20,6 +20,7 @@ LUMI = {
     "2023All": 27776.5,
     "2024": 1.0,
     "2022-2023": 62428.6,
+    "2024": 108960.0,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -34,8 +35,8 @@ common_samples_bg = {
     "qcd": ["QCD_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-    "gghtobb": ["GluGluHto2B_PT-200_M-125"],
-    "vbfhtobb": ["VBFHto2B_M-125"],
+    # "gghtobb": ["GluGluHto2B_PT-200_M-125"],
+    # "vbfhtobb": ["VBFHto2B_M-125"],
     # "singletop": [
     #     "TbarBQ_t-channel_4FS",
     #     "TBbarQ_t-channel_4FS",
@@ -192,6 +193,7 @@ samples_run3_sig = {
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
     },
+    "2024": {},
 }
 
 samples_run3 = {
@@ -211,6 +213,19 @@ samples_run3 = {
         **common_samples_bg,
         **samples_run3_sig["2023BPix"],
     },
+    "2024": {
+         **{"data": [
+             "JetMET_Run2024B",
+             #"JetMET_Run2024C",
+             #"JetMET_Run2024D",
+             #"JetMET_Run2024E",
+             #"JetMET_Run2024F",
+             #"JetMET_Run2024G",
+             #"JetMET_Run2024H",
+             #"JetMET_Run2024I",
+         ]},
+        **samples_run3_sig["2024"],
+    }
 }
 
 samples_2018 = {
