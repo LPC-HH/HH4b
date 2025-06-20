@@ -17,7 +17,7 @@ while getopts ":p:is:u" opt; do
       syst=$OPTARG
       ;;
     u)
-      unblinded="True"
+      unblinded="False,True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -51,18 +51,29 @@ else
 fi
 
 card_dir=./
+command="PlotLikelihoodScan"
 datacards="${card_dir}/combined_nomasks.txt${inj}"
+datacardopt="--datacards"
+datacardnames=""
 model=hh_model_run23.model_default_run3
 campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
-law run PlotLikelihoodScan \
+if [[ "$unblinded" != "False" ]]; then
+  command="PlotMultipleLikelihoodScans"
+  datacards="${card_dir}/combined_nomasks.txt${inj}:${card_dir}/combined_nomasks.txt${inj}"
+  datacardopt="--multi-datacards"
+  datacardnames="--datacard-names Expected,Observed"
+fi
+
+law run $command \
     --version dev \
     --hh-model "$model" \
-    --datacards "$datacards" \
+    $datacardopt "$datacards" $datacardnames \
     --pois "$param" \
     --scan-parameters "$parameters" \
     --file-types "pdf,png" \
     --campaign "$campaign" \
     --remove-output 0,a,y \
     --use-snapshot False \
+    --unblinded "$unblinded" \
     --save-ranges $frozen
