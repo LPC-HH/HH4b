@@ -13,7 +13,7 @@ from coffea.nanoevents.methods.nanoaod import (
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
 
-def jetid_v12(jets: ak.Array) -> ak.Array:
+def jetid_v12(jets: ak.Array) -> tuple[ak.Array, ak.Array]:
     """
     Jet ID fix for NanoAOD v12 copying
     # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
@@ -28,6 +28,37 @@ def jetid_v12(jets: ak.Array) -> ak.Array:
             & (jets.neHEF < 0.99)
         )
         | ((np.abs(jets.eta) > 3.0) & jetidtightbit & (jets.neEmEF < 0.4))
+    )
+
+    jetidtightlepveto = (
+        (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
+    ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
+
+    return jetidtight, jetidtightlepveto
+
+
+def jetid_v14(jets: ak.Array) -> tuple[ak.Array, ak.Array]:
+    """
+    Jet ID fix for NanoAOD v14 copying
+    # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880788
+    """
+
+    jetidtight = (
+        (
+            (np.abs(jets.eta) <= 2.6)
+            & (jets.neHEF < 0.99)
+            & (jets.neEmEF < 0.9)
+            & ((jets.chMultiplicity + jets.neMultiplicity) > 1)
+            & (jets.chHEF > 0.01)
+            & (jets.chMultiplicity > 0)
+        )
+        | (
+            ((np.abs(jets.eta) > 2.6) & (np.abs(jets.eta) <= 2.7))
+            & (jets.neHEF < 0.90)
+            & (jets.neEmEF < 0.99)
+        )
+        | (((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0)) & (jets.neHEF < 0.99))
+        | ((np.abs(jets.eta) > 3.0) & (jets.neMultiplicity >= 2) & (jets.neEmEF < 0.4))
     )
 
     jetidtightlepveto = (
@@ -154,9 +185,12 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
         pu_id = sel & ((jets.pt >= 50) | (jets.puId >= 6))
         sel = sel & pu_id
     else:
-        if nano_version.startswith("v12"):
+        if nano_version.startswith("v12") or "25v2" in nano_version:
             jetidtight, jetidtightlepveto = jetid_v12(jets)  # v12 jetid fix
-        elif nano_version.startswith(("v13", "v14", "v15")):
+        elif nano_version.startswith("v14"):
+            jetidtight = jets.isTight
+            jetidtightlepveto = jets.isTightLeptonVeto
+        elif nano_version.startswith(("v13", "v15")):
             raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
         else:
             jetidtight, jetidtightlepveto = jets.isTight, jets.isTightLepVeto
@@ -308,6 +342,71 @@ def get_ak8jets(fatjets: FatJetArray):
         # Mass Regression (Raw)
         fatjets["ParTmassRes"] = fatjets.globalParT_massRes * (1 - fatjets.rawFactor) * fatjets.mass
         fatjets["ParTmassVis"] = fatjets.globalParT_massVis * (1 - fatjets.rawFactor) * fatjets.mass
+    elif "globalParT2_Xbb" in fatjets_fields:
+        # renamed in Nano v14
+        fatjets["ParT2PQCD1HF"] = fatjets.globalParT2_QCD1HF
+        fatjets["ParT2PQCD2HF"] = fatjets.globalParT2_QCD2HF
+        fatjets["ParT2PQCD0HF"] = fatjets.globalParT2_QCD0HF
+
+        fatjets["ParT2PTopW"] = fatjets.globalParT2_TopW
+        fatjets["ParT2PTopbW"] = fatjets.globalParT2_TopbW
+        fatjets["ParT2PTopbWev"] = fatjets.globalParT2_TopbWev
+        fatjets["ParT2PTopbWmv"] = fatjets.globalParT2_TopbWmv
+        fatjets["ParT2PTopbWtauhv"] = fatjets.globalParT2_TopbWtauhv
+        fatjets["ParT2PTopbWq"] = fatjets.globalParT2_TopbWq
+        fatjets["ParT2PTopbWqq"] = fatjets.globalParT2_TopbWqq
+
+        fatjets["ParT2PXbb"] = fatjets.globalParT2_Xbb
+        fatjets["ParT2PXcc"] = fatjets.globalParT2_Xcc
+        fatjets["ParT2PXcs"] = fatjets.globalParT2_Xcs
+        fatjets["ParT2PXgg"] = fatjets.globalParT2_Xgg
+        fatjets["ParT2PXqq"] = fatjets.globalParT2_Xqq
+
+        fatjets["ParT2PXtauhtaue"] = fatjets.globalParT2_Xtauhtaue
+        fatjets["ParT2PXtauhtauh"] = fatjets.globalParT2_Xtauhtauh
+        fatjets["ParT2PXtauhtaum"] = fatjets.globalParT2_Xtauhtaum
+
+        # T for discriminator
+        fatjets["ParT2TXbb"] = fatjets.globalParT2_XbbVsQCD
+        # Mass Regression (Raw)
+        fatjets["ParT2massRes"] = (
+            fatjets.globalParT2_massRes * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+        fatjets["ParT2massVis"] = (
+            fatjets.globalParT2_massVis * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+
+    if "globalParT3_Xbb" in fatjets_fields:
+        fatjets["ParT3PQCD"] = fatjets.globalParT3_QCD
+
+        # no globalParT3_TopbW
+        fatjets["ParT3PTopbWev"] = fatjets.globalParT3_TopbWev
+        fatjets["ParT3PTopbWmv"] = fatjets.globalParT3_TopbWmv
+        fatjets["ParT3PTopbWq"] = fatjets.globalParT3_TopbWq
+        fatjets["ParT3PTopbWqq"] = fatjets.globalParT3_TopbWqq
+        fatjets["ParT3PTopbWtauhv"] = fatjets.globalParT3_TopbWtauhv
+
+        fatjets["ParT3PXbb"] = fatjets.globalParT3_Xbb
+        fatjets["ParT3PXcc"] = fatjets.globalParT3_Xcc
+        fatjets["ParT3PXcs"] = fatjets.globalParT3_Xcs
+        fatjets["ParT3PXqq"] = fatjets.globalParT3_Xqq
+
+        fatjets["ParT3PXtauhtaue"] = fatjets.globalParT3_Xtauhtaue
+        fatjets["ParT3PXtauhtauh"] = fatjets.globalParT3_Xtauhtauh
+        fatjets["ParT3PXtauhtaum"] = fatjets.globalParT3_Xtauhtaum
+
+        # T for discriminator
+        fatjets["ParT3TXbb"] = fatjets.globalParT3_Xbb / (
+            fatjets.globalParT3_Xbb + fatjets.globalParT3_QCD
+        )
+
+        # Mass Regression
+        fatjets["ParT3massGeneric"] = (
+            fatjets.globalParT3_massCorrGeneric * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+        fatjets["ParT3massCorrX2p"] = (
+            fatjets.globalParT3_massCorrX2p * (1 - fatjets.rawFactor) * fatjets.mass
+        )
 
     return fatjets
 
@@ -319,7 +418,7 @@ def good_ak8jets(
     eta: float,
     msd: float,
     mreg: float,
-    nano_version: str,  # noqa: ARG001
+    nano_version: str,
     mreg_str="particleNet_mass_legacy",
 ):
     # if nano_version.startswith("v12"):
@@ -331,7 +430,10 @@ def good_ak8jets(
 
     # Data does not have .neHEF etc. fields for fatjets, so above recipe doesn't work
     # Either way, doesn't matter since we only use tightID, and it is correct for eta < 2.7
-    jetidtight = fatjets.isTight
+    if nano_version.startswith("v14"):
+        jetidtight, _ = jetid_v14(fatjets)
+    else:
+        jetidtight = fatjets.isTight
 
     fatjet_sel = (
         jetidtight

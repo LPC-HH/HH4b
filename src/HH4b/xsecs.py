@@ -58,6 +58,19 @@ xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
 xsecs["QCD_HT-2000"] = 25.78
 
+xsecs["QCD-4Jets_HT-40to70"] = xsecs["QCD_HT-40to70"]
+xsecs["QCD-4Jets_HT-70to100"] = xsecs["QCD_HT-70to100"]
+xsecs["QCD-4Jets_HT-100to200"] = xsecs["QCD_HT-100to200"]
+xsecs["QCD-4Jets_HT-200to400"] = xsecs["QCD_HT-200to400"]
+xsecs["QCD-4Jets_HT-400to600"] = xsecs["QCD_HT-400to600"]
+xsecs["QCD-4Jets_HT-600to800"] = xsecs["QCD_HT-600to800"]
+xsecs["QCD-4Jets_HT-800to1000"] = xsecs["QCD_HT-800to1000"]
+xsecs["QCD-4Jets_HT-1000to1200"] = xsecs["QCD_HT-1000to1200"]
+xsecs["QCD-4Jets_HT-1200to1500"] = xsecs["QCD_HT-1200to1500"]
+xsecs["QCD-4Jets_HT-1500to2000"] = xsecs["QCD_HT-1500to2000"]
+xsecs["QCD-4Jets_HT-2000"] = xsecs["QCD_HT-2000"]
+
+
 # xsdb
 xsecs["QCD_PT-120to170_MuEnrichedPt5"] = 22980.0
 xsecs["QCD_PT-170to300_MuEnrichedPt5"] = 7763.0
