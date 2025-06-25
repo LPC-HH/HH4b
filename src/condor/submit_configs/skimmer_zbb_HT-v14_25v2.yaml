@@ -1,7 +1,7 @@
 
 {
     "2022": {
-        "QCD-4Jets_HT": {
+        "QCD": {
             "subsamples": [
                 "QCD-4Jets_HT-600to800",
                 "QCD-4Jets_HT-800to1000",
@@ -40,7 +40,7 @@
         }
     },
     "2023": {
-        "QCD-4Jets_HT": {
+        "QCD": {
             "subsamples": [
                 "QCD-4Jets_HT-600to800",
                 "QCD-4Jets_HT-800to1000",
@@ -79,7 +79,7 @@
         }
     },
     "2022EE": {
-        "QCD-4Jets_HT": {
+        "QCD": {
             "subsamples": [
                 "QCD-4Jets_HT-600to800",
                 "QCD-4Jets_HT-800to1000",
@@ -118,7 +118,7 @@
         }
     },
     "2023BPix": {
-        "QCD-4Jets_HT": {
+        "QCD": {
             "subsamples": [
                 "QCD-4Jets_HT-600to800",
                 "QCD-4Jets_HT-800to1000",
