@@ -1,0 +1,158 @@
+{
+    "2022": {
+        "QCD-4Jets_HT": {
+            "subsamples": [
+                "QCD-4Jets_HT-600to800",
+                "QCD-4Jets_HT-800to1000",
+                "QCD-4Jets_HT-1000to1200",
+                "QCD-4Jets_HT-1200to1500",
+                "QCD-4Jets_HT-1500to2000",
+                "QCD-4Jets_HT-2000"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "TT": {
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "VJetsLO": {
+            "subsamples": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "JetMET": {
+            "files_per_job": 10
+        }
+    },
+    "2023": {
+        "QCD-4Jets_HT": {
+            "subsamples": [
+                "QCD-4Jets_HT-600to800",
+                "QCD-4Jets_HT-800to1000",
+                "QCD-4Jets_HT-1000to1200",
+                "QCD-4Jets_HT-1200to1500",
+                "QCD-4Jets_HT-1500to2000",
+                "QCD-4Jets_HT-2000"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "TT": {
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "VJetsLO": {
+            "subsamples": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "JetMET": {
+            "files_per_job": 10
+        }
+    },
+    "2022EE": {
+        "QCD-4Jets_HT": {
+            "subsamples": [
+                "QCD-4Jets_HT-600to800",
+                "QCD-4Jets_HT-800to1000",
+                "QCD-4Jets_HT-1000to1200",
+                "QCD-4Jets_HT-1200to1500",
+                "QCD-4Jets_HT-1500to2000",
+                "QCD-4Jets_HT-2000"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "TT": {
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "VJetsLO": {
+            "subsamples": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "JetMET": {
+            "files_per_job": 10
+        }
+    },
+    "2023BPix": {
+        "QCD-4Jets_HT": {
+            "subsamples": [
+                "QCD-4Jets_HT-600to800",
+                "QCD-4Jets_HT-800to1000",
+                "QCD-4Jets_HT-1000to1200",
+                "QCD-4Jets_HT-1200to1500",
+                "QCD-4Jets_HT-1500to2000",
+                "QCD-4Jets_HT-2000"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "TT": {
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "VJetsLO": {
+            "subsamples": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "JetMET": {
+            "files_per_job": 10
+        }
+    }
+}
