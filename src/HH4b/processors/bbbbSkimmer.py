@@ -693,8 +693,8 @@ class bbbbSkimmer(SkimmerABC):
                 deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
                 deltaX_down = events_met.ptUnclusteredDown * np.cos(events_met.phiUnclusteredDown)
                 deltaY_down = events_met.ptUnclusteredDown * np.sin(events_met.phiUnclusteredDown)
-                events_met["MetUnclustEnUpDeltaX"] = np.abs(deltaX_up - deltaX_down)
-                events_met["MetUnclustEnUpDeltaY"] = np.abs(deltaY_up - deltaY_down)
+                events_met["MetUnclustEnUpDeltaX"] = np.abs(deltaX_up - deltaX_down) / 2
+                events_met["MetUnclustEnUpDeltaY"] = np.abs(deltaY_up - deltaY_down) / 2
             else:
                 raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
             met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
