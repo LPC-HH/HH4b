@@ -274,7 +274,8 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if "v12" not in nano_version:
+        if "v12" not in nano_version or "v14" not in nano_version:
+            print(f"JECs not applied for nano_version {nano_version}")
             apply_jecs = False
         if not apply_jecs:
             return jets, None
@@ -302,7 +303,10 @@ class JECs:
             elif year == "2022EE" and "Run2022G" in dataset:
                 corr_key = f"{year}_runG"
             elif year == "2023":
-                corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
+                if "v12" in nano_version:
+                    corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
+                elif "v14" in nano_version:
+                    corr_key = "2023_runCv4" if "2023_v4" in dataset else "2023_runCv123"
             elif year == "2023BPix":
                 corr_key = "2023BPix_runD"
             else:
