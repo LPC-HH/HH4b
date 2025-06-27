@@ -688,13 +688,14 @@ class bbbbSkimmer(SkimmerABC):
                 events_met = events.MET
             elif hasattr(events, "PuppiMET"):
                 events_met = events.PuppiMET
-                # No deltaX and deltaY in PuppiMET, so we calculate them
+                # No deltaX and deltaY in PuppiMET, so we have to calculate them
+                # by definition: up - nominal
                 deltaX_up = events_met.ptUnclusteredUp * np.cos(events_met.phiUnclusteredUp)
                 deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
-                deltaX_down = events_met.ptUnclusteredDown * np.cos(events_met.phiUnclusteredDown)
-                deltaY_down = events_met.ptUnclusteredDown * np.sin(events_met.phiUnclusteredDown)
-                events_met["MetUnclustEnUpDeltaX"] = np.abs(deltaX_up - deltaX_down) / 2
-                events_met["MetUnclustEnUpDeltaY"] = np.abs(deltaY_up - deltaY_down) / 2
+                deltaX_nom = events_met.pt * np.cos(events_met.phi)
+                deltaY_nom = events_met.pt * np.sin(events_met.phi)
+                events_met["MetUnclustEnUpDeltaX"] = deltaX_up - deltaX_nom
+                events_met["MetUnclustEnUpDeltaY"] = deltaY_up - deltaY_nom
             else:
                 raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
             met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
