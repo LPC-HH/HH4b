@@ -5,7 +5,8 @@ syst="full"
 inj=""
 param="kl"
 unblinded="False"
-while getopts ":p:is:u" opt; do
+xsec="False"
+while getopts ":p:is:uX" opt; do
   case $opt in
     p)
       param=$OPTARG
@@ -18,6 +19,9 @@ while getopts ":p:is:u" opt; do
       ;;
     u)
       unblinded="True"
+      ;;
+    x)
+      xsec="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -42,12 +46,18 @@ else
 fi
 
 if [[ "$param" == "kl" ]]; then
-    parameters="kl,-15,20,36"
+    # parameters="kl,-15,20,36"
+    parameters="kl,-15,0,16:kl,0,10,21:kl,10,20,21"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
 else
     echo "Invalid param argument"
     exit 1
+fi
+
+xsecbr=""
+if [[ "$xsec" == "True" ]]; then
+   xsecbr = "--xsec fb --frozen-groups signal_norm_xsbr --br bbbb"
 fi
 
 card_dir=./
@@ -62,12 +72,9 @@ law run PlotUpperLimits \
     --remove-output 0,a,y \
     --campaign "$campaign" \
     --use-snapshot False \
-    --file-types pdf,png,root,c \
-    --xsec fb \
+    --file-types pdf,png,root,c $xsecbr \
     --pois r \
-    --frozen-groups signal_norm_xsbr \
     --scan-parameters "$parameters" \
-    --br bbbb \
     --y-log \
     --unblinded "$unblinded" \
     --save-ranges $frozen
