@@ -494,7 +494,7 @@ class bbbbSkimmer(SkimmerABC):
                 "ParT2massVis",
                 "ParT2massRes",
                 "ParT3massGeneric",
-                "ParT3massCorrX2p",
+                "ParT3massX2p",
             ]
         self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
         self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
@@ -594,7 +594,7 @@ class bbbbSkimmer(SkimmerABC):
                 "ParT3PXqq",
                 "ParT3TXbb",
                 "ParT3massGeneric",
-                "ParT3massCorrX2p",
+                "ParT3massX2p",
             ]
             self.skim_vars["FatJet"] = {
                 **self.skim_vars["FatJet"],
@@ -1546,7 +1546,7 @@ class bbbbSkimmer(SkimmerABC):
         if self._nano_version.startswith("v14"):
             # v14 has ParT2 and ParT3
             H1Xbb = disc_TXbb(bbFatJetVars[key_map("bbFatJetParT3TXbb")][:, 0])
-            H1Mass = bbFatJetVars[key_map("ParT3massCorrX2p")][:, 0]
+            H1Mass = bbFatJetVars[key_map("ParT3massX2p")][:, 0]
         else:
             # v13 has ParT
             H1Xbb = disc_TXbb(bbFatJetVars[key_map("bbFatJetParTTXbb")][:, 0])
