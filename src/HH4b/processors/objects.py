@@ -404,7 +404,7 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["ParT3massGeneric"] = (
             fatjets.globalParT3_massCorrGeneric * (1 - fatjets.rawFactor) * fatjets.mass
         )
-        fatjets["ParT3massCorrX2p"] = (
+        fatjets["ParT3massX2p"] = (
             fatjets.globalParT3_massCorrX2p * (1 - fatjets.rawFactor) * fatjets.mass
         )
 
