@@ -385,7 +385,7 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
-
+    plot_dir = Path(plot_dir)
     # define BDT model
     if rerun_inference:
         bdt_model = xgb.XGBClassifier()
@@ -473,6 +473,8 @@ def load_process_run3_samples(
 
     events_dict_postprocess = {}
     columns_by_key = {}
+    if year == "2024":
+        samples_year.remove("qcd")
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
@@ -1050,12 +1052,14 @@ def load_process_run3_samples(
                 bdt_events, mask_bin3, args.mass, mass_window
             )
     # end of loop over samples
-
+    """
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.txbb)
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
+    """
 
+    """
     if "hh4b" in cutflow_dict:
         for cut in cutflow_dict["hh4b"]:
             cutflow[cut] = [
@@ -1064,6 +1068,7 @@ def load_process_run3_samples(
             ]
 
     logger.info(f"\nCutflow {cutflow}")
+    """
     return events_dict_postprocess, cutflow
 
 
@@ -1568,6 +1573,10 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
         scaled_by = {}
+    if args.control_plots:
+        # quick fix: '2024' is only stand-in, plots all combined events
+        # uses 2022-2013 for scaled MC
+        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
 
     if args.bdt_roc:
         print("Making BDT ROC curve")

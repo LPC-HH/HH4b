@@ -18,7 +18,6 @@ LUMI = {
     "2023": 18084.4,
     "2023BPix": 9692.1,
     "2023All": 27776.5,
-    "2024": 1.0,
     "2022-2023": 62428.6,
     "2024": 108960.0,
     "2018": 59830.0,
@@ -214,18 +213,16 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
     "2024": {
-        
-            "data": [
-                "JetMET_Run2024B",
-                # "JetMET_Run2024C",
-                # "JetMET_Run2024D",
-                # "JetMET_Run2024E",
-                # "JetMET_Run2024F",
-                # "JetMET_Run2024G",
-                # "JetMET_Run2024H",
-                # "JetMET_Run2024I",
-            ]
-        ,
+        "data": [
+            "JetMET_Run2024B",
+            "JetMET_Run2024C",
+            "JetMET_Run2024D",
+            "JetMET_Run2024E",
+            "JetMET_Run2024F",
+            "JetMET_Run2024G",
+            "JetMET_Run2024H",
+            "JetMET_Run2024I",
+        ],
         **samples_run3_sig["2024"],
     },
 }
