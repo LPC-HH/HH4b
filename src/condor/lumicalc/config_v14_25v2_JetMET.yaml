@@ -1,0 +1,18 @@
+{
+  nano_version: "v14_25v2",
+  output_dir: "v14_25v2_JetMET/filelists",
+  data: {
+    "2022": [
+      "JetMET",
+    ],
+    "2022EE": [
+      "JetMET",
+    ],
+    "2023": [
+      "JetMET",
+    ],
+    "2023BPix": [
+      "JetMET",
+    ],
+  }
+}
