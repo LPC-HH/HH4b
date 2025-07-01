@@ -1,25 +1,26 @@
 from __future__ import annotations
 
+import pickle
+from argparse import Namespace
+from pathlib import Path
+from typing import Callable
+
 import hist
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
 import pandas as pd
-from argparse import Namespace
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import pickle
-from typing import Callable
-from pathlib import Path
 from scipy.stats import gaussian_kde
+
 from HH4b.hh_vars import (
     bg_keys,
     samples_run3,
 )
-import numba as nb
 
 xbb_cuts = np.arange(0.8, 0.999, 0.0025)
 bdt_cuts = np.arange(0.9, 0.999, 0.0025)
+
 
 # @nb.njit
 def get_nevents_signal(events, cut, mass, mass_window):
@@ -27,6 +28,7 @@ def get_nevents_signal(events, cut, mass, mass_window):
 
     # get yield in Higgs mass window
     return np.sum(events["weight"][cut & cut_mass])
+
 
 # @nb.njit
 def get_nevents_nosignal(events, cut, mass, mass_window):
@@ -101,7 +103,7 @@ def get_toy_from_hist(h_hist, n_samples, rng):
     bin_midpoints = bins[:-1] + np.diff(bins) / 2
     cdf = np.cumsum(h)
     cdf = cdf / cdf[-1]
-    values = rng.random(n_samples)  # noqa: NPY002
+    values = rng.random(n_samples)
     value_bins = np.searchsorted(cdf, values)
     random_from_cdf = bin_midpoints[value_bins]
     return random_from_cdf
@@ -118,7 +120,7 @@ def get_toy_from_3d_hist(h_hist, n_samples, rng):
     z_bin_midpoints = z_bins[:-1] + np.diff(z_bins) / 2
     cdf = np.cumsum(h.ravel())
     cdf = cdf / cdf[-1]
-    values = rng.random(n_samples)  # noqa: NPY002
+    values = rng.random(n_samples)
     value_bins = np.searchsorted(cdf, values)
     x_idx, y_idx, z_idx = np.unravel_index(
         value_bins, (len(x_bin_midpoints), len(y_bin_midpoints), len(z_bin_midpoints))
@@ -128,7 +130,6 @@ def get_toy_from_3d_hist(h_hist, n_samples, rng):
     )
 
     return random_from_cdf
-
 
 
 args = Namespace(
@@ -200,6 +201,7 @@ HH4B_DIR = "/home/users/woodson/HH4b/"
 plot_dir = Path(f"{HH4B_DIR}/plots/Scaling_Toys/")
 plot_dir.mkdir(exist_ok=True, parents=True)
 
+
 def make_histograms(mass_array, xbb_array, bdt_array):
     mass_axis = hist.axis.Regular(16, 60, 220, name="mass")
     bdt_bins = 100
@@ -208,7 +210,7 @@ def make_histograms(mass_array, xbb_array, bdt_array):
     xbb_axis = hist.axis.Regular(xbb_bins, 0, 1, name="xbb")
 
     # mask = (mass_array > 150) | (mass_array < 110)
-    mask = mass_array > 0 # no masking for now
+    mask = mass_array > 0  # no masking for now
 
     h_mass = hist.Hist(mass_axis)
     h_mass.fill(mass_array[mask])
@@ -245,8 +247,6 @@ def make_histograms(mass_array, xbb_array, bdt_array):
     return h_mass, h_xbb, h_bdt, h_mass_xbb, h_mass_bdt, h_xbb_bdt, h_mass_xbb_bdt
 
 
-
-
 def plot_corner(h_mass, h_xbb, h_bdt, h_mass_xbb, h_mass_bdt, h_xbb_bdt):
     fig, ax = plt.subplots(3, 3, figsize=(20, 20))
     hep.histplot(h_mass, ax=ax[0, 0])
@@ -273,12 +273,18 @@ def plot_corner(h_mass, h_xbb, h_bdt, h_mass_xbb, h_mass_bdt, h_xbb_bdt):
 def logit(x):
     """Logit function."""
     return np.log(x / (1 - x))
+
+
 def sigmoid(x):
     """Sigmoid function."""
     return 1 / (1 + np.exp(-x))
+
+
 def minuit_transform(x, xmin=0, xmax=1):
     """Minuit transform: See https://root.cern.ch/download/minuit.pdf#page=8"""
     return np.arcsin(2 * (x - xmin) / (xmax - xmin) - 1)
+
+
 def minuit_inverse_transform(x, xmin=0, xmax=1):
     """Inverse Minuit transform: See https://root.cern.ch/download/minuit.pdf#page=8"""
     return (np.sin(x) + 1) * (xmax - xmin) / 2 + xmin
@@ -426,6 +432,7 @@ def get_cuts():
 
     return get_cut_bin1
 
+
 # @nb.njit
 def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
 
@@ -439,7 +446,7 @@ def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
     rng = np.random.default_rng(42)
 
     for itoy in range(ntoys):
-        n_samples = rng.poisson(integral * lumi_scale)  # noqa: NPY002
+        n_samples = rng.poisson(integral * lumi_scale)
 
         if method == "3dhist":
             mass_xbb_bdt_toy = get_toy_from_3d_hist(h_mass_xbb_bdt, n_samples, rng)
@@ -464,7 +471,7 @@ def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
             )
             sampled_transformed_data = kde_2d_xbb_bdt.resample(n_samples, seed=rng).T
             xbb_toy = sigmoid(sampled_transformed_data[:, 0])
-            bdt_toy = sigmoid(sampled_transformed_data[:, 1])        
+            bdt_toy = sigmoid(sampled_transformed_data[:, 1])
         elif method == "1dkde":
             mass_toy = minuit_inverse_transform(
                 kde_1d_mass.resample(n_samples, seed=rng)[0], xmin=60, xmax=220
@@ -570,7 +577,7 @@ if __name__ == "__main__":
     #     events_combined = events_dict_postprocess[args.years[0]]
     #     scaled_by = {}
     # with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "wb") as f:
-    #     pickle.dump(events_combined, f) 
+    #     pickle.dump(events_combined, f)
 
     # open the pickle file
     with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb") as f:
@@ -580,7 +587,7 @@ if __name__ == "__main__":
 
     h_mass, h_xbb, h_bdt, h_mass_xbb, h_mass_bdt, h_xbb_bdt, h_mass_xbb_bdt = make_histograms(
         events_combined["data"]["H2PNetMass"],
-       events_combined["data"]["H2TXbb"],
+        events_combined["data"]["H2TXbb"],
         events_combined["data"]["bdt_score"],
     )
 
@@ -590,23 +597,15 @@ if __name__ == "__main__":
     transformed_data_array = np.column_stack(
         (
             minuit_transform(data_array[:, 0], xmin=60, xmax=220),
-            logit(data_array[:, 1]), 
+            logit(data_array[:, 1]),
             logit(data_array[:, 2]),
         )
     )
     kde_3d_mass_xbb_bdt = gaussian_kde(transformed_data_array.T, bw_method="silverman")
-    kde_2d_xbb_bdt = gaussian_kde(
-        transformed_data_array[:, 1:].T, bw_method="silverman"
-    )
-    kde_1d_mass = gaussian_kde(
-        transformed_data_array[:, 0], bw_method="silverman"
-    )
-    kde_1d_xbb = gaussian_kde(
-        transformed_data_array[:, 1], bw_method="silverman"
-    )
-    kde_1d_bdt = gaussian_kde(
-        transformed_data_array[:, 2], bw_method="silverman"
-    )
+    kde_2d_xbb_bdt = gaussian_kde(transformed_data_array[:, 1:].T, bw_method="silverman")
+    kde_1d_mass = gaussian_kde(transformed_data_array[:, 0], bw_method="silverman")
+    kde_1d_xbb = gaussian_kde(transformed_data_array[:, 1], bw_method="silverman")
+    kde_1d_bdt = gaussian_kde(transformed_data_array[:, 2], bw_method="silverman")
 
     lumi_scale = 138.0 / 62.0
     # lumi_scale = 1
@@ -634,7 +633,7 @@ if __name__ == "__main__":
         fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
             all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
         )
-        print(f"Data")
+        print("Data")
         print(f"Optimal cuts: bdt_cut={bdt_cut_data:.4f}, xbb_cut={xbb_cut_data:.4f}")
         print(
             f"2sqrt(b)/s={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
@@ -642,7 +641,12 @@ if __name__ == "__main__":
 
     # save all arrays to a pickle file
     if ntoys > 0:
-        with open(plot_dir / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"".pkl", "wb") as f:
+        with open(
+            plot_dir
+            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"
+            ".pkl",
+            "wb",
+        ) as f:
             pickle.dump(
                 {
                     "bdt_cut_toys": bdt_cut_toys,
@@ -655,7 +659,12 @@ if __name__ == "__main__":
                 f,
             )
     else:
-        with open(plot_dir / f"fom_data_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"".pkl", "wb") as f:
+        with open(
+            plot_dir
+            / f"fom_data_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"
+            ".pkl",
+            "wb",
+        ) as f:
             pickle.dump(
                 {
                     "bdt_cut_data": bdt_cut_data,
@@ -666,6 +675,3 @@ if __name__ == "__main__":
                 },
                 f,
             )
-
-
-        
