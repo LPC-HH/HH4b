@@ -57,7 +57,7 @@ fi
 
 xsecbr=""
 if [[ "$xsec" == "True" ]]; then
-   xsecbr = "--xsec fb --frozen-groups signal_norm_xsbr --br bbbb"
+   xsecbr="--xsec fb --frozen-groups signal_norm_xsbr --br bbbb"
 fi
 
 card_dir=./
