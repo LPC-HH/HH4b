@@ -434,7 +434,7 @@ def get_cuts():
 
 
 # @nb.njit
-def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
+def run_toys(ntoys, lumi_scale=1.0, method="2dkde", optimize=True, xbb_cut_data=0.945, bdt_cut_data=0.935):
 
     bdt_cut_toys = []
     xbb_cut_toys = []
@@ -457,9 +457,6 @@ def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
             mass_toy = get_toy_from_hist(h_mass, n_samples, rng)
             xbb_toy = get_toy_from_hist(h_xbb, n_samples, rng)
             bdt_toy = get_toy_from_hist(h_bdt, n_samples, rng)
-            print(mass_toy)
-            print(xbb_toy)
-            print(bdt_toy)
         elif method == "3dkde":
             sampled_transformed_data = kde_3d_mass_xbb_bdt.resample(n_samples, seed=rng).T
             mass_toy = minuit_inverse_transform(sampled_transformed_data[:, 0], xmin=60, xmax=220)
@@ -498,25 +495,43 @@ def run_toys(ntoys, lumi_scale=1.0, method="2dkde"):
                     }
                 )
 
-        all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
-            args.method,
-            events_toy,
-            get_cuts(),
-            get_anti_cuts(),
-            xbb_cuts,
-            bdt_cuts,
-            mass_window,
-            bg_keys=bg_keys,
-            sig_keys=args.fom_ggf_samples,
-            mass=args.mass,
-        )
+        if optimize:
+            all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
+                args.method,
+                events_toy,
+                get_cuts(),
+                get_anti_cuts(),
+                xbb_cuts,
+                bdt_cuts,
+                mass_window,
+                bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
+                mass=args.mass,
+            )
 
-        global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
-            all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
-        )
-        if global_min is None:
-            print(f"Skipping toy {itoy} due to no valid cuts found.")
-            continue
+            global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
+                all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
+            )
+            if global_min is None:
+                print(f"Skipping toy {itoy} due to no valid cuts found.")
+                continue
+        else:
+            # use fixed cuts
+            bdt_cut = bdt_cut_data
+            xbb_cut = xbb_cut_data
+            s, b, _ = abcd(
+                events_toy,
+                get_cuts(),
+                get_anti_cuts(),
+                xbb_cut,
+                bdt_cut,
+                args.mass,
+                mass_window,
+                bg_keys,
+                args.fom_ggf_samples,
+            )
+
+            global_min = 2 * np.sqrt(b) / s if s > 0 else np.nan
 
         bdt_cut_toys.append(bdt_cut)
         xbb_cut_toys.append(xbb_cut)
@@ -611,10 +626,12 @@ if __name__ == "__main__":
     # lumi_scale = 1
     ntoys = 100
     # ntoys = -1
-    method = "1dkde"
+    method = "2dkde"
+    optimize = False
+
     if ntoys > 0:
         bdt_cut_toys, xbb_cut_toys, s_toys, b_toys, fom_toys = run_toys(
-            ntoys, lumi_scale=lumi_scale, method=method
+            ntoys, lumi_scale=lumi_scale, method=method, optimize=optimize
         )
     else:
         all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
@@ -639,11 +656,12 @@ if __name__ == "__main__":
             f"2sqrt(b)/s={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
         )
 
-    # save all arrays to a pickle file
+    # save all arrays to a pickle file    
+    optimize_str = "" if optimize else "_noopt"
     if ntoys > 0:
-        with open(
+        with open(  # noqa: PTH123
             plot_dir
-            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"
+            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}{optimize_str}"
             ".pkl",
             "wb",
         ) as f:
@@ -659,7 +677,7 @@ if __name__ == "__main__":
                 f,
             )
     else:
-        with open(
+        with open(  # noqa: PTH123
             plot_dir
             / f"fom_data_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"
             ".pkl",
