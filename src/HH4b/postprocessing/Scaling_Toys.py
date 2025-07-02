@@ -434,7 +434,9 @@ def get_cuts():
 
 
 # @nb.njit
-def run_toys(ntoys, lumi_scale=1.0, method="2dkde", optimize=True, xbb_cut_data=0.945, bdt_cut_data=0.935):
+def run_toys(
+    ntoys, lumi_scale=1.0, method="2dkde", optimize=True, xbb_cut_data=0.945, bdt_cut_data=0.935
+):
 
     bdt_cut_toys = []
     xbb_cut_toys = []
@@ -656,7 +658,7 @@ if __name__ == "__main__":
             f"2sqrt(b)/s={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
         )
 
-    # save all arrays to a pickle file    
+    # save all arrays to a pickle file
     optimize_str = "" if optimize else "_noopt"
     if ntoys > 0:
         with open(  # noqa: PTH123
