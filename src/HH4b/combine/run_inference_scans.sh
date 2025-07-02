@@ -6,7 +6,7 @@ inj=""
 param="kl"
 unblinded="False"
 xsec="False"
-while getopts ":p:is:uX" opt; do
+while getopts ":p:is:ux" opt; do
   case $opt in
     p)
       param=$OPTARG
