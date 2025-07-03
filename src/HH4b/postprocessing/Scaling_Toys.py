@@ -597,7 +597,7 @@ if __name__ == "__main__":
     #     pickle.dump(events_combined, f)
 
     # open the pickle file
-    with open(
+    with open(  # noqa: PTH123
         f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb"
     ) as f:
         events_combined = pickle.load(f)
