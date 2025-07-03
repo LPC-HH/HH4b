@@ -597,7 +597,9 @@ if __name__ == "__main__":
     #     pickle.dump(events_combined, f)
 
     # open the pickle file
-    with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb") as f:  # noqa: PTH123
+    with open(
+        f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb"
+    ) as f:
         events_combined = pickle.load(f)
 
     integral = len(events_combined["data"])
@@ -665,9 +667,7 @@ if __name__ == "__main__":
         optimize_str = "noopt"
     if ntoys > 0:
         with open(  # noqa: PTH123
-            plot_dir
-            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{optimize_str}"
-            ".pkl",
+            plot_dir / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{optimize_str}" ".pkl",
             "wb",
         ) as f:
             pickle.dump(
@@ -683,9 +683,7 @@ if __name__ == "__main__":
             )
     else:
         with open(  # noqa: PTH123
-            plot_dir
-            / f"fom_data_{optimize_str}"
-            ".pkl",
+            plot_dir / f"fom_data_{optimize_str}" ".pkl",
             "wb",
         ) as f:
             pickle.dump(
