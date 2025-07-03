@@ -473,8 +473,8 @@ def load_process_run3_samples(
 
     events_dict_postprocess = {}
     columns_by_key = {}
-    if year == "2024":
-        samples_year.remove("qcd")
+    # if year == "2024":
+    #    samples_year.remove("qcd")
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
@@ -1554,13 +1554,13 @@ def postprocess_run3(args):
         print(f"WARNING: Using available MC from {available}")
         scaled_by_years = {
             "ttbar": available,
-            "gghtobb": available,
-            "vbfhtobb": available,
+            "novhhtobb": available,
             "vhtobb": available,
             "tthtobb": available,
             "zz": available,
             "nozzdiboson": available,
             "vjets": available,
+            "qcd": available,
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
