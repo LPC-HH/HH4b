@@ -597,7 +597,7 @@ if __name__ == "__main__":
     #     pickle.dump(events_combined, f)
 
     # open the pickle file
-    with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb") as f:
+    with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb") as f:  # noqa: PTH123
         events_combined = pickle.load(f)
 
     integral = len(events_combined["data"])
@@ -624,8 +624,8 @@ if __name__ == "__main__":
     kde_1d_xbb = gaussian_kde(transformed_data_array[:, 1], bw_method="silverman")
     kde_1d_bdt = gaussian_kde(transformed_data_array[:, 2], bw_method="silverman")
 
-    lumi_scale = 138.0 / 62.0
-    # lumi_scale = 1
+    # lumi_scale = 138.0 / 62.0
+    lumi_scale = 1
     ntoys = 100
     # ntoys = -1
     method = "2dkde"
@@ -659,11 +659,14 @@ if __name__ == "__main__":
         )
 
     # save all arrays to a pickle file
-    optimize_str = "" if optimize else "_noopt"
+    if optimize:
+        optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}_{bdt_cuts[-1]:.4f}_{bdt_cuts[1]-bdt_cuts[0]:.4f}"
+    else:
+        optimize_str = "noopt"
     if ntoys > 0:
         with open(  # noqa: PTH123
             plot_dir
-            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}{optimize_str}"
+            / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{optimize_str}"
             ".pkl",
             "wb",
         ) as f:
@@ -681,7 +684,7 @@ if __name__ == "__main__":
     else:
         with open(  # noqa: PTH123
             plot_dir
-            / f"fom_data_{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}"
+            / f"fom_data_{optimize_str}"
             ".pkl",
             "wb",
         ) as f:
