@@ -357,6 +357,7 @@ def ratioHistPlot(
     reweight_qcd: bool = False,
     qcd_norm: float = None,
     save_pdf: bool = True,
+    unblinded: bool = False,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -820,11 +821,11 @@ def ratioHistPlot(
         # yerr is not used, can be nan
         # yerr = ratio_uncertainty(hists[data_key, :] - bg_tot, dataerr, "poisson")
 
-        # if math.isinf(yhist[5]):
-        # blind!
-        yhist[5] = 0
-        yhist[6] = 0
-        yhist[7] = 0
+        if not unblinded:
+            # blind!
+            yhist[5] = 0
+            yhist[6] = 0
+            yhist[7] = 0
 
         hep.histplot(
             yhist,

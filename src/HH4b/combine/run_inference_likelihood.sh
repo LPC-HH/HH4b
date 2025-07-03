@@ -5,8 +5,7 @@ syst="full"
 inj=""
 param="kl"
 unblinded="False"
-xsec="False"
-while getopts ":p:is:ux" opt; do
+while getopts ":p:is:u" opt; do
   case $opt in
     p)
       param=$OPTARG
@@ -18,10 +17,7 @@ while getopts ":p:is:ux" opt; do
       syst=$OPTARG
       ;;
     u)
-      unblinded="True"
-      ;;
-    x)
-      xsec="True"
+      unblinded="False,True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -46,8 +42,7 @@ else
 fi
 
 if [[ "$param" == "kl" ]]; then
-    # parameters="kl,-15,20,36"
-    parameters="kl,-15,0,16:kl,0,10,21:kl,10,20,21"
+    parameters="kl,-15,20,36"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
 else
@@ -55,26 +50,30 @@ else
     exit 1
 fi
 
-xsecbr=""
-if [[ "$xsec" == "True" ]]; then
-   xsecbr="--xsec fb --frozen-groups signal_norm_xsbr --br bbbb"
-fi
-
 card_dir=./
+command="PlotLikelihoodScan"
 datacards="${card_dir}/combined_nomasks.txt${inj}"
+datacardopt="--datacards"
+datacardnames=""
 model=hh_model_run23.model_default_run3
 campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
-law run PlotUpperLimits \
-    --version dev  \
-    --datacards "$datacards" \
+if [[ "$unblinded" != "False" ]]; then
+  command="PlotMultipleLikelihoodScans"
+  datacards="${card_dir}/combined_nomasks.txt${inj}:${card_dir}/combined_nomasks.txt${inj}"
+  datacardopt="--multi-datacards"
+  datacardnames="--datacard-names Expected,Observed"
+fi
+
+law run $command \
+    --version dev \
     --hh-model "$model" \
-    --remove-output 0,a,y \
-    --campaign "$campaign" \
-    --use-snapshot False \
-    --file-types pdf,png,root,c $xsecbr \
-    --pois r \
+    $datacardopt "$datacards" $datacardnames \
+    --pois "$param" \
     --scan-parameters "$parameters" \
-    --y-log \
+    --file-types "pdf,png" \
+    --campaign "$campaign" \
+    --remove-output 0,a,y \
+    --use-snapshot False \
     --unblinded "$unblinded" \
     --save-ranges $frozen

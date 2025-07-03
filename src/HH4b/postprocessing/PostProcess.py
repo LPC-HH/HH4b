@@ -450,7 +450,7 @@ def load_process_run3_samples(
     elif args.txbb == "glopart-v2":
         txbb_sf = corrections._load_txbb_sfs(
             year,
-            "sf_glopart-v2_freezeSFs_trial20241011",
+            "sf_glopart-v2_zbb",
             TXbb_wps,
             TXbb_pt_corr_bins,
             args.txbb,
@@ -715,31 +715,6 @@ def load_process_run3_samples(
             if w in bdt_events:
                 bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
-        # correlated signal xbb up/dn variations
-        corr_up = np.ones(nevents)
-        corr_dn = np.ones(nevents)
-        for ijet in get_jets_for_txbb_sf(key):
-            corr_up *= corrections.restrict_SF(
-                txbb_sf["corr_up"],
-                bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                bdt_events[f"H{ijet}Pt"].to_numpy(),
-                txbb_range,
-                pt_range,
-                txbb_sf["corr3x_up"],
-                TXbb_wps["WP1"],
-            )
-            corr_dn *= corrections.restrict_SF(
-                txbb_sf["corr_dn"],
-                bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                bdt_events[f"H{ijet}Pt"].to_numpy(),
-                txbb_range,
-                pt_range,
-                txbb_sf["corr3x_dn"],
-                TXbb_wps["WP1"],
-            )
-        bdt_events["weight_TXbbSF_correlatedUp"] = bdt_events["weight"] * corr_up / txbb_sf_weight
-        bdt_events["weight_TXbbSF_correlatedDown"] = bdt_events["weight"] * corr_dn / txbb_sf_weight
-
         # uncorrelated signal xbb up/dn variations in bins
         for wp in TXbb_wps:
             for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
@@ -760,8 +735,6 @@ def load_process_run3_samples(
                         bdt_events[f"H{ijet}Pt"].to_numpy(),
                         TXbb_wps[wp],
                         TXbb_pt_corr_bins[wp][j : j + 2],
-                        txbb_sf["stat3x_up"] if wp == "WP1" else None,
-                        TXbb_wps["WP1"] if wp == "WP1" else None,
                     )
                     stat_dn *= corrections.restrict_SF(
                         txbb_sf["stat_dn"],
@@ -769,8 +742,6 @@ def load_process_run3_samples(
                         bdt_events[f"H{ijet}Pt"].to_numpy(),
                         TXbb_wps[wp],
                         TXbb_pt_corr_bins[wp][j : j + 2],
-                        txbb_sf["stat3x_dn"] if wp == "WP1" else None,
-                        TXbb_wps["WP1"] if wp == "WP1" else None,
                     )
                 bdt_events[
                     f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}Up"
@@ -1007,8 +978,16 @@ def load_process_run3_samples(
                 columns += [f"scale_weights_{i}"]
         if key == "ttbar":
             columns += [column for column in bdt_events.columns if "weight_ttbarSF" in column]
-        if key in hh_vars.sig_keys:
+        if key in hh_vars.sig_keys + [
+            "vhtobb",
+            "zz",
+            "novhhtobb",
+            "tthtobb",
+            "vjets",
+            "nozzdiboson",
+        ]:
             columns += [column for column in bdt_events.columns if "weight_TXbbSF" in column]
+        if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
