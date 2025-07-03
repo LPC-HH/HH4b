@@ -2,10 +2,14 @@
 # shellcheck disable=SC2086,SC2034
 
 inj=""
-while getopts ":i" opt; do
+unblinded="False"
+while getopts ":iu" opt; do
   case $opt in
     i)
       inj="<i"
+      ;;
+    u)
+      unblinded="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -21,7 +25,7 @@ done
 card_dir=./
 datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
-campaign="61 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
 
 if [[ "$inj" == "<i" ]]; then
     mv inject.json inject_original.json
@@ -43,4 +47,5 @@ law run PlotPullsAndImpacts \
     --page 0 \
     --campaign "$campaign" \
     --pull-range 1 \
+    --unblinded "$unblinded" \
     --remove-output 0,a,y

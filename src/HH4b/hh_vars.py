@@ -34,16 +34,6 @@ common_samples_bg = {
     "qcd": ["QCD_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-    # "gghtobb": ["GluGluHto2B_PT-200_M-125"],
-    # "vbfhtobb": ["VBFHto2B_M-125"],
-    # "singletop": [
-    #     "TbarBQ_t-channel_4FS",
-    #     "TBbarQ_t-channel_4FS",
-    #     "TWminustoLNu2Q",
-    #     "TWminusto4Q",
-    #     "TbarWplustoLNu2Q",
-    #     "TbarWplusto4Q",
-    # ],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",
@@ -459,10 +449,9 @@ txbbsfs_decorr_txbb_wps["pnet-legacy"] = OrderedDict(
 )
 txbbsfs_decorr_txbb_wps["glopart-v2"] = OrderedDict(
     [
-        ("WP5", [0.8, 0.9]),
-        ("WP4", [0.9, 0.94]),
-        ("WP3", [0.94, 0.97]),
-        ("WP2", [0.97, 0.99]),
+        ("WP4", [0.3, 0.95]),
+        ("WP3", [0.95, 0.975]),
+        ("WP2", [0.975, 0.99]),
         ("WP1", [0.99, 1]),
     ]
 )
@@ -480,11 +469,10 @@ txbbsfs_decorr_pt_bins["pnet-legacy"] = OrderedDict(
 )
 txbbsfs_decorr_pt_bins["glopart-v2"] = OrderedDict(
     [
-        ("WP5", [200, 400, 100000]),
-        ("WP4", [200, 400, 100000]),
-        ("WP3", [200, 400, 100000]),
-        ("WP2", [200, 400, 100000]),
-        ("WP1", [200, 400, 100000]),
+        ("WP4", [250, 450, 100000]),
+        ("WP3", [250, 450, 100000]),
+        ("WP2", [250, 450, 100000]),
+        ("WP1", [250, 450, 100000]),
     ]
 )
 
