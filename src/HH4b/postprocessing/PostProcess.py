@@ -431,6 +431,7 @@ def calculate_txbb_weights(
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
+    plot_dir = Path(plot_dir)
     # define BDT model
     if rerun_inference:
         bdt_model = xgb.XGBClassifier()
@@ -518,6 +519,8 @@ def load_process_run3_samples(
 
     events_dict_postprocess = {}
     columns_by_key = {}
+    # if year == "2024":
+    #    samples_year.remove("qcd")
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
@@ -543,7 +546,7 @@ def load_process_run3_samples(
             jshifts += hh_vars.jmsr_shifts
         logger.info(f"JEC shifts {jshifts}")
 
-        logger.info("Perform inference")
+        logger.info("Add BDT scores")
         bdt_events = {}
         for jshift in jshifts:
             _jshift = f"_{jshift}" if jshift != "" else ""
@@ -551,6 +554,7 @@ def load_process_run3_samples(
                 events_dict, get_var_mapping(jshift)
             )
             if rerun_inference:
+                print("Re-run inference")
                 preds = bdt_model.predict_proba(bdt_events[jshift])
                 add_bdt_scores(
                     bdt_events[jshift],
@@ -1110,19 +1114,23 @@ def load_process_run3_samples(
                 bdt_events, mask_bin3, args.mass, mass_window
             )
     # end of loop over samples
-
+    """
     if control_plots:
         make_control_plots(events_dict_postprocess, plot_dir, year, args.txbb)
         for key in events_dict_postprocess:
             events_dict_postprocess[key] = events_dict_postprocess[key][columns_by_key[key]]
+    """
 
-    for cut in cutflow_dict["hh4b"]:
-        cutflow[cut] = [
-            cutflow_dict[key][cut].round(4) if cut in cutflow_dict[key] else -1.0
-            for key in events_dict_postprocess
-        ]
+    """
+    if "hh4b" in cutflow_dict:
+        for cut in cutflow_dict["hh4b"]:
+            cutflow[cut] = [
+                cutflow_dict[key][cut].round(4) if cut in cutflow_dict[key] else -1.0
+                for key in events_dict_postprocess
+            ]
 
     logger.info(f"\nCutflow {cutflow}")
+    """
     return events_dict_postprocess, cutflow
 
 
@@ -1600,10 +1608,21 @@ def postprocess_run3(args):
         if "qcd" in bg_keys_combined:
             bg_keys_combined.remove("qcd")
 
+    print("BKG keys ", bg_keys)
+
     if len(args.years) > 1:
-        # list of years available for a given process to scale to full lumi,
+        # list of years available for a given process to scale to full lumi
+        available = [y for y in ["2022", "2022EE", "2023", "2023BPix"] if y in args.years]
+        print(f"WARNING: Using available MC from {available}")
         scaled_by_years = {
-            # "zz": ["2022", "2022EE", "2023"],
+            "ttbar": available,
+            "novhhtobb": available,
+            "vhtobb": available,
+            "tthtobb": available,
+            "zz": available,
+            "nozzdiboson": available,
+            "vjets": available,
+            "qcd": available,
         }
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
@@ -1616,6 +1635,10 @@ def postprocess_run3(args):
     else:
         events_combined = events_dict_postprocess[args.years[0]]
         scaled_by = {}
+    if args.control_plots:
+        # quick fix: '2024' is only stand-in, plots all combined events
+        # uses 2022-2013 for scaled MC
+        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
 
     if args.bdt_roc:
         print("Making BDT ROC curve")
@@ -1668,14 +1691,22 @@ def postprocess_run3(args):
                 if s in scaled_by:
                     cutflow_sample = 0.0
                     for year in args.years:
-                        if s in cutflows[year][cut].index and year in scaled_by_years[s]:
+                        if (
+                            cut in cutflows[year]
+                            and s in cutflows[year][cut].index
+                            and year in scaled_by_years[s]
+                        ):
                             cutflow_sample += cutflows[year][cut].loc[s]
                     cutflow_sample *= scaled_by[s]
                     print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
                 else:
                     cutflow_sample = np.sum(
                         [
-                            cutflows[year][cut].loc[s] if s in cutflows[year][cut].index else 0.0
+                            (
+                                cutflows[year][cut].loc[s]
+                                if cut in cutflows[year] and s in cutflows[year][cut].index
+                                else 0.0
+                            )
                             for year in args.years
                         ]
                     )
@@ -1701,6 +1732,7 @@ def postprocess_run3(args):
                 print("Scanning VBF WPs")
             else:
                 print("Scanning VBF WPs, vetoing Bin1")
+            print(f"Using bg keys {bg_keys}")
             scan_fom(
                 args.method,
                 events_combined,
