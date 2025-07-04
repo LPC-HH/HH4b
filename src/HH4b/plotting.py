@@ -463,10 +463,13 @@ def ratioHistPlot(
     # re-weight qcd
     kfactor = dict.fromkeys(bg_keys, 1)
     if reweight_qcd and qcd_norm is None:
-        bg_yield = np.sum(sum([hists[sample, :] for sample in bg_keys]).values())
+        non_qcd_yield = np.sum(
+            sum([hists[sample, :] for sample in bg_keys if sample != "qcd"]).values()
+        )
+        qcd_yield = np.sum(hists["qcd", :].values())
         data_yield = np.sum(hists[data_key, :].values())
-        if bg_yield > 0:
-            kfactor["qcd"] = data_yield / bg_yield
+        if qcd_yield > 0:
+            kfactor["qcd"] = (data_yield - non_qcd_yield) / qcd_yield
         print("kfactor ", kfactor["qcd"], qcd_norm)
     elif reweight_qcd:
         kfactor["qcd"] = qcd_norm
