@@ -431,7 +431,6 @@ def calculate_txbb_weights(
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
-
     # define BDT model
     if rerun_inference:
         bdt_model = xgb.XGBClassifier()
@@ -661,7 +660,7 @@ def load_process_run3_samples(
         ]
         if key != "data":
             more_vars.update(
-                {w: events_dict[w].to_numpy() for w in pileup_ps_weights if w in events_dict}
+                {w: events_dict[w].squeeze() for w in pileup_ps_weights if w in events_dict}
             )
 
         # add event, run, lumi
@@ -685,6 +684,8 @@ def load_process_run3_samples(
         # best to use a dict instead
         temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
         bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
+        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
 
         # TXbbWeight
         txbb_sf_weight = calculate_txbb_weights(
