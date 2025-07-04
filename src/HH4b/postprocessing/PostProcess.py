@@ -667,9 +667,9 @@ def load_process_run3_samples(
         # add event, run, lumi
         more_vars.update(
             {
-                "run": events_dict["run"],
-                "event": events_dict["event"],
-                "luminosityBlock": events_dict["luminosityBlock"],
+                "run": events_dict["run"].squeeze(),
+                "event": events_dict["event"].squeeze(),
+                "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
             }
         )
 
@@ -894,6 +894,7 @@ def load_process_run3_samples(
             )
         temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
         bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
@@ -915,6 +916,8 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
+            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
