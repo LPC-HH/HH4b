@@ -382,6 +382,52 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         plt.close()
 
 
+def calculate_trigger_weights(
+    events_dict: pd.DataFrame,
+    key: str,
+    year: str,
+    txbb: str,
+    trigger_region: str,
+    n_events: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # calculates triggerWeight
+    trigger_weight = np.ones(n_events)
+    trigger_weight_up = np.ones(n_events)
+    trigger_weight_dn = np.ones(n_events)
+    if key != "data":
+        trigger_weight, _, total, total_err = corrections.trigger_SF(
+            year, events_dict, txbb_strings[txbb], trigger_region
+        )
+        trigger_weight_up = trigger_weight * (1 + total_err / total)
+        trigger_weight_dn = trigger_weight * (1 - total_err / total)
+
+    return trigger_weight, trigger_weight_up, trigger_weight_dn
+
+
+def calculate_txbb_weights(
+    bdt_events: pd.DataFrame,
+    key: str,
+    txbb_sf: dict,
+    TXbb_wps,  # TODO: fill in datatype (dict?)
+    TXbb_pt_corr_bins,  # TODO: fill in datatype (dict?)
+    n_events: int,
+):
+    txbb_sf_weight = np.ones(n_events)
+    all_txbb_bins = ak.Array([TXbb_wps[wp] for wp in TXbb_wps])
+    all_pt_bins = ak.Array([TXbb_pt_corr_bins[wp] for wp in TXbb_pt_corr_bins])
+    txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
+    pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
+    for ijet in get_jets_for_txbb_sf(key):
+        txbb_sf_weight *= corrections.restrict_SF(
+            txbb_sf["nominal"],
+            bdt_events[f"H{ijet}TXbb"].to_numpy(),
+            bdt_events[f"H{ijet}Pt"].to_numpy(),
+            txbb_range,
+            pt_range,
+        )
+    return txbb_sf_weight
+
+
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
@@ -547,52 +593,63 @@ def load_process_run3_samples(
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
 
         # add more variables for control plots
-        bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
-        bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
-        bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
-        bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
-        bdt_events["H1TXbb"] = events_dict[txbb_strings[args.txbb]][0]
-        bdt_events["H1DiscTXbb"] = discretize_var(
-            events_dict[txbb_strings[args.txbb]][0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
-        )
-        bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
-        bdt_events["H2DiscTXbb"] = discretize_var(
-            events_dict[txbb_strings[args.txbb]][1], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
-        )
-        bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
-        bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
+        more_vars = {
+            "H1Pt": events_dict["bbFatJetPt"][0],
+            "H2Pt": events_dict["bbFatJetPt"][1],
+            "H1Msd": events_dict["bbFatJetMsd"][0],
+            "H2Msd": events_dict["bbFatJetMsd"][1],
+            "H1TXbb": events_dict[txbb_strings[args.txbb]][0],
+            "H1DiscTXbb": discretize_var(
+                events_dict[txbb_strings[args.txbb]][0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+            ),
+            "H2TXbb": events_dict[txbb_strings[args.txbb]][1],
+            "H2DiscTXbb": discretize_var(
+                events_dict[txbb_strings[args.txbb]][1], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+            ),
+            "H1PNetMass": events_dict[mreg_strings[args.txbb]][0],
+            "H2PNetMass": events_dict[mreg_strings[args.txbb]][1],
+        }
         if key in hh_vars.jmsr_keys:
-            for jshift in hh_vars.jmsr_shifts:
-                bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
-                    f"{mreg_strings[args.txbb]}_{jshift}"
-                ][0]
-                bdt_events[f"H2PNetMass_{jshift}"] = events_dict[
-                    f"{mreg_strings[args.txbb]}_{jshift}"
-                ][1]
+            more_vars.update(
+                {
+                    f"H1PNetMass_{jshift}": events_dict[f"{mreg_strings[args.txbb]}_{jshift}"][jet]
+                    for jshift in hh_vars.jmsr_shifts
+                    for jet in [0, 1]
+                }
+            )
 
         # add HLTs
-        bdt_events["hlt"] = np.any(
-            np.array(
-                [
-                    events_dict[trigger].to_numpy()[:, 0]
-                    for trigger in postprocessing.HLTs[year]
-                    if trigger in events_dict
-                ]
-            ),
-            axis=0,
+        more_vars.update(
+            {
+                "hlt": np.any(
+                    np.array(
+                        [
+                            events_dict[trigger].to_numpy()[:, 0]
+                            for trigger in postprocessing.HLTs[year]
+                            if trigger in events_dict
+                        ]
+                    ),
+                    axis=0,
+                )
+            }
         )
 
         # finalWeight: includes genWeight, puWeight
-        bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
         # scale, pdf weights
         if key in hh_vars.sig_keys + ["ttbar"]:
-            for i in range(6):
-                bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+            more_vars.update(
+                {f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy() for i in range(6)}
+            )
         n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
-            for i in range(n_pdf_weights):
-                bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+            more_vars.update(
+                {
+                    f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
+                    for i in range(n_pdf_weights)
+                }
+            )
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -602,41 +659,37 @@ def load_process_run3_samples(
             "weight_FSRPartonShowerDown",
         ]
         if key != "data":
-            for w in pileup_ps_weights:
-                if w in events_dict:
-                    bdt_events[w] = events_dict[w].to_numpy()
+            more_vars.update(
+                {w: events_dict[w].to_numpy() for w in pileup_ps_weights if w in events_dict}
+            )
 
         # add event, run, lumi
-        bdt_events["run"] = events_dict["run"].to_numpy()
-        bdt_events["event"] = events_dict["event"].to_numpy()
-        bdt_events["luminosityBlock"] = events_dict["luminosityBlock"].to_numpy()
+        more_vars.update(
+            {
+                "run": events_dict["run"],
+                "event": events_dict["event"],
+                "luminosityBlock": events_dict["luminosityBlock"],
+            }
+        )
 
-        # triggerWeight
         nevents = len(bdt_events["H1Pt"])
-        trigger_weight = np.ones(nevents)
-        trigger_weight_up = np.ones(nevents)
-        trigger_weight_dn = np.ones(nevents)
-        if key != "data":
-            trigger_weight, _, total, total_err = corrections.trigger_SF(
-                year, events_dict, txbb_strings[args.txbb], trigger_region
-            )
-            trigger_weight_up = trigger_weight * (1 + total_err / total)
-            trigger_weight_dn = trigger_weight * (1 - total_err / total)
+
+        # triggerWeights
+        trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
+            events_dict, key, year, args.txbb, trigger_region, nevents
+        )
 
         # TXbbWeight
-        txbb_sf_weight = np.ones(nevents)
-        all_txbb_bins = ak.Array([TXbb_wps[wp] for wp in TXbb_wps])
-        all_pt_bins = ak.Array([TXbb_pt_corr_bins[wp] for wp in TXbb_pt_corr_bins])
-        txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
-        pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
-        for ijet in get_jets_for_txbb_sf(key):
-            txbb_sf_weight *= corrections.restrict_SF(
-                txbb_sf["nominal"],
-                bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                bdt_events[f"H{ijet}Pt"].to_numpy(),
-                txbb_range,
-                pt_range,
-            )
+        # TODO: depends on bdt_events updated dataframe, move to end of this function
+        txbb_sf_weight = calculate_txbb_weights(
+            bdt_events, key, txbb_sf, TXbb_wps, TXbb_pt_corr_bins, nevents
+        )
+
+        # creating new dataframe with all variables
+        # repeatedly allocating new memory for pd.DataFrame is expensive
+        # best to use a dict instead
+        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
+        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
 
         # remove training events if asked
         if (
