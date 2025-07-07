@@ -473,8 +473,8 @@ def load_process_run3_samples(
 
     events_dict_postprocess = {}
     columns_by_key = {}
-    # if year == "2024":
-    #    samples_year.remove("qcd")
+    if year == "2024" and args.control_plots:
+        samples_year.remove("qcd")
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
