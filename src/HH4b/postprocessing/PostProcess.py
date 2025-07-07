@@ -616,7 +616,9 @@ def load_process_run3_samples(
         if key in hh_vars.jmsr_keys:
             more_vars.update(
                 {
-                    f"H{jet + 1}PNetMass_{jshift}": events_dict[f"{mreg_strings[args.txbb]}_{jshift}"][jet]
+                    f"H{jet + 1}PNetMass_{jshift}": events_dict[
+                        f"{mreg_strings[args.txbb]}_{jshift}"
+                    ][jet]
                     for jshift in hh_vars.jmsr_shifts
                     for jet in [0, 1]
                 }
