@@ -66,6 +66,11 @@ HLTs = {
         "AK8PFJet400_SoftDropMass40",
         "AK8PFJet425_SoftDropMass40",
     ],
+    "2024": [
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        "AK8PFJet400_SoftDropMass40",
+        "AK8PFJet425_SoftDropMass40",
+    ],
 }
 
 
@@ -487,6 +492,7 @@ def combine_run3_samples(
 ):
     # create combined datasets
     lumi_total = np.sum([LUMI[year] for year in years_run3])
+    print(f"All years {years_run3}: {lumi_total}")
 
     if scale_processes is None:
         scale_processes = {}
@@ -512,6 +518,9 @@ def combine_run3_samples(
             )
             lumi_scale = lumi_total / np.sum(
                 [LUMI[year] for year in scale_processes[key] if year in years_run3]
+            )
+            print(
+                f"LUMI available: {np.sum([LUMI[year] for year in scale_processes[key] if year in years_run3])}"
             )
             scaled_by[key] = lumi_scale
             print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
