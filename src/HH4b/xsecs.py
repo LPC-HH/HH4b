@@ -58,6 +58,19 @@ xsecs["QCD_HT-1200to1500"] = 384.5
 xsecs["QCD_HT-1500to2000"] = 125.5
 xsecs["QCD_HT-2000"] = 25.78
 
+xsecs["QCD-4Jets_HT-40to70"] = xsecs["QCD_HT-40to70"]
+xsecs["QCD-4Jets_HT-70to100"] = xsecs["QCD_HT-70to100"]
+xsecs["QCD-4Jets_HT-100to200"] = xsecs["QCD_HT-100to200"]
+xsecs["QCD-4Jets_HT-200to400"] = xsecs["QCD_HT-200to400"]
+xsecs["QCD-4Jets_HT-400to600"] = xsecs["QCD_HT-400to600"]
+xsecs["QCD-4Jets_HT-600to800"] = xsecs["QCD_HT-600to800"]
+xsecs["QCD-4Jets_HT-800to1000"] = xsecs["QCD_HT-800to1000"]
+xsecs["QCD-4Jets_HT-1000to1200"] = xsecs["QCD_HT-1000to1200"]
+xsecs["QCD-4Jets_HT-1200to1500"] = xsecs["QCD_HT-1200to1500"]
+xsecs["QCD-4Jets_HT-1500to2000"] = xsecs["QCD_HT-1500to2000"]
+xsecs["QCD-4Jets_HT-2000"] = xsecs["QCD_HT-2000"]
+
+
 # xsdb
 xsecs["QCD_PT-120to170_MuEnrichedPt5"] = 22980.0
 xsecs["QCD_PT-170to300_MuEnrichedPt5"] = 7763.0
@@ -234,6 +247,14 @@ xsecs["DYto2L-2Jets_MLL-50"] = 6688.0
 xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
 xsecs["DYto2L-2Jets_MLL-50_1J"] = 1017.0
 xsecs["DYto2L-2Jets_MLL-50_2J"] = 385.5
+
+xsecs["DYto2L-4Jets_MLL-50to120_HT-40to70"] = 316.7
+xsecs["DYto2L-4Jets_MLL-50to120_HT-70to100"] = 140.1
+xsecs["DYto2L-4Jets_MLL-50to120_HT-100to400"] = 179.6
+xsecs["DYto2L-4Jets_MLL-50to120_HT-400to800"] = 6.742
+xsecs["DYto2L-4Jets_MLL-50to120_HT-800to1500"] = 0.693
+xsecs["DYto2L-4Jets_MLL-50to120_HT-1500to2500"] = 0.05047
+xsecs["DYto2L-4Jets_MLL-50to120_HT-2500"] = 0.00346
 
 ########################################################
 # Cross Sections for 13 TeV.
