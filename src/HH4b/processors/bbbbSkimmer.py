@@ -1023,7 +1023,10 @@ class bbbbSkimmer(SkimmerABC):
                     cut_txbb = (
                         np.sum(
                             (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
-                            | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                            | (
+                                bbFatJetVars["bbFatJetPNetTXbbLegacy"]
+                                >= self.preselection[self.txbb]
+                            )
                             | (bbFatJetVars["bbFatJetParT2TXbb"] >= self.preselection[self.txbb])
                             | (bbFatJetVars["bbFatJetParT3TXbb"] >= self.preselection[self.txbb]),
                             axis=1,
@@ -1034,7 +1037,10 @@ class bbbbSkimmer(SkimmerABC):
                     cut_txbb = (
                         np.sum(
                             (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
-                            | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                            | (
+                                bbFatJetVars["bbFatJetPNetTXbbLegacy"]
+                                >= self.preselection[self.txbb]
+                            )
                             | (bbFatJetVars["bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
                             axis=1,
                         )
@@ -1302,10 +1308,10 @@ class bbbbSkimmer(SkimmerABC):
         ak4away2 = ak4away[:, 1]
         h1ak4away1 = h1 + ak4away1
         h2ak4away2 = h2 + ak4away2
-        
+
         if self._nano_version.startswith("v14"):
             txbb_str = txbbstr_to_skimmer[self.txbb]
-            
+
             # v14 has ParT2 and ParT3
             if self.txbb == "glopart-v2":
                 H1Xbb = disc_TXbb(bbFatJetVars[key_map(f"bbFatJet{txbb_str}")][:, 0])
