@@ -1176,7 +1176,7 @@ def scan_fom(
     plot_name: str,
     bg_keys: list[str],
     sig_keys: list[str],
-    fom: str = "2sqrt(b)/s",
+    fom: str = "2sqrt(b + b^2/SBDataYield)/s",
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
@@ -1235,6 +1235,10 @@ def scan_fom(
                 figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
             elif fom == "2sqrt(b)/s":
                 figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
+            elif fom == "2sqrt(b + b^2/SBDataYield)/s":
+                figure_of_merit = (
+                    2 * np.sqrt(nevents_bkg + nevents_bkg**2 / nevents_sideband) / nevents_sig
+                )
             else:
                 raise ValueError("Invalid FOM")
 
