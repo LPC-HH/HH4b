@@ -1626,6 +1626,10 @@ def postprocess_run3(args):
             "vjets": available,
             "qcd": available,
         }
+        # add all signals to scale, assume all present in all years
+        for sig_key in args.sig_keys:
+            scaled_by_years.update({sig_key: available})
+
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
