@@ -194,7 +194,7 @@ for year in samples_run3:
         "QCD_HT-800to1000",
     ]
     for key in list(samples_run3[year]):
-        if "hh4b" in key and key != "hh4b":
+        if "hh4b" in key and key not in ["hh4b", "vbfhh4b"]:
             del samples_run3[year][key]
 
 # get top-level HH4b directory
