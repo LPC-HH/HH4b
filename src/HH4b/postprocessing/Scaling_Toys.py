@@ -17,7 +17,10 @@ from HH4b.hh_vars import (
     bg_keys,
     samples_run3,
 )
-from HH4b.postprocessing.PostProcess import load_process_run3_samples, combine_run3_samples
+from HH4b.postprocessing.PostProcess import (
+    combine_run3_samples,
+    load_process_run3_samples,
+)
 
 xbb_cuts = np.arange(0.8, 0.999, 0.0025)
 bdt_cuts = np.arange(0.9, 0.999, 0.0025)
@@ -294,8 +297,14 @@ def minuit_inverse_transform(x, xmin=0, xmax=1):
 def fom_classic(s, b, dmt):
     return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
 
+
 def fom_update(s, b, dmt):
-    return 2 * np.sqrt(b + b * b * (1 / dmt[1] + 1 / dmt[2] + 1 / dmt[3])) / s if s > 0 and b > 0 else np.nan
+    return (
+        2 * np.sqrt(b + b * b * (1 / dmt[1] + 1 / dmt[2] + 1 / dmt[3])) / s
+        if s > 0 and b > 0
+        else np.nan
+    )
+
 
 # @nb.njit
 def scan_fom(
@@ -357,7 +366,9 @@ def scan_fom(
     return all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
 
 
-def get_optimal_cuts(all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=True):
+def get_optimal_cuts(
+    all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=True
+):
 
     bdt_cuts = np.sort(np.unique(all_bdt_cuts))
     xbb_cuts = np.sort(np.unique(all_xbb_cuts))
@@ -380,9 +391,9 @@ def get_optimal_cuts(all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, a
             # find index of this cut
             idx = np.where((all_bdt_cuts == bdt_cut) & (all_xbb_cuts == xbb_cut))[0][0]
             if restrict:
-                constraint = (all_s[idx] > 0.5 and all_b[idx] >= 2 and all_sideband_events[idx] >= 12)
+                constraint = all_s[idx] > 0.5 and all_b[idx] >= 2 and all_sideband_events[idx] >= 12
             else:
-                constraint = (all_s[idx] > 0 and all_b[idx] > 0)
+                constraint = all_s[idx] > 0 and all_b[idx] > 0
             if constraint:
                 h_sb.fill(bdt_cut, xbb_cut, weight=all_fom[idx])
                 h_b.fill(bdt_cut, xbb_cut, weight=all_b[idx])
@@ -435,7 +446,13 @@ def get_cuts():
 
 # @nb.njit
 def run_toys(
-    ntoys, lumi_scale=1.0, method="2dkde", optimize=True, restrict=True, xbb_cut_data=0.8900, bdt_cut_data=0.9750
+    ntoys,
+    lumi_scale=1.0,
+    method="2dkde",
+    optimize=True,
+    restrict=True,
+    xbb_cut_data=0.8900,
+    bdt_cut_data=0.9750,
 ):
 
     bdt_cut_toys = []
@@ -509,11 +526,17 @@ def run_toys(
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
-                fom=fom_update
+                fom=fom_update,
             )
 
             global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
-                all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=restrict
+                all_fom,
+                all_b,
+                all_s,
+                all_sideband_events,
+                all_xbb_cuts,
+                all_bdt_cuts,
+                restrict=restrict,
             )
             if global_min is None:
                 print(f"Skipping toy {itoy} due to no valid cuts found.")
@@ -532,7 +555,7 @@ def run_toys(
                 mass_window,
                 bg_keys,
                 args.fom_ggf_samples,
-            )        
+            )
             global_min = fom_update(b, s, bcd)
 
         bdt_cut_toys.append(bdt_cut)
@@ -655,11 +678,17 @@ if __name__ == "__main__":
             bg_keys=bg_keys,
             sig_keys=args.fom_ggf_samples,
             mass=args.mass,
-            fom=fom_update
+            fom=fom_update,
         )
 
         fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
-            all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=restrict
+            all_fom,
+            all_b,
+            all_s,
+            all_sideband_events,
+            all_xbb_cuts,
+            all_bdt_cuts,
+            restrict=restrict,
         )
         print("Data")
         print(f"Optimal cuts: bdt_cut={bdt_cut_data:.4f}, xbb_cut={xbb_cut_data:.4f}")
