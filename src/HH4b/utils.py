@@ -368,7 +368,7 @@ def load_samples(
                             parquet_file, filters=filters, columns=load_columns
                         )
                         non_empty_passed_list.append(df_sample)
-                events = pd.concat(non_empty_passed_list)
+                events = pd.concat(non_empty_passed_list, ignore_index=True)
             except Exception:
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
@@ -380,7 +380,7 @@ def load_samples(
                             parquet_file, filters=filters, columns=load_columns
                         )
                         non_empty_passed_list.append(df_sample)
-                events = pd.concat(non_empty_passed_list)
+                events = pd.concat(non_empty_passed_list, ignore_index=True)
                 continue
 
             # no events?
