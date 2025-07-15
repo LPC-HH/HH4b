@@ -1164,6 +1164,20 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & cut_mass])
 
 
+def fom_classic(s, b, abcd=None):
+    return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
+
+
+def fom_update(s, b, abcd=None):
+    if abcd is None:
+        return fom_classic(s, b)
+    return (
+        2 * np.sqrt(b + b * b * (1 / abcd[1] + 1 / abcd[2] + 1 / abcd[3])) / s
+        if s > 0 and b > 0
+        else np.nan
+    )
+
+
 def scan_fom(
     method: str,
     events_combined: pd.DataFrame,
@@ -1176,7 +1190,7 @@ def scan_fom(
     plot_name: str,
     bg_keys: list[str],
     sig_keys: list[str],
-    fom: str = "2sqrt(b + b^2/SBDataYield)/s",
+    fom: Callable,
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
@@ -1211,7 +1225,7 @@ def scan_fom(
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
             if method == "abcd":
-                nevents_sig, nevents_bkg, _ = abcd(
+                nevents_sig, nevents_bkg, nevents_abcd = abcd(
                     events_combined,
                     get_cut,
                     get_anti_cut,
@@ -1223,24 +1237,16 @@ def scan_fom(
                     sig_keys,
                 )
             else:
-                nevents_sig, nevents_bkg, _ = sideband(
+                nevents_sig, nevents_bkg = sideband(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_keys
                 )
+                nevents_abcd = None
 
             # number of events in data in sideband
             cut = get_cut(events_combined["data"], xbb_cut, bdt_cut)
             nevents_sideband = get_nevents_nosignal(events_combined["data"], cut, mass, mass_window)
 
-            if fom == "s/sqrt(s+b)":
-                figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
-            elif fom == "2sqrt(b)/s":
-                figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
-            elif fom == "2sqrt(b + b^2/SBDataYield)/s":
-                figure_of_merit = (
-                    2 * np.sqrt(nevents_bkg + nevents_bkg**2 / nevents_sideband) / nevents_sig
-                )
-            else:
-                raise ValueError("Invalid FOM")
+            figure_of_merit = fom(nevents_sig, nevents_bkg, nevents_abcd)
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             # save all cuts for finetuning constraint after
@@ -1482,7 +1488,7 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
             mass,
             mass_window,
         )
-    return nevents_sig, nevents_bkg, {}
+    return nevents_sig, nevents_bkg
 
 
 def abcd(
@@ -1535,7 +1541,7 @@ def abcd(
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
     background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
-    return s, background, dicts
+    return s, background, dmt
 
 
 def postprocess_run3(args):
@@ -1756,6 +1762,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 sig_keys=args.fom_vbf_samples,
                 mass=args.mass,
+                fom=fom_classic,
             )
 
         if args.fom_scan_bin1:
