@@ -1241,8 +1241,8 @@ class bbbbSkimmer(SkimmerABC):
             # FatJet0 with pT>250, mSD>40
             cut_pt_lead = (
                 np.sum(
-                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 250)
-                    & (bbFatJetVars["bbFatJetMsd"][:, :2] >= 40),
+                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 250),
+                    # & (bbFatJetVars["bbFatJetMsd"][:, :2] >= 40),
                     axis=1,
                 )
             ) >= 1
@@ -1267,19 +1267,19 @@ class bbbbSkimmer(SkimmerABC):
             )
             add_selection("ak8_back2back", zbb_ak8jets_dphi >= (np.pi / 2), *selection_args)
 
-            # >= 1 AK8 jet with ParT/PNet Xbb >= 0.1
-            if self._nano_version.startswith("v14"):
-                # ParT2 and ParT3 in v14
-                cut_txbb = (
-                    (np.sum(bbFatJetVars["bbFatJetParT2TXbb"][:, :2] >= 0.1, axis=1) >= 1)
-                    | (np.sum(bbFatJetVars["bbFatJetParT3TXbb"][:, :2] >= 0.1, axis=1) >= 1)
-                    | (np.sum(bbFatJetVars["bbFatJetPNetTXbbLegacy"][:, :2] >= 0.1, axis=1) >= 1)
-                )
-            else:
-                cut_txbb = (np.sum(bbFatJetVars["bbFatJetParTTXbb"][:, :2] >= 0.1, axis=1) >= 1) | (
-                    np.sum(bbFatJetVars["bbFatJetPNetTXbbLegacy"][:, :2] >= 0.1, axis=1) >= 1
-                )
-            add_selection("ak8bb_txbb", cut_txbb, *selection_args)
+            # # >= 1 AK8 jet with ParT/PNet Xbb >= 0.1
+            # if self._nano_version.startswith("v14"):
+            #     # ParT2 and ParT3 in v14
+            #     cut_txbb = (
+            #         (np.sum(bbFatJetVars["bbFatJetParT2TXbb"][:, :2] >= 0.1, axis=1) >= 1)
+            #         | (np.sum(bbFatJetVars["bbFatJetParT3TXbb"][:, :2] >= 0.1, axis=1) >= 1)
+            #         | (np.sum(bbFatJetVars["bbFatJetPNetTXbbLegacy"][:, :2] >= 0.1, axis=1) >= 1)
+            #     )
+            # else:
+            #     cut_txbb = (np.sum(bbFatJetVars["bbFatJetParTTXbb"][:, :2] >= 0.1, axis=1) >= 1) | (
+            #         np.sum(bbFatJetVars["bbFatJetPNetTXbbLegacy"][:, :2] >= 0.1, axis=1) >= 1
+            #     )
+            # add_selection("ak8bb_txbb", cut_txbb, *selection_args)
 
             # HT > 1000
             add_selection("ht1000", eventVars["ht"] >= 1000, *selection_args)
