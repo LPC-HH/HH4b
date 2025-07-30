@@ -143,7 +143,7 @@ mintol=0.1  # --cminDefaultMinimizerTolerance
 # so this is just to be extra safe.
 unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*}"
 
-excludeimpactparams='rgx{.*tf_dataResidual_Bin.*},rgx{.*_mcstat_.*}'
+excludeimpactparams='rgx{.*tf_dataResidual.*},rgx{.*_mcstat_.*}'
 
 echo "cc args:"
 echo "$ccargs"
