@@ -518,7 +518,7 @@ class bbbbSkimmer(SkimmerABC):
                 jms_val["down"],
                 jms_val["up"],
             ]
-            if self._nano_version == "v14_25v2":
+            if "v14" in self._nano_version:
                 self.jmr_values[jmsr_year]["ParT2massVis"] = [
                     jmr_val["nom"],
                     jmr_val["down"],
@@ -529,6 +529,19 @@ class bbbbSkimmer(SkimmerABC):
                     jms_val["down"],
                     jms_val["up"],
                 ]
+                if self._region == "zbb":
+                    # Also float softdrop mass and ParT 3 regressed masses
+                    for mass_var in ["msoftdrop", "ParT3massGeneric", "ParT3massX2p"]:
+                        self.jmr_values[jmsr_year][mass_var] = [
+                            jmr_val["nom"],
+                            jmr_val["down"],
+                            jmr_val["up"],
+                        ]
+                        self.jms_values[jmsr_year][mass_var] = [
+                            jms_val["nom"],
+                            jms_val["down"],
+                            jms_val["up"],
+                        ]
 
         # FatJet Vars
         if (
@@ -1238,10 +1251,10 @@ class bbbbSkimmer(SkimmerABC):
             # >=2 AK8 jets
             add_selection("num_ak8jets", eventVars["nFatJets"] >= 2, *selection_args)
 
-            # FatJet0 with pT>250, mSD>40
+            # FatJet0 with pT>350, mSD>40
             cut_pt_lead = (
                 np.sum(
-                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 250),
+                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 350),
                     # & (bbFatJetVars["bbFatJetMsd"][:, :2] >= 40),
                     axis=1,
                 )
