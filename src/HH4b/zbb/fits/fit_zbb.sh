@@ -42,7 +42,7 @@ bias=-1
 passbin=0
 cards_dir=0
 
-options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impacts:,bias:,seed:,numtoys:,passbin:,cards_dir:" -- "$@")
+options=$(getopt -o "wblsdgti" --long "workspace,bfit,limits,significance,dfit,gofdata,goftoys,impacts:,dNLL_scan,bias:,seed:,numtoys:,passbin:,cards_dir:" -- "$@")
 eval set -- "$options"
 
 while true; do
@@ -71,6 +71,9 @@ while true; do
         -i|--impacts)
             shift
             impacts=$1
+            ;;
+        --dNLL_scan)
+            dNLL_scan=1
             ;;
         --seed)
             shift
@@ -175,9 +178,9 @@ fi
 
 if [ $bfit = 1 ]; then
     echo "Multidim fit"
-    combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 --rMin $rmin --rMax $rmax \
+    combine -D $dataset -M MultiDimFit --saveWorkspace --algo singles -m 125 -d ${wsm}.root -v 9 --rMin $rmin --rMax $rmax \
     --cminDefaultMinimizerStrategy 1 --cminDefaultMinimizerTolerance "$mintol" --X-rtd MINIMIZER_MaxCalls=400000 \
-    -n Snapshot 2>&1 --algo singles | tee $outsdir/MultiDimFit.txt
+    -n Snapshot 2>&1 | tee $outsdir/MultiDimFit.txt
 fi
 
 if [ $limits = 1 ]; then
@@ -240,18 +243,36 @@ if [ "$impacts" != 0 ]; then
     # --robustFit 1 ${unblindedparams} \
     # --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 -m 125 | tee $outsdir/Impacts_"$impacts".txt
 
-    # Initial fit
-    combineTool.py -M Impacts --snapshotName MultiDimFit -m 125 -n "impacts" \
-    -d ${wsm_snapshot}.root --doInitialFit --robustFit 1 ${unblindedparams} \
-     --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_init.txt
+    # # Initial fit
+    # combineTool.py -M Impacts --doInitialFit --snapshotName MultiDimFit -m 125 -n "impacts" \
+    # -d ${wsm_snapshot}.root --robustFit 1 ${unblindedparams} \
+    #  --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_init.txt
 
-    combineTool.py -M Impacts --snapshotName MultiDimFit \
-    -m 125 -n "impacts" -d ${wsm_snapshot}.root --doFits --robustFit 1 \
+    # # optional --dry-run --job-mode interactive
+    # combineTool.py -M Impacts --doFits --snapshotName MultiDimFit \
+    # -m 125 -n "impacts" -d ${wsm_snapshot}.root --robustFit 1 \
+    # --exclude ${excludeimpactparams} \
+    # --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 1 2>&1 | tee $outsdir/Impacts_fits.txt
+
+    impact_common_args="-M Impacts -m 125 --snapshotName MultiDimFit --cminDefaultMinimizerStrategy=1 -v 1 -d ${wsm_snapshot}.root -n impacts"
+
+    # Initial fit
+    combineTool.py --doInitialFit ${impact_common_args} \
+    -d ${wsm_snapshot}.root --robustFit 1 ${unblindedparams} 2>&1 | tee $outsdir/Impacts_init.txt
+
+    combineTool.py --doFits ${impact_common_args} \
     --exclude ${excludeimpactparams} \
-    --job-mode interactive --dry-run \
-    --setParameterRanges r=-0.5,20 --cminDefaultMinimizerStrategy=1 -v 9 2>&1 | tee $outsdir/Impacts_fits.txt
+    --setParameterRanges r=-0.5,20 2>&1 | tee $outsdir/Impacts_fits.txt
+
+    # crab output and make plots
+    combineTool.py ${impact_common_args} --exclude ${excludeimpactparams} -o impacts.json
+    plotImpacts.py -i impacts.json -o impacts
 fi
 
+if [ "$dNLL_scan" != 0 ]; then
+    combine -v9 -M MultiDimFit --algo grid -m 125 -n "Scan" --rMin -2 --rMax 2 "${ws}.txt" 2>&1 | tee "${outsdir}/dnll_scan.txt"
+    plot1DScan.py "higgsCombineScan.MultiDimFit.mH125.root" -o scan
+fi
 
 
 if [ "$bias" != -1 ]; then
