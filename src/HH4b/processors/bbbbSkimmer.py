@@ -1251,10 +1251,10 @@ class bbbbSkimmer(SkimmerABC):
             # >=2 AK8 jets
             add_selection("num_ak8jets", eventVars["nFatJets"] >= 2, *selection_args)
 
-            # FatJet0 with pT>350, mSD>40
+            # FatJet0 with pT>250
             cut_pt_lead = (
                 np.sum(
-                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 350),
+                    (bbFatJetVars["bbFatJetPt"][:, :2] >= 250),
                     # & (bbFatJetVars["bbFatJetMsd"][:, :2] >= 40),
                     axis=1,
                 )
