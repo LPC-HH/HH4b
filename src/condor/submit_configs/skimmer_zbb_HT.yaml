@@ -1,63 +1,5 @@
 {
     "2022": {
-        "QCD": {
-            "subsamples": [
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000"
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
-        "TT": {
-            "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
-        "VJets": {
-            "subsamples": [
-                "Wto2Q-3Jets_HT-200to400",
-                "Wto2Q-3Jets_HT-400to600",
-                "Wto2Q-3Jets_HT-600to800",
-                "Wto2Q-3Jets_HT-800",
-                "Zto2Q-4Jets_HT-200to400",
-                "Zto2Q-4Jets_HT-400to600",
-                "Zto2Q-4Jets_HT-600to800",
-                "Zto2Q-4Jets_HT-800"
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
-        "Hbb": {
-            "subsamples": [
-                "GluGluHto2B_M-125",
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
-        "JetMET": {
-            "files_per_job": 10
-        }
-    },
-    "2023": {
-        "QCD": {
-            "subsamples": [
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000"
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
         "TT": {
             "subsamples": [
                 "TTto4Q",
@@ -92,18 +34,40 @@
         }
     },
     "2022EE": {
-        "QCD": {
+        "TT": {
             "subsamples": [
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000"
+                "TTto4Q",
+                "TTtoLNu2Q"
             ],
             "files_per_job": 5,
             "chunksize": 8000
         },
+        "VJets": {
+            "subsamples": [
+                "Wto2Q-3Jets_HT-200to400",
+                "Wto2Q-3Jets_HT-400to600",
+                "Wto2Q-3Jets_HT-600to800",
+                "Wto2Q-3Jets_HT-800",
+                "Zto2Q-4Jets_HT-200to400",
+                "Zto2Q-4Jets_HT-400to600",
+                "Zto2Q-4Jets_HT-600to800",
+                "Zto2Q-4Jets_HT-800"
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "Hbb": {
+            "subsamples": [
+                "GluGluHto2B_M-125",
+            ],
+            "files_per_job": 5,
+            "chunksize": 8000
+        },
+        "JetMET": {
+            "files_per_job": 10
+        }
+    },
+    "2023": {
         "TT": {
             "subsamples": [
                 "TTto4Q",
@@ -138,18 +102,6 @@
         }
     },
     "2023BPix": {
-        "QCD": {
-            "subsamples": [
-                "QCD_HT-600to800",
-                "QCD_HT-800to1000",
-                "QCD_HT-1000to1200",
-                "QCD_HT-1200to1500",
-                "QCD_HT-1500to2000",
-                "QCD_HT-2000"
-            ],
-            "files_per_job": 5,
-            "chunksize": 8000
-        },
         "TT": {
             "subsamples": [
                 "TTto4Q",
