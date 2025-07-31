@@ -36,6 +36,7 @@ dfit=0
 gofdata=0
 goftoys=0
 impacts=0
+dNLL_scan=0
 seed=42
 numtoys=100
 bias=-1
