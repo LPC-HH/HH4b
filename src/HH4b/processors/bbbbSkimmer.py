@@ -507,15 +507,16 @@ class bbbbSkimmer(SkimmerABC):
                 # 5% for scale (JMS) and 10% for resolution (JMR)
                 d_jms = 0.05
                 d_jmr = 0.1
-                jmr_val = {
-                    "nom": 1.0,
-                    "down": 1.0 - d_jmr,
-                    "up": 1.0 + d_jmr,
-                }
                 jms_val = {
                     "nom": 1.0,
                     "down": 1.0 - d_jms,
                     "up": 1.0 + d_jms,
+                }
+                # JMR is set to be >= 1.0
+                jmr_val = {
+                    "nom": 1.0 + d_jmr,
+                    "down": 1.0,
+                    "up": 1.0 + 2 * d_jmr,
                 }
 
             self.jmr_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
