@@ -22,8 +22,9 @@ from HH4b.postprocessing.PostProcess import (
     load_process_run3_samples,
 )
 
-xbb_cuts = np.arange(0.8, 0.999, 0.0025)
+xbb_cuts = np.arange(0.9, 0.999, 0.0025)
 bdt_cuts = np.arange(0.9, 0.999, 0.0025)
+# bdt_cuts = np.array([0.975])
 
 
 # @nb.njit
@@ -158,7 +159,7 @@ args = Namespace(
     pt_first=300.0,
     pt_second=250.0,
     fom_vbf_samples=["vbfhh4b-k2v0"],
-    fom_ggf_samples=["hh4b", "vbfhh4b"],
+    fom_ggf_samples=["hh4b"],
     bdt_disc=True,
     event_list=False,
     event_list_dir="event_lists",
@@ -202,7 +203,7 @@ for year in samples_run3:
 
 # get top-level HH4b directory
 HH4B_DIR = "/home/users/woodson/HH4b/"
-plot_dir = Path(f"{HH4B_DIR}/plots/Scaling_Toys/FoM_Update/")
+plot_dir = Path(f"{HH4B_DIR}/plots/Scaling_Toys/")
 plot_dir.mkdir(exist_ok=True, parents=True)
 
 
@@ -370,8 +371,8 @@ def get_optimal_cuts(
     all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=True
 ):
 
-    bdt_cuts = np.sort(np.unique(all_bdt_cuts))
-    xbb_cuts = np.sort(np.unique(all_xbb_cuts))
+    bdt_cuts = np.concatenate((np.sort(np.unique(all_bdt_cuts)), np.array([1])))
+    xbb_cuts = np.concatenate((np.sort(np.unique(all_xbb_cuts)), np.array([1])))
 
     h_sb = hist.Hist(
         hist.axis.Variable(list(bdt_cuts), name="bdt_cut"),
@@ -388,12 +389,13 @@ def get_optimal_cuts(
 
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
+            if xbb_cut >= 1 or bdt_cut >= 1: continue
             # find index of this cut
             idx = np.where((all_bdt_cuts == bdt_cut) & (all_xbb_cuts == xbb_cut))[0][0]
             if restrict:
-                constraint = all_s[idx] > 0.5 and all_b[idx] >= 2 and all_sideband_events[idx] >= 12
+                constraint = (all_s[idx] > 0.5) and (all_b[idx] >= 2) and (all_sideband_events[idx] >= 12)
             else:
-                constraint = all_s[idx] > 0 and all_b[idx] > 0
+                constraint = (all_s[idx] > 0) and (all_b[idx] > 0)
             if constraint:
                 h_sb.fill(bdt_cut, xbb_cut, weight=all_fom[idx])
                 h_b.fill(bdt_cut, xbb_cut, weight=all_b[idx])
@@ -448,11 +450,12 @@ def get_cuts():
 def run_toys(
     ntoys,
     lumi_scale=1.0,
-    method="2dkde",
+    method="3dkde",
     optimize=True,
     restrict=True,
-    xbb_cut_data=0.8900,
-    bdt_cut_data=0.9750,
+    xbb_cut_data=0.9325,  # 0.8900,
+    bdt_cut_data=0.9675,  # 0.9750,
+    use_fom_update=True,
 ):
 
     bdt_cut_toys = []
@@ -526,7 +529,7 @@ def run_toys(
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
-                fom=fom_update,
+                fom=fom_update if use_fom_update else fom_classic,
             )
 
             global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
@@ -556,7 +559,7 @@ def run_toys(
                 bg_keys,
                 args.fom_ggf_samples,
             )
-            global_min = fom_update(b, s, bcd)
+            global_min = fom_update(s, b, bcd) if use_fom_update else fom_classic(s, b, bcd)
 
         bdt_cut_toys.append(bdt_cut)
         xbb_cut_toys.append(xbb_cut)
@@ -565,6 +568,8 @@ def run_toys(
         fom_toys.append(global_min)
 
         print(f"Lumi scale: {lumi_scale}, Toy: {itoy + 1}")
+        print(f"Method: {method}")
+        print(f"FoM: {fom_update if use_fom_update else fom_classic}")
         print(f"Optimal cuts: bdt_cut={bdt_cut:.4f}, xbb_cut={xbb_cut:.4f}")
         print(
             f"FoM={global_min:.4f}, b={b:.4f}, s={s:.4f}, s/b={s/b:.4f}, s/sqrt(b)={s/np.sqrt(b):.4f}"
@@ -626,7 +631,6 @@ if __name__ == "__main__":
             f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb"
         ) as f:
             events_combined = pickle.load(f)
-        print(events_combined.keys())
 
     integral = len(events_combined["data"])
 
@@ -652,19 +656,22 @@ if __name__ == "__main__":
     kde_1d_xbb = gaussian_kde(transformed_data_array[:, 1], bw_method="silverman")
     kde_1d_bdt = gaussian_kde(transformed_data_array[:, 2], bw_method="silverman")
 
+    # lumi_scale = 1
     # lumi_scale = 138.0 / 62.0
-    lumi_scale = 1
-    # lumi_scale = 10
     # lumi_scale = 0.5
+    lumi_scale = 62.0 / 138.0
     ntoys = 100
     # ntoys = -1
-    method = "2dkde"
-    optimize = True
+    method = "3dkde"
+    optimize = False
     restrict = True
+    use_fom_update = True
+    if use_fom_update:
+        plot_dir = plot_dir / "FoM_Update"
 
     if ntoys > 0:
         bdt_cut_toys, xbb_cut_toys, s_toys, b_toys, fom_toys = run_toys(
-            ntoys, lumi_scale=lumi_scale, method=method, optimize=optimize, restrict=restrict
+            ntoys, lumi_scale=lumi_scale, method=method, optimize=optimize, restrict=restrict, use_fom_update=use_fom_update
         )
     else:
         all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
@@ -678,7 +685,7 @@ if __name__ == "__main__":
             bg_keys=bg_keys,
             sig_keys=args.fom_ggf_samples,
             mass=args.mass,
-            fom=fom_update,
+            fom=fom_update if use_fom_update else fom_classic,
         )
 
         fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
@@ -691,6 +698,7 @@ if __name__ == "__main__":
             restrict=restrict,
         )
         print("Data")
+        print(f"FoM: {fom_update if use_fom_update else fom_classic}")
         print(f"Optimal cuts: bdt_cut={bdt_cut_data:.4f}, xbb_cut={xbb_cut_data:.4f}")
         print(
             f"FoM={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
@@ -698,7 +706,10 @@ if __name__ == "__main__":
 
     # save all arrays to a pickle file
     if optimize:
-        optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}_{bdt_cuts[-1]:.4f}_{bdt_cuts[1]-bdt_cuts[0]:.4f}"
+        if len(bdt_cuts) > 1:
+            optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}_{bdt_cuts[-1]:.4f}_{bdt_cuts[1]-bdt_cuts[0]:.4f}"
+        else:
+            optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}"
     else:
         optimize_str = "noopt"
     if not restrict:

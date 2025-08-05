@@ -1046,6 +1046,8 @@ def load_process_run3_samples(
             "bdt_score",
             "H2TXbb",
             "H2PNetMass",
+            "H1Pt",
+            "H2Pt",
             "weight",
             "event",
             "run",
