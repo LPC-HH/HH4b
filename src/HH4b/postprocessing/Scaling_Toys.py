@@ -389,11 +389,14 @@ def get_optimal_cuts(
 
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
-            if xbb_cut >= 1 or bdt_cut >= 1: continue
+            if xbb_cut >= 1 or bdt_cut >= 1:
+                continue
             # find index of this cut
             idx = np.where((all_bdt_cuts == bdt_cut) & (all_xbb_cuts == xbb_cut))[0][0]
             if restrict:
-                constraint = (all_s[idx] > 0.5) and (all_b[idx] >= 2) and (all_sideband_events[idx] >= 12)
+                constraint = (
+                    (all_s[idx] > 0.5) and (all_b[idx] >= 2) and (all_sideband_events[idx] >= 12)
+                )
             else:
                 constraint = (all_s[idx] > 0) and (all_b[idx] > 0)
             if constraint:
@@ -671,7 +674,12 @@ if __name__ == "__main__":
 
     if ntoys > 0:
         bdt_cut_toys, xbb_cut_toys, s_toys, b_toys, fom_toys = run_toys(
-            ntoys, lumi_scale=lumi_scale, method=method, optimize=optimize, restrict=restrict, use_fom_update=use_fom_update
+            ntoys,
+            lumi_scale=lumi_scale,
+            method=method,
+            optimize=optimize,
+            restrict=restrict,
+            use_fom_update=use_fom_update,
         )
     else:
         all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
