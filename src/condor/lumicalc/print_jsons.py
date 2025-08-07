@@ -2,6 +2,8 @@
 Run over NanoAOD ntuples to extract run and luminosity block information,
 
 Adapted from https://github.com/cms-lpc-llp/run3_llp_analyzer/blob/62492e6ad3a0eb76eea527ffc8acc41fb9f7c5e3/python/printJson.py
+
+Can create either merged run-lumi JSON or file-level JSON structure based on --file-level flag
 """
 
 from __future__ import annotations
@@ -102,6 +104,50 @@ def convert_tree_to_dict(
     return run_lumi_dict
 
 
+def convert_tree_to_dict_single_file(tree: rt.TTree, lumi_branch: str, run_branch: str) -> dict:
+    """
+    Extract run and luminosity block information from ROOT TTree for a single file.
+
+    Args:
+        tree: ROOT TTree to process
+        lumi_branch: Name of luminosity block branch
+        run_branch: Name of run number branch
+
+    Returns:
+        dict: Run-lumi dictionary for this file
+    """
+    run_lumi_dict = {}
+
+    if not (hasattr(tree, lumi_branch) and hasattr(tree, run_branch)):
+        print("tree does not contain run and lumi branches, returning empty json")
+        return run_lumi_dict
+
+    # Loop over tree to get run, lumi "flat" dictionary
+    tree.Draw(">>elist", "", "entrylist")
+    elist = rt.gDirectory.Get("elist")
+    if tree.GetEntries() == 0:
+        return run_lumi_dict
+
+    entry = -1
+    while True:
+        entry = elist.Next()
+        if entry == -1:
+            break
+        tree.GetEntry(entry)
+        run_str = str(getattr(tree, run_branch))
+        lumi_val = int(getattr(tree, lumi_branch))
+
+        if run_str in run_lumi_dict:
+            current_lumi = run_lumi_dict[run_str]
+            if lumi_val not in current_lumi:
+                current_lumi.append(lumi_val)
+                run_lumi_dict[run_str] = current_lumi
+        else:
+            run_lumi_dict[run_str] = [lumi_val]
+
+    return run_lumi_dict
+
+
 def fix_dict(run_lumi_dict: dict) -> dict:
     """
     Group consecutive luminosity blocks into ranges.
@@ -156,32 +202,70 @@ def main():
         help="Name of text file containing list of ROOT files",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Print detailed output")
+    parser.add_argument(
+        "--file-level",
+        action="store_true",
+        help="Create file-level JSON structure {file: {run: [[lumi_start, lumi_end]]}} instead of merged structure",
+    )
 
     args = parser.parse_args()
-
-    run_lumi_dict = {}
 
     with Path(args.input_list).open("r") as file1:
         lines = file1.readlines()
 
-    for line in tqdm(lines):
-        file_path = line.strip()
-        root_file = rt.TFile.Open(file_path)
-        if not root_file or root_file.IsZombie():
-            print(f"Warning: Could not open file {line.strip()}")
-            continue
+    if args.file_level:
+        # File-level dictionary: {file_path: {run: [[lumi_start, lumi_end], ...]}}
+        file_level_dict = {}
 
-        tree = root_file.Get(args.tree_name)
-        run_lumi_dict = convert_tree_to_dict(run_lumi_dict, tree, args.lumi_branch, args.run_branch)
+        for line in tqdm(lines):
+            file_path = line.strip()
+            root_file = rt.TFile.Open(file_path)
+            if not root_file or root_file.IsZombie():
+                print(f"Warning: Could not open file {line.strip()}")
+                continue
 
-        root_file.Close()
+            tree = root_file.Get(args.tree_name)
 
-    run_lumi_dict = fix_dict(run_lumi_dict)
+            # Get run-lumi dict for this specific file
+            file_run_lumi_dict = convert_tree_to_dict_single_file(
+                tree, args.lumi_branch, args.run_branch
+            )
+
+            # Fix the dictionary (group consecutive lumis into ranges)
+            file_run_lumi_dict = fix_dict(file_run_lumi_dict)
+
+            # Store in file-level structure
+            file_level_dict[file_path] = file_run_lumi_dict
+
+            root_file.Close()
+
+        output_dict = file_level_dict
+
+    else:
+        # Original merged behavior
+        run_lumi_dict = {}
+
+        for line in tqdm(lines):
+            file_path = line.strip()
+            root_file = rt.TFile.Open(file_path)
+            if not root_file or root_file.IsZombie():
+                print(f"Warning: Could not open file {line.strip()}")
+                continue
+
+            tree = root_file.Get(args.tree_name)
+            run_lumi_dict = convert_tree_to_dict(
+                run_lumi_dict, tree, args.lumi_branch, args.run_branch
+            )
+
+            root_file.Close()
+
+        run_lumi_dict = fix_dict(run_lumi_dict)
+        output_dict = run_lumi_dict
 
     (Path(args.output)).parent.mkdir(parents=True, exist_ok=True)
 
     with Path(args.output).open("w") as output:
-        json.dump(run_lumi_dict, output, sort_keys=True, indent=2)
+        json.dump(output_dict, output, sort_keys=True, indent=2)
 
     if args.verbose:
         print(f"\njson dumped to file {args.output}:")
