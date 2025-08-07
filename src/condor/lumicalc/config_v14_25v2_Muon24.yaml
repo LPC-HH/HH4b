@@ -1,0 +1,21 @@
+{
+  nano_version: "v14_25v2_24Data23MC",
+  output_dir: "nano_v14_25v2_Muon/filelists",
+  data: {
+    "2022": [
+      "Muon",
+    ],
+    "2022EE": [
+      "Muon",
+    ],
+    "2023": [
+      "Muon",
+    ],
+    "2023BPix": [
+      "Muon",
+    ],
+    "2024": [
+      "Muon",
+    ],
+  }
+}
