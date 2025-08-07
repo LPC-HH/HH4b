@@ -488,7 +488,7 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-        if self._nano_version == "v14_25v2":
+        if "v14" in self._nano_version:
             self.jmsr_vars += [
                 "particleNet_mass_legacy",
                 "ParT2massVis",
@@ -565,7 +565,7 @@ class bbbbSkimmer(SkimmerABC):
         if (
             self._nano_version == "v12_private"
             or self._nano_version == "v12v2_private"
-            or self._nano_version == "v14_25v2"
+            or "v14" in self._nano_version
         ):
             extra_vars = [
                 "TXbb",
@@ -599,7 +599,7 @@ class bbbbSkimmer(SkimmerABC):
                 **self.skim_vars["FatJet"],
                 **{var: var for var in extra_vars},
             }
-        if self._nano_version == "v14_25v2":
+        if "v14" in self._nano_version:
             extra_vars = [
                 # ParT 2
                 "ParT2PQCD1HF",
