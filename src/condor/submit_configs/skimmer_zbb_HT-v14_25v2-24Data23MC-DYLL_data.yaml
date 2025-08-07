@@ -1,6 +1,6 @@
 {
     "2022": {
-        "VJets": {
+        VJetsLO: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -29,7 +29,7 @@
         "Muon": {"files_per_job": 10}
     },
     "2022EE": {
-        "VJets": {
+        VJetsLO: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -58,7 +58,7 @@
         "Muon": {"files_per_job": 10}
     },
     "2023": {
-        "VJets": {
+        VJetsLO: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -87,7 +87,7 @@
         "Muon": {"files_per_job": 10}
     },
     "2023BPix": {
-        "VJets": {
+        VJetsLO: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -116,7 +116,7 @@
         "Muon": {"files_per_job": 10}
     },
     "2024": {
-        "VJets": {
+        VJetsLO: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
