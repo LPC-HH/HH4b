@@ -6,6 +6,7 @@ import logging
 import logging.config
 import pprint
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
@@ -431,6 +432,10 @@ def calculate_txbb_weights(
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
+    # create a thread-specific logger with year context
+    thread_logger = logging.getLogger(f"{__name__}.{year}")
+    thread_logger.info(f"Starting processing for year {year}")
+
     plot_dir = Path(plot_dir)
     # define BDT model
     if rerun_inference:
@@ -522,9 +527,13 @@ def load_process_run3_samples(
     # if year == "2024":
     #    samples_year.remove("qcd")
     for key in samples_year:
-        logger.info(f"Load samples {key}")
+        thread_logger.info(f"Load samples {key}")
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
+
+        # TODO: this function seems to load all samples and then select a single one
+        # repeatedly for each key (major perf bottle neck). Speeding up with  multithreading for now,
+        # but might be worth changing the logic if that's not too convoluted to do.
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
@@ -1133,6 +1142,7 @@ def load_process_run3_samples(
 
     logger.info(f"\nCutflow {cutflow}")
     """
+    thread_logger.info(f"Completed processing for year {year}")
     return events_dict_postprocess, cutflow
 
 
@@ -1164,7 +1174,7 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & cut_mass])
 
 
-def fom_classic(s, b, abcd=None):
+def fom_classic(s, b, abcd=None):  # noqa: ARG001
     return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
 
 
@@ -1544,6 +1554,37 @@ def abcd(
     return s, background, dmt
 
 
+def load_process_run3_samples_parallel(
+    args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference
+):
+
+    # parallelized load_process_run3_samples
+
+    events_dict_postprocess = {}
+    cutflows = {}
+
+    with ThreadPoolExecutor(max_workers=len(args.years)) as executor:
+        futures = [
+            executor.submit(
+                load_process_run3_samples,
+                args,
+                year,
+                bdt_training_keys,
+                control_plots,
+                plot_dir,
+                mass_window,
+                rerun_inference,
+            )
+            for year in args.years
+        ]
+        for future in as_completed(futures):
+            year, events, cutflow = future.result()
+            events_dict_postprocess[year] = events
+            cutflows[year] = cutflow
+
+    return events_dict_postprocess, cutflows
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -1592,13 +1633,26 @@ def postprocess_run3(args):
     except FileNotFoundError:
         print("File with training events is not available")
         bdt_training_keys = []
-    events_dict_postprocess = {}
-    cutflows = {}
-    for year in args.years:
-        print(f"\n{year}")
+
+    if len(args.years) > 1:
+        # if we have multiple years, we can use parallel processing
+        events_dict_postprocess, cutflows = load_process_run3_samples_parallel(
+            args,
+            args.years,
+            bdt_training_keys,
+            args.control_plots,
+            plot_dir,
+            mass_window,
+            args.rerun_inference,
+        )
+    else:
+        year = args.year[0]
+        events_dict_postprocess = {}
+        cutflows = {}
+
         events, cutflow = load_process_run3_samples(
             args,
-            year,
+            args.years,
             bdt_training_keys,
             args.control_plots,
             plot_dir,
@@ -1762,7 +1816,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 sig_keys=args.fom_vbf_samples,
                 mass=args.mass,
-                fom=fom_classic,
+                fom=fom_update,
             )
 
         if args.fom_scan_bin1:
@@ -1786,6 +1840,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
+                fom=fom_update,
             )
 
         if args.fom_scan_bin2:
@@ -1810,6 +1865,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
+                fom=fom_update,
             )
 
     templ_dir = Path("templates") / args.templates_tag
@@ -1869,7 +1925,7 @@ def postprocess_run3(args):
         )
     if args.event_list:
 
-        import uproot
+        import uproot  # noqa: PLC0415
 
         eventlist_dict = [
             "event",
