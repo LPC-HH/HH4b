@@ -37,7 +37,8 @@ do
 done
 
 pip install -e .
-pip install -r requirements.txt
+conda install -c conda-forge xrootd
+# pip install -r requirements.txt
 
 # run code
 # pip install --user onnxruntime
