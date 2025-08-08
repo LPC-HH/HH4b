@@ -511,6 +511,9 @@ class bbbbSkimmer(SkimmerABC):
                     "down": 1.0 - d_jms,
                     "up": 1.0 + d_jms,
                 }
+                # JMR is set to be >= 1.0
+                # Still use nominal = 1.0
+                # Will let combine symmetrize it
                 jmr_val = {
                     "nom": 1.0,
                     "down": 1.0 - d_jmr,
