@@ -502,22 +502,21 @@ class bbbbSkimmer(SkimmerABC):
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
 
-            # if self._region == "zbb":
-            #     # float JMSR in zbb
-            #     # 5% for scale (JMS) and 10% for resolution (JMR)
-            #     d_jms = 0.05
-            #     d_jmr = 0.1
-            #     jms_val = {
-            #         "nom": 1.0,
-            #         "down": 1.0 - d_jms,
-            #         "up": 1.0 + d_jms,
-            #     }
-            #     # JMR is set to be >= 1.0
-            #     jmr_val = {
-            #         "nom": 1.0 + d_jmr,
-            #         "down": 1.0,
-            #         "up": 1.0 + 2 * d_jmr,
-            #     }
+            if self._region == "zbb":
+                # float JMSR in zbb
+                d_jms = 0.05
+                d_jmr = 0.05
+                jms_val = {
+                    "nom": 1.0,
+                    "down": 1.0 - d_jms,
+                    "up": 1.0 + d_jms,
+                }
+                # JMR is set to be >= 1.0
+                jmr_val = {
+                    "nom": 1.0 + d_jmr,
+                    "down": 1.0,
+                    "up": 1.0 + 2 * d_jmr,
+                }
 
             self.jmr_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
             self.jms_values[jmsr_year] = dict.fromkeys(self.jmsr_vars)
