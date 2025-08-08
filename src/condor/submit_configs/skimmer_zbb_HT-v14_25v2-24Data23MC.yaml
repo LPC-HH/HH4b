@@ -6,7 +6,7 @@
                 "TTto4Q",
                 "TTtoLNu2Q"
             ],
-            "files_per_job": 5,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "VJetsLO": {
@@ -20,11 +20,11 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800"
             ],
-            "files_per_job": 5,
+            "files_per_job": 10,
             "chunksize": 8000
         },
         "JetMET": {
-            "files_per_job": 10
+            "files_per_job": 20
         }
     },
     "2022EE": {
@@ -33,7 +33,7 @@
                 "TTto4Q",
                 "TTtoLNu2Q"
             ],
-            "files_per_job": 5,
+            "files_per_job": 10,
             "chunksize": 8000
         },
         "VJetsLO": {
@@ -47,11 +47,11 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800"
             ],
-            "files_per_job": 5,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "JetMET": {
-            "files_per_job": 10
+            "files_per_job": 20
         }
     },
     "2023": {
@@ -60,7 +60,7 @@
                 "TTto4Q",
                 "TTtoLNu2Q"
             ],
-            "files_per_job": 5,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "VJetsLO": {
@@ -74,11 +74,11 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800"
             ],
-            "files_per_job": 5,
+            "files_per_job": 10,
             "chunksize": 8000
         },
         "JetMET": {
-            "files_per_job": 10
+            "files_per_job": 20
         }
     },
     "2023BPix": {
@@ -87,7 +87,7 @@
                 "TTto4Q",
                 "TTtoLNu2Q"
             ],
-            "files_per_job": 5,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "VJetsLO": {
@@ -101,11 +101,11 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800"
             ],
-            "files_per_job": 5,
+            "files_per_job": 10,
             "chunksize": 8000
         },
         "JetMET": {
-            "files_per_job": 10
+            "files_per_job": 20
         }
     },
     "2024": {
@@ -114,7 +114,7 @@
                 "TTto4Q",
                 "TTtoLNu2Q"
             ],
-            "files_per_job": 5,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "VJetsLO": {
@@ -128,11 +128,11 @@
                 "Zto2Q-4Jets_HT-600to800",
                 "Zto2Q-4Jets_HT-800"
             ],
-            "files_per_job": 5,
+            "files_per_job": 10,
             "chunksize": 8000
         },
         "JetMET": {
-            "files_per_job": 10
+            "files_per_job": 20
         }
     }
 }

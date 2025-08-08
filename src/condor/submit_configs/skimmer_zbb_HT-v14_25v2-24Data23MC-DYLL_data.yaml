@@ -1,6 +1,6 @@
 {
     "2022": {
-        VJetsLO: {
+        VJets: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -10,11 +10,15 @@
                 "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
                 "DYto2L-4Jets_MLL-50to120_HT-2500"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "TT": {
-            "files_per_job": 10,
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "Diboson": {
@@ -23,13 +27,13 @@
                 "WZ",
                 "ZZ"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
-        "Muon": {"files_per_job": 10}
+        "Muon": {"files_per_job": 20}
     },
     "2022EE": {
-        VJetsLO: {
+        VJets: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -39,11 +43,15 @@
                 "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
                 "DYto2L-4Jets_MLL-50to120_HT-2500"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "TT": {
-            "files_per_job": 10,
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "Diboson": {
@@ -52,13 +60,13 @@
                 "WZ",
                 "ZZ"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
-        "Muon": {"files_per_job": 10}
+        "Muon": {"files_per_job": 20}
     },
     "2023": {
-        VJetsLO: {
+        VJets: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -68,11 +76,15 @@
                 "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
                 "DYto2L-4Jets_MLL-50to120_HT-2500"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "TT": {
-            "files_per_job": 10,
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "Diboson": {
@@ -81,13 +93,13 @@
                 "WZ",
                 "ZZ"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
-        "Muon": {"files_per_job": 10}
+        "Muon": {"files_per_job": 20}
     },
     "2023BPix": {
-        VJetsLO: {
+        VJets: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -97,11 +109,15 @@
                 "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
                 "DYto2L-4Jets_MLL-50to120_HT-2500"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "TT": {
-            "files_per_job": 10,
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "Diboson": {
@@ -110,13 +126,13 @@
                 "WZ",
                 "ZZ"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
-        "Muon": {"files_per_job": 10}
+        "Muon": {"files_per_job": 20}
     },
     "2024": {
-        VJetsLO: {
+        VJets: {
             "subsamples": [
                 "DYto2L-4Jets_MLL-50to120_HT-40to70",
                 "DYto2L-4Jets_MLL-50to120_HT-70to100",
@@ -126,11 +142,15 @@
                 "DYto2L-4Jets_MLL-50to120_HT-1500to2500",
                 "DYto2L-4Jets_MLL-50to120_HT-2500"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "TT": {
-            "files_per_job": 10,
+            "subsamples": [
+                "TTto4Q",
+                "TTtoLNu2Q"
+            ],
+            "files_per_job": 20,
             "chunksize": 8000
         },
         "Diboson": {
@@ -139,9 +159,9 @@
                 "WZ",
                 "ZZ"
             ],
-            "files_per_job": 10,
+            "files_per_job": 20,
             "chunksize": 8000
         },
-        "Muon": {"files_per_job": 10}
+        "Muon": {"files_per_job": 20}
     }
 }
