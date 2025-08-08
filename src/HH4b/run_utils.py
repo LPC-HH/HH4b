@@ -195,7 +195,9 @@ def parse_common_args(parser):
             "v12v2_private",
             "v12_ZbbSFZMuMu",
             "v14_25v2",
-            "v14_25v2_24Data23MC",  # TODO: Temporary version for 2024 data and 2023 MC
+            # TODO: Temporary version for 2024 data and 2023 MC
+            "v14_25v2_24Data23MC",
+            "v14_25v2_24Data23MC_ZbbSFZMuMu",
         ],
         help="NanoAOD version",
     )
