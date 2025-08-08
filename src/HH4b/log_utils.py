@@ -5,7 +5,9 @@ log_config = {
     "version": 1,
     "disable_existing_loggers": False,  # this fixes the problem about many loggers
     "formatters": {
-        "default": {"format": "[%(asctime)s] %(levelname)-2s: %(name)-20s %(message)s"},
+        "default": {
+            "format": "[%(asctime)s] %(levelname)-2s: %(name)-20s [%(threadName)s] %(message)s"
+        },
     },
     "handlers": {
         "default": {
