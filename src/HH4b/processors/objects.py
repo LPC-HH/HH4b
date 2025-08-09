@@ -188,8 +188,12 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
         if nano_version.startswith("v12") or "25v2" in nano_version:
             jetidtight, jetidtightlepveto = jetid_v12(jets)  # v12 jetid fix
         elif nano_version.startswith("v14"):
-            jetidtight = jets.isTight
-            jetidtightlepveto = jets.isTightLeptonVeto
+            try:
+                jetidtight = jets.isTight
+                jetidtightlepveto = jets.isTightLeptonVeto
+            except AttributeError:
+                # still using v12 MC (2022, 2022EE, 2023, 2023BPix)
+                jetidtight, jetidtightlepveto = jetid_v12(jets)
         elif nano_version.startswith(("v13", "v15")):
             raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
         else:
@@ -431,7 +435,11 @@ def good_ak8jets(
     # Data does not have .neHEF etc. fields for fatjets, so above recipe doesn't work
     # Either way, doesn't matter since we only use tightID, and it is correct for eta < 2.7
     if nano_version.startswith("v14"):
-        jetidtight, _ = jetid_v14(fatjets)
+        try:
+            jetidtight, _ = jetid_v14(fatjets)
+        except AttributeError:
+            # actually still using v12 MC (2022, 2022EE, 2023, 2023BPix)
+            jetidtight = fatjets.isTight
     else:
         jetidtight = fatjets.isTight
 
