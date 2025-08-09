@@ -917,14 +917,20 @@ class bbbbSkimmer(SkimmerABC):
         fatjet_skimvars = self.skim_vars["FatJet"]
         if not isData:
             fatjet_skimvars = {**fatjet_skimvars, "pt_gen": "MatchedGenJetPt"}
-        ak8FatJetVars = {
-            f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
-            for (var, key) in fatjet_skimvars.items()
-        }
-        bbFatJetVars = {
-            f"bbFatJet{key}": pad_val(fatjets_xbb[var], 2, axis=1)
-            for (var, key) in fatjet_skimvars.items()
-        }
+        if self._region in ("zbb-DYLL-data", "zbb-Zto2Q-DYLL"):
+            # No need for fatjet variables for Z recoil corrections
+            ak8FatJetVars = {}
+            bbFatJetVars = {}
+        else:
+            ak8FatJetVars = {
+                f"ak8FatJet{key}": pad_val(fatjets[var], 3, axis=1)
+                for (var, key) in fatjet_skimvars.items()
+            }
+            bbFatJetVars = {
+                f"bbFatJet{key}": pad_val(fatjets_xbb[var], 2, axis=1)
+                for (var, key) in fatjet_skimvars.items()
+            }
+
         print("Jet vars", f"{time.time() - start:.2f}")
 
         # JEC and JMSR
@@ -1377,7 +1383,7 @@ class bbbbSkimmer(SkimmerABC):
             cut_dimuon_charge = ak.sum(dimuons.charge, axis=1) == 0
             add_selection("dimuon_charge", cut_dimuon_charge, *selection_args)
 
-            # >= AK8 jet with dR > 0.8 from both dimuons
+            # >= 1 AK8 jet with pT > 200 GeV and dR > 0.8 from both dimuons
             cut_iso_fatjet = ak.any(ak.all(fatjets.metric_table(dimuons) > 0.8, axis=2), axis=1)
             add_selection("ak8_iso", cut_iso_fatjet, *selection_args)
 
