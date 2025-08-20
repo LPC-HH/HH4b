@@ -285,7 +285,7 @@ class JECs:
         if fatjets:
             jet_factory_str = "ak8"
 
-        if self.jet_factory[jet_factory_str] is None:
+        if jet_factory_str not in self.jet_factory or self.jet_factory[jet_factory_str] is None:
             print("No factory available")
             return jets, None
 
