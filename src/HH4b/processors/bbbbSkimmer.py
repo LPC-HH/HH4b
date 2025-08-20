@@ -652,7 +652,8 @@ class bbbbSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix"]
+        # TODO: add more years for run 3 in the future
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix", "2024"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
         isData = not hasattr(events, "genWeight")
 
