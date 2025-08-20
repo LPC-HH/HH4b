@@ -378,6 +378,12 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet425_SoftDropMass40",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
+                "2024": [
+                    "AK8PFJet500",
+                    "AK8PFJet420_MassSD30",
+                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
             },
             "zbb-DYLL-data": {
                 "2022": [
@@ -390,6 +396,9 @@ class bbbbSkimmer(SkimmerABC):
                     "Mu50",
                 ],
                 "2023BPix": [
+                    "Mu50",
+                ],
+                "2024": [
                     "Mu50",
                 ],
             },
