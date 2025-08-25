@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix"]
+years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
 
 # in pb^-1
 LUMI = {
@@ -19,6 +19,7 @@ LUMI = {
     "2023BPix": 9692.1,
     "2023All": 27776.5,
     "2022-2023": 62428.6,
+    "2024": 108960.0,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -33,16 +34,6 @@ common_samples_bg = {
     "qcd": ["QCD_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-    "gghtobb": ["GluGluHto2B_PT-200_M-125"],
-    "vbfhtobb": ["VBFHto2B_M-125"],
-    # "singletop": [
-    #     "TbarBQ_t-channel_4FS",
-    #     "TBbarQ_t-channel_4FS",
-    #     "TWminustoLNu2Q",
-    #     "TWminusto4Q",
-    #     "TbarWplustoLNu2Q",
-    #     "TbarWplusto4Q",
-    # ],
     "vhtobb": [
         "WplusH_Hto2B_Wto2Q_M-125",
         "WminusH_Hto2B_Wto2Q_M-125",
@@ -191,6 +182,7 @@ samples_run3_sig = {
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
     },
+    "2024": {},
 }
 
 samples_run3 = {
@@ -209,6 +201,19 @@ samples_run3 = {
     "2023BPix": {
         **common_samples_bg,
         **samples_run3_sig["2023BPix"],
+    },
+    "2024": {
+        "data": [
+            "JetMET_Run2024B",
+            "JetMET_Run2024C",
+            "JetMET_Run2024D",
+            "JetMET_Run2024E",
+            "JetMET_Run2024F",
+            "JetMET_Run2024G",
+            "JetMET_Run2024H",
+            "JetMET_Run2024I",
+        ],
+        **samples_run3_sig["2024"],
     },
 }
 
@@ -370,12 +375,14 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMR"] = {
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
     "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
     "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
     "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
     "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"] = {}
 # numbers from template-morphing fit
@@ -397,12 +404,14 @@ jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
     "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
     "2023": {"nom": 1.0335, "down": 1.025, "up": 1.042},
     "2023BPix": {"nom": 1.0335, "down": 1.025, "up": 1.042},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2022": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2022EE": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2023": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
     "2023BPix": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
 }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
@@ -440,10 +449,9 @@ txbbsfs_decorr_txbb_wps["pnet-legacy"] = OrderedDict(
 )
 txbbsfs_decorr_txbb_wps["glopart-v2"] = OrderedDict(
     [
-        ("WP5", [0.8, 0.9]),
-        ("WP4", [0.9, 0.94]),
-        ("WP3", [0.94, 0.97]),
-        ("WP2", [0.97, 0.99]),
+        ("WP4", [0.3, 0.95]),
+        ("WP3", [0.95, 0.975]),
+        ("WP2", [0.975, 0.99]),
         ("WP1", [0.99, 1]),
     ]
 )
@@ -461,11 +469,10 @@ txbbsfs_decorr_pt_bins["pnet-legacy"] = OrderedDict(
 )
 txbbsfs_decorr_pt_bins["glopart-v2"] = OrderedDict(
     [
-        ("WP5", [200, 400, 100000]),
-        ("WP4", [200, 400, 100000]),
-        ("WP3", [200, 400, 100000]),
-        ("WP2", [200, 400, 100000]),
-        ("WP1", [200, 400, 100000]),
+        ("WP4", [250, 450, 100000]),
+        ("WP3", [250, 450, 100000]),
+        ("WP2", [250, 450, 100000]),
+        ("WP1", [250, 450, 100000]),
     ]
 )
 
