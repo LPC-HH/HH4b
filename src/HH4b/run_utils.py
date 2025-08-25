@@ -234,6 +234,7 @@ def parse_common_args(parser):
     )
     add_bool_arg(parser, "save-systematics", default=False, help="save systematic variations")
     add_bool_arg(parser, "save-root", default=False, help="save root ntuples too")
+    add_bool_arg(parser, "skipbadfiles", default=False, help="skip bad files")
 
 
 def flatten_dict(var_dict: dict):

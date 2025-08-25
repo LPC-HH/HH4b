@@ -192,7 +192,7 @@ def main(args):
         args.txbb,
     )
 
-    skipbadfiles = True
+    skipbadfiles = args.skipbadfiles
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
