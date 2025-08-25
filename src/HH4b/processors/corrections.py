@@ -14,6 +14,7 @@ from __future__ import annotations
 import gzip
 import pathlib
 import pickle
+import warnings
 
 import awkward as ak
 import correctionlib
@@ -62,12 +63,13 @@ def get_pog_json(obj: str, year: str) -> str:
         print(f"No json for {obj}")
 
     year = get_UL_year(year) if year == "2018" else year
-    if "2022" in year or "2023" in year:
+    if "2022" in year or "2023" in year or "2024" in year:
         year = {
             "2022": "2022_Summer22",
             "2022EE": "2022_Summer22EE",
             "2023": "2023_Summer23",
             "2023BPix": "2023_Summer23BPix",
+            "2024": "2024_Winter24",
         }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -99,6 +101,27 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         sf = pileup_correction[nPU]
         # no uncertainties
         weights.add("pileup", sf)
+    elif "2024" in year:
+        # from https://github.com/LPC-HH/HToMuMu/tree/main/data/pileup
+        # TODO: remove this once pileup correction files are available
+        warnings.warn(
+            "Using pileup correction from PileupReweight_Summer24.root. Use POG correction if available.",
+            stacklevel=1,
+        )
+        path_pileup = package_path + "/corrections/data/pileup/PileupReweight_Summer24.root"
+        corr_file = uproot.open(path_pileup)
+
+        pileup_MC = corr_file["simul_hist"].to_numpy()[0]
+
+        pileup_data_nom = corr_file["data_hist"].to_numpy()[0]
+        pileup_data_up = corr_file["data_hist_up"].to_numpy()[0]
+        pileup_data_down = corr_file["data_hist_down"].to_numpy()[0]
+
+        sf_nom = np.clip(pileup_data_nom / pileup_MC, 0, 10)[nPU]
+        sf_up = np.clip(pileup_data_up / pileup_MC, 0, 10)[nPU]
+        sf_down = np.clip(pileup_data_down / pileup_MC, 0, 10)[nPU]
+
+        weights.add("pileup", sf_nom, sf_up, sf_down)
 
     else:
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
@@ -274,8 +297,7 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if "v12" not in nano_version and "v14" not in nano_version:
-            print(f"JECs not applied for nano_version {nano_version}")
+        if "v12" not in nano_version:
             apply_jecs = False
         if not apply_jecs:
             return jets, None
@@ -285,7 +307,7 @@ class JECs:
         if fatjets:
             jet_factory_str = "ak8"
 
-        if jet_factory_str not in self.jet_factory or self.jet_factory[jet_factory_str] is None:
+        if self.jet_factory[jet_factory_str] is None:
             print("No factory available")
             return jets, None
 
@@ -303,10 +325,7 @@ class JECs:
             elif year == "2022EE" and "Run2022G" in dataset:
                 corr_key = f"{year}_runG"
             elif year == "2023":
-                if "v12" in nano_version:
-                    corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
-                elif "v14" in nano_version:
-                    corr_key = "2023_runCv4" if "2023_v4" in dataset else "2023_runCv123"
+                corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
             elif year == "2023BPix":
                 corr_key = "2023BPix_runD"
             else:
@@ -405,6 +424,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+        "2024": "Winter24Prompt2024BCDEFGHI_V1",
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
