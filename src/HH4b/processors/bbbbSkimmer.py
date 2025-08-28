@@ -380,8 +380,10 @@ class bbbbSkimmer(SkimmerABC):
                 ],
                 "2024": [
                     "AK8PFJet500",
-                    "AK8PFJet420_MassSD30",
-                    "AK8PFJet425_SoftDropMass40",
+                    "AK8PFJet400_SoftDropMass30",
+                    "AK8PFJet420_MassSD30",  # not available in 2024
+                    "AK8PFJet425_SoftDropMass30",
+                    "AK8PFJet425_SoftDropMass40",  # not available in 2024
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
             },
@@ -505,8 +507,8 @@ class bbbbSkimmer(SkimmerABC):
                 "ParT3massGeneric",
                 "ParT3massX2p",
             ]
-        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
-        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix"])
+        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
+        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         for jmsr_year in self.jms_values:
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
@@ -1346,6 +1348,8 @@ class bbbbSkimmer(SkimmerABC):
                 "2022EE": 0.3196,
                 "2023": 0.2431,
                 "2023BPix": 0.2435,
+                # TODO: update 2024 when available: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer24/
+                "2024": 0.2435,
             }
             # no medium b-tagged AK4 jets with pT>30, |eta|<2.4, and dR(ak4, bbFatJet0) > 0.8
             cut_top_veto = (
