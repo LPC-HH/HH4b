@@ -908,22 +908,28 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
-        if len(ak4_jets_awayfromak8) == 2:
-            ak4JetAwayVars = {
-                f"AK4JetAway{key}": pad_val(
-                    ak.concatenate(
-                        [ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1
-                    ),
-                    2,
-                    axis=1,
-                )
-                for (var, key) in jet_skimvars.items()
-            }
-        else:
+        if self._region in ("zbb", "zbb-DYLL-data", "zbb-Zto2Q-DYLL"):
             ak4JetAwayVars = {
                 f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
                 for (var, key) in jet_skimvars.items()
             }
+        else:
+            if len(ak4_jets_awayfromak8) == 2:
+                ak4JetAwayVars = {
+                    f"AK4JetAway{key}": pad_val(
+                        ak.concatenate(
+                            [ak4_jets_awayfromak8[0][var], ak4_jets_awayfromak8[1][var]], axis=1
+                        ),
+                        2,
+                        axis=1,
+                    )
+                    for (var, key) in jet_skimvars.items()
+                }
+            else:
+                ak4JetAwayVars = {
+                    f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
+                    for (var, key) in jet_skimvars.items()
+                }
 
         # AK8 Jet variables
         fatjet_skimvars = self.skim_vars["FatJet"]
