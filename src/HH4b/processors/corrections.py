@@ -16,6 +16,7 @@ import pathlib
 import pickle
 
 import awkward as ak
+import cachetools
 import correctionlib
 import numpy as np
 import uproot
@@ -100,6 +101,23 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         sf = pileup_correction[nPU]
         # no uncertainties
         weights.add("pileup", sf)
+
+    elif "2024" in year:
+        # public pileup corrections not available yet
+        path_pileup = package_path + "/corrections/data/pileup/PileupReweight_Summer24.root"
+        corr_file = uproot.open(path_pileup)
+
+        pileup_MC = corr_file["simul_hist"].to_numpy()[0]
+
+        pileup_data_nom = corr_file["data_hist"].to_numpy()[0]
+        pileup_data_up = corr_file["data_hist_up"].to_numpy()[0]
+        pileup_data_down = corr_file["data_hist_down"].to_numpy()[0]
+
+        sf_nom = np.clip(pileup_data_nom / pileup_MC, 0, 10)[nPU]
+        sf_up = np.clip(pileup_data_up / pileup_MC, 0, 10)[nPU]
+        sf_down = np.clip(pileup_data_down / pileup_MC, 0, 10)[nPU]
+
+        weights.add("pileup", sf_nom, sf_up, sf_down)
 
     else:
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
@@ -288,8 +306,6 @@ class JECs:
         if self.jet_factory[jet_factory_str] is None:
             print("No factory available")
             return jets, None
-
-        import cachetools
 
         jec_cache = cachetools.Cache(np.inf)
 
