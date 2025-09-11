@@ -908,7 +908,7 @@ class bbbbSkimmer(SkimmerABC):
             for (var, key) in jet_skimvars.items()
         }
 
-        if self._region in ("zbb", "zbb-DYLL-data", "zbb-Zto2Q-DYLL"):
+        if self._region == "zbb":
             ak4JetAwayVars = {
                 f"AK4JetAway{key}": pad_val(ak4_jets_awayfromak8[var], 2, axis=1)
                 for (var, key) in jet_skimvars.items()
