@@ -15,8 +15,8 @@
         },
         "TT": {
             "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
+                "TTtoLNu2Q",
+                "TTto2L2Nu"
             ],
             "files_per_job": 20,
             "chunksize": 8000
@@ -48,8 +48,8 @@
         },
         "TT": {
             "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
+                "TTtoLNu2Q",
+                "TTto2L2Nu"
             ],
             "files_per_job": 20,
             "chunksize": 8000
@@ -81,8 +81,8 @@
         },
         "TT": {
             "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
+                "TTtoLNu2Q",
+                "TTto2L2Nu"
             ],
             "files_per_job": 20,
             "chunksize": 8000
@@ -114,8 +114,8 @@
         },
         "TT": {
             "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
+                "TTtoLNu2Q",
+                "TTto2L2Nu"
             ],
             "files_per_job": 20,
             "chunksize": 8000
@@ -147,8 +147,8 @@
         },
         "TT": {
             "subsamples": [
-                "TTto4Q",
-                "TTtoLNu2Q"
+                "TTtoLNu2Q",
+                "TTto2L2Nu"
             ],
             "files_per_job": 20,
             "chunksize": 8000
