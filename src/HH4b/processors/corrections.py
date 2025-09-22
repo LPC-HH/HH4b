@@ -12,6 +12,7 @@ Authors: Raghav Kansal, Cristina Suarez
 from __future__ import annotations
 
 import gzip
+import logging
 import pathlib
 import pickle
 import warnings
@@ -29,6 +30,9 @@ from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Important Run3 start of Run
 FirstRun_2022C = 355794
@@ -297,7 +301,10 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if "v12" not in nano_version:
+        if not ("v12" in nano_version or "v14" in nano_version):
+            logging.warning(
+                "JECs are only available for NanoAODv12 and v14. Returning uncorrected jets."
+            )
             apply_jecs = False
         if not apply_jecs:
             return jets, None
@@ -307,7 +314,7 @@ class JECs:
         if fatjets:
             jet_factory_str = "ak8"
 
-        if self.jet_factory[jet_factory_str] is None:
+        if self.jet_factory.get(jet_factory_str) is None:
             print("No factory available")
             return jets, None
 
@@ -341,6 +348,7 @@ class JECs:
 
         # return only jets if no variations are given
         if jecs is None or isData:
+            logging.info(f"{jecs=}, {isData=}; returning no variation")
             return jets, None
 
         jec_shifted_vars = {}
