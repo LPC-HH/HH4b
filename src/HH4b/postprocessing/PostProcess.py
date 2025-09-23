@@ -382,6 +382,52 @@ def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_versio
         plt.close()
 
 
+def calculate_trigger_weights(
+    events_dict: pd.DataFrame,
+    key: str,
+    year: str,
+    txbb: str,
+    trigger_region: str,
+    n_events: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # calculates triggerWeight
+    trigger_weight = np.ones(n_events)
+    trigger_weight_up = np.ones(n_events)
+    trigger_weight_dn = np.ones(n_events)
+    if key != "data":
+        trigger_weight, _, total, total_err = corrections.trigger_SF(
+            year, events_dict, txbb_strings[txbb], trigger_region
+        )
+        trigger_weight_up = trigger_weight * (1 + total_err / total)
+        trigger_weight_dn = trigger_weight * (1 - total_err / total)
+
+    return trigger_weight, trigger_weight_up, trigger_weight_dn
+
+
+def calculate_txbb_weights(
+    bdt_events: pd.DataFrame,
+    key: str,
+    txbb_sf: dict,
+    TXbb_wps,  # TODO: fill in datatype (dict?)
+    TXbb_pt_corr_bins,  # TODO: fill in datatype (dict?)
+    n_events: int,
+):
+    txbb_sf_weight = np.ones(n_events)
+    all_txbb_bins = ak.Array([TXbb_wps[wp] for wp in TXbb_wps])
+    all_pt_bins = ak.Array([TXbb_pt_corr_bins[wp] for wp in TXbb_pt_corr_bins])
+    txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
+    pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
+    for ijet in get_jets_for_txbb_sf(key):
+        txbb_sf_weight *= corrections.restrict_SF(
+            txbb_sf["nominal"],
+            bdt_events[f"H{ijet}TXbb"].to_numpy(),
+            bdt_events[f"H{ijet}Pt"].to_numpy(),
+            txbb_range,
+            pt_range,
+        )
+    return txbb_sf_weight
+
+
 def load_process_run3_samples(
     args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
 ):
@@ -550,52 +596,66 @@ def load_process_run3_samples(
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
 
         # add more variables for control plots
-        bdt_events["H1Pt"] = events_dict["bbFatJetPt"][0]
-        bdt_events["H2Pt"] = events_dict["bbFatJetPt"][1]
-        bdt_events["H1Msd"] = events_dict["bbFatJetMsd"][0]
-        bdt_events["H2Msd"] = events_dict["bbFatJetMsd"][1]
-        bdt_events["H1TXbb"] = events_dict[txbb_strings[args.txbb]][0]
-        bdt_events["H1DiscTXbb"] = discretize_var(
-            events_dict[txbb_strings[args.txbb]][0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
-        )
-        bdt_events["H2TXbb"] = events_dict[txbb_strings[args.txbb]][1]
-        bdt_events["H2DiscTXbb"] = discretize_var(
-            events_dict[txbb_strings[args.txbb]][1], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
-        )
-        bdt_events["H1PNetMass"] = events_dict[mreg_strings[args.txbb]][0]
-        bdt_events["H2PNetMass"] = events_dict[mreg_strings[args.txbb]][1]
+        # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
+        more_vars = {
+            "H1Pt": events_dict["bbFatJetPt"][0],
+            "H2Pt": events_dict["bbFatJetPt"][1],
+            "H1Msd": events_dict["bbFatJetMsd"][0],
+            "H2Msd": events_dict["bbFatJetMsd"][1],
+            "H1TXbb": events_dict[txbb_strings[args.txbb]][0],
+            "H1DiscTXbb": discretize_var(
+                events_dict[txbb_strings[args.txbb]][0], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+            ),
+            "H2TXbb": events_dict[txbb_strings[args.txbb]][1],
+            "H2DiscTXbb": discretize_var(
+                events_dict[txbb_strings[args.txbb]][1], bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1]
+            ),
+            "H1PNetMass": events_dict[mreg_strings[args.txbb]][0],
+            "H2PNetMass": events_dict[mreg_strings[args.txbb]][1],
+        }
         if key in hh_vars.jmsr_keys:
-            for jshift in hh_vars.jmsr_shifts:
-                bdt_events[f"H1PNetMass_{jshift}"] = events_dict[
-                    f"{mreg_strings[args.txbb]}_{jshift}"
-                ][0]
-                bdt_events[f"H2PNetMass_{jshift}"] = events_dict[
-                    f"{mreg_strings[args.txbb]}_{jshift}"
-                ][1]
+            more_vars.update(
+                {
+                    f"H{jet + 1}PNetMass_{jshift}": events_dict[
+                        f"{mreg_strings[args.txbb]}_{jshift}"
+                    ][jet]
+                    for jshift in hh_vars.jmsr_shifts
+                    for jet in [0, 1]
+                }
+            )
 
         # add HLTs
-        bdt_events["hlt"] = np.any(
-            np.array(
-                [
-                    events_dict[trigger].to_numpy()[:, 0]
-                    for trigger in postprocessing.HLTs[year]
-                    if trigger in events_dict
-                ]
-            ),
-            axis=0,
+        more_vars.update(
+            {
+                "hlt": np.any(
+                    np.array(
+                        [
+                            events_dict[trigger].to_numpy()[:, 0]
+                            for trigger in postprocessing.HLTs[year]
+                            if trigger in events_dict
+                        ]
+                    ),
+                    axis=0,
+                )
+            }
         )
 
         # finalWeight: includes genWeight, puWeight
-        bdt_events["weight"] = events_dict["finalWeight"].to_numpy()
+        more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
         # scale, pdf weights
         if key in hh_vars.sig_keys + ["ttbar"]:
-            for i in range(6):
-                bdt_events[f"scale_weights_{i}"] = events_dict["scale_weights"][i].to_numpy()
+            more_vars.update(
+                {f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy() for i in range(6)}
+            )
         n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
-            for i in range(n_pdf_weights):
-                bdt_events[f"pdf_weights_{i}"] = events_dict["pdf_weights"][i].to_numpy()
+            more_vars.update(
+                {
+                    f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
+                    for i in range(n_pdf_weights)
+                }
+            )
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -605,41 +665,38 @@ def load_process_run3_samples(
             "weight_FSRPartonShowerDown",
         ]
         if key != "data":
-            for w in pileup_ps_weights:
-                if w in events_dict:
-                    bdt_events[w] = events_dict[w].to_numpy()
+            more_vars.update(
+                {w: events_dict[w].squeeze() for w in pileup_ps_weights if w in events_dict}
+            )
 
         # add event, run, lumi
-        bdt_events["run"] = events_dict["run"].to_numpy()
-        bdt_events["event"] = events_dict["event"].to_numpy()
-        bdt_events["luminosityBlock"] = events_dict["luminosityBlock"].to_numpy()
+        more_vars.update(
+            {
+                "run": events_dict["run"].squeeze(),
+                "event": events_dict["event"].squeeze(),
+                "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
+            }
+        )
 
-        # triggerWeight
         nevents = len(bdt_events["H1Pt"])
-        trigger_weight = np.ones(nevents)
-        trigger_weight_up = np.ones(nevents)
-        trigger_weight_dn = np.ones(nevents)
-        if key != "data":
-            trigger_weight, _, total, total_err = corrections.trigger_SF(
-                year, events_dict, txbb_strings[args.txbb], trigger_region
-            )
-            trigger_weight_up = trigger_weight * (1 + total_err / total)
-            trigger_weight_dn = trigger_weight * (1 - total_err / total)
+
+        # triggerWeights
+        trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
+            events_dict, key, year, args.txbb, trigger_region, nevents
+        )
+
+        # creating new dataframe with all variables
+        # repeatedly allocating new memory for pd.DataFrame is expensive
+        # best to use a dict instead
+        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
+        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
+        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
 
         # TXbbWeight
-        txbb_sf_weight = np.ones(nevents)
-        all_txbb_bins = ak.Array([TXbb_wps[wp] for wp in TXbb_wps])
-        all_pt_bins = ak.Array([TXbb_pt_corr_bins[wp] for wp in TXbb_pt_corr_bins])
-        txbb_range = [ak.min(all_txbb_bins), ak.max(all_txbb_bins)]
-        pt_range = [ak.min(all_pt_bins), ak.max(all_pt_bins)]
-        for ijet in get_jets_for_txbb_sf(key):
-            txbb_sf_weight *= corrections.restrict_SF(
-                txbb_sf["nominal"],
-                bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                bdt_events[f"H{ijet}Pt"].to_numpy(),
-                txbb_range,
-                pt_range,
-            )
+        txbb_sf_weight = calculate_txbb_weights(
+            bdt_events, key, txbb_sf, TXbb_wps, TXbb_pt_corr_bins, nevents
+        )
 
         # remove training events if asked
         if (
@@ -718,6 +775,8 @@ def load_process_run3_samples(
             if w in bdt_events:
                 bdt_events[w] *= trigger_weight * ttbar_weight * txbb_sf_weight
 
+        # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
+        variation_vars = {}
         # uncorrelated signal xbb up/dn variations in bins
         for wp in TXbb_wps:
             for j in range(len(TXbb_pt_corr_bins[wp]) - 1):
@@ -746,12 +805,16 @@ def load_process_run3_samples(
                         TXbb_wps[wp],
                         TXbb_pt_corr_bins[wp][j : j + 2],
                     )
-                bdt_events[
-                    f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}Up"
-                ] = (bdt_events["weight"] * stat_up / nominal)
-                bdt_events[
-                    f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}Down"
-                ] = (bdt_events["weight"] * stat_dn / nominal)
+                variation_vars.update(
+                    {
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}Up": (
+                            bdt_events["weight"] * stat_up / nominal
+                        ),
+                        f"weight_TXbbSF_uncorrelated_{wp}_pT_bin_{TXbb_pt_corr_bins[wp][j]}_{TXbb_pt_corr_bins[wp][j+1]}Down": (
+                            bdt_events["weight"] * stat_dn / nominal
+                        ),
+                    }
+                )
 
         if key == "ttbar":
             # ttbar xbb up/dn variations in bins'
@@ -762,12 +825,16 @@ def load_process_run3_samples(
                 tempw2, tempw2_up, tempw2_dn = corrections.ttbar_SF(
                     tt_xbb_sf, bdt_events, "H2TXbb", ttsf_xbb_bins[i : i + 2]
                 )
-                bdt_events[f"weight_ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}Up"] = (
-                    bdt_events["weight"] * tempw1_up * tempw2_up / (tempw1 * tempw2)
+                variation_vars.update(
+                    {
+                        f"weight_ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}Up": (
+                            bdt_events["weight"] * tempw1_up * tempw2_up / (tempw1 * tempw2)
+                        ),
+                        f"weight_ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}Down": (
+                            bdt_events["weight"] * tempw1_dn * tempw2_dn / (tempw1 * tempw2)
+                        ),
+                    }
                 )
-                bdt_events[
-                    f"weight_ttbarSF_Xbb_bin_{ttsf_xbb_bins[i]}_{ttsf_xbb_bins[i+1]}Down"
-                ] = (bdt_events["weight"] * tempw1_dn * tempw2_dn / (tempw1 * tempw2))
 
             # bdt up/dn variations in bins
             for i in range(len(ttsf_ggfbdtshape_bins) - 1):
@@ -782,12 +849,16 @@ def load_process_run3_samples(
                     ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
                     ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
                     ggfbdtsf_dn[mask_vbf] = np.ones(np.sum(mask_vbf))
-                bdt_events[
-                    f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Up"
-                ] = (bdt_events["weight"] * ggfbdtsf_up / ggfbdtsf)
-                bdt_events[
-                    f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down"
-                ] = (bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf)
+                    variation_vars.update(
+                        {
+                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Up": (
+                                bdt_events["weight"] * ggfbdtsf_up / ggfbdtsf
+                            ),
+                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down": (
+                                bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf
+                            ),
+                        }
+                    )
             if args.correct_vbf_bdt_shape:
                 for i in range(len(ttsf_vbfbdtshape_bins) - 1):
                     vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
@@ -800,25 +871,37 @@ def load_process_run3_samples(
                     vbfbdtsf[~mask_vbf] = np.ones(np.sum(~mask_vbf))
                     vbfbdtsf_up[~mask_vbf] = np.ones(np.sum(~mask_vbf))
                     vbfbdtsf_dn[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    bdt_events[
-                        f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Up"
-                    ] = (bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf)
-                    bdt_events[
-                        f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Down"
-                    ] = (bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf)
+                    variation_vars.update(
+                        {
+                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Up": (
+                                bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf
+                            ),
+                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Down": (
+                                bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf
+                            ),
+                        }
+                    )
 
         if key != "data":
-            bdt_events["weight_triggerUp"] = (
-                bdt_events["weight"] * trigger_weight_up / trigger_weight
+            variation_vars.update(
+                {
+                    "weight_triggerUp": bdt_events["weight"] * trigger_weight_up / trigger_weight,
+                    "weight_triggerDown": bdt_events["weight"] * trigger_weight_dn / trigger_weight,
+                }
             )
-            bdt_events["weight_triggerDown"] = (
-                bdt_events["weight"] * trigger_weight_dn / trigger_weight
-            )
+
         if key == "ttbar":
-            bdt_events["weight_ttbarSF_pTjjUp"] = bdt_events["weight"] * ptjjsf
-            bdt_events["weight_ttbarSF_pTjjDown"] = bdt_events["weight"] / ptjjsf
-            bdt_events["weight_ttbarSF_tau32Up"] = bdt_events["weight"] * tau32sf_up / tau32sf
-            bdt_events["weight_ttbarSF_tau32Down"] = bdt_events["weight"] * tau32sf_dn / tau32sf
+            variation_vars.update(
+                {
+                    "weight_ttbarSF_pTjjUp": bdt_events["weight"] * ptjjsf,
+                    "weight_ttbarSF_pTjjDown": bdt_events["weight"] / ptjjsf,
+                    "weight_ttbarSF_tau32Up": bdt_events["weight"] * tau32sf_up / tau32sf,
+                    "weight_ttbarSF_tau32Down": bdt_events["weight"] * tau32sf_dn / tau32sf,
+                }
+            )
+        temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
+        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
         mask_hlt = bdt_events["hlt"] == 1
@@ -840,6 +923,8 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
+            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
@@ -1079,6 +1164,20 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & cut_mass])
 
 
+def fom_classic(s, b, abcd=None):
+    return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
+
+
+def fom_update(s, b, abcd=None):
+    if abcd is None:
+        return fom_classic(s, b)
+    return (
+        2 * np.sqrt(b + b * b * (1 / abcd[1] + 1 / abcd[2] + 1 / abcd[3])) / s
+        if s > 0 and b > 0
+        else np.nan
+    )
+
+
 def scan_fom(
     method: str,
     events_combined: pd.DataFrame,
@@ -1091,7 +1190,7 @@ def scan_fom(
     plot_name: str,
     bg_keys: list[str],
     sig_keys: list[str],
-    fom: str = "2sqrt(b)/s",
+    fom: Callable,
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
@@ -1126,7 +1225,7 @@ def scan_fom(
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
             if method == "abcd":
-                nevents_sig, nevents_bkg, _ = abcd(
+                nevents_sig, nevents_bkg, nevents_abcd = abcd(
                     events_combined,
                     get_cut,
                     get_anti_cut,
@@ -1138,20 +1237,16 @@ def scan_fom(
                     sig_keys,
                 )
             else:
-                nevents_sig, nevents_bkg, _ = sideband(
+                nevents_sig, nevents_bkg = sideband(
                     events_combined, get_cut, xbb_cut, bdt_cut, mass, mass_window, sig_keys
                 )
+                nevents_abcd = None
 
             # number of events in data in sideband
             cut = get_cut(events_combined["data"], xbb_cut, bdt_cut)
             nevents_sideband = get_nevents_nosignal(events_combined["data"], cut, mass, mass_window)
 
-            if fom == "s/sqrt(s+b)":
-                figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
-            elif fom == "2sqrt(b)/s":
-                figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
-            else:
-                raise ValueError("Invalid FOM")
+            figure_of_merit = fom(nevents_sig, nevents_bkg, nevents_abcd)
 
             # if nevents_sig > 0.5 and nevents_bkg >= 2 and nevents_sideband >= 12:
             # save all cuts for finetuning constraint after
@@ -1393,7 +1488,7 @@ def sideband(events_dict, get_cut, txbb_cut, bdt_cut, mass, mass_window, sig_key
             mass,
             mass_window,
         )
-    return nevents_sig, nevents_bkg, {}
+    return nevents_sig, nevents_bkg
 
 
 def abcd(
@@ -1446,7 +1541,7 @@ def abcd(
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
     background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
-    return s, background, dicts
+    return s, background, dmt
 
 
 def postprocess_run3(args):
@@ -1541,6 +1636,10 @@ def postprocess_run3(args):
             "vjets": available,
             "qcd": available,
         }
+        # add all signals to scale, assume all present in all years
+        for sig_key in args.sig_keys:
+            scaled_by_years.update({sig_key: available})
+
         events_combined, scaled_by = combine_run3_samples(
             events_dict_postprocess,
             processes,
@@ -1623,6 +1722,10 @@ def postprocess_run3(args):
                                 cutflows[year][cut].loc[s]
                                 if cut in cutflows[year] and s in cutflows[year][cut].index
                                 else 0.0
+                            )(
+                                cutflows[year][cut].loc[s]
+                                if cut in cutflows[year] and s in cutflows[year][cut].index
+                                else 0.0
                             )
                             for year in args.years
                         ]
@@ -1663,6 +1766,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys,
                 sig_keys=args.fom_vbf_samples,
                 mass=args.mass,
+                fom=fom_classic,
             )
 
         if args.fom_scan_bin1:
