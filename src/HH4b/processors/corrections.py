@@ -322,6 +322,12 @@ class JECs:
 
         jec_cache = cachetools.Cache(np.inf)
 
+        if year == "2024":
+            # TODO: update when 2024 JECs are available
+            # https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+            logger.warning("No JECs available for 2024 data yet, using 2023BPix.")
+            year = "2023BPix"
+
         if isData:
             if year == "2022":
                 corr_key = f"{year}_runCD"
