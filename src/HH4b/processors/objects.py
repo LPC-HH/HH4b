@@ -37,6 +37,37 @@ def jetid_v12(jets: ak.Array) -> ak.Array:
     return jetidtight, jetidtightlepveto
 
 
+def jetid_v14(jets: ak.Array) -> tuple[ak.Array, ak.Array]:
+    """
+    Jet ID fix for NanoAOD v14 copying
+    # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880788
+    """
+
+    jetidtight = (
+        (
+            (np.abs(jets.eta) <= 2.6)
+            & (jets.neHEF < 0.99)
+            & (jets.neEmEF < 0.9)
+            & ((jets.chMultiplicity + jets.neMultiplicity) > 1)
+            & (jets.chHEF > 0.01)
+            & (jets.chMultiplicity > 0)
+        )
+        | (
+            ((np.abs(jets.eta) > 2.6) & (np.abs(jets.eta) <= 2.7))
+            & (jets.neHEF < 0.90)
+            & (jets.neEmEF < 0.99)
+        )
+        | (((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0)) & (jets.neHEF < 0.99))
+        | ((np.abs(jets.eta) > 3.0) & (jets.neMultiplicity >= 2) & (jets.neEmEF < 0.4))
+    )
+
+    jetidtightlepveto = (
+        (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
+    ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
+
+    return jetidtight, jetidtightlepveto
+
+
 def veto_muons_run2(muons: MuonArray):
     return (
         (muons.pt >= 30)
@@ -146,7 +177,14 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
     else:
         if nano_version.startswith("v12"):
             jetidtight, jetidtightlepveto = jetid_v12(jets)  # v12 jetid fix
-        elif nano_version.startswith(("v13", "v14", "v15")):
+        elif nano_version.startswith("v14"):
+            try:
+                jetidtight = jets.isTight
+                jetidtightlepveto = jets.isTightLeptonVeto
+            except AttributeError:
+                # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
+                jetidtight, jetidtightlepveto = jetid_v12(jets)
+        elif nano_version.startswith(("v13", "v15")):
             raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
         else:
             jetidtight, jetidtightlepveto = jets.isTight, jets.isTightLepVeto
@@ -299,6 +337,73 @@ def get_ak8jets(fatjets: FatJetArray):
         fatjets["ParTmassRes"] = fatjets.globalParT_massRes * (1 - fatjets.rawFactor) * fatjets.mass
         fatjets["ParTmassVis"] = fatjets.globalParT_massVis * (1 - fatjets.rawFactor) * fatjets.mass
 
+    elif "globalParT2_Xbb" in fatjets_fields:
+        # ParT v2 renamed in Nano v14
+        fatjets["ParTPQCD1HF"] = fatjets.globalParT2_QCD1HF
+        fatjets["ParTPQCD2HF"] = fatjets.globalParT2_QCD2HF
+        fatjets["ParTPQCD0HF"] = fatjets.globalParT2_QCD0HF
+
+        fatjets["ParTPTopW"] = fatjets.globalParT2_TopW
+        fatjets["ParTPTopbW"] = fatjets.globalParT2_TopbW
+        fatjets["ParTPTopbWev"] = fatjets.globalParT2_TopbWev
+        fatjets["ParTPTopbWmv"] = fatjets.globalParT2_TopbWmv
+        fatjets["ParTPTopbWtauhv"] = fatjets.globalParT2_TopbWtauhv
+        fatjets["ParTPTopbWq"] = fatjets.globalParT2_TopbWq
+        fatjets["ParTPTopbWqq"] = fatjets.globalParT2_TopbWqq
+
+        fatjets["ParTPXbb"] = fatjets.globalParT2_Xbb
+        fatjets["ParTPXcc"] = fatjets.globalParT2_Xcc
+        fatjets["ParTPXcs"] = fatjets.globalParT2_Xcs
+        fatjets["ParTPXgg"] = fatjets.globalParT2_Xgg
+        fatjets["ParTPXqq"] = fatjets.globalParT2_Xqq
+
+        fatjets["ParTPXtauhtaue"] = fatjets.globalParT2_Xtauhtaue
+        fatjets["ParTPXtauhtauh"] = fatjets.globalParT2_Xtauhtauh
+        fatjets["ParTPXtauhtaum"] = fatjets.globalParT2_Xtauhtaum
+
+        # T for discriminator
+        fatjets["ParTTXbb"] = fatjets.globalParT2_XbbVsQCD
+        # Mass Regression (Raw)
+        fatjets["ParTmassRes"] = (
+            fatjets.globalParT2_massRes * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+        fatjets["ParTmassVis"] = (
+            fatjets.globalParT2_massVis * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+
+    # GloParTv3
+    if "globalParT3_Xbb" in fatjets_fields:
+        fatjets["ParT3PQCD"] = fatjets.globalParT3_QCD
+
+        # no globalParT3_TopbW
+        fatjets["ParT3PTopbWev"] = fatjets.globalParT3_TopbWev
+        fatjets["ParT3PTopbWmv"] = fatjets.globalParT3_TopbWmv
+        fatjets["ParT3PTopbWq"] = fatjets.globalParT3_TopbWq
+        fatjets["ParT3PTopbWqq"] = fatjets.globalParT3_TopbWqq
+        fatjets["ParT3PTopbWtauhv"] = fatjets.globalParT3_TopbWtauhv
+
+        fatjets["ParT3PXbb"] = fatjets.globalParT3_Xbb
+        fatjets["ParT3PXcc"] = fatjets.globalParT3_Xcc
+        fatjets["ParT3PXcs"] = fatjets.globalParT3_Xcs
+        fatjets["ParT3PXqq"] = fatjets.globalParT3_Xqq
+
+        fatjets["ParT3PXtauhtaue"] = fatjets.globalParT3_Xtauhtaue
+        fatjets["ParT3PXtauhtauh"] = fatjets.globalParT3_Xtauhtauh
+        fatjets["ParT3PXtauhtaum"] = fatjets.globalParT3_Xtauhtaum
+
+        # T for discriminator
+        fatjets["ParT3TXbb"] = fatjets.globalParT3_Xbb / (
+            fatjets.globalParT3_Xbb + fatjets.globalParT3_QCD
+        )
+
+        # Mass Regression
+        fatjets["ParT3massGeneric"] = (
+            fatjets.globalParT3_massCorrGeneric * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+        fatjets["ParT3massX2p"] = (
+            fatjets.globalParT3_massCorrX2p * (1 - fatjets.rawFactor) * fatjets.mass
+        )
+
     return fatjets
 
 
@@ -309,7 +414,7 @@ def good_ak8jets(
     eta: float,
     msd: float,
     mreg: float,
-    nano_version: str,  # noqa: ARG001
+    nano_version: str,
     mreg_str="particleNet_mass_legacy",
 ):
     # if nano_version.startswith("v12"):
@@ -321,7 +426,14 @@ def good_ak8jets(
 
     # Data does not have .neHEF etc. fields for fatjets, so above recipe doesn't work
     # Either way, doesn't matter since we only use tightID, and it is correct for eta < 2.7
-    jetidtight = fatjets.isTight
+    if nano_version.startswith("v14"):
+        try:
+            jetidtight, _ = jetid_v14(fatjets)
+        except AttributeError:
+            # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
+            jetidtight = fatjets.isTight
+    else:
+        jetidtight = fatjets.isTight
 
     fatjet_sel = (
         jetidtight

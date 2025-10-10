@@ -293,7 +293,7 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if "v12" not in nano_version:
+        if ("v12" not in nano_version) and ("v14" not in nano_version):
             apply_jecs = False
         if not apply_jecs:
             return jets, None
@@ -322,6 +322,8 @@ class JECs:
                 corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
             elif year == "2023BPix":
                 corr_key = "2023BPix_runD"
+            elif year == "2024":
+                corr_key = "2024"
             else:
                 print(dataset, year)
                 print("warning, no valid dataset, JECs won't be applied to data")
