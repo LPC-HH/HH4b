@@ -336,8 +336,8 @@ def ratioHistPlot(
     sig_scale_dict=None,
     xlim: int | None = None,
     xlim_low: int | None = None,
-    ylim: int | None = None,
-    ylim_low: int | None = None,
+    ylim: float | None = None,
+    ylim_low: float | None = None,
     show: bool = True,
     syst: tuple = None,
     variation: str = None,
@@ -1033,8 +1033,10 @@ def subtractedHistPlot(
 
     if log:
         ax.set_yscale("log")
+        rax.set_yscale("log")
     if logx:
         ax.set_xscale("log")
+        rax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
@@ -1085,9 +1087,9 @@ def subtractedHistPlot(
 
     rax.set_ylabel("Ratio")
     rax.set_ylim(ratio_ylims)
-    minor_locator = mticker.AutoMinorLocator(2)
-    rax.yaxis.set_minor_locator(minor_locator)
-    rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
+    # minor_locator = mticker.AutoMinorLocator(2)
+    # rax.yaxis.set_minor_locator(minor_locator)
+    # rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
     if title is not None:
         ax.set_title(title, y=1.08)
