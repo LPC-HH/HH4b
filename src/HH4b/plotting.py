@@ -497,7 +497,10 @@ def ratioHistPlot(
     # signal samples
     if len(sig_scale_dict):
         hep.histplot(
-            [hists[sig_key, :] * sig_scale / r_bestfit for sig_key, sig_scale in sig_scale_dict.items()],
+            [
+                hists[sig_key, :] * sig_scale / r_bestfit
+                for sig_key, sig_scale in sig_scale_dict.items()
+            ],
             ax=ax,
             histtype="step",
             linewidth=3,
@@ -859,7 +862,7 @@ def ratioHistPlot(
             year=None,
             ax=ax,
             com=energy,
-            loc=1
+            loc=1,
         )
     else:
         hep.cms.label(
@@ -870,7 +873,7 @@ def ratioHistPlot(
             year=None,
             ax=ax,
             com=energy,
-            loc=1
+            loc=1,
         )
 
     # add title (region label) below the CMS label

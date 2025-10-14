@@ -196,7 +196,7 @@ def plot_fits(args):
                     "add_pull": add_pull[shape],
                     "show": False,
                     "unblinded": args.unblinded,
-                    "r_bestfit": args.r_bestfit
+                    "r_bestfit": args.r_bestfit,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
