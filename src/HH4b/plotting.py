@@ -78,27 +78,28 @@ color_by_sample = {
     "novhhtobb": "aquamarine",
     "gghtobb": "aquamarine",
     "vbfhtobb": "teal",
-    "tthtobb": "cadetblue",
-    "vhtobb": "tab:cyan",
+    "tthtobb": "#b9ac70",
+    "vhtobb": "#94a4a2",
+    "vhtthtobb": "#94a4a2",
     "others": "aquamarine",
-    "hh4b": colours["red"],
+    "hh4b": "#FF9933",
     "hh4b-kl0": "fuchsia",
     "hh4b-kl2p45": "brown",
     "hh4b-kl5": "cyan",
-    "vbfhh4b": "fuchsia",
+    "vbfhh4b": "#FF0000",
     "vbfhh4b-k2v0": "purple",
     "vbfhh4b-k2v2": "thistle",
     "vbfhh4b-kl2": "deeppink",
-    "ttbar": colours["darkblue"],
+    "ttbar": "#832db6",
     "ttlep": "cadetblue",
-    "qcd": colours["canary"],
+    "qcd": "#3f90da",
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
-    "zz": "orchid",
-    "nozzdiboson": "aquamarine",
+    "zz": "#717581",
+    "nozzdiboson": "#a96b59",
     "diboson": "orchid",
-    "dibosonvjets": "orchid",
-    "vjets": colours["green"],
+    "dibosonvjets": "#92dadd",
+    "vjets": "#92dadd",
     "vjetslnu": colours["orange"],
     "top_matched": "cornflowerblue",
     "W_matched": "royalblue",
@@ -107,31 +108,32 @@ color_by_sample = {
 }
 
 label_by_sample = {
-    "novhhtobb": "ggH+VBF+ttH H(bb)",
-    "gghtobb": "ggH(bb)",
-    "vbfhtobb": "VBFH(bb)",
-    "tthtobb": "ttH(bb)",
-    "vhtobb": "VH(bb)",
+    "novhhtobb": r"ggH+VBF+$t\bar{t}$H",
+    "gghtobb": "ggH",
+    "vbfhtobb": "VBFH",
+    "tthtobb": r"$t\bar{t}$H",
+    "vhtobb": "VH",
+    "vhtthtobb": r"VH, $t\bar{t}$H",
     "others": "Others",
-    "qcd": "Multijet",
-    "qcd-ht": "Multijet HT bin",
-    "qcdb-ht": "Multijet B HT bin",
-    "hh4b": r"ggF HH4b",
-    "hh4b-kl2p45": r"HH4b ($\kappa_{\lambda}=2.45$)",
-    "hh4b-kl5": r"HH4b ($\kappa_{\lambda}=5$)",
-    "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
-    "vbfhh4b": r"VBF HH4b",
-    "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
-    "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
-    "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
+    "qcd": "QCD multijet",
+    "qcd-ht": "QCD multijet HT bin",
+    "qcdb-ht": "QCD multijet b-enriched HT bin",
+    "hh4b": r"ggHH",
+    "hh4b-kl2p45": r"ggHH ($\kappa_{\lambda}=2.45$)",
+    "hh4b-kl5": r"ggHH ($\kappa_{\lambda}=5$)",
+    "hh4b-kl0": r"ggHH ($\kappa_{\lambda}=0$)",
+    "vbfhh4b": r"qqHH",
+    "vbfhh4b-k2v0": r"qqHH ($\kappa_{2V}=0$)",
+    "vbfhh4b-k2v2": r"qqHH ($\kappa_{2V}=2$)",
+    "vbfhh4b-kl2": r"qqHH ($\kappa_{\lambda}=2$)",
     "zz": "ZZ",
     "nozzdiboson": "Other VV",
     "diboson": "VV",
-    "dibosonvjets": "VV+VJets",
-    "ttbar": r"$t\bar{t}$ + Jets",
-    "ttlep": r"$t\bar{t}$ + Jets (Lep)",
-    "vjets": r"W/Z$(qq)$ + Jets",
-    "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
+    "dibosonvjets": "V+jets, VV",
+    "ttbar": r"$t\bar{t}$+jets",
+    "ttlep": r"$t\bar{t}$+jets (lep)",
+    "vjets": r"$V$+jets",
+    "vjetslnu": r"$V(\ell\nu/\ell\ell)$+jets",
     "data": "Data",
     "top_matched": "Top Matched",
     "W_matched": "W Matched",
@@ -275,7 +277,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
         if sig_scale == 1:
             label = label  # noqa: PLW0127
         elif sig_scale <= 100:
-            label = f"{label} $\\times$ {sig_scale:.2f}"
+            label = f"{label} $\\times$ {sig_scale:.0f}"
         else:
             label = f"{label} $\\times$ {sig_scale:.2e}"
 
@@ -358,6 +360,7 @@ def ratioHistPlot(
     qcd_norm: float = None,
     save_pdf: bool = True,
     unblinded: bool = False,
+    r_bestfit: float = 1.0,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -485,7 +488,6 @@ def ratioHistPlot(
             histtype="fill",
             sort="yield" if sortyield else None,
             stack=True,
-            edgecolor="black",
             linewidth=2,
             label=bg_labels,
             color=bg_colours,
@@ -495,10 +497,10 @@ def ratioHistPlot(
     # signal samples
     if len(sig_scale_dict):
         hep.histplot(
-            [hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
+            [hists[sig_key, :] * sig_scale / r_bestfit for sig_key, sig_scale in sig_scale_dict.items()],
             ax=ax,
             histtype="step",
-            linewidth=2,
+            linewidth=3,
             label=list(sig_labels.values()),
             color=sig_colours,
             # flow="none",
@@ -549,7 +551,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Bkg. Unc.",
+                label=r"$\sigma_{Pred}$",
             )
         else:
             ax.stairs(
@@ -696,7 +698,7 @@ def ratioHistPlot(
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
-    ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    ax.legend(handles, labels, loc="upper right")
     if "qcd" in kfactor and kfactor["qcd"] != 1:
         ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
@@ -735,7 +737,7 @@ def ratioHistPlot(
             histtype="errorbar",
             markersize=20,
             color="black",
-            xerr=True,
+            xerr=False,
             capsize=0,
         )
         rax.set_xlabel(hists.axes[1].label)
@@ -747,8 +749,8 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err[0].values()) / tot_val, 2),
                 np.repeat((bg_err[1].values()) / tot_val, 2),
-                color="black",
-                alpha=0.1,
+                color="#cccccc",
+                alpha=1,
                 hatch="//",
                 linewidth=0,
             )
@@ -757,15 +759,15 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err_tot_mcstat) / tot_val, 2),
                 np.repeat((bg_err_tot_mcstat) / tot_val, 2),
-                color="black",
-                alpha=0.1,
+                color="#cccccc",
+                alpha=1,
                 hatch="//",
                 linewidth=0,
             )
     else:
         rax.set_xlabel(hists.axes[1].label)
 
-    rax.set_ylabel("Data/pred.")
+    rax.set_ylabel("Data/Pred")
     rax.set_ylim(ratio_ylims)
     minor_locator = mticker.AutoMinorLocator(2)
     rax.yaxis.set_minor_locator(minor_locator)
@@ -835,39 +837,47 @@ def ratioHistPlot(
             ax=sax,
             # yerr=yerr,
             histtype="fill",
-            facecolor="gray",
+            facecolor="#cccccc",
             edgecolor="k",
         )
         sax.set_ylim([-2, 2])
         sax.set_xlabel(hists.axes[1].label)
-        sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
+        sax.set_ylabel(r"$\frac{Data - Pred}{\sigma_{Data}}$")
 
         minor_locator = mticker.AutoMinorLocator(2)
         sax.yaxis.set_minor_locator(minor_locator)
         sax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
-    if title is not None:
-        ax.set_title(title, y=1.08)
+    # if title is not None:
+    #     ax.set_title(title, y=1.08)
 
     if year == "all":
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
             ax=ax,
             com=energy,
+            loc=1
         )
     else:
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
             fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
-            year=year,
+            year=None,
             ax=ax,
             com=energy,
+            loc=1
         )
+
+    # add title (region label) below the CMS label
+    if title is not None:
+        x_text = 0.02
+        y_text = 0.78
+        ax.text(x_text + 0.03, y_text + 0.06, title, fontsize=24, transform=ax.transAxes)
 
     if axrax is None and len(name):
         if not name.endswith((".pdf", ".png")):
