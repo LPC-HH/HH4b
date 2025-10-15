@@ -101,12 +101,12 @@ def plot_fits(args):
     }
 
     if args.regions == "all":
-        signal_regions = ["passbin1", "passbin2", "passbin3"]
+        signal_regions = ["passbin1", "passbin2", "passbin3", "fail"]
         if args.vbf_region:
             signal_regions = ["passvbf"] + signal_regions
     else:
         signal_regions = [args.regions]
-    bins = [*signal_regions, "fail"]
+    bins = signal_regions
     selection_regions = {key: selection_regions_labels[key] for key in bins}
 
     data_key = "data"
@@ -220,7 +220,7 @@ if __name__ == "__main__":
         default="all",
         type=str,
         help="regions to plot",
-        choices=["passbin1", "passbin2", "passbin3", "passvbf", "all"],
+        choices=["passbin1", "passbin2", "passbin3", "passvbf", "fail", "all"],
     )
     parser.add_argument(
         "--mass",

@@ -495,7 +495,7 @@ def ratioHistPlot(
         )
 
     # signal samples
-    if len(sig_scale_dict):
+    if len(sig_scale_dict) and sum(np.abs(list(sig_scale_dict.values()))) > 0:        
         hep.histplot(
             [
                 hists[sig_key, :] * sig_scale / r_bestfit
