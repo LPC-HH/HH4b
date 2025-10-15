@@ -83,13 +83,13 @@ color_by_sample = {
     "vhtthtobb": "#94a4a2",
     "others": "aquamarine",
     "hh4b": "#FF9933",
-    "hh4b-kl0": "fuchsia",
-    "hh4b-kl2p45": "brown",
-    "hh4b-kl5": "cyan",
+    "hh4b-kl0": "#FF9933",
+    "hh4b-kl2p45": "#FF9933",
+    "hh4b-kl5": "#FF9933",
     "vbfhh4b": "#FF0000",
-    "vbfhh4b-k2v0": "purple",
-    "vbfhh4b-k2v2": "thistle",
-    "vbfhh4b-kl2": "deeppink",
+    "vbfhh4b-k2v0": "#FF0000",
+    "vbfhh4b-k2v2": "#FF0000",
+    "vbfhh4b-kl2": "#FF0000",
     "ttbar": "#832db6",
     "ttlep": "cadetblue",
     "qcd": "#3f90da",
@@ -119,13 +119,13 @@ label_by_sample = {
     "qcd-ht": "QCD multijet HT bin",
     "qcdb-ht": "QCD multijet b-enriched HT bin",
     "hh4b": r"ggHH",
-    "hh4b-kl2p45": r"ggHH ($\kappa_{\lambda}=2.45$)",
-    "hh4b-kl5": r"ggHH ($\kappa_{\lambda}=5$)",
-    "hh4b-kl0": r"ggHH ($\kappa_{\lambda}=0$)",
+    "hh4b-kl2p45": r"ggHH, $\kappa_{\lambda}=2.45$",
+    "hh4b-kl5": r"ggHH, $\kappa_{\lambda}=5$",
+    "hh4b-kl0": r"ggHH, $\kappa_{\lambda}=0$",
     "vbfhh4b": r"qqHH",
-    "vbfhh4b-k2v0": r"qqHH ($\kappa_{2V}=0$)",
-    "vbfhh4b-k2v2": r"qqHH ($\kappa_{2V}=2$)",
-    "vbfhh4b-kl2": r"qqHH ($\kappa_{\lambda}=2$)",
+    "vbfhh4b-k2v0": r"qqHH, $\kappa_{2V}=0$",
+    "vbfhh4b-k2v2": r"qqHH, $\kappa_{2V}=2$",
+    "vbfhh4b-kl2": r"qqHH, $\kappa_{\lambda}=2$)",
     "zz": "ZZ",
     "nozzdiboson": "Other VV",
     "diboson": "VV",
@@ -277,9 +277,9 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
         if sig_scale == 1:
             label = label  # noqa: PLW0127
         elif sig_scale <= 100:
-            label = f"{label} $\\times$ {sig_scale:.0f}"
+            label = f"{label}, $\\mu_{{HH}} = {sig_scale:.0f}$"
         else:
-            label = f"{label} $\\times$ {sig_scale:.2e}"
+            label = f"{label}, $\\mu_{{HH}} = {sig_scale:.2e}$"
 
         sig_labels[sig_key] = label
 
