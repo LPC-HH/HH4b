@@ -1111,7 +1111,7 @@ def subtractedHistPlot(
         x_text = 0.02
         y_text = 0.78
         ax.text(x_text + 0.03, y_text + 0.06, title, fontsize=24, transform=ax.transAxes)
-    
+
     if year == "all":
         hep.cms.label(
             "Preliminary",
