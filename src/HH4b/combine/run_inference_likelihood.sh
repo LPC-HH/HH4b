@@ -56,7 +56,7 @@ datacards="${card_dir}/combined_nomasks.txt${inj}"
 datacardopt="--datacards"
 datacardnames=""
 model=hh_model_run23.model_default_run3
-campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$ (13.6 TeV)"
 
 if [[ "$unblinded" != "False" ]]; then
   command="PlotMultipleLikelihoodScans"
@@ -65,6 +65,7 @@ if [[ "$unblinded" != "False" ]]; then
   datacardnames="--datacard-names Expected,Observed"
 fi
 
+export DHI_CMS_POSTFIX="Preliminary"
 law run $command \
     --version dev \
     --hh-model "$model" \

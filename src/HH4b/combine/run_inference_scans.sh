@@ -46,8 +46,7 @@ else
 fi
 
 if [[ "$param" == "kl" ]]; then
-    # parameters="kl,-15,20,36"
-    parameters="kl,-15,0,16:kl,0,10,21:kl,10,20,21"
+    parameters="kl,-15,20,36"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
 else
@@ -63,8 +62,9 @@ fi
 card_dir=./
 datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
-campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$ (13.6 TeV)"
 
+export DHI_CMS_POSTFIX="Preliminary"
 law run PlotUpperLimits \
     --version dev  \
     --datacards "$datacards" \

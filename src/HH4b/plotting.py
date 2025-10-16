@@ -965,7 +965,7 @@ def subtractedHistPlot(
     plt.rcParams.update({"font.size": 30})
 
     # plot histograms
-    ax.set_ylabel("Pass / Multijet in Fail")
+    ax.set_ylabel("SR / QCD multijet in CR")
 
     # background samples
     hep.histplot(
@@ -976,7 +976,7 @@ def subtractedHistPlot(
         stack=True,
         edgecolor="black",
         linewidth=2,
-        label="Multijet",
+        label="QCD multijet",
         color=bg_colours[-1],
     )
 
@@ -997,7 +997,7 @@ def subtractedHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Multijet Unc.",
+                label=r"$\sigma_{Pred}$",
             )
         else:
             ax.stairs(
@@ -1039,7 +1039,7 @@ def subtractedHistPlot(
             ax=ax,
             yerr=yerr,
             histtype="errorbar",
-            label="Data - Other Bkg.",
+            label=r"$Data-Others$",
             markersize=20,
             color="black",
         )
@@ -1052,7 +1052,9 @@ def subtractedHistPlot(
         rax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    handles = handles[-1:] + handles[:-1]
+    labels = labels[-1:] + labels[:-1]
+    ax.legend(handles, labels, loc="upper right")
 
     if xlim_low is not None:
         if xlim is not None:
@@ -1104,12 +1106,16 @@ def subtractedHistPlot(
     # rax.yaxis.set_minor_locator(minor_locator)
     # rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
+    # add title (region label) below the CMS label
     if title is not None:
-        ax.set_title(title, y=1.08)
-
+        x_text = 0.02
+        y_text = 0.78
+        ax.text(x_text + 0.03, y_text + 0.06, title, fontsize=24, transform=ax.transAxes)
+    
     if year == "all":
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
+            loc=1,
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
@@ -1118,11 +1124,12 @@ def subtractedHistPlot(
         )
     else:
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
+            loc=1,
             fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
-            year=year,
+            year=None,
             ax=ax,
             com=energy,
         )
