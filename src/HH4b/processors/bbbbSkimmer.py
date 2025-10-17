@@ -73,6 +73,7 @@ txbbstr_to_branch = {
     "pnet-legacy": "TXbb_legacy",
     "pnet-v12": "Txbb",
     "glopart-v2": "ParTTXbb",
+    "glopart-v3": "ParT3TXbb",
 }
 
 # map txbb string to skimmer variable name
@@ -80,6 +81,7 @@ txbbstr_to_skimmer = {
     "pnet-legacy": "PNetTXbbLegacy",
     "pnet-v12": "PNetTXbb",
     "glopart-v2": "ParTTXbb",
+    "glopart-v3": "ParT3TXbb",
 }
 
 logger = logging.getLogger(__name__)
@@ -145,6 +147,7 @@ class bbbbSkimmer(SkimmerABC):
         "pnet-legacy": 0.8,
         "pnet-v12": 0.3,
         "glopart-v2": 0.3,
+        "glopart-v3": 0.3,
     }
 
     fatjet_selection = {  # noqa: RUF012
@@ -403,6 +406,14 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         if self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
+        if "v14" in self._nano_version:
+            self.jmsr_vars += [
+                "particleNet_mass_legacy",
+                "ParTmassVis",
+                "ParTmassRes",
+                "ParT3massGeneric",
+                "ParT3massX2p",
+            ]
         self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         for jmsr_year in self.jms_values:
@@ -427,7 +438,11 @@ class bbbbSkimmer(SkimmerABC):
             ]
 
         # FatJet Vars
-        if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
+        if (
+            self._nano_version == "v12_private"
+            or self._nano_version == "v12v2_private"
+            or "v14" in self._nano_version
+        ):
             extra_vars = [
                 "TXbb",
                 "PXbb",
@@ -455,6 +470,38 @@ class bbbbSkimmer(SkimmerABC):
                 "ParTTXbb",
                 "ParTmassRes",
                 "ParTmassVis",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                **{var: var for var in extra_vars},
+            }
+        elif "v14" in self._nano_version:
+            extra_vars = [
+                # ParT 2
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+                # ParT 3
+                "ParT3PQCD",
+                "ParT3PTopbWev",
+                "ParT3PTopbWmv",
+                "ParT3PTopbWq",
+                "ParT3PTopbWqq",
+                "ParT3PTopbWtauhv",
+                "ParT3PXbb",
+                "ParT3PXcc",
+                "ParT3PXcs",
+                "ParT3PXqq",
+                "ParT3TXbb",
+                "ParT3massGeneric",
+                "ParT3massX2p",
             ]
             self.skim_vars["FatJet"] = {
                 **self.skim_vars["FatJet"],
@@ -555,9 +602,29 @@ class bbbbSkimmer(SkimmerABC):
             jec_shifted_jetvars = {}
 
         if JEC_loader.met_factory is not None:
-            met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
+            # check if "MET" attribute exists
+            if hasattr(events, "MET"):
+                events_met = events.MET
+            elif hasattr(events, "PuppiMET"):
+                events_met = events.PuppiMET
+                # No deltaX and deltaY in PuppiMET, so we have to calculate them
+                # by definition: up - nominal
+                deltaX_up = events_met.ptUnclusteredUp * np.cos(events_met.phiUnclusteredUp)
+                deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
+                deltaX_nom = events_met.pt * np.cos(events_met.phi)
+                deltaY_nom = events_met.pt * np.sin(events_met.phi)
+                events_met["MetUnclustEnUpDeltaX"] = deltaX_up - deltaX_nom
+                events_met["MetUnclustEnUpDeltaY"] = deltaY_up - deltaY_nom
+            else:
+                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
+            met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
         else:
-            met = events.MET if "MET" in events.fields else events.PuppiMET
+            if hasattr(events, "MET"):
+                met = events.MET
+            elif hasattr(events, "PuppiMET"):
+                met = events.PuppiMET
+            else:
+                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
