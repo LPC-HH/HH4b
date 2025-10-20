@@ -356,6 +356,7 @@ def ratioHistPlot(
     axrax: tuple | None = None,
     energy: str = "13.6",
     add_pull: bool = False,
+    prefit_hists: Hist | None = None,
     reweight_qcd: bool = False,
     qcd_norm: float = None,
     save_pdf: bool = True,
@@ -405,6 +406,7 @@ def ratioHistPlot(
 
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
+    prefit_hists = deepcopy(prefit_hists) if prefit_hists is not None else None
 
     if bg_order is None:
         bg_order = bg_order_default
@@ -732,6 +734,32 @@ def ratioHistPlot(
         yerr = ratio_uncertainty(data_val, tot_val, "poisson")
         yvalue = data_val / tot_val
 
+        if prefit_hists:
+            bg_tot_prefit = sum([prefit_hists[sample, :] * kfactor[sample] for sample in bg_keys])
+
+            tot_val_prefit = bg_tot_prefit.values()
+            tot_val_zero_mask_prefit = tot_val_prefit == 0
+            tot_val_prefit[tot_val_zero_mask_prefit] = 1
+            yerr_prefit = ratio_uncertainty(data_val, tot_val_prefit, "poisson")
+            yvalue_prefit = data_val / tot_val_prefit
+
+            hep.histplot(
+                yvalue_prefit,
+                bg_tot.axes[0].edges,
+                yerr=yerr_prefit,
+                ax=rax,
+                histtype="errorbar",
+                markeredgecolor="red",
+                markersize=12,
+                markerfacecolor="none",
+                marker="s",
+                color="red",
+                xerr=False,
+                elinewidth=2,
+                capsize=0,
+                label="Pre-fit"
+            )
+
         hep.histplot(
             yvalue,
             bg_tot.axes[0].edges,
@@ -742,8 +770,12 @@ def ratioHistPlot(
             color="black",
             xerr=False,
             capsize=0,
+            label="Post-fit"
         )
         rax.set_xlabel(hists.axes[1].label)
+
+        if prefit_hists:
+            rax.legend(loc="best", fontsize=20, ncol=2)
 
         # fill error band of background
         if bg_err is not None:
