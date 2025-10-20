@@ -194,7 +194,9 @@ def plot_fits(args):
                     "bg_order": bkg_order,
                     "energy": 13.6,
                     "add_pull": add_pull[shape],
-                    "prefit_hists": hists["prefit"][region] if shape == "postfit" and pass_region else None,
+                    "prefit_hists": (
+                        hists["prefit"][region] if shape == "postfit" and pass_region else None
+                    ),
                     "show": False,
                     "unblinded": args.unblinded,
                     "r_bestfit": args.r_bestfit,
