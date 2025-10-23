@@ -50,7 +50,7 @@ def plot_fits(args):
             ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
         ]
     )
-    sig_keys = ["hh4b", "vbfhh4b"] if not args.vbf_k2v0_signal else ["hh4b", "vbfhh4b-k2v0"]
+    sig_keys = ["hh4b", "vbfhh4b"] if not args.fit_file_k2v0 else ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"]
     for key in sig_keys:
         hist_label_map_inverse[key] = hist_label_map_inverse_sig[key]
 
@@ -112,6 +112,8 @@ def plot_fits(args):
     data_key = "data"
 
     file = uproot.open(args.fit_file)
+    if args.fit_file_k2v0:
+        file_k2v0 = uproot.open(args.fit_file_k2v0)
 
     print(file.keys())
     # build histograms
@@ -134,6 +136,8 @@ def plot_fits(args):
         for region in selection_regions:
             h = hists[shape][region]
             templates = file[f"{region}_{shape}"]
+            if args.fit_file_k2v0:
+                templates_k2v0 = file_k2v0[f"{region}_{shape}"]
             for key, file_key in hist_label_map_inverse.items():
                 if key != data_key:
                     if isinstance(file_key, list):
@@ -153,7 +157,10 @@ def plot_fits(args):
                         if file_key not in templates:
                             print(f"No {key} in {region}")
                             continue
-                        values = templates[file_key].values()
+                        if key == "vbfhh4b-k2v0" and args.fit_file_k2v0:
+                            values = templates_k2v0[file_key].values()
+                        else:
+                            values = templates[file_key].values()
                     data_key_index = np.where(np.array(list(h.axes[0])) == key)[0][0]
                     h.view(flow=False)[data_key_index, :] = values
 
@@ -180,7 +187,7 @@ def plot_fits(args):
                 plot_params = {
                     "hists": hists[shape][region],
                     "sig_keys": sig_keys,
-                    "sig_scale_dict": dict.fromkeys(sig_keys, signal_scale),
+                    "sig_scale_dict": dict(zip(sig_keys, signal_scale)),
                     "bg_keys": bkg_keys,
                     "bg_err": bgerrs[shape][region],
                     "bg_err_mcstat": bg_err_mcstat[shape],
@@ -199,7 +206,6 @@ def plot_fits(args):
                     ),
                     "show": False,
                     "unblinded": args.unblinded,
-                    "r_bestfit": args.r_bestfit,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
@@ -216,8 +222,14 @@ if __name__ == "__main__":
         required=True,
         type=str,
     )
+    parser.add_argument(
+        "--fit-file-k2v0",
+        help="fitdiagnostics output root file for k2v0 signal",
+        required=False,
+        type=str,
+    )
     parser.add_argument("--plots-dir", help="plots directory", type=str)
-    parser.add_argument("--signal-scale", help="scale signal by", default=1.0, type=float)
+    parser.add_argument("--signal-scale", help="scale signal by", default=1.0, nargs='+', type=float)
     parser.add_argument(
         "--regions",
         default="all",
@@ -234,14 +246,7 @@ if __name__ == "__main__":
     )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")
-    run_utils.add_bool_arg(parser, "vbf-k2v0-signal", default=False, help="Plot VBF k2v=0 signal")
     run_utils.add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
-    parser.add_argument(
-        "--r-bestfit",
-        type=float,
-        default=1.0,
-        help="Best fit value of r for post-fit plots",
-    )
 
     args = parser.parse_args()
 

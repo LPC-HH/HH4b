@@ -271,17 +271,19 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
 
     sig_colours = [color_by_sample[sig_key] for sig_key in sig_keys]
     sig_labels = OrderedDict()
+    sig_ls = OrderedDict()
     for sig_key, sig_scale in sig_scale_dict.items():
         label = label_by_sample.get(sig_key, sig_key)
 
         if sig_scale == 1:
             label = label  # noqa: PLW0127
-        elif sig_scale <= 100:
-            label = f"{label}, $\\mu_{{HH}} = {sig_scale:.0f}$"
+        elif "vbfhh4b" in sig_key:
+            label = f"{label}, $\\mu_{{qqHH}} = {sig_scale:.0f}$"
         else:
-            label = f"{label}, $\\mu_{{HH}} = {sig_scale:.2e}$"
+            label = f"{label}, $\\mu_{{ggHH}} = {sig_scale:.0f}$"
 
         sig_labels[sig_key] = label
+        sig_ls[sig_key] = "--" if sig_key == "vbfhh4b-k2v0" else "-"
 
     # set up systematic variations if needed
     if syst is not None and variation is not None:
@@ -301,7 +303,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
                 sig_labels[new_key] = sig_labels[sig_key] + skey
                 del sig_scale_dict[sig_key], sig_labels[sig_key]
 
-    return bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels
+    return bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls
 
 
 def _fill_error(ax, edges, down, up, scale=1):
@@ -361,7 +363,6 @@ def ratioHistPlot(
     qcd_norm: float = None,
     save_pdf: bool = True,
     unblinded: bool = False,
-    r_bestfit: float = 1.0,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -411,7 +412,7 @@ def ratioHistPlot(
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
+    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls = _process_samples(
         sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_order
     )
 
@@ -498,9 +499,11 @@ def ratioHistPlot(
 
     # signal samples
     if len(sig_scale_dict) and sum(np.abs(list(sig_scale_dict.values()))) > 0:
+        # use prefit hists for signal if provided
+        sig_hists = prefit_hists if prefit_hists is not None else hists
         hep.histplot(
             [
-                hists[sig_key, :] * sig_scale / r_bestfit
+                sig_hists[sig_key, :] * sig_scale
                 for sig_key, sig_scale in sig_scale_dict.items()
             ],
             ax=ax,
@@ -508,6 +511,7 @@ def ratioHistPlot(
             linewidth=3,
             label=list(sig_labels.values()),
             color=sig_colours,
+            ls=list(sig_ls.values()),
             # flow="none",
         )
 
@@ -757,7 +761,7 @@ def ratioHistPlot(
                 xerr=False,
                 elinewidth=2,
                 capsize=0,
-                label="Pre-fit",
+                label="Prefit",
             )
 
         hep.histplot(
@@ -770,7 +774,7 @@ def ratioHistPlot(
             color="black",
             xerr=False,
             capsize=0,
-            label="Post-fit",
+            label="Postfit",
         )
         rax.set_xlabel(hists.axes[1].label)
 
@@ -979,7 +983,7 @@ def subtractedHistPlot(
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, _, _, _ = _process_samples(
+    bg_keys, bg_colours, bg_labels, _, _, _, _ = _process_samples(
         [], bg_keys, {}, None, None, bg_order
     )
 
