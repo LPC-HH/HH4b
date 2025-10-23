@@ -412,8 +412,8 @@ def ratioHistPlot(
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls = _process_samples(
-        sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_order
+    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls = (
+        _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_order)
     )
 
     if syst is not None and variation is None:
@@ -502,10 +502,7 @@ def ratioHistPlot(
         # use prefit hists for signal if provided
         sig_hists = prefit_hists if prefit_hists is not None else hists
         hep.histplot(
-            [
-                sig_hists[sig_key, :] * sig_scale
-                for sig_key, sig_scale in sig_scale_dict.items()
-            ],
+            [sig_hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
             ax=ax,
             histtype="step",
             linewidth=3,

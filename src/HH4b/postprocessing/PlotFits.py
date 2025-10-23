@@ -50,7 +50,9 @@ def plot_fits(args):
             ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
         ]
     )
-    sig_keys = ["hh4b", "vbfhh4b"] if not args.fit_file_k2v0 else ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"]
+    sig_keys = (
+        ["hh4b", "vbfhh4b"] if not args.fit_file_k2v0 else ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"]
+    )
     for key in sig_keys:
         hist_label_map_inverse[key] = hist_label_map_inverse_sig[key]
 
@@ -229,7 +231,9 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument("--plots-dir", help="plots directory", type=str)
-    parser.add_argument("--signal-scale", help="scale signal by", default=1.0, nargs='+', type=float)
+    parser.add_argument(
+        "--signal-scale", help="scale signal by", default=1.0, nargs="+", type=float
+    )
     parser.add_argument(
         "--regions",
         default="all",
