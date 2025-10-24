@@ -300,7 +300,7 @@ def load_run3_samples(
             ("bdt_score_vbf", 1),
         ]
         if load_systematics:
-            for jshift in jec_shifts+jmsr_shifts:
+            for jshift in jec_shifts + jmsr_shifts:
                 load_columns_syst += [
                     (f"bdt_score_{jshift}", 1),
                     (f"bdt_score_vbf_{jshift}", 1),
