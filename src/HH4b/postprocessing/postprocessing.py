@@ -93,8 +93,6 @@ columns_to_load_default = [
     ("AK4JetAwayEta", 2),
     ("AK4JetAwayPhi", 2),
     ("AK4JetAwayMass", 2),
-    ("bdt_score", 1),
-    ("bdt_score_vbf", 1),
 ]
 
 columns_to_load = {
@@ -171,15 +169,11 @@ for jshift in jec_shifts:
     load_columns_syst += [
         (f"bbFatJetPt_{jshift}", 2),
         (f"VBFJetPt_{jshift}", 2),
-        (f"bdt_score_{jshift}", 1),
-        (f"bdt_score_vbf_{jshift}", 1),
     ]
 
 for jshift in jmsr_shifts:
     load_columns_syst += [
         (f"bbFatJetParTmassVis_{jshift}", 2),
-        (f"bdt_score_{jshift}", 1),
-        (f"bdt_score_vbf_{jshift}", 1),
     ]
 load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
@@ -289,6 +283,7 @@ def load_run3_samples(
     scale_and_smear: bool,
     mass_str: str,
     bdt_version: str,
+    load_bdt_scores: bool = True,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -299,6 +294,17 @@ def load_run3_samples(
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
     load_columns = columns_to_load[txbb_version]
+    if load_bdt_scores:
+        load_columns += [
+            ("bdt_score", 1),
+            ("bdt_score_vbf", 1),
+        ]
+        if load_systematics:
+            for jshift in jec_shifts+jmsr_shifts:
+                load_columns_syst += [
+                    (f"bdt_score_{jshift}", 1),
+                    (f"bdt_score_vbf_{jshift}", 1),
+                ]
 
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]

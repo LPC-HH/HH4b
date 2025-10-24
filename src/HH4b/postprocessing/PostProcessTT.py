@@ -113,6 +113,8 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             txbb_version=args.txbb,
             scale_and_smear=True,
             mass_str=mreg_strings[args.txbb],
+            bdt_version=args.bdt_model,
+            load_bdt_scores=False,
         )[key]
 
         cutflow_dict[key] = OrderedDict(
