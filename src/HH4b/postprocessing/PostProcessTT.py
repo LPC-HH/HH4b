@@ -510,7 +510,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
                 ratio_ylims=[0.2, 1.8],
                 bg_err_mcstat=True,
                 reweight_qcd=False,
-                save_pdf=False,
+                save_pdf=True,
             )
 
         if (
@@ -549,6 +549,12 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
             )
             with path.open("w") as fout:
                 fout.write(cset.json(exclude_unset=True))
+
+    # save templates
+    template_file = plot_dir / odir / f"templates.pkl"
+    with template_file.open("wb") as f:
+        pickle.dump(hists, f)
+
 
 
 def postprocess_run3(args):
