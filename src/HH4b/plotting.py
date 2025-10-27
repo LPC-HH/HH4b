@@ -730,7 +730,7 @@ def ratioHistPlot(
     if plot_data and len(bg_keys) > 0:
 
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
-        
+
         if ratio is not None and ratio_err is not None:
             yvalue = ratio
             yerr = ratio_err
