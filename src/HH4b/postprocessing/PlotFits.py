@@ -202,7 +202,7 @@ def plot_fits(args):
                     "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}",
                     "bg_order": bkg_order,
                     "energy": 13.6,
-                    "add_pull": add_pull[shape],
+                    "add_pull": add_pull[shape] if pass_region else False,
                     "prefit_hists": (
                         hists["prefit"][region] if shape == "postfit" and pass_region else None
                     ),

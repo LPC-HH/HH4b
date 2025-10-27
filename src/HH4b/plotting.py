@@ -363,6 +363,9 @@ def ratioHistPlot(
     qcd_norm: float = None,
     save_pdf: bool = True,
     unblinded: bool = False,
+    ratio: Hist | None = None,
+    ratio_err: ArrayLike | None = None,
+    ratio_label: str = "Data/Pred",
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -725,15 +728,20 @@ def ratioHistPlot(
 
     # plot ratio below
     if plot_data and len(bg_keys) > 0:
-        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
 
-        tot_val = bg_tot.values()
-        tot_val_zero_mask = tot_val == 0
-        tot_val[tot_val_zero_mask] = 1
-        data_val = hists[data_key, :].values()
-        data_val[tot_val_zero_mask] = 1
-        yerr = ratio_uncertainty(data_val, tot_val, "poisson")
-        yvalue = data_val / tot_val
+        bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
+        
+        if ratio is not None and ratio_err is not None:
+            yvalue = ratio
+            yerr = ratio_err
+        else:
+            tot_val = bg_tot.values()
+            tot_val_zero_mask = tot_val == 0
+            tot_val[tot_val_zero_mask] = 1
+            data_val = hists[data_key, :].values()
+            data_val[tot_val_zero_mask] = 1
+            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
+            yvalue = data_val / tot_val
 
         if prefit_hists:
             bg_tot_prefit = sum([prefit_hists[sample, :] * kfactor[sample] for sample in bg_keys])
@@ -803,7 +811,7 @@ def ratioHistPlot(
     else:
         rax.set_xlabel(hists.axes[1].label)
 
-    rax.set_ylabel("Data/Pred")
+    rax.set_ylabel(ratio_label)
     rax.set_ylim(ratio_ylims)
     minor_locator = mticker.AutoMinorLocator(2)
     rax.yaxis.set_minor_locator(minor_locator)
