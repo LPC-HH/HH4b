@@ -68,6 +68,14 @@ def jetid_v14(jets: ak.Array) -> tuple[ak.Array, ak.Array]:
     return jetidtight, jetidtightlepveto
 
 
+def jetid_v15(jets: ak.Array) -> tuple[ak.Array, ak.Array]:
+    """
+    Jet ID fix for NanoAOD v14 copying
+    # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880788
+    """
+    return jetid_v14(jets)
+
+
 def veto_muons_run2(muons: MuonArray):
     return (
         (muons.pt >= 30)
@@ -178,14 +186,21 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
         if nano_version.startswith("v12"):
             jetidtight, jetidtightlepveto = jetid_v12(jets)  # v12 jetid fix
         elif nano_version.startswith("v14"):
-            try:
-                jetidtight = jets.isTight
-                jetidtightlepveto = jets.isTightLeptonVeto
-            except AttributeError:
+            if year in ["2022", "2022EE", "2023", "2023BPix"]:
                 # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
                 jetidtight, jetidtightlepveto = jetid_v12(jets)
-        elif nano_version.startswith(("v13", "v15")):
-            raise NotImplementedError("Jet ID fix for NanoAOD v13, v14, v15 not implemented yet!")
+            else:
+                jetidtight = jets.isTight
+                jetidtightlepveto = jets.isTightLeptonVeto
+        elif nano_version.startswith("v15"):
+            if year in ["2022", "2022EE", "2023", "2023BPix"]:
+                # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
+                jetidtight, jetidtightlepveto = jetid_v12(jets)
+            else:
+                jetidtight, jetidtightlepveto = jetid_v15(jets)
+
+        elif nano_version.startswith("v13"):
+            raise NotImplementedError("Jet ID fix for NanoAOD v13 not implemented yet!")
         else:
             jetidtight, jetidtightlepveto = jets.isTight, jets.isTightLepVeto
 
@@ -267,19 +282,23 @@ def get_ak8jets(fatjets: FatJetArray):
         )
         fatjets["PXbb_legacy"] = fatjets.particleNetLegacy_Xbb
         fatjets["PQCD_legacy"] = fatjets.particleNetLegacy_QCD
-        fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
-        fatjets["PQCDbb_legacy"] = fatjets.particleNetLegacy_QCDbb
-        fatjets["PQCD0HF_legacy"] = fatjets.particleNetLegacy_QCDothers
-        if "particleNetLegacy_QCDc" in fatjets_fields:
-            fatjets["PQCD1HF_legacy"] = (
-                fatjets.particleNetLegacy_QCDb + fatjets.particleNetLegacy_QCDc
-            )
-            fatjets["PQCD2HF_legacy"] = (
-                fatjets.particleNetLegacy_QCDbb + fatjets.particleNetLegacy_QCDcc
-            )
-        else:
-            fatjets["PQCD1HF_legacy"] = fatjets.particleNetLegacy_QCDb
-            fatjets["PQCD2HF_legacy"] = fatjets.particleNetLegacy_QCDbb
+        # v15 does not have
+        if "particleNetLegacy_QCDb" in fatjets_fields:
+            fatjets["PQCDb_legacy"] = fatjets.particleNetLegacy_QCDb
+        if "particleNetLegacy_QCDbb" in fatjets_fields:
+            fatjets["PQCDbb_legacy"] = fatjets.particleNetLegacy_QCDbb
+            if "particleNetLegacy_QCDc" in fatjets_fields:
+                fatjets["PQCD1HF_legacy"] = (
+                    fatjets.particleNetLegacy_QCDb + fatjets.particleNetLegacy_QCDc
+                )
+                fatjets["PQCD2HF_legacy"] = (
+                    fatjets.particleNetLegacy_QCDbb + fatjets.particleNetLegacy_QCDcc
+                )
+            else:
+                fatjets["PQCD1HF_legacy"] = fatjets.particleNetLegacy_QCDb
+                fatjets["PQCD2HF_legacy"] = fatjets.particleNetLegacy_QCDbb
+        if "particleNetLegacy_QCDbb" in fatjets_fields:
+            fatjets["PQCD0HF_legacy"] = fatjets.particleNetLegacy_QCDothers
 
     # mass regression
     fatjets["particleNet_mass"] = fatjets.mass
@@ -432,6 +451,12 @@ def good_ak8jets(
         except AttributeError:
             # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
             jetidtight = fatjets.isTight
+    elif nano_version.startswith("v15"):
+        try:
+            # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
+            jetidtight = fatjets.isTight
+        except AttributeError:
+            jetidtight, _ = jetid_v15(fatjets)
     else:
         jetidtight = fatjets.isTight
 

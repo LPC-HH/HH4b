@@ -192,6 +192,7 @@ def parse_common_args(parser):
             "v12_private",
             "v12v2_private",
             "v14_25v2",
+            "v15",
         ],
         help="NanoAOD version",
     )

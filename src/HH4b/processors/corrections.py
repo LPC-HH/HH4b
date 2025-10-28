@@ -293,7 +293,11 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if ("v12" not in nano_version) and ("v14" not in nano_version):
+        if (
+            ("v12" not in nano_version)
+            and ("v14" not in nano_version)
+            and ("v15" not in nano_version)
+        ):
             apply_jecs = False
         if not apply_jecs:
             return jets, None
