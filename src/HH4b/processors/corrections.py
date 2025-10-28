@@ -241,7 +241,7 @@ def get_scale_weights(events):
 
 class JECs:
     def __init__(self, year):
-        if year in ["2022", "2022EE", "2023", "2023BPix"]:
+        if year in ["2022", "2022EE", "2023", "2023BPix", "2024"]:
             jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
         elif year in ["2016", "2016APV", "2017", "2018"]:
             jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
