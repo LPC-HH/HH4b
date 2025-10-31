@@ -73,6 +73,7 @@ txbbstr_to_branch = {
     "pnet-legacy": "TXbb_legacy",
     "pnet-v12": "Txbb",
     "glopart-v2": "ParTTXbb",
+    "glopart-v3": "ParT3TXbb",
 }
 
 # map txbb string to skimmer variable name
@@ -80,6 +81,14 @@ txbbstr_to_skimmer = {
     "pnet-legacy": "PNetTXbbLegacy",
     "pnet-v12": "PNetTXbb",
     "glopart-v2": "ParTTXbb",
+    "glopart-v3": "ParT3TXbb",
+}
+
+txbbstr_to_mass_branch = {
+    "pnet-legacy": "particleNet_mass_legacy",
+    "pnet-v12": "particleNet_mass",
+    "glopart-v2": "ParTmassVis",
+    "glopart-v3": "ParT3massGeneric",
 }
 
 logger = logging.getLogger(__name__)
@@ -145,6 +154,7 @@ class bbbbSkimmer(SkimmerABC):
         "pnet-legacy": 0.8,
         "pnet-v12": 0.3,
         "glopart-v2": 0.3,
+        "glopart-v3": 0.3,
     }
 
     fatjet_selection = {  # noqa: RUF012
@@ -199,6 +209,9 @@ class bbbbSkimmer(SkimmerABC):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
+        if "v15" in nano_version and txbb == "glopart-v2":
+            logger.warning("Using glopart-v3 for v15 nanoAOD since glopart-v2 is not available")
+            txbb = "glopart-v3"
         self.txbb = txbb
 
         # HLT selection
@@ -241,13 +254,11 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet420_MassSD30",
                 ],
                 "2024": [
-                    "AK8PFJet250_SoftDropMass40_PFAK8ParticleNetBB0p35",
+                    "AK8PFJet500",
+                    "AK8PFJet400_SoftDropMass30",
+                    # Not available in 2024: AK8PFJet420_MassSD30, AK8PFJet425_SoftDropMass40
+                    "AK8PFJet425_SoftDropMass30",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-                    "AK8PFJet230_SoftDropMass40",
-                    "AK8PFJet400_SoftDropMass40",
-                    "AK8PFJet425_SoftDropMass40",
-                    "AK8PFJet400_SoftDropMass40",
-                    "AK8PFJet420_MassSD30",
                 ],
             },
             # TODO: add semiboosted HLT
@@ -401,8 +412,23 @@ class bbbbSkimmer(SkimmerABC):
         self.jmsr_vars = ["msoftdrop", "particleNet_mass"]
         if self._nano_version == "v12v2_private":
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
-        if self._nano_version == "v12_private":
+        elif self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
+        elif "v14" in self._nano_version:
+            self.jmsr_vars += [
+                "particleNet_mass_legacy",
+                "ParTmassVis",
+                "ParTmassRes",
+                "ParT3massGeneric",
+                "ParT3massX2p",
+            ]
+        elif "v15" in self._nano_version:
+            self.jmsr_vars += [
+                "particleNet_mass_legacy",
+                "ParT3massGeneric",
+                "ParT3massX2p",
+            ]
+
         self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
         for jmsr_year in self.jms_values:
@@ -427,7 +453,11 @@ class bbbbSkimmer(SkimmerABC):
             ]
 
         # FatJet Vars
-        if self._nano_version == "v12_private" or self._nano_version == "v12v2_private":
+        if (
+            self._nano_version == "v12_private"
+            or self._nano_version == "v12v2_private"
+            or "v14" in self._nano_version
+        ):
             extra_vars = [
                 "TXbb",
                 "PXbb",
@@ -438,11 +468,18 @@ class bbbbSkimmer(SkimmerABC):
                 "PQCD1HF",
                 "PQCD2HF",
             ]
-            self.skim_vars["FatJet"] = {
-                **self.skim_vars["FatJet"],
-                "particleNet_mass_legacy": "PNetMassLegacy",
-                **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
-            }
+        elif "v15" in self._nano_version:
+            extra_vars = [
+                "TXbb",
+                "PXbb",
+                "PQCD",
+            ]
+        self.skim_vars["FatJet"] = {
+            **self.skim_vars["FatJet"],
+            "particleNet_mass_legacy": "PNetMassLegacy",
+            **{f"{var}_legacy": f"PNet{var}Legacy" for var in extra_vars},
+        }
+
         if self._nano_version == "v12v2_private":
             extra_vars = [
                 "ParTPQCD1HF",
@@ -455,6 +492,58 @@ class bbbbSkimmer(SkimmerABC):
                 "ParTTXbb",
                 "ParTmassRes",
                 "ParTmassVis",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                **{var: var for var in extra_vars},
+            }
+        elif "v14" in self._nano_version:
+            extra_vars = [
+                # ParT 2
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+                # ParT 3
+                "ParT3PQCD",
+                "ParT3PTopbWev",
+                "ParT3PTopbWmv",
+                "ParT3PTopbWq",
+                "ParT3PTopbWqq",
+                "ParT3PTopbWtauhv",
+                "ParT3PXbb",
+                "ParT3PXcc",
+                "ParT3PXcs",
+                "ParT3PXqq",
+                "ParT3TXbb",
+                "ParT3massGeneric",
+                "ParT3massX2p",
+            ]
+            self.skim_vars["FatJet"] = {
+                **self.skim_vars["FatJet"],
+                **{var: var for var in extra_vars},
+            }
+        elif "v15" in self._nano_version:
+            extra_vars = [
+                "ParT3PQCD",
+                "ParT3PTopbWev",
+                "ParT3PTopbWmv",
+                "ParT3PTopbWq",
+                "ParT3PTopbWqq",
+                "ParT3PTopbWtauhv",
+                "ParT3PXbb",
+                "ParT3PXcc",
+                "ParT3PXcs",
+                "ParT3PXqq",
+                "ParT3TXbb",
+                "ParT3massGeneric",
+                "ParT3massX2p",
             ]
             self.skim_vars["FatJet"] = {
                 **self.skim_vars["FatJet"],
@@ -555,9 +644,29 @@ class bbbbSkimmer(SkimmerABC):
             jec_shifted_jetvars = {}
 
         if JEC_loader.met_factory is not None:
-            met = JEC_loader.met_factory.build(events.MET, jets, {}) if isData else events.MET
+            # check if "MET" attribute exists
+            if hasattr(events, "MET"):
+                events_met = events.MET
+            elif hasattr(events, "PuppiMET"):
+                events_met = events.PuppiMET
+                # No deltaX and deltaY in PuppiMET, so we have to calculate them
+                # by definition: up - nominal
+                deltaX_up = events_met.ptUnclusteredUp * np.cos(events_met.phiUnclusteredUp)
+                deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
+                deltaX_nom = events_met.pt * np.cos(events_met.phi)
+                deltaY_nom = events_met.pt * np.sin(events_met.phi)
+                events_met["MetUnclustEnUpDeltaX"] = deltaX_up - deltaX_nom
+                events_met["MetUnclustEnUpDeltaY"] = deltaY_up - deltaY_nom
+            else:
+                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
+            met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
         else:
-            met = events.MET if "MET" in events.fields else events.PuppiMET
+            if hasattr(events, "MET"):
+                met = events.MET
+            elif hasattr(events, "PuppiMET"):
+                met = events.PuppiMET
+            else:
+                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
@@ -938,11 +1047,21 @@ class bbbbSkimmer(SkimmerABC):
 
             if self._region == "signal":
                 # >=1 bb AK8 jets (ordered by TXbb) with TXbb > 0.8
+                txbb0_cut = (
+                    bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb]
+                ) | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
+                if "bbFatJetParTTXbb" in bbFatJetVars:
+                    txbb0_cut = txbb0_cut | (
+                        bbFatJetVars["bbFatJetParTTXbb"] >= self.preselection[self.txbb]
+                    )
+                if "bbFatJetParT3TXbb" in bbFatJetVars:
+                    txbb0_cut = txbb0_cut | (
+                        bbFatJetVars["bbFatJetParT3TXbb"] >= self.preselection[self.txbb]
+                    )
+
                 cut_txbb = (
                     np.sum(
-                        (bbFatJetVars[f"bbFatJet{txbb_str}"] >= self.preselection[self.txbb])
-                        | (bbFatJetVars["bbFatJetPNetTXbbLegacy"] >= self.preselection[self.txbb])
-                        | (bbFatJetVars["bbFatJetParTTXbb"] >= self.preselection[self.txbb]),
+                        txbb0_cut,
                         axis=1,
                     )
                     >= 1
@@ -1161,12 +1280,14 @@ class bbbbSkimmer(SkimmerABC):
 
         # makedataframe from v13_glopartv2
         # NOTE: this bdt assumes mass = raw mass
+        reg_mass_branch = "bbFatJet" + txbbstr_to_mass_branch[self.txbb]
+        txbb_branch = "bbFatJet" + txbbstr_to_skimmer[self.txbb]
         jets = vector.array(
             {
                 "pt": bbFatJetVars[key_map("bbFatJetPt")],
                 "phi": bbFatJetVars[key_map("bbFatJetPhi")],
                 "eta": bbFatJetVars[key_map("bbFatJetEta")],
-                "M": bbFatJetVars[key_map("bbFatJetParTmassVis")],
+                "M": bbFatJetVars[key_map(reg_mass_branch)],
             }
         )
         h1 = jets[:, 0]
@@ -1207,13 +1328,13 @@ class bbbbSkimmer(SkimmerABC):
                 key_map("H1T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 0],
                 key_map("H2T32"): bbFatJetVars[key_map("bbFatJetTau3OverTau2")][:, 1],
                 # fatjet mass
-                key_map("H1Mass"): bbFatJetVars[key_map("bbFatJetParTmassVis")][:, 0],
+                key_map("H1Mass"): bbFatJetVars[key_map(reg_mass_branch)][:, 0],
                 # fatjet kinematics
                 key_map("H1Pt"): h1.pt,
                 key_map("H2Pt"): h2.pt,
                 key_map("H1eta"): h1.eta,
                 # xbb
-                key_map("H1Xbb"): disc_TXbb(bbFatJetVars[key_map("bbFatJetParTTXbb")][:, 0]),
+                key_map("H1Xbb"): disc_TXbb(bbFatJetVars[key_map(txbb_branch)][:, 0]),
                 # ratios
                 key_map("H1Pt_HHmass"): h1.pt / hh.mass,
                 key_map("H2Pt_HHmass"): h2.pt / hh.mass,

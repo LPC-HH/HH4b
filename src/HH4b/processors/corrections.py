@@ -102,6 +102,23 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         # no uncertainties
         weights.add("pileup", sf)
 
+    elif "2024" in year:
+        # public pileup corrections not available yet
+        path_pileup = package_path + "/corrections/data/pileup/PileupReweight_Summer24.root"
+        corr_file = uproot.open(path_pileup)
+
+        pileup_MC = corr_file["simul_hist"].to_numpy()[0]
+
+        pileup_data_nom = corr_file["data_hist"].to_numpy()[0]
+        pileup_data_up = corr_file["data_hist_up"].to_numpy()[0]
+        pileup_data_down = corr_file["data_hist_down"].to_numpy()[0]
+
+        sf_nom = np.clip(pileup_data_nom / pileup_MC, 0, 10)[nPU]
+        sf_up = np.clip(pileup_data_up / pileup_MC, 0, 10)[nPU]
+        sf_down = np.clip(pileup_data_down / pileup_MC, 0, 10)[nPU]
+
+        weights.add("pileup", sf_nom, sf_up, sf_down)
+
     else:
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
         values = {}
@@ -224,7 +241,7 @@ def get_scale_weights(events):
 
 class JECs:
     def __init__(self, year):
-        if year in ["2022", "2022EE", "2023", "2023BPix"]:
+        if year in ["2022", "2022EE", "2023", "2023BPix", "2024"]:
             jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
         elif year in ["2016", "2016APV", "2017", "2018"]:
             jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
@@ -276,7 +293,11 @@ class JECs:
         jets = self._add_jec_variables(jets, rho, isData)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
-        if "v12" not in nano_version:
+        if (
+            ("v12" not in nano_version)
+            and ("v14" not in nano_version)
+            and ("v15" not in nano_version)
+        ):
             apply_jecs = False
         if not apply_jecs:
             return jets, None
@@ -305,6 +326,8 @@ class JECs:
                 corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
             elif year == "2023BPix":
                 corr_key = "2023BPix_runD"
+            elif year == "2024":
+                corr_key = "2024"
             else:
                 print(dataset, year)
                 print("warning, no valid dataset, JECs won't be applied to data")
