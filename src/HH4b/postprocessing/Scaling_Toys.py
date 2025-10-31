@@ -17,9 +17,14 @@ from HH4b.hh_vars import (
     bg_keys,
     samples_run3,
 )
+from HH4b.postprocessing.PostProcess import (
+    combine_run3_samples,
+    load_process_run3_samples,
+)
 
-xbb_cuts = np.arange(0.8, 0.999, 0.0025)
+xbb_cuts = np.arange(0.9, 0.999, 0.0025)
 bdt_cuts = np.arange(0.9, 0.999, 0.0025)
+# bdt_cuts = np.array([0.975])
 
 
 # @nb.njit
@@ -91,7 +96,7 @@ def abcd(
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
     background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
-    return s, background, dicts
+    return s, background, dmt, dicts
 
 
 def get_toy_from_hist(h_hist, n_samples, rng):
@@ -150,7 +155,7 @@ args = Namespace(
     vbf_bdt_wp=0.9825,
     weight_ttbar_bdt=1.0,
     # sig_keys=['hh4b', 'hh4b-kl0', 'hh4b-kl2p45', 'hh4b-kl5', 'vbfhh4b', 'vbfhh4b-k2v0', 'vbfhh4b-kv1p74-k2v1p37-kl14p4', 'vbfhh4b-kvm0p012-k2v0p03-kl10p2', 'vbfhh4b-kvm0p758-k2v1p44-klm19p3', 'vbfhh4b-kvm0p962-k2v0p959-klm1p43', 'vbfhh4b-kvm1p21-k2v1p94-klm0p94', 'vbfhh4b-kvm1p6-k2v2p72-klm1p36', 'vbfhh4b-kvm1p83-k2v3p57-klm3p39', 'vbfhh4b-kvm2p12-k2v3p87-klm5p96'],
-    sig_keys=["hh4b"],
+    sig_keys=["hh4b", "vbfhh4b"],
     pt_first=300.0,
     pt_second=250.0,
     fom_vbf_samples=["vbfhh4b-k2v0"],
@@ -193,7 +198,7 @@ for year in samples_run3:
         "QCD_HT-800to1000",
     ]
     for key in list(samples_run3[year]):
-        if "hh4b" in key and key != "hh4b":
+        if "hh4b" in key and key not in ["hh4b", "vbfhh4b"]:
             del samples_run3[year][key]
 
 # get top-level HH4b directory
@@ -290,6 +295,18 @@ def minuit_inverse_transform(x, xmin=0, xmax=1):
     return (np.sin(x) + 1) * (xmax - xmin) / 2 + xmin
 
 
+def fom_classic(s, b):
+    return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
+
+
+def fom_update(s, b, dmt):
+    return (
+        2 * np.sqrt(b + b * b * (1 / dmt[1] + 1 / dmt[2] + 1 / dmt[3])) / s
+        if s > 0 and b > 0
+        else np.nan
+    )
+
+
 # @nb.njit
 def scan_fom(
     method: str,
@@ -301,7 +318,7 @@ def scan_fom(
     mass_window: list[float],
     bg_keys: list[str],
     sig_keys: list[str],
-    fom: str = "2sqrt(b)/s",
+    fom: Callable,
     mass: str = "H2Msd",
 ):
     """Generic FoM scan for given region, defined in the ``get_cut`` function."""
@@ -315,7 +332,7 @@ def scan_fom(
     all_fom = []
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
-            nevents_sig, nevents_bkg, _ = abcd(
+            nevents_sig, nevents_bkg, nevents_bcd, _ = abcd(
                 events_combined,
                 get_cut,
                 get_anti_cut,
@@ -331,18 +348,7 @@ def scan_fom(
             cut = get_cut(events_combined["data"], xbb_cut, bdt_cut)
             nevents_sideband = get_nevents_nosignal(events_combined["data"], cut, mass, mass_window)
 
-            if fom == "s/sqrt(s+b)":
-                if nevents_sig + nevents_bkg > 0:
-                    figure_of_merit = nevents_sig / np.sqrt(nevents_sig + nevents_bkg)
-                else:
-                    figure_of_merit = np.nan
-            elif fom == "2sqrt(b)/s":
-                if nevents_bkg > 0 and nevents_sig > 0:
-                    figure_of_merit = 2 * np.sqrt(nevents_bkg) / nevents_sig
-                else:
-                    figure_of_merit = np.nan
-            else:
-                raise ValueError("Invalid FOM")
+            figure_of_merit = fom(nevents_sig, nevents_bkg, nevents_bcd)
 
             all_b.append(nevents_bkg)
             all_s.append(nevents_sig)
@@ -361,10 +367,12 @@ def scan_fom(
     return all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
 
 
-def get_optimal_cuts(all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts):
+def get_optimal_cuts(
+    all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts, restrict=True
+):
 
-    bdt_cuts = np.sort(np.unique(all_bdt_cuts))
-    xbb_cuts = np.sort(np.unique(all_xbb_cuts))
+    bdt_cuts = np.concatenate((np.sort(np.unique(all_bdt_cuts)), np.array([1])))
+    xbb_cuts = np.concatenate((np.sort(np.unique(all_xbb_cuts)), np.array([1])))
 
     h_sb = hist.Hist(
         hist.axis.Variable(list(bdt_cuts), name="bdt_cut"),
@@ -381,9 +389,17 @@ def get_optimal_cuts(all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, a
 
     for xbb_cut in xbb_cuts:
         for bdt_cut in bdt_cuts:
+            if xbb_cut >= 1 or bdt_cut >= 1:
+                continue
             # find index of this cut
             idx = np.where((all_bdt_cuts == bdt_cut) & (all_xbb_cuts == xbb_cut))[0][0]
-            if all_s[idx] > 0.5 and all_b[idx] >= 2 and all_sideband_events[idx] >= 12:
+            if restrict:
+                constraint = (
+                    (all_s[idx] > 0.5) and (all_b[idx] >= 2) and (all_sideband_events[idx] >= 12)
+                )
+            else:
+                constraint = (all_s[idx] > 0) and (all_b[idx] > 0)
+            if constraint:
                 h_sb.fill(bdt_cut, xbb_cut, weight=all_fom[idx])
                 h_b.fill(bdt_cut, xbb_cut, weight=all_b[idx])
                 h_s.fill(bdt_cut, xbb_cut, weight=all_s[idx])
@@ -435,7 +451,14 @@ def get_cuts():
 
 # @nb.njit
 def run_toys(
-    ntoys, lumi_scale=1.0, method="2dkde", optimize=True, xbb_cut_data=0.945, bdt_cut_data=0.935
+    ntoys,
+    lumi_scale=1.0,
+    method="3dkde",
+    optimize=True,
+    restrict=True,
+    xbb_cut_data=0.9325,  # 0.8900,
+    bdt_cut_data=0.9675,  # 0.9750,
+    use_fom_update=True,
 ):
 
     bdt_cut_toys = []
@@ -509,10 +532,17 @@ def run_toys(
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
+                fom=fom_update if use_fom_update else fom_classic,
             )
 
             global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
-                all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
+                all_fom,
+                all_b,
+                all_s,
+                all_sideband_events,
+                all_xbb_cuts,
+                all_bdt_cuts,
+                restrict=restrict,
             )
             if global_min is None:
                 print(f"Skipping toy {itoy} due to no valid cuts found.")
@@ -521,7 +551,7 @@ def run_toys(
             # use fixed cuts
             bdt_cut = bdt_cut_data
             xbb_cut = xbb_cut_data
-            s, b, _ = abcd(
+            s, b, bcd, _ = abcd(
                 events_toy,
                 get_cuts(),
                 get_anti_cuts(),
@@ -532,8 +562,7 @@ def run_toys(
                 bg_keys,
                 args.fom_ggf_samples,
             )
-
-            global_min = 2 * np.sqrt(b) / s if s > 0 else np.nan
+            global_min = fom_update(s, b, bcd) if use_fom_update else fom_classic(s, b, bcd)
 
         bdt_cut_toys.append(bdt_cut)
         xbb_cut_toys.append(xbb_cut)
@@ -542,65 +571,69 @@ def run_toys(
         fom_toys.append(global_min)
 
         print(f"Lumi scale: {lumi_scale}, Toy: {itoy + 1}")
+        print(f"Method: {method}")
+        print(f"FoM: {fom_update if use_fom_update else fom_classic}")
         print(f"Optimal cuts: bdt_cut={bdt_cut:.4f}, xbb_cut={xbb_cut:.4f}")
         print(
-            f"2sqrt(b)/s={global_min:.4f}, b={b:.4f}, s={s:.4f}, s/b={s/b:.4f}, s/sqrt(b)={s/np.sqrt(b):.4f}"
+            f"FoM={global_min:.4f}, b={b:.4f}, s={s:.4f}, s/b={s/b:.4f}, s/sqrt(b)={s/np.sqrt(b):.4f}"
         )
 
     return bdt_cut_toys, xbb_cut_toys, s_toys, b_toys, fom_toys
 
 
 if __name__ == "__main__":
-    # events_dict_postprocess = {}
-    # cutflows = {}
-    # for year in args.years:
-    #     print(f"\n{year}")
-    #     events, cutflow = load_process_run3_samples(
-    #         args,
-    #         year,
-    #         [],
-    #         args.control_plots,
-    #         plot_dir,
-    #         mass_window,
-    #         args.rerun_inference,
-    #     )
-    #     events_dict_postprocess[year] = events
-    #     cutflows[year] = cutflow
+    reprocess = False
+    if reprocess:
+        events_dict_postprocess = {}
+        cutflows = {}
+        for year in args.years:
+            print(f"\n{year}")
+            events, cutflow = load_process_run3_samples(
+                args,
+                year,
+                [],
+                args.control_plots,
+                plot_dir,
+                mass_window,
+                args.rerun_inference,
+            )
+            events_dict_postprocess[year] = events
+            cutflows[year] = cutflow
 
-    # processes = ["data"] + args.sig_keys + bg_keys
-    # bg_keys_combined = bg_keys.copy()
-    # if not args.control_plots and not args.bdt_roc:
-    #     if "qcd" in processes:
-    #         processes.remove("qcd")
-    #     if "qcd" in bg_keys:
-    #         bg_keys.remove("qcd")
-    #     if "qcd" in bg_keys_combined:
-    #         bg_keys_combined.remove("qcd")
+        processes = ["data"] + args.sig_keys + bg_keys
+        bg_keys_combined = bg_keys.copy()
+        if not args.control_plots and not args.bdt_roc:
+            if "qcd" in processes:
+                processes.remove("qcd")
+            if "qcd" in bg_keys:
+                bg_keys.remove("qcd")
+            if "qcd" in bg_keys_combined:
+                bg_keys_combined.remove("qcd")
 
-    # if len(args.years) > 1:
-    #     # list of years available for a given process to scale to full lumi,
-    #     scaled_by_years = {
-    #         # "zz": ["2022", "2022EE", "2023"],
-    #     }
-    #     events_combined, scaled_by = combine_run3_samples(
-    #         events_dict_postprocess,
-    #         processes,
-    #         bg_keys=bg_keys_combined,
-    #         scale_processes=scaled_by_years,
-    #         years_run3=args.years,
-    #     )
-    #     print("Combined years")
-    # else:
-    #     events_combined = events_dict_postprocess[args.years[0]]
-    #     scaled_by = {}
-    # with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "wb") as f:
-    #     pickle.dump(events_combined, f)
-
-    # open the pickle file
-    with open(  # noqa: PTH123
-        f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb"
-    ) as f:
-        events_combined = pickle.load(f)
+        if len(args.years) > 1:
+            # list of years available for a given process to scale to full lumi,
+            scaled_by_years = {
+                # "zz": ["2022", "2022EE", "2023"],
+            }
+            events_combined, scaled_by = combine_run3_samples(
+                events_dict_postprocess,
+                processes,
+                bg_keys=bg_keys_combined,
+                scale_processes=scaled_by_years,
+                years_run3=args.years,
+            )
+            print("Combined years")
+        else:
+            events_combined = events_dict_postprocess[args.years[0]]
+            scaled_by = {}
+        output_file = Path(HH4B_DIR) / "data" / f"events_combined_{args.templates_tag}.pkl"
+        with output_file.open("wb") as f:
+            pickle.dump(events_combined, f)
+    else:
+        # just open the pickle file
+        input_file = Path(HH4B_DIR) / "data" / f"events_combined_{args.templates_tag}.pkl"
+        with input_file.open("rb") as f:
+            events_combined = pickle.load(f)
 
     integral = len(events_combined["data"])
 
@@ -626,16 +659,27 @@ if __name__ == "__main__":
     kde_1d_xbb = gaussian_kde(transformed_data_array[:, 1], bw_method="silverman")
     kde_1d_bdt = gaussian_kde(transformed_data_array[:, 2], bw_method="silverman")
 
+    # lumi_scale = 1
     # lumi_scale = 138.0 / 62.0
-    lumi_scale = 1
+    # lumi_scale = 0.5
+    lumi_scale = 62.0 / 138.0
     ntoys = 100
     # ntoys = -1
-    method = "2dkde"
+    method = "3dkde"
     optimize = False
+    restrict = True
+    use_fom_update = True
+    if use_fom_update:
+        plot_dir = plot_dir / "FoM_Update"
 
     if ntoys > 0:
         bdt_cut_toys, xbb_cut_toys, s_toys, b_toys, fom_toys = run_toys(
-            ntoys, lumi_scale=lumi_scale, method=method, optimize=optimize
+            ntoys,
+            lumi_scale=lumi_scale,
+            method=method,
+            optimize=optimize,
+            restrict=restrict,
+            use_fom_update=use_fom_update,
         )
     else:
         all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts = scan_fom(
@@ -649,22 +693,35 @@ if __name__ == "__main__":
             bg_keys=bg_keys,
             sig_keys=args.fom_ggf_samples,
             mass=args.mass,
+            fom=fom_update if use_fom_update else fom_classic,
         )
 
         fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
-            all_fom, all_b, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts
+            all_fom,
+            all_b,
+            all_s,
+            all_sideband_events,
+            all_xbb_cuts,
+            all_bdt_cuts,
+            restrict=restrict,
         )
         print("Data")
+        print(f"FoM: {fom_update if use_fom_update else fom_classic}")
         print(f"Optimal cuts: bdt_cut={bdt_cut_data:.4f}, xbb_cut={xbb_cut_data:.4f}")
         print(
-            f"2sqrt(b)/s={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
+            f"FoM={fom_data:.4f}, b={b_data:.4f}, s={s_data:.4f}, s/b={s_data/b_data:.4f}, s/sqrt(b)={s_data/np.sqrt(b_data):.4f}"
         )
 
     # save all arrays to a pickle file
     if optimize:
-        optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}_{bdt_cuts[-1]:.4f}_{bdt_cuts[1]-bdt_cuts[0]:.4f}"
+        if len(bdt_cuts) > 1:
+            optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}_{bdt_cuts[-1]:.4f}_{bdt_cuts[1]-bdt_cuts[0]:.4f}"
+        else:
+            optimize_str = f"{xbb_cuts[0]:.4f}_{xbb_cuts[-1]:.4f}_{xbb_cuts[1]-xbb_cuts[0]:.4f}_{bdt_cuts[0]:.4f}"
     else:
         optimize_str = "noopt"
+    if not restrict:
+        optimize_str += "_norest"
     if ntoys > 0:
         with open(  # noqa: PTH123
             plot_dir / f"fom_toys_{method}_{ntoys}_{lumi_scale:4f}_{optimize_str}" ".pkl",

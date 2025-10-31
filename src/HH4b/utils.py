@@ -23,6 +23,8 @@ import hist
 import numpy as np
 import pandas as pd
 import vector
+from coffea.analysis_tools import PackedSelection
+from coffea.processor.accumulator import accumulate
 from hist import Hist
 
 from HH4b.xsecs import xsecs
@@ -117,8 +119,6 @@ def remove_empty_parquets(samples_dir, year):
 
 def get_cutflow(pickles_path, year, sample_name):
     """Accumulates cutflow over all pickles in ``pickles_path`` directory"""
-    from coffea.processor.accumulator import accumulate
-
     out_pickles = listdir(pickles_path)
 
     file_name = out_pickles[0]
@@ -165,8 +165,6 @@ def get_nevents(pickles_path, year, sample_name):
 
 def get_pickles(pickles_path, year, sample_name):
     """Accumulates all pickles in ``pickles_path`` directory"""
-    from coffea.processor.accumulator import accumulate
-
     out_pickles = [f for f in listdir(pickles_path) if f != ".DS_Store"]
 
     file_name = out_pickles[0]
@@ -546,8 +544,6 @@ def make_vector(events: dict, name: str, mask=None, mstring="Mass"):
         name (str): object string e.g. ak8FatJet
         mask (bool array, optional): array selecting desired events
     """
-    import vector
-
     if mask is None:
         return vector.array(
             {
@@ -854,8 +850,6 @@ def make_selection(
         selection (dict): dict of each sample's cut boolean arrays.
         cutflow (dict): dict of each sample's yields after each cut.
     """
-    from coffea.analysis_tools import PackedSelection
-
     selection = {} if selection is None else deepcopy(selection)
 
     cutflow = {}
