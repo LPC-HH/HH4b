@@ -11,6 +11,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from coffea import processor
 
 from HH4b.hh_vars import LUMI
@@ -50,9 +52,6 @@ class SkimmerABC(processor.ProcessorABC):
         """
         Saves pandas dataframe events to './outparquet'
         """
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
         local_dir = (Path() / "outparquet").resolve()
         if odir_str:
             local_dir += odir_str
