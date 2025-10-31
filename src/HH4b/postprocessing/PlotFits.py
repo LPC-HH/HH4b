@@ -182,7 +182,7 @@ def plot_fits(args):
         "postfit": True,
     }
 
-    for shape, shape_label in shapes.items():
+    for shape, _shape_label in shapes.items():
         for region, region_label in selection_regions.items():
             pass_region = region.startswith("pass")
             for shape_var in shape_vars:
