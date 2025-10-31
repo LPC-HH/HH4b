@@ -4,6 +4,8 @@ Cross Sections for 13.6 TeV,
 
 from __future__ import annotations
 
+import json
+
 BR_WQQ = 0.676
 BR_WLNU = 0.324
 BR_ZQQ = 0.69911
@@ -293,8 +295,6 @@ xsecs["ZZ_TuneCP5_13TeV-pythia8"] = 16.91
 
 
 def main():
-    import json
-
     with open("xsecs.json", "w") as outfile:  # noqa: PTH123
         json.dump(xsecs, outfile, indent=4)
 

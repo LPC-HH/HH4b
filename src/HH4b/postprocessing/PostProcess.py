@@ -17,6 +17,7 @@ import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
 import pandas as pd
+import uproot
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
@@ -1166,7 +1167,7 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & cut_mass])
 
 
-def fom_classic(s, b, abcd=None):
+def fom_classic(s, b):
     return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
 
 
@@ -1687,7 +1688,7 @@ def postprocess_run3(args):
             ["hh4b"],
         )
 
-        s_binVBF, b_binVBF, _ = abcd(
+        _s_binVBF, b_binVBF, _ = abcd(
             events_combined,
             get_cuts(args, "vbf"),
             get_anti_cuts(args, "vbf"),
@@ -1870,8 +1871,6 @@ def postprocess_run3(args):
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
     if args.event_list:
-
-        import uproot
 
         eventlist_dict = [
             "event",
