@@ -200,10 +200,10 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
 
             tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-            tau32j1sf, tau32j1sf_up, tau32j1sf_dn = corrections.ttbar_SF(
+            tau32j1sf, _tau32j1sf_up, _tau32j1sf_dn = corrections.ttbar_SF(
                 tt_tau32_sf, bdt_events, "H1T32"
             )
-            tau32j2sf, tau32j2sf_up, tau32j2sf_dn = corrections.ttbar_SF(
+            tau32j2sf, _tau32j2sf_up, _tau32j2sf_dn = corrections.ttbar_SF(
                 tt_tau32_sf, bdt_events, "H2T32"
             )
             tau32sf = tau32j1sf * tau32j2sf
@@ -594,7 +594,7 @@ def postprocess_run3(args):
     print("Loaded all years ", args.years)
 
     if len(args.years) > 1:
-        events_combined, scaled_by = combine_run3_samples(
+        events_combined, _scaled_by = combine_run3_samples(
             events_dict_postprocess,
             ["data", "ttbar", "qcd", "vjets", "diboson"],
             years_run3=args.years,

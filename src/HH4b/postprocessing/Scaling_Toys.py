@@ -535,7 +535,7 @@ def run_toys(
                 fom=fom_update if use_fom_update else fom_classic,
             )
 
-            global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
+            global_min, bdt_cut, xbb_cut, _h_sb, b, s = get_optimal_cuts(
                 all_fom,
                 all_b,
                 all_s,
@@ -696,7 +696,7 @@ if __name__ == "__main__":
             fom=fom_update if use_fom_update else fom_classic,
         )
 
-        fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
+        fom_data, bdt_cut_data, xbb_cut_data, _h_sb, b_data, s_data = get_optimal_cuts(
             all_fom,
             all_b,
             all_s,

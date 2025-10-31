@@ -593,7 +593,7 @@ def main(args):
 
     def plot_h(h_hist, xlabel, plot_name, xlim, gaus_label):
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        mu, sigma = gaus_fit[gaus_label]
+        mu, _sigma = gaus_fit[gaus_label]
         hep.histplot(
             h_hist,
             ax=ax,
