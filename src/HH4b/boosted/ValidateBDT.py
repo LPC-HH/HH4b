@@ -218,7 +218,7 @@ def load_events(path_to_dir, year, jet_coll_pnet, jet_coll_mass, bdt_models):
                 bdt_score if bdt_score is not None else np.ones(events_dict[key]["weight"])
             )
             events_dict[key][f"bdtscoreVBF_{bdt_model}"] = (
-                bdt_score if bdt_score is not None else np.ones(events_dict[key]["weight"])
+                bdt_score_vbf if bdt_score_vbf is not None else np.ones(events_dict[key]["weight"])
             )
             bdt_scores.extend([f"bdtscore_{bdt_model}", f"bdtscoreVBF_{bdt_model}"])
 

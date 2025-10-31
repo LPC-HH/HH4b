@@ -1688,7 +1688,7 @@ def postprocess_run3(args):
             ["hh4b"],
         )
 
-        s_binVBF, b_binVBF, _ = abcd(
+        _s_binVBF, b_binVBF, _ = abcd(
             events_combined,
             get_cuts(args, "vbf"),
             get_anti_cuts(args, "vbf"),

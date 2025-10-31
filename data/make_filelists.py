@@ -2173,9 +2173,9 @@ def get_files(dataset, version):
         if version == "v12" or version == "v11":
             sites_cfg["whitelist_sites"] = ["T1_US_FNAL_Disk"]
 
-        files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
+        files_rucio, _sites = get_dataset_files(dataset, **sites_cfg, output="first")
 
-        # print(dataset, sites)
+        # print(dataset, _sites)
 
         # Get rid of invalid files
         files_valid = []

@@ -167,7 +167,7 @@ def sigErrRatioPlot(
     ylim: list = None,
     h_uncorr: Hist = None,
 ):
-    fig, (ax, rax) = plt.subplots(
+    _, (ax, rax) = plt.subplots(
         2, 1, figsize=(12, 14), gridspec_kw={"height_ratios": [3, 1], "hspace": 0}, sharex=True
     )
 
@@ -445,7 +445,7 @@ def ratioHistPlot(
         ax, rax = axrax
         ax.sharex(rax)
     elif add_pull or plot_significance:
-        fig, (ax, rax, sax) = plt.subplots(
+        _fig, (ax, rax, sax) = plt.subplots(
             3,
             1,
             figsize=(12, 18),
@@ -453,7 +453,7 @@ def ratioHistPlot(
             sharex=True,
         )
     else:
-        fig, (ax, rax) = plt.subplots(
+        _fig, (ax, rax) = plt.subplots(
             2,
             1,
             figsize=(12, 12),
@@ -988,11 +988,11 @@ def subtractedHistPlot(
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, _, _, _, _ = _process_samples(
+    bg_keys, bg_colours, _bg_labels, _, _, _, _ = _process_samples(
         [], bg_keys, {}, None, None, bg_order
     )
 
-    fig, (ax, rax) = plt.subplots(
+    _fig, (ax, rax) = plt.subplots(
         2,
         1,
         figsize=(12, 12),
