@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 from colorama import Fore, Style
 
+from HH4b.processors import bbbbSkimmer, ttSkimmer
+
 from .xsecs import xsecs
 
 
@@ -136,8 +138,6 @@ def get_processor(
 ):
     # define processor
     if processor == "skimmer":
-        from HH4b.processors import bbbbSkimmer
-
         return bbbbSkimmer(
             xsecs=xsecs,
             save_systematics=save_systematics,
@@ -147,8 +147,6 @@ def get_processor(
         )
 
     if processor == "ttSkimmer":
-        from HH4b.processors import ttSkimmer
-
         return ttSkimmer(
             xsecs=xsecs,
             nano_version=nano_version,
