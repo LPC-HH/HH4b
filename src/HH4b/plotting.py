@@ -78,27 +78,28 @@ color_by_sample = {
     "novhhtobb": "aquamarine",
     "gghtobb": "aquamarine",
     "vbfhtobb": "teal",
-    "tthtobb": "cadetblue",
-    "vhtobb": "tab:cyan",
+    "tthtobb": "#b9ac70",
+    "vhtobb": "#94a4a2",
+    "vhtthtobb": "#94a4a2",
     "others": "aquamarine",
-    "hh4b": colours["red"],
-    "hh4b-kl0": "fuchsia",
-    "hh4b-kl2p45": "brown",
-    "hh4b-kl5": "cyan",
-    "vbfhh4b": "fuchsia",
-    "vbfhh4b-k2v0": "purple",
-    "vbfhh4b-k2v2": "thistle",
-    "vbfhh4b-kl2": "deeppink",
-    "ttbar": colours["darkblue"],
+    "hh4b": "#FF9933",
+    "hh4b-kl0": "#FF9933",
+    "hh4b-kl2p45": "#FF9933",
+    "hh4b-kl5": "#FF9933",
+    "vbfhh4b": "#FF0000",
+    "vbfhh4b-k2v0": "#FF0000",
+    "vbfhh4b-k2v2": "#FF0000",
+    "vbfhh4b-kl2": "#FF0000",
+    "ttbar": "#832db6",
     "ttlep": "cadetblue",
-    "qcd": colours["canary"],
+    "qcd": "#3f90da",
     "qcd-ht": colours["canary"],
     "qcdb-ht": colours["canary"],
-    "zz": "orchid",
-    "nozzdiboson": "aquamarine",
+    "zz": "#717581",
+    "nozzdiboson": "#a96b59",
     "diboson": "orchid",
-    "dibosonvjets": "orchid",
-    "vjets": colours["green"],
+    "dibosonvjets": "#92dadd",
+    "vjets": "#92dadd",
     "vjetslnu": colours["orange"],
     "top_matched": "cornflowerblue",
     "W_matched": "royalblue",
@@ -107,31 +108,32 @@ color_by_sample = {
 }
 
 label_by_sample = {
-    "novhhtobb": "ggH+VBF+ttH H(bb)",
-    "gghtobb": "ggH(bb)",
-    "vbfhtobb": "VBFH(bb)",
-    "tthtobb": "ttH(bb)",
-    "vhtobb": "VH(bb)",
+    "novhhtobb": r"ggH+VBF+$t\bar{t}$H",
+    "gghtobb": "ggH",
+    "vbfhtobb": "VBFH",
+    "tthtobb": r"$t\bar{t}$H",
+    "vhtobb": "VH",
+    "vhtthtobb": r"VH, $t\bar{t}$H",
     "others": "Others",
-    "qcd": "Multijet",
-    "qcd-ht": "Multijet HT bin",
-    "qcdb-ht": "Multijet B HT bin",
-    "hh4b": r"ggF HH4b",
-    "hh4b-kl2p45": r"HH4b ($\kappa_{\lambda}=2.45$)",
-    "hh4b-kl5": r"HH4b ($\kappa_{\lambda}=5$)",
-    "hh4b-kl0": r"HH4b ($\kappa_{\lambda}=0$)",
-    "vbfhh4b": r"VBF HH4b",
-    "vbfhh4b-k2v0": r"VBF HH4b ($\kappa_{2V}=0$)",
-    "vbfhh4b-k2v2": r"VBF HH4b ($\kappa_{2V}=2$)",
-    "vbfhh4b-kl2": r"VBF HH4b ($\kappa_{\lambda}=2$)",
+    "qcd": "QCD multijet",
+    "qcd-ht": "QCD multijet HT bin",
+    "qcdb-ht": "QCD multijet b-enriched HT bin",
+    "hh4b": r"ggHH",
+    "hh4b-kl2p45": r"ggHH, $\kappa_{\lambda}=2.45$",
+    "hh4b-kl5": r"ggHH, $\kappa_{\lambda}=5$",
+    "hh4b-kl0": r"ggHH, $\kappa_{\lambda}=0$",
+    "vbfhh4b": r"qqHH",
+    "vbfhh4b-k2v0": r"qqHH, $\kappa_{2V}=0$",
+    "vbfhh4b-k2v2": r"qqHH, $\kappa_{2V}=2$",
+    "vbfhh4b-kl2": r"qqHH, $\kappa_{\lambda}=2$)",
     "zz": "ZZ",
     "nozzdiboson": "Other VV",
     "diboson": "VV",
-    "dibosonvjets": "VV+VJets",
-    "ttbar": r"$t\bar{t}$ + Jets",
-    "ttlep": r"$t\bar{t}$ + Jets (Lep)",
-    "vjets": r"W/Z$(qq)$ + Jets",
-    "vjetslnu": r"W/Z$(\ell\nu/\ell\ell)$ + Jets",
+    "dibosonvjets": "V+jets, VV",
+    "ttbar": r"$t\bar{t}$+jets",
+    "ttlep": r"$t\bar{t}$+jets (lep)",
+    "vjets": r"$V$+jets",
+    "vjetslnu": r"$V(\ell\nu/\ell\ell)$+jets",
     "data": "Data",
     "top_matched": "Top Matched",
     "W_matched": "W Matched",
@@ -269,17 +271,19 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
 
     sig_colours = [color_by_sample[sig_key] for sig_key in sig_keys]
     sig_labels = OrderedDict()
+    sig_ls = OrderedDict()
     for sig_key, sig_scale in sig_scale_dict.items():
         label = label_by_sample.get(sig_key, sig_key)
 
         if sig_scale == 1:
             label = label  # noqa: PLW0127
-        elif sig_scale <= 100:
-            label = f"{label} $\\times$ {sig_scale:.2f}"
+        elif "vbfhh4b" in sig_key:
+            label = f"{label}, $\\mu_{{qqHH}} = {sig_scale:.0f}$"
         else:
-            label = f"{label} $\\times$ {sig_scale:.2e}"
+            label = f"{label}, $\\mu_{{ggHH}} = {sig_scale:.0f}$"
 
         sig_labels[sig_key] = label
+        sig_ls[sig_key] = "--" if sig_key == "vbfhh4b-k2v0" else "-"
 
     # set up systematic variations if needed
     if syst is not None and variation is not None:
@@ -299,7 +303,7 @@ def _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_orde
                 sig_labels[new_key] = sig_labels[sig_key] + skey
                 del sig_scale_dict[sig_key], sig_labels[sig_key]
 
-    return bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels
+    return bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls
 
 
 def _fill_error(ax, edges, down, up, scale=1):
@@ -354,10 +358,14 @@ def ratioHistPlot(
     axrax: tuple | None = None,
     energy: str = "13.6",
     add_pull: bool = False,
+    prefit_hists: Hist | None = None,
     reweight_qcd: bool = False,
     qcd_norm: float = None,
     save_pdf: bool = True,
     unblinded: bool = False,
+    ratio: Hist | None = None,
+    ratio_err: ArrayLike | None = None,
+    ratio_label: str = "Data/Pred",
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -402,12 +410,13 @@ def ratioHistPlot(
 
     # copy hists and bg_keys so input objects are not changed
     hists, bg_keys = deepcopy(hists), deepcopy(bg_keys)
+    prefit_hists = deepcopy(prefit_hists) if prefit_hists is not None else None
 
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels = _process_samples(
-        sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_order
+    bg_keys, bg_colours, bg_labels, sig_colours, sig_scale_dict, sig_labels, sig_ls = (
+        _process_samples(sig_keys, bg_keys, sig_scale_dict, syst, variation, bg_order)
     )
 
     if syst is not None and variation is None:
@@ -485,7 +494,6 @@ def ratioHistPlot(
             histtype="fill",
             sort="yield" if sortyield else None,
             stack=True,
-            edgecolor="black",
             linewidth=2,
             label=bg_labels,
             color=bg_colours,
@@ -493,14 +501,17 @@ def ratioHistPlot(
         )
 
     # signal samples
-    if len(sig_scale_dict):
+    if len(sig_scale_dict) and sum(np.abs(list(sig_scale_dict.values()))) > 0:
+        # use prefit hists for signal if provided
+        sig_hists = prefit_hists if prefit_hists is not None else hists
         hep.histplot(
-            [hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
+            [sig_hists[sig_key, :] * sig_scale for sig_key, sig_scale in sig_scale_dict.items()],
             ax=ax,
             histtype="step",
-            linewidth=2,
+            linewidth=3,
             label=list(sig_labels.values()),
             color=sig_colours,
+            ls=list(sig_ls.values()),
             # flow="none",
         )
 
@@ -549,7 +560,7 @@ def ratioHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Bkg. Unc.",
+                label=r"$\sigma_{Pred}$",
             )
         else:
             ax.stairs(
@@ -696,7 +707,7 @@ def ratioHistPlot(
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
-    ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    ax.legend(handles, labels, loc="upper right")
     if "qcd" in kfactor and kfactor["qcd"] != 1:
         ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
@@ -717,15 +728,46 @@ def ratioHistPlot(
 
     # plot ratio below
     if plot_data and len(bg_keys) > 0:
+
         bg_tot = sum([hists[sample, :] * kfactor[sample] for sample in bg_keys])
 
-        tot_val = bg_tot.values()
-        tot_val_zero_mask = tot_val == 0
-        tot_val[tot_val_zero_mask] = 1
-        data_val = hists[data_key, :].values()
-        data_val[tot_val_zero_mask] = 1
-        yerr = ratio_uncertainty(data_val, tot_val, "poisson")
-        yvalue = data_val / tot_val
+        if ratio is not None and ratio_err is not None:
+            yvalue = ratio
+            yerr = ratio_err
+        else:
+            tot_val = bg_tot.values()
+            tot_val_zero_mask = tot_val == 0
+            tot_val[tot_val_zero_mask] = 1
+            data_val = hists[data_key, :].values()
+            data_val[tot_val_zero_mask] = 1
+            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
+            yvalue = data_val / tot_val
+
+        if prefit_hists:
+            bg_tot_prefit = sum([prefit_hists[sample, :] * kfactor[sample] for sample in bg_keys])
+
+            tot_val_prefit = bg_tot_prefit.values()
+            tot_val_zero_mask_prefit = tot_val_prefit == 0
+            tot_val_prefit[tot_val_zero_mask_prefit] = 1
+            yerr_prefit = ratio_uncertainty(data_val, tot_val_prefit, "poisson")
+            yvalue_prefit = data_val / tot_val_prefit
+
+            hep.histplot(
+                yvalue_prefit,
+                bg_tot.axes[0].edges,
+                yerr=yerr_prefit,
+                ax=rax,
+                histtype="errorbar",
+                markeredgecolor="red",
+                markersize=12,
+                markerfacecolor="none",
+                marker="s",
+                color="red",
+                xerr=False,
+                elinewidth=2,
+                capsize=0,
+                label="Prefit",
+            )
 
         hep.histplot(
             yvalue,
@@ -735,10 +777,14 @@ def ratioHistPlot(
             histtype="errorbar",
             markersize=20,
             color="black",
-            xerr=True,
+            xerr=False,
             capsize=0,
+            label="Postfit",
         )
         rax.set_xlabel(hists.axes[1].label)
+
+        if prefit_hists:
+            rax.legend(loc="best", fontsize=20, ncol=2)
 
         # fill error band of background
         if bg_err is not None:
@@ -747,8 +793,8 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err[0].values()) / tot_val, 2),
                 np.repeat((bg_err[1].values()) / tot_val, 2),
-                color="black",
-                alpha=0.1,
+                color="#cccccc",
+                alpha=1,
                 hatch="//",
                 linewidth=0,
             )
@@ -757,15 +803,15 @@ def ratioHistPlot(
                 np.repeat(hists.axes[1].edges, 2)[1:-1],
                 np.repeat((bg_err_tot_mcstat) / tot_val, 2),
                 np.repeat((bg_err_tot_mcstat) / tot_val, 2),
-                color="black",
-                alpha=0.1,
+                color="#cccccc",
+                alpha=1,
                 hatch="//",
                 linewidth=0,
             )
     else:
         rax.set_xlabel(hists.axes[1].label)
 
-    rax.set_ylabel("Data/pred.")
+    rax.set_ylabel(ratio_label)
     rax.set_ylim(ratio_ylims)
     minor_locator = mticker.AutoMinorLocator(2)
     rax.yaxis.set_minor_locator(minor_locator)
@@ -835,39 +881,47 @@ def ratioHistPlot(
             ax=sax,
             # yerr=yerr,
             histtype="fill",
-            facecolor="gray",
+            facecolor="#cccccc",
             edgecolor="k",
         )
         sax.set_ylim([-2, 2])
         sax.set_xlabel(hists.axes[1].label)
-        sax.set_ylabel(r"$\frac{Data - bkg}{\sigma(data)}$")
+        sax.set_ylabel(r"$\frac{Data - Pred}{\sigma_{Data}}$")
 
         minor_locator = mticker.AutoMinorLocator(2)
         sax.yaxis.set_minor_locator(minor_locator)
         sax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
-    if title is not None:
-        ax.set_title(title, y=1.08)
+    # if title is not None:
+    #     ax.set_title(title, y=1.08)
 
     if year == "all":
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
             ax=ax,
             com=energy,
+            loc=1,
         )
     else:
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
             fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
-            year=year,
+            year=None,
             ax=ax,
             com=energy,
+            loc=1,
         )
+
+    # add title (region label) below the CMS label
+    if title is not None:
+        x_text = 0.02
+        y_text = 0.78
+        ax.text(x_text + 0.03, y_text + 0.06, title, fontsize=24, transform=ax.transAxes)
 
     if axrax is None and len(name):
         if not name.endswith((".pdf", ".png")):
@@ -934,7 +988,7 @@ def subtractedHistPlot(
     if bg_order is None:
         bg_order = bg_order_default
 
-    bg_keys, bg_colours, bg_labels, _, _, _ = _process_samples(
+    bg_keys, bg_colours, bg_labels, _, _, _, _ = _process_samples(
         [], bg_keys, {}, None, None, bg_order
     )
 
@@ -952,7 +1006,7 @@ def subtractedHistPlot(
     plt.rcParams.update({"font.size": 30})
 
     # plot histograms
-    ax.set_ylabel("Pass / Multijet in Fail")
+    ax.set_ylabel("SR / QCD multijet in CR")
 
     # background samples
     hep.histplot(
@@ -963,7 +1017,7 @@ def subtractedHistPlot(
         stack=True,
         edgecolor="black",
         linewidth=2,
-        label="Multijet",
+        label="QCD multijet",
         color=bg_colours[-1],
     )
 
@@ -984,7 +1038,7 @@ def subtractedHistPlot(
                 alpha=0.2,
                 hatch="//",
                 linewidth=0,
-                label="Multijet Unc.",
+                label=r"$\sigma_{Pred}$",
             )
         else:
             ax.stairs(
@@ -1026,7 +1080,7 @@ def subtractedHistPlot(
             ax=ax,
             yerr=yerr,
             histtype="errorbar",
-            label="Data - Other Bkg.",
+            label=r"$Data-Others$",
             markersize=20,
             color="black",
         )
@@ -1039,7 +1093,9 @@ def subtractedHistPlot(
         rax.set_xscale("log")
 
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, bbox_to_anchor=(1.03, 1), loc="upper left")
+    handles = handles[-1:] + handles[:-1]
+    labels = labels[-1:] + labels[:-1]
+    ax.legend(handles, labels, loc="upper right")
 
     if xlim_low is not None:
         if xlim is not None:
@@ -1091,12 +1147,16 @@ def subtractedHistPlot(
     # rax.yaxis.set_minor_locator(minor_locator)
     # rax.grid(axis="y", linestyle="-", linewidth=2, which="both")
 
+    # add title (region label) below the CMS label
     if title is not None:
-        ax.set_title(title, y=1.08)
+        x_text = 0.02
+        y_text = 0.78
+        ax.text(x_text + 0.03, y_text + 0.06, title, fontsize=24, transform=ax.transAxes)
 
     if year == "all":
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
+            loc=1,
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
@@ -1105,11 +1165,12 @@ def subtractedHistPlot(
         )
     else:
         hep.cms.label(
-            "Work in Progress",
+            "Preliminary",
+            loc=1,
             fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
-            year=year,
+            year=None,
             ax=ax,
             com=energy,
         )

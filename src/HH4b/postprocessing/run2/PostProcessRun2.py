@@ -6,6 +6,8 @@ import os
 # temp
 import warnings
 
+import correctionlib.convert
+import correctionlib.schemav2 as cs
 import hist
 import numpy as np
 import pandas as pd
@@ -37,8 +39,6 @@ def trigger_scale_factor(year):
     h_combined[2, :, :] = hist_sf_Xbb0p95To0p98.values()
     h_combined[3, :, :] = hist_sf_Xbb0p98To1p0.values()
 
-    import correctionlib.convert
-
     h_combined.name = "trigger_sf"
     h_combined.label = "trigger_sf"
     trigger_sf = correctionlib.convert.from_histogram(h_combined)
@@ -49,7 +49,6 @@ def trigger_scale_factor(year):
 
 
 def trigger_scale_factor_signal_correction(year):
-    import correctionlib.schemav2 as cs
 
     if year == "2016":
         signal_correction = cs.Correction(

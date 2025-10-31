@@ -43,7 +43,8 @@ fi
 
 card_dir=./
 datacards="${card_dir}/passbin3_nomasks.txt${inj}:${card_dir}/passbin2_nomasks.txt${inj}:${card_dir}/passbin1_nomasks.txt${inj}:${card_dir}/passvbf_nomasks.txt${inj}:${card_dir}/combined_nomasks.txt${inj}"
-datacard_names="Category 3,Category 2,Category 1,VBF Category,Combined"
+datacard_names="ggHH SR 3,ggHH SR 2,ggHH SR 1,qqHH SR,Combined"
+datacard_order="0,1,3,2,4"
 parameters="C2V=${C2V}"
 
 if [[ "$C2V" != "1" ]]; then
@@ -53,11 +54,14 @@ else
 fi
 
 model=hh_model_run23.model_default_run3
-campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+campaign="62 fb$^{-1}$ (13.6 TeV)"
 
+
+export DHI_CMS_POSTFIX="Preliminary"
 law run PlotUpperLimitsAtPoint \
     --version dev  \
     --multi-datacards "$datacards" \
+    --datacard-order "$datacard_order" \
     --parameter-values "$parameters" \
     --h-lines 1 \
     --x-log True \
