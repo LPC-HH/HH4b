@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import os
+import pickle
 from collections import OrderedDict
 from pathlib import Path
 
@@ -70,16 +71,31 @@ HLTs = {
     ],
 }
 
-samples_run3 = {
-    year: {
-        "qcd": ["QCD_HT"],
-        "data": [f"{key}_Run" for key in ["JetMET"]],
-        "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-        "diboson": ["ZZ", "WW", "WZ"],
-        "vjets": ["Wto2Q-2Jets", "Zto2Q-2Jets"],
+
+# use less samples to test - so that it goes faster
+test = False
+if test:
+    samples_run3 = {
+        year: {
+            "qcd": ["QCD_HT-400to600"],
+            "data": [f"{key}_Run2022D" for key in ["JetMET"]],
+            "ttbar": ["TTto2L2Nu"],
+            "diboson": ["ZZ"],
+            "vjets": ["Wto2Q-2Jets_PTQQ-100to200_2J"],
+        }
+        for year in years
     }
-    for year in years
-}
+else:
+    samples_run3 = {
+        year: {
+            "qcd": ["QCD_HT"],
+            "data": [f"{key}_Run" for key in ["JetMET"]],
+            "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
+            "diboson": ["ZZ", "WW", "WZ"],
+            "vjets": ["Wto2Q-2Jets", "Zto2Q-2Jets"],
+        }
+        for year in years
+    }
 
 
 def load_process_run3_samples(args, year, control_plots, plot_dir):
@@ -113,6 +129,8 @@ def load_process_run3_samples(args, year, control_plots, plot_dir):
             txbb_version=args.txbb,
             scale_and_smear=True,
             mass_str=mreg_strings[args.txbb],
+            bdt_version=args.bdt_model,
+            load_bdt_scores=False,
         )[key]
 
         cutflow_dict[key] = OrderedDict(
@@ -508,7 +526,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
                 ratio_ylims=[0.2, 1.8],
                 bg_err_mcstat=True,
                 reweight_qcd=False,
-                save_pdf=False,
+                save_pdf=True,
             )
 
         if (
@@ -547,6 +565,12 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
             )
             with path.open("w") as fout:
                 fout.write(cset.json(exclude_unset=True))
+
+    # save templates
+    template_file = plot_dir / odir / "templates.pkl"
+    with template_file.open("wb") as f:
+        pickle.dump(hists, f)
+    print(f"Histograms dumped to {template_file}")
 
 
 def postprocess_run3(args):

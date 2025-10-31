@@ -16,6 +16,7 @@ import pathlib
 import pickle
 
 import awkward as ak
+import cachetools
 import correctionlib
 import numpy as np
 import uproot
@@ -288,8 +289,6 @@ class JECs:
         if self.jet_factory[jet_factory_str] is None:
             print("No factory available")
             return jets, None
-
-        import cachetools
 
         jec_cache = cachetools.Cache(np.inf)
 
