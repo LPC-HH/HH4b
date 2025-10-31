@@ -73,7 +73,7 @@ def run_dask(p: processor, fileset: dict, args):
                     # chunksize=args.chunksize,
                     skipbadfiles=1,
                 )
-                out, metrics = run({sample: files}, "Events", processor_instance=p)
+                out, _metrics = run({sample: files}, "Events", processor_instance=p)
 
                 pddf = pd.concat(
                     [pd.DataFrame(v.value) for k, v in out["array"].items()],
@@ -134,7 +134,7 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     # try file opening 3 times if it fails
     for i in range(3):
         try:
-            out, metrics = run(fileset, "Events", processor_instance=p)
+            out, _metrics = run(fileset, "Events", processor_instance=p)
             break
         except FileNotFoundError as e:
             print("Error!")
