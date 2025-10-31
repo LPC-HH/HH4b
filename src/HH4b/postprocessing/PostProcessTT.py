@@ -71,16 +71,31 @@ HLTs = {
     ],
 }
 
-samples_run3 = {
-    year: {
-        "qcd": ["QCD_HT"],
-        "data": [f"{key}_Run" for key in ["JetMET"]],
-        "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
-        "diboson": ["ZZ", "WW", "WZ"],
-        "vjets": ["Wto2Q-2Jets", "Zto2Q-2Jets"],
+
+# use less samples to test - so that it goes faster
+test = False
+if test:
+    samples_run3 = {
+        year: {
+            "qcd": ["QCD_HT-400to600"],
+            "data": [f"{key}_Run2022D" for key in ["JetMET"]],
+            "ttbar": ["TTto2L2Nu"],
+            "diboson": ["ZZ"],
+            "vjets": ["Wto2Q-2Jets_PTQQ-100to200_2J"],
+        }
+        for year in years
     }
-    for year in years
-}
+else:
+    samples_run3 = {
+        year: {
+            "qcd": ["QCD_HT"],
+            "data": [f"{key}_Run" for key in ["JetMET"]],
+            "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
+            "diboson": ["ZZ", "WW", "WZ"],
+            "vjets": ["Wto2Q-2Jets", "Zto2Q-2Jets"],
+        }
+        for year in years
+    }
 
 
 def load_process_run3_samples(args, year, control_plots, plot_dir):
@@ -555,6 +570,7 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version, tag, bgorder, 
     template_file = plot_dir / odir / "templates.pkl"
     with template_file.open("wb") as f:
         pickle.dump(hists, f)
+    print(f"Histograms dumped to {template_file}")
 
 
 def postprocess_run3(args):
