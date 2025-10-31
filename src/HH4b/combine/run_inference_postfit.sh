@@ -3,11 +3,14 @@
 
 syst="full"
 inj=""
-param="kl"
+param="r"
+C2V="1"
 unblinded="False"
-xsec="False"
-while getopts ":p:is:ux" opt; do
+while getopts ":c:p:is:u" opt; do
   case $opt in
+    c)
+      C2V=$OPTARG
+      ;;
     p)
       param=$OPTARG
       ;;
@@ -19,9 +22,6 @@ while getopts ":p:is:ux" opt; do
       ;;
     u)
       unblinded="True"
-      ;;
-    x)
-      xsec="True"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -45,36 +45,24 @@ else
     exit 1
 fi
 
-if [[ "$param" == "kl" ]]; then
-    parameters="kl,-15,20,36"
-elif [[ "$param" == "C2V" ]]; then
-    parameters="C2V,0,2,21"
-else
-    echo "Invalid param argument"
-    exit 1
-fi
-
-xsecbr=""
-if [[ "$xsec" == "True" ]]; then
-   xsecbr="--xsec fb --frozen-groups signal_norm_xsbr --br bbbb"
-fi
-
 card_dir=./
+command="PlotPostfitSOverB"
 datacards="${card_dir}/combined_nomasks.txt${inj}"
+datacardopt="--datacards"
+datacardnames=""
 model=hh_model_run23.model_default_run3
-campaign="62 fb$^{-1}$ (13.6 TeV)"
+campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+parameters="C2V=${C2V}"
 
-export DHI_CMS_POSTFIX="Preliminary"
-law run PlotUpperLimits \
-    --version dev  \
-    --datacards "$datacards" \
+
+law run $command \
+    --version dev \
     --hh-model "$model" \
-    --remove-output 0,a,y \
+    $datacardopt "$datacards" $datacardnames \
+    --pois "$param" \
+    --parameter-values "$parameters" \
+    --file-types "pdf,png" \
     --campaign "$campaign" \
+    --remove-output 0,a,y \
     --use-snapshot False \
-    --file-types pdf,png,root,c $xsecbr \
-    --pois r \
-    --scan-parameters "$parameters" \
-    --y-log \
-    --unblinded "$unblinded" \
-    --save-ranges $frozen
+    --unblinded "$unblinded" $frozen

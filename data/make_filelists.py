@@ -6,6 +6,9 @@ import subprocess
 import warnings
 from pathlib import Path
 
+import requests
+from rucio_utils import get_dataset_files, get_proxy_path
+
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
@@ -2123,9 +2126,6 @@ def get_files(dataset, version):
         files = eos_rec_search(dataset, ".root", [])
         return [f"root://cmseos.fnal.gov/{f}" for f in files]
     else:
-        import requests
-        from rucio_utils import get_dataset_files, get_proxy_path
-
         proxy = get_proxy_path()
         if "USER" in dataset:
             link = f"https://cmsweb.cern.ch:8443/dbs/prod/phys03/DBSReader/files?dataset={dataset}&detail=True"
@@ -2173,9 +2173,9 @@ def get_files(dataset, version):
         if version == "v12" or version == "v11":
             sites_cfg["whitelist_sites"] = ["T1_US_FNAL_Disk"]
 
-        files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
+        files_rucio, _sites = get_dataset_files(dataset, **sites_cfg, output="first")
 
-        # print(dataset, sites)
+        # print(dataset, _sites)
 
         # Get rid of invalid files
         files_valid = []

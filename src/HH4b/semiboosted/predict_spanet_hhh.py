@@ -224,9 +224,9 @@ def get_maximas(assignment_prob):
 
 def get_pairs_hhh_resolved(assignment_probabilities, detection_probabilities):
     # all possible pairings for h1, h2, h3 sorted by assignment probability
-    index_h1, prob_h1 = get_maximas(assignment_probabilities[0])
-    index_h2, prob_h2 = get_maximas(assignment_probabilities[1])
-    index_h3, prob_h3 = get_maximas(assignment_probabilities[2])
+    index_h1, _prob_h1 = get_maximas(assignment_probabilities[0])
+    index_h2, _prob_h2 = get_maximas(assignment_probabilities[1])
+    index_h3, _prob_h3 = get_maximas(assignment_probabilities[2])
     hIndex = ak.from_numpy(np.stack([index_h1, index_h2, index_h3], axis=1))
 
     # convert pairings from integer to string

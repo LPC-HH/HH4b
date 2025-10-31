@@ -295,7 +295,7 @@ def minuit_inverse_transform(x, xmin=0, xmax=1):
     return (np.sin(x) + 1) * (xmax - xmin) / 2 + xmin
 
 
-def fom_classic(s, b, dmt):
+def fom_classic(s, b):
     return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
 
 
@@ -535,7 +535,7 @@ def run_toys(
                 fom=fom_update if use_fom_update else fom_classic,
             )
 
-            global_min, bdt_cut, xbb_cut, h_sb, b, s = get_optimal_cuts(
+            global_min, bdt_cut, xbb_cut, _h_sb, b, s = get_optimal_cuts(
                 all_fom,
                 all_b,
                 all_s,
@@ -626,13 +626,13 @@ if __name__ == "__main__":
         else:
             events_combined = events_dict_postprocess[args.years[0]]
             scaled_by = {}
-        with open(f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "wb") as f:
+        output_file = Path(HH4B_DIR) / "data" / f"events_combined_{args.templates_tag}.pkl"
+        with output_file.open("wb") as f:
             pickle.dump(events_combined, f)
     else:
         # just open the pickle file
-        with open(  # noqa: PTH123
-            f"{HH4B_DIR}/data/events_combined_{args.templates_tag}.pkl", "rb"
-        ) as f:
+        input_file = Path(HH4B_DIR) / "data" / f"events_combined_{args.templates_tag}.pkl"
+        with input_file.open("rb") as f:
             events_combined = pickle.load(f)
 
     integral = len(events_combined["data"])
@@ -696,7 +696,7 @@ if __name__ == "__main__":
             fom=fom_update if use_fom_update else fom_classic,
         )
 
-        fom_data, bdt_cut_data, xbb_cut_data, h_sb, b_data, s_data = get_optimal_cuts(
+        fom_data, bdt_cut_data, xbb_cut_data, _h_sb, b_data, s_data = get_optimal_cuts(
             all_fom,
             all_b,
             all_s,

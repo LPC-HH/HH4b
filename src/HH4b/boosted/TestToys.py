@@ -525,7 +525,7 @@ def main(args):
     def plot_h(h_hist, xlabel, plot_name, xlim, gaus_label):
         fig, ax = plt.subplots(1, 1, figsize=(14, 8))
         for xbb_cut in xbb_cuts:
-            mu, sigma = gaus_fit[xbb_cut][gaus_label]
+            mu, _sigma = gaus_fit[xbb_cut][gaus_label]
             hep.histplot(
                 h_hist[{"cut": f"{xbb_cut}"}],
                 ax=ax,
@@ -536,7 +536,7 @@ def main(args):
             )
             # n, bins = h_hist[{"cut": f"{xbb_cut}"}].to_numpy()
             # print(bins)
-            # y = norm.pdf(bins, mu, sigma)
+            # y = norm.pdf(bins, mu, _sigma)
             # print("y ", y)
             # l = ax.plot(bins, y, linestyle='dashed', linewidth=2, color=colors_by_xbb[xbb_cut])
         ax.set_xlabel(xlabel)

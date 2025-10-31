@@ -5,10 +5,14 @@ syst="full"
 inj=""
 param="kl"
 unblinded="False"
-while getopts ":p:is:u" opt; do
+float=""
+while getopts ":p:f:is:u" opt; do
   case $opt in
     p)
       param=$OPTARG
+      ;;
+    f)
+      float=$OPTARG
       ;;
     i)
       inj="<i"
@@ -45,9 +49,22 @@ if [[ "$param" == "kl" ]]; then
     parameters="kl,-15,20,36"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
+elif [[ "$param" == "r" ]]; then
+    parameters="r,-5,10,16"
+elif [[ "$param" == "r_gghh" ]]; then
+    parameters="r_ggh,-5,10,16"
+elif [[ "$param" == "r_qqhh" ]]; then
+    parameters="r_qqhh,-200,400,16"
 else
     echo "Invalid param argument"
     exit 1
+fi
+
+modelopt=""
+if [[ "$float" == "r_gghh" ]]; then
+    modelopt="@doProfilergghh=flat"
+elif [[ "$float" == "r_qqhh" ]]; then
+    modelopt="@doProfilerqqhh=flat"
 fi
 
 card_dir=./
@@ -55,8 +72,8 @@ command="PlotLikelihoodScan"
 datacards="${card_dir}/combined_nomasks.txt${inj}"
 datacardopt="--datacards"
 datacardnames=""
-model=hh_model_run23.model_default_run3
-campaign="62 fb$^{-1}$, 2022-2023 (13.6 TeV)"
+model="hh_model_run23.model_default_run3${modelopt}"
+campaign="62 fb$^{-1}$ (13.6 TeV)"
 
 if [[ "$unblinded" != "False" ]]; then
   command="PlotMultipleLikelihoodScans"
@@ -65,6 +82,7 @@ if [[ "$unblinded" != "False" ]]; then
   datacardnames="--datacard-names Expected,Observed"
 fi
 
+export DHI_CMS_POSTFIX="Preliminary"
 law run $command \
     --version dev \
     --hh-model "$model" \

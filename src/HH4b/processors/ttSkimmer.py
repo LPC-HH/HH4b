@@ -255,7 +255,7 @@ class ttSkimmer(SkimmerABC):
         muon = events.Muon
         muon["id"] = muon.charge * (13)
 
-        ak4_jets, jec_shifted_jetvars = JEC_loader.get_jec_jets(
+        ak4_jets, _jec_shifted_jetvars = JEC_loader.get_jec_jets(
             events,
             events.Jet,
             year,
@@ -271,7 +271,7 @@ class ttSkimmer(SkimmerABC):
 
         num_fatjets = 2  # number to save
         fatjets = get_ak8jets(events.FatJet)
-        fatjets, jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
+        fatjets, _jec_shifted_fatjetvars = JEC_loader.get_jec_jets(
             events,
             fatjets,
             year,

@@ -9,9 +9,15 @@ from __future__ import annotations
 import argparse
 import os
 import pickle
+import time
+from datetime import datetime
 from pathlib import Path
 
+import awkward as ak
 import numpy as np
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import uproot
 import yaml
 from coffea import nanoevents, processor
@@ -23,8 +29,8 @@ from HH4b.hh_vars import DATA_SAMPLES
 def run_dask(p: processor, fileset: dict, args):
     """Run processor on using dask via lpcjobqueue"""
 
-    from distributed import Client
-    from lpcjobqueue import LPCCondorCluster
+    from distributed import Client  # noqa: PLC0415
+    from lpcjobqueue import LPCCondorCluster  # noqa: PLC0415
 
     cluster = LPCCondorCluster(
         ship_env=True, shared_temp_directory="/tmp", transfer_input_files="src/HH4b", memory="4GB"
@@ -36,14 +42,12 @@ def run_dask(p: processor, fileset: dict, args):
     local_parquet_dir.mkdir(exist_ok=True)
 
     with Client(cluster) as client:
-        from datetime import datetime
-
         print(datetime.now())
         print("Waiting for at least one worker...")
         client.wait_for_workers(1)
         print(datetime.now())
 
-        from dask.distributed import performance_report
+        from dask.distributed import performance_report  # noqa: PLC0415
 
         with performance_report(filename="dask-report.html"):
             for sample, files in fileset.items():
@@ -69,18 +73,13 @@ def run_dask(p: processor, fileset: dict, args):
                     # chunksize=args.chunksize,
                     skipbadfiles=1,
                 )
-                out, metrics = run({sample: files}, "Events", processor_instance=p)
-
-                import pandas as pd
+                out, _metrics = run({sample: files}, "Events", processor_instance=p)
 
                 pddf = pd.concat(
                     [pd.DataFrame(v.value) for k, v in out["array"].items()],
                     axis=1,
                     keys=list(out["array"].keys()),
                 )
-
-                import pyarrow as pa
-                import pyarrow.parquet as pq
 
                 table = pa.Table.from_pandas(pddf)
                 pq.write_table(table, outfile)
@@ -135,11 +134,9 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     # try file opening 3 times if it fails
     for i in range(3):
         try:
-            out, metrics = run(fileset, "Events", processor_instance=p)
+            out, _metrics = run(fileset, "Events", processor_instance=p)
             break
         except FileNotFoundError as e:
-            import time
-
             print("Error!")
             print(e)
             if i < 2:
@@ -156,10 +153,6 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     # need to combine all the files from these processors before transferring to EOS
     # otherwise it will complain about too many small files
     if save_parquet or save_root:
-        import pandas as pd
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
         pddf = pd.read_parquet(local_parquet_dir)
 
         if save_parquet:
@@ -169,8 +162,6 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
             pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
 
         if save_root and args.save_root:
-            import awkward as ak
-
             with uproot.recreate(
                 f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
             ) as rfile:
