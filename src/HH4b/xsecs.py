@@ -205,6 +205,19 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
+# LO samples in 2024 
+# from xsec analyzer: https://cms-generators.docs.cern.ch/useful-tools-and-links/HowToGenXSecAnalyzer
+xsecs["Wto2Q-3Jets_Bin-HT-100to400"] = 16120
+xsecs["Wto2Q-3Jets_Bin-HT-400to800"] = 354.2
+xsecs["Wto2Q-3Jets_Bin-HT-800to1500"] = 29.6
+xsecs["Wto2Q-3Jets_Bin-HT-1500to2500"] = 1.852
+xsecs["Wto2Q-3Jets_Bin-HT-2500"] = 0.1177
+xsecs["Zto2Q-4Jets_Bin-HT-100to400"] = 6328
+xsecs["Zto2Q-4Jets_Bin-HT-400to800"] = 145.1
+xsecs["Zto2Q-4Jets_Bin-HT-800to1500"] = 12.93
+xsecs["Zto2Q-4Jets_Bin-HT-1500to2500"] = 0.8496
+xsecs["Zto2Q-4Jets_Bin-HT-2500"] = 0.05672
+
 xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0
 xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0
 xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6
@@ -222,6 +235,17 @@ xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"] = 2.683
 xsecs["Zto2Q-2Jets_PTQQ-600_1J"] = 0.08717
 xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
 
+# LO samples in 2024
+# from xsec analyzer: https://cms-generators.docs.cern.ch/useful-tools-and-links/HowToGenXSecAnalyzer
+xsecs["Wto2Q-2Jets_Bin-PTQQ-100"] = 1751.0
+xsecs["Wto2Q-2Jets_Bin-PTQQ-200"] = 164.3
+xsecs["Wto2Q-2Jets_Bin-PTQQ-400"] = 9.205
+xsecs["Wto2Q-2Jets_Bin-PTQQ-600"] = 2.23
+xsecs["Zto2Q-2Jets_Bin-PTQQ-100"] = 695.0
+xsecs["Zto2Q-2Jets_Bin-PTQQ-200"] = 71.56
+xsecs["Zto2Q-2Jets_Bin-PTQQ-400"] = 3.811
+xsecs["Zto2Q-2Jets_Bin-PTQQ-600"] = 0.5086
+
 xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["WtoLNu-2Jets"] = 64481.58
 xsecs["WtoLNu-2Jets_0J"] = 55760.0
@@ -236,6 +260,20 @@ xsecs["DYto2L-2Jets_MLL-50"] = 6688.0
 xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
 xsecs["DYto2L-2Jets_MLL-50_1J"] = 1017.0
 xsecs["DYto2L-2Jets_MLL-50_2J"] = 385.5
+
+# LO samples in 2024 (xsdb)
+xsecs["DYto2L-2Jets_Bin-1J-MLL-50-PTLL-40to100"] = 475.3
+xsecs["DYto2L-2Jets_Bin-1J-MLL-50-PTLL-100to200"] = 45.42
+xsecs["DYto2L-2Jets_Bin-1J-MLL-50-PTLL-200to400"] = 3.382
+xsecs["DYto2L-2Jets_Bin-1J-MLL-50-PTLL-400to600"] = 0.1162
+xsecs["DYto2L-2Jets_Bin-1J-MLL-50-PTLL-600"] = 0.01392
+
+xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-40to100"] = 179.3
+xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-100to200"] = 51.68
+xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-200to400"] = 7.159
+xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-400to600"] = 0.4157
+xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-600"] = 0.07019
+
 
 ########################################################
 # Cross Sections for 13 TeV.
