@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import subprocess
 from pathlib import Path
@@ -40,16 +42,14 @@ xsec_dict = {}
 
 miniaod_json = Path("miniaod_filepaths.json")
 if miniaod_json.exists():
-    with open(miniaod_json, "r") as f:
+    with open(miniaod_json) as f:
         filepath_dict = json.load(f)
 else:
     for sample_key in MC_MINIAOD_DICT:
         dataset = MC_MINIAOD_DICT[sample_key]
         command = f'dasgoclient --query="file dataset={dataset}"'
         # print(f"Running command: {command}")
-        result = subprocess.run(
-            command, check=False, shell=True, capture_output=True, text=True
-        )
+        result = subprocess.run(command, check=False, shell=True, capture_output=True, text=True)
         if result.returncode != 0:
             print(f"Error executing command: {command}")
         # get the output
@@ -63,14 +63,12 @@ else:
     # save to json
     with open("miniaod_filepaths.json", "w") as f:
         json.dump(filepath_dict, f, indent=4)
-    
+
 for sample_key in filepath_dict:
     filepath = filepath_dict[sample_key]
     command = f'cmsRun $CMSSW_BASE/src/ana.py inputFiles="{filepath}" maxEvents=-1'
     print(f"Running command to get xsec: {command}")
-    result = subprocess.run(
-        command, check=False, shell=True, capture_output=True, text=True
-    )
+    result = subprocess.run(command, check=False, shell=True, capture_output=True, text=True)
     # output = result.stdout.strip()
     # output_lines = output.split("\n")
     # print(output)
@@ -88,7 +86,7 @@ for sample_key in filepath_dict:
             break
         else:
             continue
-        
+
 # save to json
 with open("miniaod_xsecs.json", "w") as f:
     json.dump(xsec_dict, f, indent=4)

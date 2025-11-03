@@ -205,7 +205,7 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
-# LO samples in 2024 
+# LO samples in 2024
 # from xsec analyzer: https://cms-generators.docs.cern.ch/useful-tools-and-links/HowToGenXSecAnalyzer
 xsecs["Wto2Q-3Jets_Bin-HT-100to400"] = 16120
 xsecs["Wto2Q-3Jets_Bin-HT-400to800"] = 354.2
