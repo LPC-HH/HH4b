@@ -2,6 +2,7 @@
 Create filelists for each sample using the new flat sample mapping structure.
 Takes a sample config JSON and creates txt files containing lists of root files.
 """
+from __future__ import annotations
 
 import argparse
 import json
