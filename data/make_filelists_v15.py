@@ -338,11 +338,9 @@ def main():
         "--base-url",
         type=str,
         # default="root://cms-xrd-global.cern.ch",
-        # default="root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/",
-        default="root://cmseos.fnal.gov//",
+        default="root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/",
         choices=[
             "root://cms-xrd-global.cern.ch",
-            "root://cmseos.fnal.gov//",
             "root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/",
         ],
         help="Base URL for files",
