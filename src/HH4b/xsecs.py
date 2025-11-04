@@ -255,6 +255,24 @@ xsecs["WtoLNu-4Jets_1J"] = 9625.0
 xsecs["WtoLNu-4Jets_2J"] = 3161.0
 xsecs["WtoLNu-4Jets_3J"] = 1468.0
 
+# WtoLNu-4Jets 2024 samples
+xsecs["WtoLNu-4Jets_Bin-1J"] = 9141
+xsecs["WtoLNu-4Jets_Bin-2J"] = 2931
+xsecs["WtoLNu-4Jets_Bin-3J"] = 864.6
+xsecs["WtoLNu-4Jets_Bin-4J"] = 417.8
+# WtoLNu-2Jets 2024 samples
+xsecs["WtoLNu-2Jets_Bin-1J-PTLNu-40to100"] = 4211
+xsecs["WtoLNu-2Jets_Bin-1J-PTLNu-100to200"] = 342.3
+xsecs["WtoLNu-2Jets_Bin-1J-PTLNu-200to400"] = 21.84
+xsecs["WtoLNu-2Jets_Bin-1J-PTLNu-400to600"] = 0.6845
+xsecs["WtoLNu-2Jets_Bin-1J-PTLNu-600"] = 0.07753
+xsecs["WtoLNu-2Jets_Bin-2J-PTLNu-40to100"] = 1581
+xsecs["WtoLNu-2Jets_Bin-2J-PTLNu-100to200"] = 411.1
+xsecs["WtoLNu-2Jets_Bin-2J-PTLNu-200to400"] = 53.59
+xsecs["WtoLNu-2Jets_Bin-2J-PTLNu-400to600"] = 3.099
+xsecs["WtoLNu-2Jets_Bin-2J-PTLNu-600"] = 0.5259
+
+
 xsecs["DYto2L-4Jets_MLL-50"] = 5467.0
 xsecs["DYto2L-2Jets_MLL-50"] = 6688.0
 xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
