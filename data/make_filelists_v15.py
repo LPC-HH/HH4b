@@ -47,7 +47,7 @@ MC_SAMPLES_DICT = {
         "QCD": {
             # "QCD_HT-40to70": "/QCD-4Jets_Bin-HT-40to70_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             # "QCD_HT-70to100": /QCD-4Jets_Bin-HT-70to100_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM,
-            "QCD_HT-100to200": "/QCD-4Jets_Bin-HT-2000_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "QCD_HT-100to200": "/QCD-4Jets_Bin-HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-200to400": "/QCD-4Jets_Bin-HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-400to600": "/QCD-4Jets_Bin-HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-600to800": "/QCD-4Jets_Bin-HT-600to800_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
@@ -66,7 +66,7 @@ MC_SAMPLES_DICT = {
             "TbarWplustoLNu2Q": "/TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
         "TT": {
-            "TTto2L2Nu": "/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "TTto2L2Nu": "/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM",
             "TTto4Q": "/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "TTtoLNu2Q": "/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
@@ -78,7 +78,8 @@ MC_SAMPLES_DICT = {
             "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-m1p21-C2V-1p94-C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-m1p60-C2V-2p72-C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-m1p83-C2V-3p57-C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
-            "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-2p12-C2V-3p87-C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            # TODO: m2p12
+            # "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-2p12-C2V-3p87-C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-1-C2V-0-C3-1_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8": "/VBFHHto4B_Par-CV-1-C2V-1-C3-1_TuneCP5_13p6TeV_madgraph-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
@@ -126,8 +127,8 @@ MC_SAMPLES_DICT = {
             "WtoLNu-2Jets_Bin-1J-PTLNu-400to600": "/WtoLNu-2Jets_Bin-1J-PTLNu-400to600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WtoLNu-2Jets_Bin-1J-PTLNu-600": "/WtoLNu-2Jets_Bin-1J-PTLNu-600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WtoLNu-2Jets_Bin-2J-PTLNu-40to100": "/WtoLNu-2Jets_Bin-2J-PTLNu-40to100_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM",
-            "WtoLNu-2Jets_Bin-1J-PTLNu-100to200": "/WtoLNu-2Jets_Bin-2J-PTLNu-100to200_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM",
-            "WtoLNu-2Jets_Bin-1J-PTLNu-200to400": "/WtoLNu-2Jets_Bin-2J-PTLNu-200to400_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "WtoLNu-2Jets_Bin-2J-PTLNu-100to200": "/WtoLNu-2Jets_Bin-2J-PTLNu-100to200_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM",
+            "WtoLNu-2Jets_Bin-2J-PTLNu-200to400": "/WtoLNu-2Jets_Bin-2J-PTLNu-200to400_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WtoLNu-2Jets_Bin-2J-PTLNu-400to600": "/WtoLNu-2Jets_Bin-2J-PTLNu-400to600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WtoLNu-2Jets_Bin-2J-PTLNu-600": "/WtoLNu-2Jets_Bin-2J-PTLNu-600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
@@ -189,8 +190,8 @@ DATA_SAMPLES_DICT = {
                 "/EGamma1/Run2024G-MINIv6NANOv15-v2/NANOAOD",
             ],
             "EGamma_Run2024H": [
-                "/EGamma0/Run2024G-MINIv6NANOv15-v2/NANOAOD",
-                "/EGamma1/Run2024G-MINIv6NANOv15-v1/NANOAOD",
+                "/EGamma0/Run2024H-MINIv6NANOv15-v2/NANOAOD",
+                "/EGamma1/Run2024H-MINIv6NANOv15-v1/NANOAOD",
             ],
             "EGamma_Run2024I": [
                 "/EGamma0/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD",
@@ -219,8 +220,8 @@ DATA_SAMPLES_DICT = {
                 "/Muon1/Run2024G-MINIv6NANOv15-v2/NANOAOD",
             ],
             "Muon_Run2024H": [
-                "/Muon0/Run2024G-MINIv6NANOv15-v1/NANOAOD",
-                "/Muon1/Run2024G-MINIv6NANOv15-v2/NANOAOD",
+                "/Muon0/Run2024H-MINIv6NANOv15-v1/NANOAOD",
+                "/Muon1/Run2024H-MINIv6NANOv15-v2/NANOAOD",
             ],
             "Muon_Run2024I": [
                 "/Muon0/Run2024I-MINIv6NANOv15-v1/NANOAOD",
@@ -243,12 +244,12 @@ DATA_SAMPLES_DICT = {
                 "/JetMET1/Run2025E-PromptReco-v1/NANOAOD",
             ],
             "JetMET_Run2025F": [
-                "/JetMET0/Run2025E-PromptReco-v2/NANOAOD",
-                "/JetMET1/Run2025E-PromptReco-v2/NANOAOD",
+                "/JetMET0/Run2025F-PromptReco-v2/NANOAOD",
+                "/JetMET1/Run2025F-PromptReco-v2/NANOAOD",
             ],
             "JetMET_Run2025G": [
-                "/JetMET0/Run2025E-PromptReco-v1/NANOAOD",
-                "/JetMET1/Run2025E-PromptReco-v1/NANOAOD",
+                "/JetMET0/Run2025G-PromptReco-v1/NANOAOD",
+                "/JetMET1/Run2025G-PromptReco-v1/NANOAOD",
             ],
         },
         "EGamma": {
@@ -297,8 +298,8 @@ DATA_SAMPLES_DICT = {
                 "/Muon1/Run2025E-PromptReco-v1/NANOAOD",
             ],
             "Muon_Run2025F": [
-                "/Muon0/Run2025E-PromptReco-v2/NANOAOD",
-                "/Muon1/Run2025E-PromptReco-v2/NANOAOD",
+                "/Muon0/Run2025F-PromptReco-v2/NANOAOD",
+                "/Muon1/Run2025F-PromptReco-v2/NANOAOD",
             ],
             "Muon_Run2025G": [
                 "/Muon0/Run2025G-PromptReco-v1/NANOAOD",
@@ -307,6 +308,26 @@ DATA_SAMPLES_DICT = {
         },
     },
 }
+
+
+def get_sample_list(dataset: str, base_url: str) -> list[str]:
+    command = f'dasgoclient --query="file dataset={dataset}"'
+    print(f"Running command: {command}")
+    result = subprocess.run(command, check=False, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error executing command: {command}")
+    # get the output
+    output = result.stdout.strip()
+    if output == "":
+        warnings.warn(
+            f"No files found for dataset {dataset}." f" Command executed: {command}", stacklevel=2
+        )
+    # split the output into lines
+    samples = output.split("\n")
+    samples = [f"{base_url}/{sample}" for sample in samples]
+    # Sort files for consistent output
+    sorted_files = sorted(samples)
+    return sorted_files
 
 
 def main():
@@ -367,18 +388,7 @@ def main():
             for sample_key in DATA_SAMPLES_DICT[year][sample_category]:
                 files = []
                 for dataset in DATA_SAMPLES_DICT[year][sample_category][sample_key]:
-                    command = f'dasgoclient --query="file dataset={dataset}"'
-                    print(f"Running command: {command}")
-                    result = subprocess.run(
-                        command, check=False, shell=True, capture_output=True, text=True
-                    )
-                    if result.returncode != 0:
-                        print(f"Error executing command: {command}")
-                    # get the output
-                    output = result.stdout.strip()
-                    # split the output into lines
-                    samples = output.split("\n")
-                    samples = [f"{base_url}/{sample}" for sample in samples]
+                    samples = get_sample_list(dataset, base_url)
                     files.extend(samples)
                 # Sort files for consistent output
                 sorted_files = sorted(files)
@@ -389,28 +399,15 @@ def main():
         if year == "2025":
             # TODO: define 2025 MC samples when available
             warnings.warn(
-                "2025 MC samples are not defined, skipping MC samples for 2025", stacklevel=1
+                "2025 MC samples are not defined, skipping MC samples for 2025", stacklevel=2
             )
             continue
         for sample_category in MC_SAMPLES_DICT[year_mc]:
             index_dict[year][sample_category] = {}
             for sample_key in MC_SAMPLES_DICT[year_mc][sample_category]:
                 dataset = MC_SAMPLES_DICT[year_mc][sample_category][sample_key]
-                command = f'dasgoclient --query="file dataset={dataset}"'
-                print(f"Running command: {command}")
-                result = subprocess.run(
-                    command, check=False, shell=True, capture_output=True, text=True
-                )
-                if result.returncode != 0:
-                    print(f"Error executing command: {command}")
-                # get the output
-                output = result.stdout.strip()
-                # split the output into lines
-                samples = output.split("\n")
-                samples = [f"{base_url}/{sample}" for sample in samples]
-                # Sort files for consistent output
-                sorted_files = sorted(samples)
-                index_dict[year][sample_category][sample_key] = sorted_files
+                samples = get_sample_list(dataset, base_url)
+                index_dict[year][sample_category][sample_key] = samples
 
     path_output = Path(args.output_config)
     with path_output.open("w") as f:
