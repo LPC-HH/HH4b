@@ -45,8 +45,8 @@ MC_SAMPLES_DICT = {
             "ttHto2B_M-125": "/TTH-Hto2B_Par-M-125_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
         "QCD": {
-            # "QCD_HT-40to70": "/QCD-4Jets_Bin-HT-40to70_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
-            # "QCD_HT-70to100": /QCD-4Jets_Bin-HT-70to100_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM,
+            "QCD_HT-40to70": "/QCD-4Jets_Bin-HT-40to70_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "QCD_HT-70to100": "/QCD-4Jets_Bin-HT-70to100_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-100to200": "/QCD-4Jets_Bin-HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-200to400": "/QCD-4Jets_Bin-HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "QCD_HT-400to600": "/QCD-4Jets_Bin-HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
@@ -375,6 +375,43 @@ def main():
         print(f"Loading base config from {args.base_config}")
         with Path(args.base_config).open("r") as f:
             index_dict = json.load(f)
+        if "v14" in args.base_config:
+            print("Updating index_dict from v14 to v15 index format")
+            # update keys
+            # {VJetsNLO, VJetsLO} -> VJets
+            for year in index_dict:
+                vjets_nlo = index_dict[year].pop("VJetsNLO", {})
+                vjets_lo = index_dict[year].pop("VJetsLO", {})
+                dyjets_lo = index_dict[year].pop("DYJetsLO", {})
+                dyjets_nlo = index_dict[year].pop("DYJetsNLO", {})
+                vjets = {**vjets_nlo, **vjets_lo, **dyjets_lo, **dyjets_nlo}
+                index_dict[year]["VJets"] = vjets
+
+                # HH4b -> {HH, VBFHH}
+                hh4b = index_dict[year].pop("HH4b", {})
+                indexed = set()
+                if "VBFHH" not in index_dict[year]:
+                    vbfhh = {}
+                    for sample_key in hh4b:
+                        if sample_key.startswith("VBFHH"):
+                            vbfhh[sample_key] = hh4b[sample_key]
+                            indexed.add(sample_key)
+                    index_dict[year]["VBFHH"] = vbfhh
+                if "HH" not in index_dict[year]:
+                    hh = {}
+                    for sample_key in hh4b:
+                        if sample_key.startswith("GluGlutoHH"):
+                            hh[sample_key] = hh4b[sample_key]
+                            indexed.add(sample_key)
+                    index_dict[year]["HH"] = hh
+                # not indexed
+                for sample_key in hh4b:
+                    if sample_key not in indexed:
+                        warnings.warn(
+                            f"Sample {sample_key} from HH4b not indexed in HH or VBFHH",
+                            stacklevel=2,
+                        )
+            print("Updated index_dict to v15 index format")
     else:
         print("Creating new index_dict")
         index_dict = {}
