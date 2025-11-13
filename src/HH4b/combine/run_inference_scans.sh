@@ -47,8 +47,10 @@ fi
 
 if [[ "$param" == "kl" ]]; then
     parameters="kl,-15,20,36"
+    show="kt,CV,C2V"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
+    show="kl,kt,CV"
 else
     echo "Invalid param argument"
     exit 1
@@ -70,6 +72,7 @@ law run PlotUpperLimits \
     --datacards "$datacards" \
     --hh-model "$model" \
     --remove-output 0,a,y \
+    --show-parameters "$show" \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c $xsecbr \

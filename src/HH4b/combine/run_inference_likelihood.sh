@@ -45,16 +45,23 @@ else
     exit 1
 fi
 
+xmax=""
 if [[ "$param" == "kl" ]]; then
     parameters="kl,-15,20,36"
+    show="kt,CV,C2V"
 elif [[ "$param" == "C2V" ]]; then
-    parameters="C2V,0,2,21"
+    parameters="C2V,0,2.1,22"
+    show="kl,kt,CV"
+    xmax="--x-max 2"
 elif [[ "$param" == "r" ]]; then
     parameters="r,-5,10,16"
+    show="kl,kt,CV,C2V"
 elif [[ "$param" == "r_gghh" ]]; then
     parameters="r_ggh,-5,10,16"
+    show="r,r_qqhh,kl,kt,CV,C2V"
 elif [[ "$param" == "r_qqhh" ]]; then
     parameters="r_qqhh,-200,400,16"
+    show="r,r_gghh,kl,kt,CV,C2V"
 else
     echo "Invalid param argument"
     exit 1
@@ -88,10 +95,12 @@ law run $command \
     --hh-model "$model" \
     $datacardopt "$datacards" $datacardnames \
     --pois "$param" \
+    --show-parameters "$show" \
     --scan-parameters "$parameters" \
     --file-types "pdf,png" \
     --campaign "$campaign" \
     --remove-output 0,a,y \
     --use-snapshot False \
+    --show-best-fit-error False \
     --unblinded "$unblinded" \
-    --save-ranges $frozen
+    --save-ranges $frozen $xmax
