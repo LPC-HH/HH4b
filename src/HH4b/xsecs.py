@@ -80,6 +80,9 @@ xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
 xsecs["WW"] = 116.8  #  173.4 (116.8 at NNLO)
 xsecs["WZ"] = 54.3
 xsecs["ZZ"] = 16.7
+xsecs["WW_13TeV"] = 75.8
+xsecs["WZ_13TeV"] = 27.6
+xsecs["ZZ_13TeV"] = 12.17
 xsecs["ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 2.36
 xsecs["ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 4.48
 xsecs["ZZto4L_TuneCP5_13p6TeV_powheg-pythia8"] = 0.170
@@ -188,7 +191,8 @@ vbfhh = {
     "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94": 0.0037987 * BR_HBB * BR_HBB,
     "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36": 0.0117008 * BR_HBB * BR_HBB,
     "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39": 0.0168528 * BR_HBB * BR_HBB,
-    "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
+    # "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
+    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
 }
 for key, value in vbfhh.items():
     key_nounderscore = key.replace("-", "_")
