@@ -89,7 +89,7 @@ if [[ "$unblinded" != "False" ]]; then
   datacardnames="--datacard-names Expected,Observed"
 fi
 
-export DHI_CMS_POSTFIX="Preliminary"
+export DHI_CMS_POSTFIX="Supplementary"
 law run $command \
     --version dev \
     --hh-model "$model" \

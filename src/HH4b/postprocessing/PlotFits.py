@@ -208,6 +208,7 @@ def plot_fits(args):
                     ),
                     "show": False,
                     "unblinded": args.unblinded,
+                    "cms_label": args.cms_label,
                 }
 
                 plotting.ratioHistPlot(**plot_params, data_err=True)
@@ -247,6 +248,12 @@ if __name__ == "__main__":
         default="H2PNetMass",
         choices=["H2Msd", "H2PNetMass"],
         help="mass variable to make template",
+    )
+    parser.add_argument(
+        "--cms-label",
+        type=str,
+        default=None,
+        choices=["Preliminary", "Supplementary", None]
     )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")

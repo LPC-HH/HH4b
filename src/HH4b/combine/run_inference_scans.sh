@@ -66,7 +66,7 @@ datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="62 fb$^{-1}$ (13.6 TeV)"
 
-export DHI_CMS_POSTFIX="Preliminary"
+export DHI_CMS_POSTFIX="Supplementary"
 law run PlotUpperLimits \
     --version dev  \
     --datacards "$datacards" \

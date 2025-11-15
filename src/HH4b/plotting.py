@@ -366,6 +366,7 @@ def ratioHistPlot(
     ratio: Hist | None = None,
     ratio_err: ArrayLike | None = None,
     ratio_label: str = "Data/Pred",
+    cms_label: str | None = None,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -897,7 +898,7 @@ def ratioHistPlot(
 
     if year == "all":
         hep.cms.label(
-            "Preliminary",
+            cms_label,
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
             year=None,
@@ -907,7 +908,7 @@ def ratioHistPlot(
         )
     else:
         hep.cms.label(
-            "Preliminary",
+            cms_label,
             fontsize=24,
             data=True,
             lumi=f"{LUMI[year] / 1e3:.0f}",
@@ -960,6 +961,7 @@ def subtractedHistPlot(
     logx: bool = False,
     ratio_ylims: list[float] | None = None,
     energy: str = "13.6",
+    cms_label: str | None = None,
 ):
     """
     Makes and saves subtracted histogram plot, to show QCD transfer factor
@@ -1155,7 +1157,7 @@ def subtractedHistPlot(
 
     if year == "all":
         hep.cms.label(
-            "Preliminary",
+            cms_label,
             loc=1,
             data=True,
             lumi=f"{np.sum(list(LUMI.values())) / 1e3:.0f}",
@@ -1165,7 +1167,7 @@ def subtractedHistPlot(
         )
     else:
         hep.cms.label(
-            "Preliminary",
+            cms_label,
             loc=1,
             fontsize=24,
             data=True,
