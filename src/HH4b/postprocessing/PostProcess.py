@@ -1944,7 +1944,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/ceph/cms/store/user/cmantill/bbbb/skimmer/",
+        default="/ceph/cms/store/user/dprimosc/bbbb/skimmer/",
         help="tag for input ntuples",
     )
     parser.add_argument(
@@ -2004,7 +2004,7 @@ if __name__ == "__main__":
         "--txbb-wps",
         type=float,
         nargs=2,
-        default=[0.975, 0.82],
+        default=[0.945, 0.85],
         help="TXbb Bin 1, Bin 2 WPs",
     )
 
@@ -2012,7 +2012,7 @@ if __name__ == "__main__":
         "--bdt-wps",
         type=float,
         nargs=3,
-        default=[0.98, 0.88, 0.03],
+        default=[0.94, 0.755, 0.03],
         help="BDT Bin 1, Bin 2, Fail WPs",
     )
     parser.add_argument(
@@ -2023,8 +2023,8 @@ if __name__ == "__main__":
         help="method for scanning",
     )
 
-    parser.add_argument("--vbf-txbb-wp", type=float, default=0.95, help="TXbb VBF WP")
-    parser.add_argument("--vbf-bdt-wp", type=float, default=0.98, help="BDT VBF WP")
+    parser.add_argument("--vbf-txbb-wp", type=float, default=0.8, help="TXbb VBF WP")
+    parser.add_argument("--vbf-bdt-wp", type=float, default=0.9825, help="BDT VBF WP")
 
     parser.add_argument(
         "--weight-ttbar-bdt", type=float, default=1.0, help="Weight TTbar discriminator on VBF BDT"
@@ -2091,7 +2091,7 @@ if __name__ == "__main__":
         parser, "correct-vbf-bdt-shape", default=True, help="Correct ttbar BDT_VBF shape"
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
-    run_utils.add_bool_arg(parser, "rerun-inference", default=False, help="Rerun BDT inference")
+    run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
