@@ -29,6 +29,8 @@ python3 make_filelists_v15.py [options]
 
 - `-b` / `--base-config`: Path to an existing base configuration file to build upon
     - Default: `--base-config nanoindex_v14_25v2.json`
+        - Privately processed NanoAOD samples with support for global particle transformer v3 (GloParT-v3) scores
+        - This file is created from the [boostedhh](https://github.com/zichunhao/boostedhh/tree/main) repo
     - Set to empty string to create a new configuration from scratch
 - `--years`: Space-separated list of years to process
     - Default: `--years 2016 2017 2018 2024 2025`
