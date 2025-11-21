@@ -15,6 +15,9 @@ BR_ZLL = 0.02982
 BR_HBB = 5.760e-01
 BR_HCC = 2.860e-02
 
+BR_TBQQ = 0.667
+BR_TBLNU = 0.333
+
 xsecs = {}
 
 # QCD
@@ -72,17 +75,14 @@ xsecs["QCD_PT-1000_MuEnrichedPt5"] = 1.323
 # Top
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/TtbarNNLO: 923.6
 # https://cms.cern.ch/iCMS/analysisadmin/cadilines?line=TOP-22-012: 887
-xsecs["TTto4Q"] = 923.6 * 0.667 * 0.667  # = 410.89  (762.1) - 431.5
-xsecs["TTto2L2Nu"] = 923.6 * 0.333 * 0.333  # = 102.41 (96.9) - 91.29
-xsecs["TTtoLNu2Q"] = 923.6 * 2 * (0.667 * 0.333)  # = 410.28 (404.0) - 405.1
+xsecs["TTto4Q"] = 923.6 * BR_TBQQ * BR_TBQQ  # = 410.89  (762.1) - 431.5
+xsecs["TTto2L2Nu"] = 923.6 * BR_TBLNU * BR_TBLNU  # = 102.41 (96.9) - 91.29
+xsecs["TTtoLNu2Q"] = 923.6 * 2 * (BR_TBQQ * BR_TBLNU)  # = 410.28 (404.0) - 405.1
 
 # Diboson
 xsecs["WW"] = 116.8  #  173.4 (116.8 at NNLO)
 xsecs["WZ"] = 54.3
 xsecs["ZZ"] = 16.7
-xsecs["WW_13TeV"] = 75.8
-xsecs["WZ_13TeV"] = 27.6
-xsecs["ZZ_13TeV"] = 12.17
 xsecs["ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 2.36
 xsecs["ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 4.48
 xsecs["ZZto4L_TuneCP5_13p6TeV_powheg-pythia8"] = 0.170
@@ -323,9 +323,9 @@ xsecs["GluGlutoHHto4B_cHHH5_TuneCP5_PSWeights_13TeV-powheg-pythia8"] = (
     0.091172 * 5.824e-01 * 5.824e-01
 )
 
-xsecs["TTToHadronic_13TeV"] = 670.3 * 1.24088 * 0.667 * 0.667
-xsecs["TTTo2L2Nu_13TeV"] = 670.3 * 1.24088 * 0.333 * 0.333
-xsecs["TTToSemiLeptonic_13TeV"] = 670.3 * 1.24088 * 2 * (0.667 * 0.333)
+xsecs["TTToHadronic_13TeV"] = 670.3 * 1.24088 * BR_TBQQ * BR_TBQQ
+xsecs["TTTo2L2Nu_13TeV"] = 670.3 * 1.24088 * BR_TBLNU * BR_TBLNU
+xsecs["TTToSemiLeptonic_13TeV"] = 670.3 * 1.24088 * 2 * (BR_TBQQ * BR_TBLNU)
 
 xsecs["WJetsToQQ_HT-200to400_13TeV"] = 2549.0
 xsecs["WJetsToQQ_HT-400to600_13TeV"] = 277.0
@@ -352,6 +352,69 @@ xsecs["ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8"] = 0.2912
 
 xsecs["ZZTo4B01j_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8"] = 0.3707
 xsecs["ZZ_TuneCP5_13TeV-pythia8"] = 16.91
+
+# Run-2
+# Diboson
+xsecs["WW_13TeV"] = 76.36
+xsecs["WZ_13TeV"] = 27.08
+xsecs["ZZ_13TeV"] = 12.14
+# Hbb
+xsecs["GluGluHto2B_M-125_13TeV"] = 36.0 * BR_HBB
+xsecs["GluGluHto2B_PT-200_M-125_13TeV"] = 0.4716 * BR_HBB
+xsecs["VBFHto2B_M-125_dipoleRecoilOn_13TeV"] = 3.873 * BR_HBB
+xsecs["WminusH_Hto2B_Wto2Q_M-125_13TeV"] = 0.3675 * BR_HBB * BR_WQQ
+xsecs["WminusH_Hto2B_WtoLNu_M-125_13TeV"] = 0.177 * BR_HBB * BR_WLNU
+xsecs["WplusH_Hto2B_Wto2Q_M-125_13TeV"] = 0.589 * BR_HBB * BR_WQQ
+xsecs["WplusH_Hto2B_WtoLNu_M-125_13TeV"] = 0.2832 * BR_HBB * BR_WLNU
+xsecs["ZH_Hto2B_Zto2L_M-125_13TeV"] = 0.07977 * BR_HBB * BR_ZLL
+xsecs["ZH_Hto2B_Zto2Nu_M-125_13TeV"] = 0.1573 * BR_HBB * BR_ZNUNU
+xsecs["ZH_Hto2B_Zto2Q_M-125_13TeV"] = 0.07977 * BR_HBB * BR_ZQQ
+xsecs["ZH_Hto2C_Zto2Q_M-125_13TeV"] = 0.07977 * BR_HCC * BR_ZQQ
+xsecs["ggZH_Hto2B_Zto2L_M-125_13TeV"] = 0.006185 * BR_HBB * BR_ZLL
+xsecs["ggZH_Hto2B_Zto2Nu_M-125_13TeV"] = 0.01222 * BR_HBB * BR_ZNUNU
+xsecs["ggZH_Hto2B_Zto2Q_M-125_13TeV"] = 0.04319 * BR_HBB * BR_ZQQ
+# xsecs["ggZH_Hto2C_Zto2Q_M-125_13TeV"] =
+xsecs["ttHto2B_M-125_13TeV"] = 0.5013 * BR_HBB
+# QCD
+xsecs["QCD_HT-100to200_13TeV"] = 23510000.0
+xsecs["QCD_HT-200to300_13TeV"] = 1549000.0
+xsecs["QCD_HT-300to500_13TeV"] = 322400.0
+xsecs["QCD_HT-500to700_13TeV"] = 30080.0
+xsecs["QCD_HT-700to1000_13TeV"] = 6399.0
+xsecs["QCD_HT-1000to1500_13TeV"] = 1122.0
+xsecs["QCD_HT-1500to2000_13TeV"] = 107.7
+xsecs["QCD_HT-2000_13TeV"] = 21.64
+# TT
+xsecs["TTto2L2Nu_13TeV"] = 687.1 * BR_TBQQ * BR_TBQQ
+xsecs["TTto4Q_13TeV"] = 687.1 * BR_TBLNU * BR_TBLNU
+xsecs["TTtoLNu2Q_13TeV"] = 687.1 * 2 * (BR_TBQQ * BR_TBLNU)
+# VJets
+# NNLO/LO k-factor from https://github.com/cmantill/nanoAOD-tools/blob/5d844193fe1e510031a34caf801863333a653d88/condor/samples/xSections.dat#L190-L204
+xsecs["DYJetsToLL_M-50_13TeV_LO"] = 5404.0 * 1.23
+xsecs["DYJetsToLL_M-50_13TeV_NLO"] = 6400.0
+# Vto2Q LO samples
+xsecs["WJetsToQQ_HT-200to400_13TeV"] = 2568.0
+xsecs["WJetsToQQ_HT-400to600_13TeV"] = 277.3
+xsecs["WJetsToQQ_HT-600to800_13TeV"] = 59.03
+xsecs["WJetsToQQ_HT-800_13TeV"] = 28.84
+xsecs["ZJetsToQQ_HT-200to400_13TeV"] = 1011.0
+xsecs["ZJetsToQQ_HT-400to600_13TeV"] = 113.8
+xsecs["ZJetsToQQ_HT-600to800_13TeV"] = 25.52
+xsecs["ZJetsToQQ_HT-800_13TeV"] = 12.93
+# WtoLNu LO
+# NNLO/LO k-factor from https://github.com/cmantill/nanoAOD-tools/blob/5d844193fe1e510031a34caf801863333a653d88/condor/samples/xSections.dat#L173-L181
+xsecs["WJetsToLNu_HT-70To100_13TeV"] = 1275.0 * 1.21
+xsecs["WJetsToLNu_HT-100To200_13TeV"] = 1270.0 * 1.21
+xsecs["WJetsToLNu_HT-200To400_13TeV"] = 336.8 * 1.21
+xsecs["WJetsToLNu_HT-400To600_13TeV"] = 44.64 * 1.21
+xsecs["WJetsToLNu_HT-600To800_13TeV"] = 11.6 * 1.21
+xsecs["WJetsToLNu_HT-800To1200_13TeV"] = 4.898 * 1.21
+xsecs["WJetsToLNu_HT-1200To2500_13TeV"] = 1.142 * 1.21
+xsecs["WJetsToLNu_HT-2500_13TeV"] = 0.02678 * 1.21
+# WtoLNu NLO
+xsecs["WJetsToLNu_0J_13TeV"] = 53350.0
+xsecs["WJetsToLNu_1J_13TeV"] = 8974.0
+xsecs["WJetsToLNu_2J_13TeV"] = 3366.0
 
 
 def main():
