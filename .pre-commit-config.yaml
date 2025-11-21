@@ -26,11 +26,15 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+        # can corrupt json files if they have too many lines
+        exclude: '^data/.*\.json$'
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
       - id: requirements-txt-fixer
       - id: trailing-whitespace
+        # can corrupt json files if they have too many lines
+        exclude: '^data/.*\.json$'
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: "v1.10.0"
