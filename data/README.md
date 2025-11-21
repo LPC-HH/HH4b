@@ -18,6 +18,32 @@ Run3Summer22 CMSSW_12_4_X 2022 data analysis
 Some instructions on custom nano here:
 https://github.com/cms-jet/PFNano/tree/13_0_7_from124MiniAOD
 
+### Create Filelist for NanoAOD v15
+
+Generate a filelist configuration for NanoAODv15 samples using the `make_filelists_v15.py` script:
+```bash
+python3 make_filelists_v15.py [options]
+```
+
+#### Options
+
+- `-b` / `--base-config`: Path to an existing base configuration file to build upon
+    - Default: `--base-config nanoindex_v14_25v2.json`
+    - Set to empty string to create a new configuration from scratch
+- `--years`: Space-separated list of years to process
+    - Default: `--years 2016 2017 2018 2024 2025`
+- `--base-url`: Base URL prefix for XRootD file access
+    - Default: `--base-url root://cmsdcadisk.fnal.gov//dcache/uscmsdisk/`
+- `-o` / `--output-config`: Output filepath for the generated configuration
+    - Default: `--output-config nanoindex_v15.json`
+
+#### Notes
+- The script queries DAS (Data Aggregation System) to retrieve file lists for each dataset
+- When using a v14 base config, the format is automatically updated to v15 (reorganizes VJets categories and splits HH4b into HH and VBFHH)
+- Missing datasets generate warnings but do not stop execution
+- Output files are sorted alphabetically for consistency
+- `TODO`: MC samples 2025 do not exist yet and will need to be updated once available; for now, use 2024 MC samples as placeholders
+
 ### Recipe for NanoAODv12
 
 ```
