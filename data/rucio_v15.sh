@@ -1,4 +1,0 @@
-rucio add-rule "cms:/EGamma1/Run2024F-MINIv6NANOv15-v1/NANOAOD" 1 T1_US_FNAL_Disk --activity "User AutoApprove" --lifetime 14000000 --ask-approval --comment ""
-rucio add-rule "cms:/EGamma1/Run2024G-MINIv6NANOv15-v2/NANOAOD" 1 T1_US_FNAL_Disk --activity "User AutoApprove" --lifetime 14000000 --ask-approval --comment ""
-rucio add-rule "cms:/EGamma0/Run2024G-MINIv6NANOv15-v2/NANOAOD" 1 T1_US_FNAL_Disk --activity "User AutoApprove" --lifetime 14000000 --ask-approval --comment ""
-rucio add-rule "cms:/EGamma1/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD" 1 T1_US_FNAL_Disk --activity "User AutoApprove" --lifetime 14000000 --ask-approval --comment ""
