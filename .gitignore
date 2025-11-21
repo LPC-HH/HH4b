@@ -188,5 +188,7 @@ running_jobs.txt
 .local/
 
 data/.sites_map.json
+data/nanov15/CMSSW*
+data/nanov15/*.json
 
 *.C
