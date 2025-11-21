@@ -63,7 +63,8 @@ def check_branch(git_branch: str, git_user: str = "LPC-HH", allow_diff_local_rep
             sys.exit(1)
 
     # check that the local repo's latest commit matches that on github
-    remote_hash = subprocess.getoutput(f"git show origin/{git_branch} | head -n 1").split(" ")[1]
+    gitshow_output = subprocess.getoutput(f"git show --no-patch --format=%H origin/{git_branch}")
+    remote_hash = gitshow_output.strip().split("\n")[0]
     local_hash = subprocess.getoutput("git rev-parse HEAD")
 
     if remote_hash != local_hash:
