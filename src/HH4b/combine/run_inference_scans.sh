@@ -47,8 +47,10 @@ fi
 
 if [[ "$param" == "kl" ]]; then
     parameters="kl,-15,20,36"
+    show="kt,CV,C2V"
 elif [[ "$param" == "C2V" ]]; then
     parameters="C2V,0,2,21"
+    show="kl,kt,CV"
 else
     echo "Invalid param argument"
     exit 1
@@ -64,12 +66,13 @@ datacards="${card_dir}/combined_nomasks.txt${inj}"
 model=hh_model_run23.model_default_run3
 campaign="62 fb$^{-1}$ (13.6 TeV)"
 
-export DHI_CMS_POSTFIX="Preliminary"
+export DHI_CMS_POSTFIX="Supplementary"
 law run PlotUpperLimits \
     --version dev  \
     --datacards "$datacards" \
     --hh-model "$model" \
     --remove-output 0,a,y \
+    --show-parameters "$show" \
     --campaign "$campaign" \
     --use-snapshot False \
     --file-types pdf,png,root,c $xsecbr \
