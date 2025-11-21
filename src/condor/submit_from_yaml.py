@@ -20,6 +20,7 @@ if __name__ == "__main__":
     submit.parse_args(parser)
     parser.add_argument("--jet", default="AK8", help="jet", type=str)
     parser.add_argument("--yaml", default="", help="yaml file", type=str)
+    parser.add_argument("--skip-years", default=[], help="years to skip", type=str, nargs="+")
     args = parser.parse_args()
 
     with Path(args.yaml).open() as file:
@@ -28,6 +29,9 @@ if __name__ == "__main__":
     tag = args.tag
     for key, tdict in samples_to_submit.items():
         # print(f"Submitting for year {key}")
+        if key in args.skip_years:
+            print(f"Skipping year {key}")
+            continue
         args.year = key
         for sample, sdict in tdict.items():
             args.samples = [sample]
