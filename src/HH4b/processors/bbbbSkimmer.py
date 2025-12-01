@@ -260,6 +260,13 @@ class bbbbSkimmer(SkimmerABC):
                     "AK8PFJet425_SoftDropMass30",
                     "AK8PFJet230_SoftDropMass40_PNetBB0p06",
                 ],
+                "2025": [
+                    "AK8PFJet500",
+                    "AK8PFJet400_SoftDropMass30",
+                    # Not available in 2025: AK8PFJet420_MassSD30, AK8PFJet425_SoftDropMass40
+                    "AK8PFJet425_SoftDropMass30",
+                    "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+                ],
             },
             # TODO: add semiboosted HLT
             "semiboosted": {
@@ -429,8 +436,8 @@ class bbbbSkimmer(SkimmerABC):
                 "ParT3massX2p",
             ]
 
-        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
-        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024"])
+        self.jms_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024", "2025"])
+        self.jmr_values = dict.fromkeys(["2022", "2022EE", "2023", "2023BPix", "2024", "2025"])
         for jmsr_year in self.jms_values:
             jmr_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMR"][jmsr_year]
             jms_val = HH4b.hh_vars.jmsr_values["bbFatJetParTmassVis"]["JMS"][jmsr_year]
@@ -564,7 +571,7 @@ class bbbbSkimmer(SkimmerABC):
         print("# events", len(events))
 
         year = events.metadata["dataset"].split("_")[0]
-        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix", "2024"]
+        is_run3 = year in ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
         dataset = "_".join(events.metadata["dataset"].split("_")[1:])
         isData = not hasattr(events, "genWeight")
 

@@ -4,14 +4,32 @@
 # python3 -m pip install correctionlib==2.0.0rc6
 # pip install --upgrade numpy==1.21.5
 
+# Function to modify outdir based on t2_prefix
+get_modified_outdir() {
+    local t2_prefix=$$1
+    local outdir=$$2
+
+    if [[ "$$t2_prefix" == "root://cmseos.fnal.gov//" ]]; then
+        # Replace zichun with zhao1
+        echo "$${outdir//zichun/zhao1}"
+    elif [[ "$$t2_prefix" == "root://redirector.t2.ucsd.edu:1095//" ]]; then
+        # Replace zhao1 with zichun
+        echo "$${outdir//zhao1/zichun}"
+    else
+        # Return original outdir if no match
+        echo "$$outdir"
+    fi
+}
+
 # make dir for output
 mkdir outfiles
 
 for t2_prefix in ${t2_prefixes}
 do
+    modified_outdir=$$(get_modified_outdir "$$t2_prefix" "$outdir")
     for folder in pickles parquet root githashes
     do
-        xrdfs $${t2_prefix} mkdir -p "/${outdir}/$${folder}"
+        xrdfs $${t2_prefix} mkdir -p "/$${modified_outdir}/$${folder}"
     done
 done
 
@@ -33,7 +51,8 @@ echo "https://github.com/$gituser/HH4b/commit/$${commithash}" > commithash.txt
 #move output to t2s
 for t2_prefix in ${t2_prefixes}
 do
-    xrdcp -f commithash.txt $${t2_prefix}/${outdir}/githashes/commithash_${jobnum}.txt
+    modified_outdir=$$(get_modified_outdir "$$t2_prefix" "$outdir")
+    xrdcp -f commithash.txt $${t2_prefix}/$${modified_outdir}/githashes/commithash_${jobnum}.txt
 done
 
 pip install -e .
@@ -46,9 +65,10 @@ python -u -W ignore $script --year $year --starti $starti --endi $endi --samples
 #move output to t2s
 for t2_prefix in ${t2_prefixes}
 do
-    xrdcp -f outfiles/* "$${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl"
-    xrdcp -f *.parquet "$${t2_prefix}/${outdir}/parquet/out_${jobnum}.parquet"
-    xrdcp -f *.root "$${t2_prefix}/${outdir}/root/nano_skim_${jobnum}.root"
+    modified_outdir=$$(get_modified_outdir "$$t2_prefix" "$outdir")
+    xrdcp -f outfiles/* "$${t2_prefix}/$${modified_outdir}/pickles/out_${jobnum}.pkl"
+    xrdcp -f *.parquet "$${t2_prefix}/$${modified_outdir}/parquet/out_${jobnum}.parquet"
+    xrdcp -f *.root "$${t2_prefix}/$${modified_outdir}/root/nano_skim_${jobnum}.root"
 done
 
 rm *.parquet
