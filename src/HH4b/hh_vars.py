@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
 
 # in pb^-1
 LUMI = {
@@ -97,6 +97,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
     },
     "2022EE": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -128,6 +131,9 @@ samples_run3_sig = {
         ],
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
     },
     "2023": {
@@ -161,6 +167,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -193,8 +202,43 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
     },
-    "2024": {},
+    "2024": {
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
+            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
+            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
+            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
+            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
+            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
+            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
+            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+    },
+    "2025": {},
 }
 
 samples_run3 = {
@@ -226,6 +270,15 @@ samples_run3 = {
             "JetMET_Run2024I",
         ],
         **samples_run3_sig["2024"],
+    },
+    "2025": {
+        "data": [
+            "JetMET_Run2025C",
+            "JetMET_Run2025D",
+            "JetMET_Run2025E",
+            "JetMET_Run2025F",
+            "JetMET_Run2025G",
+        ]
     },
 }
 
@@ -387,14 +440,16 @@ jmsr_values["bbFatJetPNetMassLegacy"]["JMR"] = {
     "2022EE": {"nom": 1.20, "down": 1.15, "up": 1.25},
     "2023": {"nom": 1.20, "down": 1.16, "up": 1.24},
     "2023BPix": {"nom": 1.16, "down": 1.09, "up": 1.23},
-    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
+    "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 jmsr_values["bbFatJetPNetMassLegacy"]["JMS"] = {
     "2022": {"nom": 1.015, "down": 1.010, "up": 1.020},
     "2022EE": {"nom": 1.021, "down": 1.018, "up": 1.024},
     "2023": {"nom": 0.999, "down": 0.996, "up": 1.003},
     "2023BPix": {"nom": 0.974, "down": 0.970, "up": 0.980},
-    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
+    "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"] = {}
 # numbers from template-morphing fit
@@ -416,14 +471,16 @@ jmsr_values["bbFatJetParTmassVis"]["JMR"] = {
     "2022EE": {"nom": 1.0354, "down": 1.028, "up": 1.042},
     "2023": {"nom": 1.0335, "down": 1.025, "up": 1.042},
     "2023BPix": {"nom": 1.0335, "down": 1.025, "up": 1.042},
-    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
+    "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2022": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2022EE": {"nom": 1.011, "down": 1.007, "up": 1.014},
     "2023": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
     "2023BPix": {"nom": 0.9867, "down": 0.983, "up": 0.9903},
-    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # placeholder for future
+    "2024": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
+    "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 jmsr_res = {}
