@@ -6,7 +6,7 @@ Loosely based on https://github.com/jennetd/hbb-coffea/blob/master/boostedhiggs/
 Most corrections retrieved from the cms-nanoAOD repo:
 See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
 
-Authors: Raghav Kansal, Cristina Suarez
+Authors: Raghav Kansal, Cristina Suarez, Zichun Hao
 """
 
 from __future__ import annotations
@@ -413,11 +413,10 @@ def get_jetveto_event(jets: JetArray, year: str):
     """
     Get event selection that rejects events with jets in the veto map
     """
-    if "2025" in year:
-        print("Jet veto maps not yet available for 2025. Not applying jet veto.")
-        # TODO: remove this when 2025 maps are available
-        event_sel = ~ak.any(jets.pt > 15, axis=1)
-        return event_sel
+    if year == "2025":
+        # no veto map for 2025 yet
+        # TODO: update when available
+        return np.ones(len(jets), dtype=bool)
 
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
@@ -437,7 +436,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         # "2024": "Winter24Prompt2024BCDEFGHI_V1",
         "2024": "Summer24Prompt24_RunBCDEFGHI_V1",
         # https://github.com/cms-jet/JECDatabase/tree/master/jet_veto_maps/Winter25Prompt25
-        "2025": "Winter25Prompt25_RunCDE_V1",
+        # "2025": "Winter25Prompt25_RunCDE_V1",
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
