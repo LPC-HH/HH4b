@@ -1,6 +1,6 @@
 """
 Skimmer for bbbb analysis with FatJets.
-Author(s): Raghav Kansal, Cristina Suarez
+Author(s): Raghav Kansal, Cristina Suarez, Zichun Hao
 """
 
 from __future__ import annotations
