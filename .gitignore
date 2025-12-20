@@ -180,6 +180,7 @@ src/HH4b/boosted/**/*.pdf
 src/HH4b/boosted/**/*roc_dict.pkl
 src/HH4b/boosted/**/*.pkl
 !src/HH4b/corrections/data/pileup/*.root
+src/HH4b/processors/skimmer_plots
 
 running_jobs.txt
 

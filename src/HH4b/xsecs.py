@@ -174,6 +174,7 @@ for key, value in hh.items():
     xsecs[f"{key}_TSG"] = value
     xsecs[f"{key}_Private"] = value
     xsecs[f"{key}_TSG_Pu60"] = value
+    xsecs[key.replace("_TuneCP5_13p6TeV", "")] = value
 
 # VBF HH
 # https://gitlab.cern.ch/hh/recommendations/-/blob/master/CrossSections.md?ref_type=heads (including mass k-factor)
@@ -195,9 +196,14 @@ vbfhh = {
     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
 }
 for key, value in vbfhh.items():
+    xsecs[key] = value
+    xsecs[key.replace("-", "_")] = value
+
+for key, value in vbfhh.items():
     key_nounderscore = key.replace("-", "_")
     xsecs[f"{key}_TuneCP5_13p6TeV_madgraph-pythia8"] = value
     xsecs[f"{key_nounderscore}_TuneCP5_13p6TeV_madgraph-pythia8"] = value
+
 
 # V+Jets (xsdb)
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
