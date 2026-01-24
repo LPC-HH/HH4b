@@ -4,7 +4,6 @@ import math
 from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
-from typing_extensions import Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,11 +11,12 @@ import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
 from hist import Hist
-from hist.intervals import ratio_uncertainty, poisson_interval
+from hist.intervals import poisson_interval, ratio_uncertainty
 from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
 from pyparsing import Any
 from tqdm import tqdm
+from typing_extensions import Literal
 
 from .hh_vars import LUMI, data_key
 
@@ -161,13 +161,13 @@ def ratio_uncertainty_fix_zeros(
     num: np.typing.NDArray[Any],
     denom: np.typing.NDArray[Any],
     uncertainty_type: Literal["poisson", "poisson-ratio", "efficiency"] = "poisson",
-    ) -> Any:
+) -> Any:
     # compute ratio uncertainty, handling zero numerator case
-    
+
     ratio_uncert = ratio_uncertainty(num, denom)
 
     if uncertainty_type == "poisson":
-        ratio_uncert[:, num==0] = np.abs(poisson_interval(num[num==0]) / denom[num==0])
+        ratio_uncert[:, num == 0] = np.abs(poisson_interval(num[num == 0]) / denom[num == 0])
 
     return ratio_uncert
 
