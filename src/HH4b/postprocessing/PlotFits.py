@@ -94,8 +94,8 @@ def plot_fits(args):
         "passbin3": "ggHH SR 3",
         "fail": "QCD CR",
     }
-    ylims = {
-        "passvbf": 10,
+    ylims ={
+        "passvbf": 12,
         "passbin1": 10,
         "passbin2": 40,
         "passbin3": 300,
@@ -250,7 +250,10 @@ if __name__ == "__main__":
         help="mass variable to make template",
     )
     parser.add_argument(
-        "--cms-label", type=str, default=None, choices=["Preliminary", "Supplementary", None]
+        "--cms-label",
+        type=str,
+        default=None,
+        choices=["Preliminary", "Supplementary", None]
     )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")
