@@ -94,8 +94,8 @@ def plot_fits(args):
         "passbin3": "ggHH SR 3",
         "fail": "QCD CR",
     }
-    ylims = {
-        "passvbf": 10,
+    ylims ={
+        "passvbf": 12,
         "passbin1": 10,
         "passbin2": 40,
         "passbin3": 300,

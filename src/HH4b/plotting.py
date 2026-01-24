@@ -4,6 +4,7 @@ import math
 from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
+from typing_extensions import Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -11,9 +12,10 @@ import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
 from hist import Hist
-from hist.intervals import ratio_uncertainty
+from hist.intervals import ratio_uncertainty, poisson_interval
 from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
+from pyparsing import Any
 from tqdm import tqdm
 
 from .hh_vars import LUMI, data_key
@@ -153,6 +155,21 @@ bg_order_default = [
     "ttbar",
     "qcd",
 ]
+
+
+def ratio_uncertainty_fix_zeros(
+    num: np.typing.NDArray[Any],
+    denom: np.typing.NDArray[Any],
+    uncertainty_type: Literal["poisson", "poisson-ratio", "efficiency"] = "poisson",
+    ) -> Any:
+    # compute ratio uncertainty, handling zero numerator case
+    
+    ratio_uncert = ratio_uncertainty(num, denom)
+
+    if uncertainty_type == "poisson":
+        ratio_uncert[:, num==0] = np.abs(poisson_interval(num[num==0]) / denom[num==0])
+
+    return ratio_uncert
 
 
 def sigErrRatioPlot(
@@ -468,7 +485,7 @@ def ratioHistPlot(
     plt.rcParams.update({"font.size": 30})
 
     # plot histograms
-    ax.set_ylabel("Events")
+    ax.set_ylabel(f"Events / {hists.axes[1].edges[1] - hists.axes[1].edges[0]:.0f} GeV")
 
     # re-weight qcd
     kfactor = dict.fromkeys(bg_keys, 1)
@@ -708,7 +725,7 @@ def ratioHistPlot(
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[len(bg_keys) : -1] + handles[: len(bg_keys)][::-1]
     labels = labels[-1:] + labels[len(bg_keys) : -1] + labels[: len(bg_keys)][::-1]
-    ax.legend(handles, labels, loc="upper right")
+    ax.legend(handles, labels, loc="upper right", fontsize=28, ncol=1)
     if "qcd" in kfactor and kfactor["qcd"] != 1:
         ax.get_legend().set_title(r"Multijet $\times$ " + f"{kfactor['qcd']:.2f}")
 
@@ -741,7 +758,7 @@ def ratioHistPlot(
             tot_val[tot_val_zero_mask] = 1
             data_val = hists[data_key, :].values()
             data_val[tot_val_zero_mask] = 1
-            yerr = ratio_uncertainty(data_val, tot_val, "poisson")
+            yerr = ratio_uncertainty_fix_zeros(data_val, tot_val, "poisson")
             yvalue = data_val / tot_val
 
         if prefit_hists:
@@ -750,7 +767,7 @@ def ratioHistPlot(
             tot_val_prefit = bg_tot_prefit.values()
             tot_val_zero_mask_prefit = tot_val_prefit == 0
             tot_val_prefit[tot_val_zero_mask_prefit] = 1
-            yerr_prefit = ratio_uncertainty(data_val, tot_val_prefit, "poisson")
+            yerr_prefit = ratio_uncertainty_fix_zeros(data_val, tot_val_prefit, "poisson")
             yvalue_prefit = data_val / tot_val_prefit
 
             hep.histplot(
@@ -1074,7 +1091,7 @@ def subtractedHistPlot(
     if plot_data:
         data_val = hists[data_key, :].values()
         qcd_fail_val = hists_fail["qcd", :].values()
-        yerr = ratio_uncertainty(data_val, qcd_fail_val, "poisson")
+        yerr = ratio_uncertainty_fix_zeros(data_val, qcd_fail_val, "poisson")
         all_mc = sum(hists[bg_key, :] for bg_key in bg_keys if bg_key != "qcd")
         yvalue = (hists[data_key, :] - all_mc) / hists_fail["qcd", :]
         hep.histplot(
@@ -1097,7 +1114,7 @@ def subtractedHistPlot(
     handles, labels = ax.get_legend_handles_labels()
     handles = handles[-1:] + handles[:-1]
     labels = labels[-1:] + labels[:-1]
-    ax.legend(handles, labels, loc="upper right")
+    ax.legend(handles, labels, loc="upper right", fontsize=28, ncol=1)
 
     if xlim_low is not None:
         if xlim is not None:
@@ -1119,7 +1136,7 @@ def subtractedHistPlot(
         qcd_val = hists["qcd", :].values()
         hep.histplot(
             yvalue / (qcd_val / qcd_fail_val),
-            yerr=ratio_uncertainty(data_val, qcd_val, "poisson"),
+            yerr=ratio_uncertainty_fix_zeros(data_val, qcd_val, "poisson"),
             ax=rax,
             histtype="errorbar",
             markersize=20,
