@@ -488,7 +488,7 @@ def ratioHistPlot(
     if np.allclose(hists.axes[1].widths, hists.axes[1].widths[0]):
         ax.set_ylabel(f"Events / {hists.axes[1].edges[1] - hists.axes[1].edges[0]:.0f} GeV")
     else:
-        ax.set_ylabel(f"Events / bin")
+        ax.set_ylabel("Events / bin")
 
     # re-weight qcd
     kfactor = dict.fromkeys(bg_keys, 1)
