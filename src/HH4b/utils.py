@@ -231,15 +231,21 @@ def _normalize_weights(
 
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
+        warnings.warn(f"{sample} has not been scaled by its xsec and lumi!", stacklevel=0)
+        events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
+        warnings.warn(
+            f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
+            stacklevel=0,
+        )
 
-        if "VBF" in sample:
-            warnings.warn(
-                f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
-                stacklevel=0,
-            )
-            events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
-        else:
-            raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
+        # if ("VBF" in sample) or ("GluGlutoHHto4B" in sample):
+        #     warnings.warn(
+        #         f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
+        #         stacklevel=0,
+        #     )
+        #     events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
+        # else:
+        #     raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
     events["finalWeight"] = events["weight"] / totals["np_nominal"]
 

@@ -6,7 +6,7 @@ Loosely based on https://github.com/jennetd/hbb-coffea/blob/master/boostedhiggs/
 Most corrections retrieved from the cms-nanoAOD repo:
 See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/
 
-Authors: Raghav Kansal, Cristina Suarez
+Authors: Raghav Kansal, Cristina Suarez, Zichun Hao
 """
 
 from __future__ import annotations
@@ -63,13 +63,15 @@ def get_pog_json(obj: str, year: str) -> str:
         print(f"No json for {obj}")
 
     year = get_UL_year(year) if year == "2018" else year
-    if "2022" in year or "2023" in year or "2024" in year:
+    if "2022" in year or "2023" in year or "2024" in year or "2025" in year:
         year = {
             "2022": "2022_Summer22",
             "2022EE": "2022_Summer22EE",
             "2023": "2023_Summer23",
             "2023BPix": "2023_Summer23BPix",
-            "2024": "2024_Winter24",
+            # "2024": "2024_Winter24",
+            "2024": "2024_Summer24",
+            "2025": "2025_Summer25",
         }[year]
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
@@ -241,7 +243,8 @@ def get_scale_weights(events):
 
 class JECs:
     def __init__(self, year):
-        if year in ["2022", "2022EE", "2023", "2023BPix", "2024"]:
+        # TODO: add more years when available
+        if year in ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]:
             jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
         elif year in ["2016", "2016APV", "2017", "2018"]:
             jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
@@ -328,6 +331,8 @@ class JECs:
                 corr_key = "2023BPix_runD"
             elif year == "2024":
                 corr_key = "2024"
+            elif year == "2025":
+                corr_key = "2025"
             else:
                 print(dataset, year)
                 print("warning, no valid dataset, JECs won't be applied to data")
@@ -408,6 +413,10 @@ def get_jetveto_event(jets: JetArray, year: str):
     """
     Get event selection that rejects events with jets in the veto map
     """
+    if year == "2025":
+        # no veto map for 2025 yet
+        # TODO: update when available
+        return np.ones(len(jets), dtype=bool)
 
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
@@ -424,7 +433,10 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
-        "2024": "Winter24Prompt2024BCDEFGHI_V1",
+        # "2024": "Winter24Prompt2024BCDEFGHI_V1",
+        "2024": "Summer24Prompt24_RunBCDEFGHI_V1",
+        # https://github.com/cms-jet/JECDatabase/tree/master/jet_veto_maps/Winter25Prompt25
+        # "2025": "Winter25Prompt25_RunCDE_V1",
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
