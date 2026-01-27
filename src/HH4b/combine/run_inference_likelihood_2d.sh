@@ -6,7 +6,7 @@ campaign="62 fb$^{-1}$ (13.6 TeV)"
 card_dir=./
 datacards="${card_dir}/combined.txt"
 
-export DHI_CMS_POSTFIX="Preliminary"
+export DHI_CMS_POSTFIX="Supplementary"
 law run PlotLikelihoodScan \
     --version dev \
     --hh-model "$model" \
