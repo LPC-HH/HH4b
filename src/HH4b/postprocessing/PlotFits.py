@@ -95,7 +95,7 @@ def plot_fits(args):
         "fail": "QCD CR",
     }
     ylims = {
-        "passvbf": 10,
+        "passvbf": 12,
         "passbin1": 10,
         "passbin2": 40,
         "passbin3": 300,
