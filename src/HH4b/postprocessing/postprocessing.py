@@ -293,8 +293,11 @@ def load_run3_samples(
 
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
-    load_columns = columns_to_load[txbb_version]
-    load_columns_systematics = load_columns_syst.copy()
+
+    # Re-instantiate lists to avoid mutating global variables
+    load_columns = list(columns_to_load[txbb_version])
+    load_columns_systematics = list(load_columns_syst)
+
     if load_bdt_scores:
         load_columns += [
             ("bdt_score", 1),
