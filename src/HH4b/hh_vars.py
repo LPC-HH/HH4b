@@ -56,11 +56,16 @@ common_samples_bg = {
         # "ggZH_Hto2B_Zto2L_M-125",
         # "ggZH_Hto2B_Zto2Nu_M-125",
     ],
-    "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
+    "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn", "VBFHto2B_M-125"],
     "tthtobb": ["ttHto2B_M-125"],
     "zz": ["ZZ"],
     "nozzdiboson": ["WW", "WZ"],
-    "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
+    "vjets": [
+        "Wto2Q-2Jets_PTQQ",
+        "Wto2Q-2Jets_Bin-PTQQ",
+        "Zto2Q-2Jets_PTQQ",
+        "Zto2Q-2Jets_Bin-PTQQ",
+    ],
 }
 
 common_samples_sig = {}
@@ -292,6 +297,7 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
     "2024": {
+        **common_samples_bg,
         "data": [
             "JetMET_Run2024B",
             "JetMET_Run2024C",
@@ -305,6 +311,7 @@ samples_run3 = {
         **samples_run3_sig["2024"],
     },
     "2025": {
+        **common_samples_bg,
         "data": [
             "JetMET_Run2025C",
             "JetMET_Run2025D",

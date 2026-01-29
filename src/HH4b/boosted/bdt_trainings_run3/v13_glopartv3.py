@@ -104,7 +104,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             # ratios
             key_map("H1Pt_HHmass"): h1.pt / hh.mass,
             key_map("H2Pt_HHmass"): h2.pt / hh.mass,
-            key_map("H1Pt/H2Pt"): h1.pt / h2.pt,
+            key_map("H1Pt_H2Pt"): h1.pt / h2.pt,
             # vbf mjj and eta_jj
             key_map("VBFjjMass"): jj.mass,
             key_map("VBFjjDeltaEta"): np.abs(vbf1.eta - vbf2.eta),
