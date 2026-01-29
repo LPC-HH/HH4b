@@ -23,7 +23,7 @@ import pandas as pd
 import xgboost as xgb
 
 from HH4b import hh_vars
-from HH4b.hh_vars import mreg_strings, samples_run3
+from HH4b.hh_vars import LUMI, mreg_strings, samples_run3
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import load_run3_samples
 from HH4b.utils import get_var_mapping
@@ -171,7 +171,12 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
 
                 result = run_inference(model, chunk, bdt_dataframe_fn, jshifts, args)
                 result["year"] = year
-                result["finalWeight"] = chunk["finalWeight"].to_numpy()
+                weight = chunk["finalWeight"].to_numpy()
+                if year == "2025" and sample != "data":
+                    # Scale 2024 MC to 2025 luminosity since we are using 2024 MC
+                    # TODO: remove this chunk once 2025 MC is available
+                    weight *= LUMI["2025"] / LUMI["2024"]
+                result["finalWeight"] = weight
                 result.to_parquet(sample_dir / f"chunk_{i:04d}.parquet")
 
                 del chunk, result
@@ -180,7 +185,12 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
             # Process entire sample at once
             result = run_inference(model, events, bdt_dataframe_fn, jshifts, args)
             result["year"] = year
-            result["finalWeight"] = events["finalWeight"].to_numpy()
+            weight = events["finalWeight"].to_numpy()
+            if year == "2025" and sample != "data":
+                # Scale 2024 MC to 2025 luminosity since we are using 2024 MC
+                # TODO: remove this chunk once 2025 MC is available
+                weight *= LUMI["2025"] / LUMI["2024"]
+            result["finalWeight"] = weight
             result.to_parquet(sample_dir / "data.parquet")
 
         logger.info(f"Saved {sample}")
@@ -263,7 +273,7 @@ def main():
     # Data configuration
     parser.add_argument(
         "--data-dir",
-        default="/ceph/cms/store/user/zichun/bbbb/skimmer/",
+        default="/ceph/cms/store/user/zichun/bbbb/signal_processed/bdt_inference/",
         help="Base directory for input ntuples",
     )
     parser.add_argument(
