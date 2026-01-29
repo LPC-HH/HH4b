@@ -43,7 +43,7 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
 common_samples_bg = {
-    "qcd": ["QCD_HT"],
+    "qcd": ["QCD_HT", "QCD-4Jets_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "vhtobb": [
@@ -238,7 +238,40 @@ samples_run3_sig = {
             "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
     },
-    "2025": {},
+    "2025": {
+        # Using 2024 MC now since only 2024 MC samples are available
+        # TODO: change to 2025 once available
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
+            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
+            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
+            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
+            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
+            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
+            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
+            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+    },
 }
 
 samples_run3 = {
@@ -278,7 +311,8 @@ samples_run3 = {
             "JetMET_Run2025E",
             "JetMET_Run2025F",
             "JetMET_Run2025G",
-        ]
+        ],
+        **samples_run3_sig["2025"],
     },
 }
 
@@ -421,6 +455,7 @@ jec_vars = [
 jmsr_vars = [
     "bbFatJetPNetMassLegacy",
     "bbFatJetParTmassVis",
+    "bbFatJetParTmassVis",
     "bdt_score",
     "bdt_score_vbf",
     "HHmass",
@@ -549,10 +584,13 @@ txbb_strings = {
     "pnet-legacy": "bbFatJetPNetTXbbLegacy",
     "pnet-v12": "bbFatJetPNetTXbb",
     "glopart-v2": "bbFatJetParTTXbb",
+    "glopart-v3": "bbFatJetParT3TXbb",
 }
 
 mreg_strings = {
     "pnet-legacy": "bbFatJetPNetMassLegacy",
     "pnet-v12": "bbFatJetPNetMass",
     "glopart-v2": "bbFatJetParTmassVis",
+    # "glopart-v3": "bbFatJetParT3massGeneric",
+    "glopart-v3": "bbFatJetParT3massX2p",
 }

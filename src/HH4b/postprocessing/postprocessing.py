@@ -68,8 +68,13 @@ HLTs = {
     ],
     "2024": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        "AK8PFJet400_SoftDropMass40",
-        "AK8PFJet425_SoftDropMass40",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
+    ],
+    "2025": [
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
     ],
 }
 
@@ -125,6 +130,15 @@ columns_to_load = {
         ("bbFatJetParTPQCD2HF", 2),
         ("bbFatJetrawFactor", 2),
     ],
+    "glopart-v3": columns_to_load_default
+    + [
+        ("bbFatJetParT3TXbb", 2),
+        ("bbFatJetParT3PQCD", 2),
+        ("bbFatJetParT3PXbb", 2),
+        ("bbFatJetParT3massGeneric", 2),
+        ("bbFatJetParT3massX2p", 2),
+        ("bbFatJetrawFactor", 2),
+    ],
 }
 
 filters_to_apply = {
@@ -149,6 +163,12 @@ filters_to_apply = {
         ],
     ],
     "glopart-v2": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+        ],
+    ],
+    "glopart-v3": [
         [
             ("('bbFatJetPt', '0')", ">=", 250),
             ("('bbFatJetPt', '1')", ">=", 250),
@@ -289,7 +309,8 @@ def load_run3_samples(
         "pnet-v12",
         "pnet-legacy",
         "glopart-v2",
-    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
+        "glopart-v3",
+    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2, glopart-v3"
 
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
