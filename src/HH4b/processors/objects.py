@@ -533,15 +533,36 @@ def ak4_jets_awayfromak8(
         return jets_pnetb[ak4_sel][:, :2]
     # return 2 jets closet to fatjet0 and fatjet1, respectively
     elif sort_by == "nearest":
+        # jets_away = jets[ak4_sel]
+        # FirstFatjet = ak.firsts(fatjets[:, 0:1])
+        # SecondFatjet = ak.firsts(fatjets[:, 1:2])
+        # jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][
+        #     :, 0:1
+        # ]
+        # jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][
+        #     :, 0:1
+        # ]
+        # return [jet_near_fatjet0, jet_near_fatjet1]
+
+        # new solution to avoid same AK4 jet being assigned to both fatjets
         jets_away = jets[ak4_sel]
-        FirstFatjet = ak.firsts(fatjets[:, 0:1])
-        SecondFatjet = ak.firsts(fatjets[:, 1:2])
-        jet_near_fatjet0 = jets_away[ak.argsort(jets_away.delta_r(FirstFatjet), ascending=True)][
-            :, 0:1
-        ]
-        jet_near_fatjet1 = jets_away[ak.argsort(jets_away.delta_r(SecondFatjet), ascending=True)][
-            :, 0:1
-        ]
+        first_fatjet = ak.firsts(fatjets[:, 0:1])
+        second_fatjet = ak.firsts(fatjets[:, 1:2])
+
+        # find closest ak4 jet to first fatjet
+        dr0 = jets_away.delta_r(first_fatjet)
+        closest_idx0 = ak.argmin(dr0, axis=1, keepdims=False)
+        jet_near_fatjet0 = jets_away[ak.singletons(closest_idx0)]
+
+        # mask out the closest jet by index position
+        mask = ak.local_index(jets_away, axis=1) != closest_idx0
+        jets_away_wo0 = jets_away[mask]
+
+        # find closest to second fatjet among the remaining jets
+        dr1 = jets_away_wo0.delta_r(second_fatjet)
+        closest_idx1 = ak.argmin(dr1, axis=1, keepdims=False)
+        jet_near_fatjet1 = jets_away_wo0[ak.singletons(closest_idx1)]
+
         return [jet_near_fatjet0, jet_near_fatjet1]
     # return all nonoverlapping jets, no sorting
     else:
