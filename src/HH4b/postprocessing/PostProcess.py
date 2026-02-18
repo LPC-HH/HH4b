@@ -71,14 +71,14 @@ mpl.rcParams["figure.edgecolor"] = "none"
 # modify samples run3
 for year in samples_run3:
     samples_run3[year]["qcd"] = [
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
-        # "QCD_HT-200to400",
-        "QCD_HT-400to600",
-        "QCD_HT-600to800",
-        "QCD_HT-800to1000",
+        "QCD-4Jets_HT-1000to1200",
+        "QCD-4Jets_HT-1200to1500",
+        "QCD-4Jets_HT-1500to2000",
+        "QCD-4Jets_HT-2000",
+        # "QCD-4Jets_HT-200to400",
+        "QCD-4Jets_HT-400to600",
+        "QCD-4Jets_HT-600to800",
+        "QCD-4Jets_HT-800to1000",
     ]
 
 selection_regions = {
@@ -510,7 +510,13 @@ def load_process_run3_samples(
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
-    if not control_plots and not args.bdt_roc:
+
+    # Quick workaround: for 2024 there is currently only data (no MC);
+    # restrict processing to the data sample to avoid missing-key errors.
+    if year == "2024":
+        samples_year = [k for k in samples_year if k == hh_vars.data_key]
+
+    if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
@@ -1569,6 +1575,10 @@ def postprocess_run3(args):
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
+    # for glopart-v3, reuse the glopart-v2 windows
+    elif args.txbb == "glopart-v3":
+        fom_window_by_mass["H2PNetMass"] = [110, 155]
+        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
     mass_window = np.array(fom_window_by_mass[args.mass])
 
@@ -1997,7 +2007,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="glopart-v2",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     parser.add_argument(

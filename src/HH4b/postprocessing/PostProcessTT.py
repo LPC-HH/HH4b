@@ -671,7 +671,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
