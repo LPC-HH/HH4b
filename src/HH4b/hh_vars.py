@@ -560,6 +560,6 @@ mreg_strings = {
     "pnet-legacy": "bbFatJetPNetMassLegacy",
     "pnet-v12": "bbFatJetPNetMass",
     "glopart-v2": "bbFatJetParTmassVis",
-    # ParT v3 ntuples (new): use generic ParT3 mass
-    "glopart-v3": "bbFatJetParT3massGeneric",
+    # ParT v3 ntuples: use X2p ParT3 mass
+    "glopart-v3": "bbFatJetParT3massX2p",
 }

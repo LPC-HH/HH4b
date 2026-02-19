@@ -197,10 +197,13 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     """
     Evaluate trigger Scale Factors
     """
-    if "legacy" in txbb_str.lower():
+    if txbb_str == "bbFatJetPNetTXbbLegacy":
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
-    elif "part" in txbb_str.lower():
+    elif txbb_str == "bbFatJetParT3TXbb":
+        txbb_str = "txbbGloParT"
+        txbb = "bbFatJetParT3TXbb"
+    elif txbb_str == "bbFatJetParTTXbb":
         txbb_str = "txbbGloParT"
         txbb = "bbFatJetParTTXbb"
     else:

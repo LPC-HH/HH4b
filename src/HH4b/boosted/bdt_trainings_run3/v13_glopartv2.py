@@ -24,7 +24,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             "pt": events[key_map("bbFatJetPt")].to_numpy()[:, 0],
             "phi": events[key_map("bbFatJetPhi")].to_numpy()[:, 0],
             "eta": events[key_map("bbFatJetEta")].to_numpy()[:, 0],
-            "M": events[key_map("bbFatJetParTmassVis")].to_numpy()[:, 0],
+            "M": events[key_map("bbFatJetParT3massX2p")].to_numpy()[:, 0],
         }
     )
     h2 = vector.array(
@@ -32,7 +32,7 @@ def bdt_dataframe(events, key_map=lambda x: x):
             "pt": events[key_map("bbFatJetPt")].to_numpy()[:, 1],
             "phi": events[key_map("bbFatJetPhi")].to_numpy()[:, 1],
             "eta": events[key_map("bbFatJetEta")].to_numpy()[:, 1],
-            "M": events[key_map("bbFatJetParTmassVis")].to_numpy()[:, 1],
+            "M": events[key_map("bbFatJetParT3massX2p")].to_numpy()[:, 1],
         }
     )
     hh = h1 + h2
@@ -91,14 +91,14 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("H1T32"): events[key_map("bbFatJetTau3OverTau2")].to_numpy()[:, 0],
             key_map("H2T32"): events[key_map("bbFatJetTau3OverTau2")].to_numpy()[:, 1],
             # fatjet mass
-            key_map("H1Mass"): events[key_map("bbFatJetParTmassVis")].to_numpy()[:, 0],
+            key_map("H1Mass"): events[key_map("bbFatJetParT3massX2p")].to_numpy()[:, 0],
             # fatjet kinematics
             key_map("H1Pt"): h1.pt,
             key_map("H2Pt"): h2.pt,
             key_map("H1eta"): h1.eta,
             # xbb
             key_map("H1Xbb"): discretize_var(
-                events[key_map("bbFatJetParTTXbb")].to_numpy()[:, 0],
+                events[key_map("bbFatJetParT3TXbb")].to_numpy()[:, 0],
                 bins=[0, 0.8, 0.9, 0.94, 0.97, 0.99, 1],
             ),
             # ratios

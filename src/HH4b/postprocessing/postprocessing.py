@@ -126,15 +126,12 @@ columns_to_load = {
         ("bbFatJetrawFactor", 2),
     ],
     # ParT v3 ntuples (used with txbb_version='glopart-v3'):
-    # use ParT3 TXbb and generic mass branches
+    # use ParT3 TXbb and X2p mass branch
     "glopart-v3": columns_to_load_default
     + [
         ("bbFatJetParT3TXbb", 2),
         ("bbFatJetParT3PXbb", 2),
-        ("bbFatJetParT3massGeneric", 2),
-        ("bbFatJetParT3PQCD0HF", 2),
-        ("bbFatJetParT3PQCD1HF", 2),
-        ("bbFatJetParT3PQCD2HF", 2),
+        ("bbFatJetParT3massX2p", 2),
         ("bbFatJetrawFactor", 2),
     ],
 }
@@ -317,6 +314,14 @@ def load_run3_samples(
     # Re-instantiate lists to avoid mutating global variables
     load_columns = list(columns_to_load[txbb_version])
     load_columns_systematics = list(load_columns_syst)
+    if txbb_version == "glopart-v3":
+        load_columns_systematics = [
+            (
+                col.replace("bbFatJetParTmassVis", "bbFatJetParT3massX2p"),
+                ncols,
+            )
+            for col, ncols in load_columns_systematics
+        ]
 
     if load_bdt_scores:
         load_columns += [

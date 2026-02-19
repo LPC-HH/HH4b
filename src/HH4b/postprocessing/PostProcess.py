@@ -917,7 +917,7 @@ def load_process_run3_samples(
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "pnet-v12"]:
+        elif args.txbb in ["glopart-v2", "glopart-v3", "pnet-v12"]:
             txbb_presel = 0.3
 
         for jshift in jshifts:
