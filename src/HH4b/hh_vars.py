@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix"]#, "2024"]#, "2025"]
+years = ["2022", "2022EE", "2023", "2023BPix"]  # , "2024"]#, "2025"]
 
 # in pb^-1
 LUMI = {
@@ -97,9 +97,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        #],
+        # ],
     },
     "2022EE": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -132,9 +132,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        #],
+        # ],
     },
     "2023": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -167,9 +167,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        #],
+        # ],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -202,9 +202,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        #],
+        # ],
     },
     "2024": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
@@ -234,9 +234,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
             "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        #],
+        # ],
     },
     "2025": {},
 }
