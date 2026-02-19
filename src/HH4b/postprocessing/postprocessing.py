@@ -125,6 +125,18 @@ columns_to_load = {
         ("bbFatJetParTPQCD2HF", 2),
         ("bbFatJetrawFactor", 2),
     ],
+    # ParT v3 ntuples (used with txbb_version='glopart-v3'):
+    # use ParT3 TXbb and generic mass branches
+    "glopart-v3": columns_to_load_default
+    + [
+        ("bbFatJetParT3TXbb", 2),
+        ("bbFatJetParT3PXbb", 2),
+        ("bbFatJetParT3massGeneric", 2),
+        ("bbFatJetParT3PQCD0HF", 2),
+        ("bbFatJetParT3PQCD1HF", 2),
+        ("bbFatJetParT3PQCD2HF", 2),
+        ("bbFatJetrawFactor", 2),
+    ],
 }
 
 filters_to_apply = {
@@ -149,6 +161,13 @@ filters_to_apply = {
         ],
     ],
     "glopart-v2": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+        ],
+    ],
+    # ParT v3: same pT preselection as v2
+    "glopart-v3": [
         [
             ("('bbFatJetPt', '0')", ">=", 250),
             ("('bbFatJetPt', '1')", ">=", 250),
@@ -289,7 +308,8 @@ def load_run3_samples(
         "pnet-v12",
         "pnet-legacy",
         "glopart-v2",
-    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
+        "glopart-v3",
+    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2, glopart-v3"
 
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]

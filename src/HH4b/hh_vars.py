@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
+years = ["2022", "2022EE", "2023", "2023BPix"]#, "2024"]#, "2025"]
 
 # in pb^-1
 LUMI = {
@@ -43,7 +43,7 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
 common_samples_bg = {
-    "qcd": ["QCD_HT"],
+    "qcd": ["QCD-4Jets_HT"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "vhtobb": [
@@ -97,9 +97,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        #],
     },
     "2022EE": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -132,9 +132,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        #],
     },
     "2023": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -167,9 +167,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        #],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -202,9 +202,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        #],
     },
     "2024": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
@@ -234,9 +234,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
             "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        #"vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        #],
     },
     "2025": {},
 }
@@ -287,13 +287,13 @@ samples_2018 = {
         "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8",
     ],
     "qcd": [
-        "QCD_HT-1000to1500-13TeV",
-        "QCD_HT-1500to2000-13TeV",
-        "QCD_HT-2000toInf-13TeV",
-        "QCD_HT-200to300-13TeV",
-        "QCD_HT-300to500-13TeV",
-        "QCD_HT-500to700-13TeV",
-        "QCD_HT-700to1000-13TeV",
+        "QCD-4Jets_HT-1000to1500-13TeV",
+        "QCD-4Jets_HT-1500to2000-13TeV",
+        "QCD-4Jets_HT-2000toInf-13TeV",
+        "QCD-4Jets_HT-200to300-13TeV",
+        "QCD-4Jets_HT-300to500-13TeV",
+        "QCD-4Jets_HT-500to700-13TeV",
+        "QCD-4Jets_HT-700to1000-13TeV",
     ],
     "data": [
         "Run2018A",
@@ -496,6 +496,7 @@ jmsr_res["bbFatJetParTmassVis"]["nozzdiboson"] = 10.7 * 80.0 / 125.0
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_txbb_bins["glopart-v2"] = [0, 0.31, 0.7, 0.8, 0.87, 0.92, 0.96, 1]
+ttbarsfs_decorr_txbb_bins["glopart-v3"] = ttbarsfs_decorr_txbb_bins["glopart-v2"]
 ttbarsfs_decorr_ggfbdt_bins = {}
 ttbarsfs_decorr_ggfbdt_bins["24May31_lr_0p02_md_8_AK4Away"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 ttbarsfs_decorr_ggfbdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.03, 0.6375, 0.9075, 1.0]
@@ -524,6 +525,7 @@ txbbsfs_decorr_txbb_wps["glopart-v2"] = OrderedDict(
         ("WP1", [0.99, 1]),
     ]
 )
+txbbsfs_decorr_txbb_wps["glopart-v3"] = txbbsfs_decorr_txbb_wps["glopart-v2"]
 
 txbbsfs_decorr_pt_bins = {}
 txbbsfs_decorr_pt_bins["pnet-legacy"] = OrderedDict(
@@ -544,15 +546,20 @@ txbbsfs_decorr_pt_bins["glopart-v2"] = OrderedDict(
         ("WP1", [250, 450, 100000]),
     ]
 )
+txbbsfs_decorr_pt_bins["glopart-v3"] = txbbsfs_decorr_pt_bins["glopart-v2"]
 
 txbb_strings = {
     "pnet-legacy": "bbFatJetPNetTXbbLegacy",
     "pnet-v12": "bbFatJetPNetTXbb",
     "glopart-v2": "bbFatJetParTTXbb",
+    # ParT v3 ntuples (new): use ParT3 TXbb branch
+    "glopart-v3": "bbFatJetParT3TXbb",
 }
 
 mreg_strings = {
     "pnet-legacy": "bbFatJetPNetMassLegacy",
     "pnet-v12": "bbFatJetPNetMass",
     "glopart-v2": "bbFatJetParTmassVis",
+    # ParT v3 ntuples (new): use generic ParT3 mass
+    "glopart-v3": "bbFatJetParT3massGeneric",
 }
