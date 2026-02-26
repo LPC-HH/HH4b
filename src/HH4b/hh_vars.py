@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
-years = ["2022", "2022EE", "2023", "2023BPix"]  # , "2024"]#, "2025"]
+years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
 
 # in pb^-1
 LUMI = {
@@ -31,6 +31,7 @@ LUMI = {
     "2025E": 14000.0,
     "2025D": 25290.0,
     "2025F": 30350.0,
+    "2025": 90420.0,# ongoing
     # 2025G ongoing
     "2018": 59830.0,
     "2017": 41480.0,
@@ -43,7 +44,10 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
 common_samples_bg = {
-    "qcd": ["QCD-4Jets_HT"],
+    # Support both naming schemes seen on disk across eras:
+    # - 2022/2023: QCD-4Jets_HT-*
+    # - 2024+:     QCD_HT-*
+    "qcd": ["QCD-4Jets_HT", "QCD_HT-"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "vhtobb": [
@@ -57,9 +61,10 @@ common_samples_bg = {
         # "ggZH_Hto2B_Zto2Nu_M-125",
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn"],
-    "tthtobb": ["ttHto2B_M-125"],
-    "zz": ["ZZ"],
-    "nozzdiboson": ["WW", "WZ"],
+    "tthtobb": ["ttHto2B_M-125", "TTHto2B_M-125"],
+    # Use exact-match selectors to avoid pulling in ZZto*/WWto*/WZto* sub-samples.
+    "zz": ["ZZ?"],
+    "nozzdiboson": ["WW?", "WZ?"],
     "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
 }
 
@@ -67,141 +72,78 @@ common_samples_sig = {}
 
 samples_run3_sig = {
     "2022": {
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
-            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
-            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
-            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
-            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
-            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
-            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
-            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        # Use prefix selectors so both short and fully qualified dataset names match.
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": ["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4"],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2"],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3"],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": ["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43"],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94"],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36"],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39"],
+        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": ["VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96"],
         # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         # ],
     },
     "2022EE": {
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
-            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
-            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
-            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
-            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
-            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
-            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
-            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": ["VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4"],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2"],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3"],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": ["VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43"],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94"],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36"],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39"],
+        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": ["VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96"],
         # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         # ],
     },
     "2023": {
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
-            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
-            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
-            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
-            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
-            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
-            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
-            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": ["VBFHHto4B_CV_1p74_C2V_1p37_C3_14p4"],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["VBFHHto4B_CV_m0p012_C2V_0p030_C3_10p2"],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["VBFHHto4B_CV_m0p758_C2V_1p44_C3_m19p3"],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": ["VBFHHto4B_CV_m0p962_C2V_0p959_C3_m1p43"],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["VBFHHto4B_CV_m1p21_C2V_1p94_C3_m0p94"],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36"],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["VBFHHto4B_CV_m1p83_C2V_3p57_C3_m3p39"],
+        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": ["VBFHHto4B_CV_2p12_C2V_3p87_C3_m5p96"],
         # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         # ],
     },
     "2023BPix": {
-        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
-        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1_TuneCP5_13p6TeV_madgraph-pythia8"],
-        "vbfhh4b-kv1p74-k2v1p37-kl14p4": [
-            "VBFHHto4B_CV-1p74_C2V-1p37_C3-14p4_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": [
-            "VBFHHto4B_CV-m0p012_C2V-0p030_C3-10p2_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": [
-            "VBFHHto4B_CV-m0p758_C2V-1p44_C3-m19p3_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": [
-            "VBFHHto4B_CV-m0p962_C2V-0p959_C3-m1p43_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": [
-            "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": [
-            "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
-            "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
-        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"],
+        "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00"],
+        "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00"],
+        "hh4b-kl5": ["GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00"],
+        "vbfhh4b": ["VBFHHto4B_CV_1_C2V_1_C3_1"],
+        "vbfhh4b-k2v0": ["VBFHHto4B_CV_1_C2V_0_C3_1"],
+        "vbfhh4b-kv1p74-k2v1p37-kl14p4": ["VBFHHto4B_CV_1p74_C2V_1p37_C3_14p4"],
+        "vbfhh4b-kvm0p012-k2v0p03-kl10p2": ["VBFHHto4B_CV_m0p012_C2V_0p030_C3_10p2"],
+        "vbfhh4b-kvm0p758-k2v1p44-klm19p3": ["VBFHHto4B_CV_m0p758_C2V_1p44_C3_m19p3"],
+        "vbfhh4b-kvm0p962-k2v0p959-klm1p43": ["VBFHHto4B_CV_m0p962_C2V_0p959_C3_m1p43"],
+        "vbfhh4b-kvm1p21-k2v1p94-klm0p94": ["VBFHHto4B_CV_m1p21_C2V_1p94_C3_m0p94"],
+        "vbfhh4b-kvm1p6-k2v2p72-klm1p36": ["VBFHHto4B_CV_m1p60_C2V_2p72_C3_m1p36"],
+        "vbfhh4b-kvm1p83-k2v3p57-klm3p39": ["VBFHHto4B_CV_m1p83_C2V_3p57_C3_m3p39"],
+        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": ["VBFHHto4B_CV_2p12_C2V_3p87_C3_m5p96"],
         # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         # ],
@@ -233,6 +175,9 @@ samples_run3_sig = {
         ],
         "vbfhh4b-kvm1p83-k2v3p57-klm3p39": [
             "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39_TuneCP5_13p6TeV_madgraph-pythia8"
+        ],
+        "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
+            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
         # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
         #    "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
@@ -274,7 +219,7 @@ samples_run3 = {
     "2025": {
         "data": [
             "JetMET_Run2025C",
-            "JetMET_Run2025D",
+            # "JetMET_Run2025D",  # missing required AK8PFJet* trigger columns in current skim
             "JetMET_Run2025E",
             "JetMET_Run2025F",
             "JetMET_Run2025G",

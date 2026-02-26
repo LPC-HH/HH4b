@@ -45,6 +45,9 @@ def _load_txbb_sfs(
     elif "2024" in year:
         print(f"WARNING: Using 2023 txbb correction for {year}")
         year_ = "2023"
+    elif "2025" in year:
+        print(f"WARNING: Using 2023 txbb correction for {year}")
+        year_ = "2023"
     else:
         year_ = None
 
@@ -119,6 +122,9 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     elif "2024" in year:
         print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
+    elif "2025" in year:
+        print(f"WARNING: Using 2023 ttbar correction for {year}")
+        year_ = "2023"
     return correctionlib.CorrectionSet.from_file(
         f"{package_path}/corrections/data/ttbar_sfs/{txbb_version}/ttbarcorr_{year_}.json"
     )[f"ttbar_corr_{corr}_{year_}"]
@@ -162,13 +168,20 @@ def _get_json_fname(year: str, label: str, region: str):
 
 
 def _load_trig_effs(year: str, label: str, region: str):
-    fname = _get_json_fname(year, label, region)
+    year_ = year
+    if "2024" in year or "2025" in year:
+        print(f"WARNING: Using 2023 trigger correction for {year}")
+        year_ = "2023"
+    fname = _get_json_fname(year_, label, region)
     return correctionlib.CorrectionSet.from_file(fname)
 
 
 def _get_bins(year: str, label: str, region: str) -> dict[str, list[float]]:
     """Extract bins from json file"""
-    fname = _get_json_fname(year, label, region)
+    year_ = year
+    if "2024" in year or "2025" in year:
+        year_ = "2023"
+    fname = _get_json_fname(year_, label, region)
     with Path(fname).open() as f:
         json_dict = json.load(f)
     sample_dict = json_dict["corrections"][0]["data"]["content"][0]["value"]
@@ -209,14 +222,18 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     else:
         raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
+    year_ = year
+    if "2024" in year or "2025" in year:
+        year_ = "2023"
+
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
     triggereff_btag = _load_trig_effs(year, txbb_str, region)
 
-    eff_data = triggereff_ptmsd[f"fatjet_triggereffdata_{year}_ptmsd"]
-    eff_mc = triggereff_ptmsd[f"fatjet_triggereffmc_{year}_ptmsd"]
-    eff_data_btag = triggereff_btag[f"fatjet_triggereffdata_{year}_{txbb_str}"]
-    eff_mc_btag = triggereff_btag[f"fatjet_triggereffmc_{year}_{txbb_str}"]
+    eff_data = triggereff_ptmsd[f"fatjet_triggereffdata_{year_}_ptmsd"]
+    eff_mc = triggereff_ptmsd[f"fatjet_triggereffmc_{year_}_ptmsd"]
+    eff_data_btag = triggereff_btag[f"fatjet_triggereffdata_{year_}_{txbb_str}"]
+    eff_mc_btag = triggereff_btag[f"fatjet_triggereffmc_{year_}_{txbb_str}"]
 
     # extract bins
     ptmsd_bins_dict = _get_bins(year, "ptmsd", region)

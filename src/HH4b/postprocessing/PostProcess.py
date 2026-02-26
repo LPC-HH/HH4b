@@ -68,19 +68,6 @@ mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
 
-# modify samples run3
-for year in samples_run3:
-    samples_run3[year]["qcd"] = [
-        "QCD-4Jets_HT-1000to1200",
-        "QCD-4Jets_HT-1200to1500",
-        "QCD-4Jets_HT-1500to2000",
-        "QCD-4Jets_HT-2000",
-        # "QCD-4Jets_HT-200to400",
-        "QCD-4Jets_HT-400to600",
-        "QCD-4Jets_HT-600to800",
-        "QCD-4Jets_HT-800to1000",
-    ]
-
 selection_regions = {
     "pass_vbf": Region(
         cuts={
@@ -511,10 +498,20 @@ def load_process_run3_samples(
     # define cutflows
     samples_year = list(samples_run3[year].keys())
 
-    # Quick workaround: for 2024 there is currently only data (no MC);
-    # restrict processing to the data sample to avoid missing-key errors.
-    if year == "2024":
-        samples_year = [k for k in samples_year if k == hh_vars.data_key]
+    # For 2025, reuse 2023 MC selectors and scale MC yields by lumi.
+    # Data still comes from 2025 runs.
+    mc_fallback_year = None
+    mc_lumi_scale = 1.0
+    if year == "2025":
+        mc_fallback_year = "2023"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            # Build aggregated lumi from available 2025 sub-eras when a combined key is absent.
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
+        samples_year = [hh_vars.data_key] + [
+            k for k in samples_run3[mc_fallback_year].keys() if k != hh_vars.data_key
+        ]
 
     if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
@@ -531,11 +528,15 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
-        samples_to_process = {year: {key: samples_run3[year][key]}}
+        source_year = year
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            source_year = mc_fallback_year
+
+        samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
-            year,
+            source_year,
             samples_to_process,
             reorder_txbb=True,
             load_systematics=True,
@@ -543,7 +544,22 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
-        )[key]
+        )
+        if key not in events_dict:
+            logger.warning(f"Skipping {key}: no events loaded for current selectors")
+            continue
+        events_dict = events_dict[key]
+
+        # 2025 MC is sourced from 2023 selectors; scale to 2025 lumi.
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            weight_cols = []
+            for col in events_dict.columns.get_level_values(0).unique():
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}:
+                    weight_cols.append(col)
+                elif col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col):
+                    weight_cols.append(col)
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * mc_lumi_scale
 
         # inference and assign score
         jshifts = [""]
@@ -1408,6 +1424,10 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         txbb_label = "PNet 103X"
     elif txbb_version == "glopart-v2":
         txbb_label = "GloParTv2"
+    elif txbb_version == "glopart-v3":
+        txbb_label = "GloParTv3"
+    else:
+        txbb_label = txbb_version
 
     control_plot_vars = [
         ShapeVar(var="bdt_score", label=r"BDT score ggF", bins=[30, 0, 1], blind_window=[0.8, 1.0]),
@@ -1452,6 +1472,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
 
     # Find the normalization needed to reweight QCD
     qcd_norm = 1.0
+    available_keys = set(events_dict.keys())
+    control_sig_keys = [k for k in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"] if k in available_keys]
+    control_bg_keys = [k for k in bg_keys if k in available_keys]
 
     hists = {}
     for i, shape_var in enumerate(control_plot_vars):
@@ -1465,8 +1488,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm_tmp = plotting.ratioHistPlot(
                 hists[shape_var.var],
                 year,
-                ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                bg_keys,
+                control_sig_keys,
+                control_bg_keys,
                 name=f"{plot_dir}/control/{year}/{shape_var.var}",
                 show=False,
                 log=True,
@@ -1511,14 +1534,18 @@ def abcd(
     bg_keys_all,
     sig_keys,
 ):
-    bg_keys = bg_keys_all.copy()
+    available_keys = set(events_dict.keys())
+    bg_keys = [k for k in bg_keys_all if k in available_keys]
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
+    sig_keys = [k for k in sig_keys if k in available_keys]
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     s = 0
     for key in sig_keys + ["data"] + bg_keys:
+        if key not in events_dict:
+            continue
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 

@@ -218,11 +218,23 @@ def _resolve_xsec_key(sample: str, xsecs_dict: dict) -> str:
     if sample in xsecs_dict:
         return sample
 
-    alias = sample.replace("QCD-4Jets_HT-", "QCD_HT-")
-    if alias in xsecs_dict:
-        return alias
+    aliases = [
+        sample.replace("QCD-4Jets_HT-", "QCD_HT-"),
+        sample.replace("TTHto2B_M-125", "ttHto2B_M-125"),
+    ]
+    for alias in aliases:
+        if alias in xsecs_dict:
+            return alias
 
-    raise KeyError(f"No xsec entry for sample '{sample}' (tried alias '{alias}')")
+    # Last fallback: case-insensitive exact key match.
+    lowered = sample.lower()
+    ci_matches = [k for k in xsecs_dict if k.lower() == lowered]
+    if len(ci_matches) == 1:
+        return ci_matches[0]
+
+    raise KeyError(
+        f"No xsec entry for sample '{sample}' (tried aliases {aliases}, ci_matches={ci_matches})"
+    )
 
 
 def _normalize_weights(
@@ -376,6 +388,7 @@ def load_samples(
                 continue
 
             logger.debug(f"Loading {sample}")
+            
             try:
                 non_empty_passed_list = []
                 for parquet_file in parquet_path.glob("*.parquet"):
@@ -385,7 +398,8 @@ def load_samples(
                         )
                         non_empty_passed_list.append(df_sample)
                 events = pd.concat(non_empty_passed_list, ignore_index=True)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error loading {sample}: {e}")
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
