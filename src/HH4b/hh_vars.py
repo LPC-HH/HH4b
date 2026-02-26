@@ -65,7 +65,12 @@ common_samples_bg = {
     # Use exact-match selectors to avoid pulling in ZZto*/WWto*/WZto* sub-samples.
     "zz": ["ZZ?"],
     "nozzdiboson": ["WW?", "WZ?"],
-    "vjets": ["Wto2Q-2Jets_PTQQ", "Zto2Q-2Jets_PTQQ"],
+    "vjets": [
+        "Wto2Q-2Jets_PTQQ",
+        "Zto2Q-2Jets_PTQQ",
+        "Wto2Q-2Jets_Bin-PTQQ-",
+        "Zto2Q-2Jets_Bin-PTQQ-",
+    ],
 }
 
 common_samples_sig = {}
@@ -204,6 +209,7 @@ samples_run3 = {
         **samples_run3_sig["2023BPix"],
     },
     "2024": {
+        **common_samples_bg,
         "data": [
             "JetMET_Run2024B",
             "JetMET_Run2024C",
