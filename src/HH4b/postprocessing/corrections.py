@@ -42,10 +42,7 @@ def _load_txbb_sfs(
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    elif "2024" in year:
-        print(f"WARNING: Using 2023 txbb correction for {year}")
-        year_ = "2023"
-    elif "2025" in year:
+    elif "2024" in year or "2025" in year:
         print(f"WARNING: Using 2023 txbb correction for {year}")
         year_ = "2023"
     else:
@@ -119,10 +116,7 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    elif "2024" in year:
-        print(f"WARNING: Using 2023 ttbar correction for {year}")
-        year_ = "2023"
-    elif "2025" in year:
+    elif "2024" in year or "2025" in year:
         print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
     return correctionlib.CorrectionSet.from_file(

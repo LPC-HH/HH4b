@@ -554,9 +554,7 @@ def load_process_run3_samples(
         if mc_fallback_year is not None and key != hh_vars.data_key:
             weight_cols = []
             for col in events_dict.columns.get_level_values(0).unique():
-                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}:
-                    weight_cols.append(col)
-                elif col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col):
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)):
                     weight_cols.append(col)
             for col in weight_cols:
                 events_dict[col] = events_dict[col] * mc_lumi_scale
@@ -1576,7 +1574,7 @@ def abcd(
     # A = B * C / D
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
-    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
+    background = bqcd + bg_tots[0] if bg_keys else bqcd
     return s, background, dmt
 
 

@@ -494,7 +494,7 @@ def ratioHistPlot(
     kfactor = dict.fromkeys(bg_keys, 1)
     if reweight_qcd and qcd_norm is None:
         non_qcd_hists = [hists[sample, :] for sample in bg_keys if sample != "qcd"]
-        non_qcd_yield = np.sum(sum(non_qcd_hists).values()) if len(non_qcd_hists) else 0.0
+        non_qcd_yield = np.sum(sum(non_qcd_hists).values()) if non_qcd_hists else 0.0
         qcd_yield = np.sum(hists["qcd", :].values()) if "qcd" in hists.axes[0] else 0.0
         data_yield = np.sum(hists[data_key, :].values())
         if qcd_yield > 0:
