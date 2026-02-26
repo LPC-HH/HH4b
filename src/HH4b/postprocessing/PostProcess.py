@@ -737,6 +737,9 @@ def load_process_run3_samples(
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
 
+        # Release the raw parquet DataFrame; all needed data is now in bdt_events.
+        del events_dict
+
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
         # tt corrections
@@ -805,26 +808,18 @@ def load_process_run3_samples(
                 stat_up = np.ones(nevents)
                 stat_dn = np.ones(nevents)
                 for ijet in get_jets_for_txbb_sf(key):
+                    # Cache array conversions: same columns are used for nominal/up/dn.
+                    txbb_arr = bdt_events[f"H{ijet}TXbb"].to_numpy()
+                    pt_arr = bdt_events[f"H{ijet}Pt"].to_numpy()
+                    pt_range = TXbb_pt_corr_bins[wp][j : j + 2]
                     nominal *= corrections.restrict_SF(
-                        txbb_sf["nominal"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["nominal"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_up *= corrections.restrict_SF(
-                        txbb_sf["stat_up"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_up"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_dn *= corrections.restrict_SF(
-                        txbb_sf["stat_dn"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_dn"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                 variation_vars.update(
                     {
@@ -1102,7 +1097,7 @@ def load_process_run3_samples(
                 columns += [f"pdf_weights_{i}"]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
-        columns = list(set(columns))
+        columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
             bdt_events = bdt_events.rename(
