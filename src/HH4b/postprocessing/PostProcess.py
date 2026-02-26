@@ -611,10 +611,12 @@ def load_process_run3_samples(
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2dR")] = -1
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2mass")] = -1
 
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-
-        # remove duplicates
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        if len(jshifts) == 1:
+            bdt_events = bdt_events[jshifts[0]]
+        else:
+            bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+            # remove duplicates (shared nominal columns appear in every per-shift DataFrame)
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
 
         # add more variables for control plots
         # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
@@ -706,13 +708,11 @@ def load_process_run3_samples(
             events_dict, key, year, args.txbb, trigger_region, nevents
         )
 
-        # creating new dataframe with all variables
-        # repeatedly allocating new memory for pd.DataFrame is expensive
-        # best to use a dict instead
-        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
-        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
+        # Assign more_vars columns directly to avoid creating intermediate DataFrames.
+        # Some columns (e.g. H1Pt, H2Pt) already exist from bdt_dataframe; skip them.
+        for col, vals in more_vars.items():
+            if col not in bdt_events.columns:
+                bdt_events[col] = vals
 
         # TXbbWeight
         txbb_sf_weight = calculate_txbb_weights(
@@ -920,8 +920,9 @@ def load_process_run3_samples(
                     "weight_ttbarSF_tau32Down": bdt_events["weight"] * tau32sf_dn / tau32sf,
                 }
             )
-        temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # Assign variation columns directly; all are new so no duplicate guard needed.
+        for col, vals in variation_vars.items():
+            bdt_events[col] = vals
         bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
@@ -944,8 +945,6 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
-            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
