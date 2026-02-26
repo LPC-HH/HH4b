@@ -115,14 +115,14 @@ parser.add_argument(
     "--year",
     type=str,
     default="2022-2023",
-    choices=hh_years + ["2022-2023"],
+    choices=hh_years + ["2022-2023", "2022-2025"],
     help="years to make datacards for",
 )
 parser.add_argument(
     "--txbb",
     type=str,
     default="",
-    choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+    choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
     help="version of TXbb tagger/mass regression to use",
 )
 parser.add_argument(
@@ -219,8 +219,13 @@ for key in all_sig_keys:
 all_mc = list(mc_samples.keys())
 
 
-years = hh_years if args.year == "2022-2023" else [args.year]
-full_lumi = LUMI[args.year]
+if args.year == "2022-2023":
+    years = ["2022", "2022EE", "2023", "2023BPix"]
+elif args.year == "2022-2025":
+    years = hh_years
+else:
+    years = [args.year]
+full_lumi = sum(LUMI[y] for y in years)
 
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
@@ -261,14 +266,26 @@ nuisance_params = {
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
         diff_samples=True,
     ),
-    # weight lumi uncertainties by corresponding integrated lumi
-    "lumi_2022": Syst(
-        prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]
-    ),
-    "lumi_2023": Syst(
-        prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]
-    ),
 }
+# Lumi uncertainties, weighted by fraction of data in each era (only for eras in this fit)
+if any(y in years for y in ["2022", "2022EE"]):
+    _lumi_2022 = sum(LUMI[y] for y in ["2022", "2022EE"] if y in years)
+    nuisance_params["lumi_2022"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.014 * _lumi_2022 / full_lumi
+    )
+if any(y in years for y in ["2023", "2023BPix"]):
+    _lumi_2023 = sum(LUMI[y] for y in ["2023", "2023BPix"] if y in years)
+    nuisance_params["lumi_2023"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.013 * _lumi_2023 / full_lumi
+    )
+if "2024" in years:
+    nuisance_params["lumi_2024"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.012 * LUMI["2024"] / full_lumi
+    )
+if "2025" in years:
+    nuisance_params["lumi_2025"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.012 * LUMI["2025"] / full_lumi
+    )
 if not args.thu_hh:
     del nuisance_params["THU_HH"]
 
@@ -359,6 +376,8 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
+            "2025": ["2025"],
         },
     ),
     "JMS": Syst(
@@ -370,6 +389,8 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
+            "2025": ["2025"],
         },
     ),
     "JMR": Syst(
@@ -381,6 +402,8 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
+            "2025": ["2025"],
         },
     ),
 }
@@ -393,7 +416,12 @@ for i in range(len(ttsf_xbb_bins) - 1):
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={
+            "2022": ["2022", "2022EE"],
+            "2023": ["2023", "2023BPix"],
+            "2024": ["2024"],
+            "2025": ["2025"],
+        },
     )
 TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
 TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
@@ -410,6 +438,8 @@ for wp in TXbb_wps:
             uncorr_years={
                 "2022": ["2022", "2022EE"],
                 "2023": ["2023", "2023BPix"],
+                "2024": ["2024"],
+                "2025": ["2025"],
             },
         )
 
@@ -429,6 +459,12 @@ if args.ttbar_rate_param:
     for key in list(uncorr_year_shape_systs.keys()):
         if "ttbarSF" in key:
             del uncorr_year_shape_systs[key]
+
+# Filter uncorr_years to only include eras being processed in this run
+for syst in uncorr_year_shape_systs.values():
+    syst.uncorr_years = {
+        label: yrs for label, yrs in syst.uncorr_years.items() if any(y in years for y in yrs)
+    }
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():
