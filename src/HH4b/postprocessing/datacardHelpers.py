@@ -97,18 +97,36 @@ def rem_neg(template_dict: dict):
     return template_dict
 
 
-def sum_templates(template_dict: dict, years: list[str]):
-    """Sum templates across years"""
+def _reorder_hist_to_match(h: Hist, ref: Hist) -> Hist:
+    """Reorder h's sample axis to match ref for addition compatibility.
+    Different years may have different sample order (e.g. qcd/data swapped)."""
+    ref_samples = list(ref.axes[0])
+    if list(h.axes[0]) == ref_samples:
+        return h
+    storage = ref.storage_type() if callable(ref.storage_type) else ref.storage_type
+    new_hist = Hist(
+        hist.axis.StrCategory(ref_samples, name=ref.axes[0].name),
+        *ref.axes[1:],
+        storage=storage,
+    )
+    for sample in ref_samples:
+        if sample in h.axes[0]:
+            new_hist[sample, ...] = h[sample, ...].view(flow=True)
+    return new_hist
 
-    ttemplate = next(iter(template_dict.values()))  # sample templates from which to extract values
+
+def sum_templates(template_dict: dict, years: list[str]):
+    """Sum templates across years. Handles different sample axis order across years."""
+
+    ttemplate = next(iter(template_dict.values()))
+    ref_year = years[0]
     combined = {}
 
     for region in ttemplate:
-        thists = []
-
-        for year in years:
-            thists.append(template_dict[year][region])
-
+        ref_hist = template_dict[ref_year][region]
+        thists = [
+            _reorder_hist_to_match(template_dict[year][region], ref_hist) for year in years
+        ]
         combined[region] = sum(thists)
 
     return combined
