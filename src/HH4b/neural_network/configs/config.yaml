@@ -1,6 +1,6 @@
 name: transformer-allmasses-noptop
 
-use_accelerator: true
+use_accelerate: true
 use_bf16: false
 float32_matmul_precision: "high"
 
@@ -14,6 +14,7 @@ dataset:
   classes:
     # Calculated based on sum weights to balance background (qcd + ttbar) and signal (hh4b + vbfhh4b)
     # based on https://github.com/LPC-HH/HH4b/blob/5d1d87b9f6ba3b74f3700623b7ec9d0706a1d519/src/HH4b/boosted/TrainBDT.py#L249
+    # Scaled down by 1e-5 to avoid numerical issues with large weights
     - name: qcd
       cls_weights: 1.e-5
     - name: ttbar
@@ -24,13 +25,14 @@ dataset:
       cls_weights: 346.6203536424499
 
 training:
-  batch_size: 2048
+  loss: "FocalLoss"  # FocalLoss or CrossEntropyLoss
+  batch_size: 5000
   patience: 10
-  num_epochs: 200
+  num_epochs: 500
   optimizer:
     type: AdamW
     kwargs:
-      lr: 1.e-4
+      lr: 5.e-3
   scheduler:
     name: "SequentialLR"
     params:
@@ -45,7 +47,7 @@ training:
           params:
             base_value: 1.0
             final_value: 1.e-2
-            total_iters: 180
+            total_iters: 480
 
 inputs:
   # event-level info
