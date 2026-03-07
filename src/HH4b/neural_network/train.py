@@ -133,7 +133,7 @@ def resolve_file_pattern(config: dict[str, Any], split: str) -> list[Path]:
                 .replace("${name}", name)
                 .replace("${class}", cls)
             )
-            matched = sorted(Path.glob(str(base_dir / p)))
+            matched = sorted(base_dir.glob(p))
             if not matched:
                 LOGGER.warning(f"No files matched pattern: {base_dir / p}")
             paths.extend(Path(m) for m in matched)
