@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import yaml
-from accelerate import Accelerator
+from accelerate import Accelerator, DataLoaderConfiguration
+from accelerate.utils import InitProcessGroupKwargs
 
 # ---------------------------------------------------------------------------
 # Project imports
@@ -450,7 +452,16 @@ def main() -> None:
     accelerator = None
     use_accelerate = config.get("use_accelerate", False)
     if use_accelerate:
-        accelerator = Accelerator(mixed_precision="bf16" if use_bf16 else "no")
+        dataloader_config = DataLoaderConfiguration(
+            dispatch_batches=True,  # Main process loads batches
+            split_batches=False,
+        )
+        kwargs = InitProcessGroupKwargs(timeout=timedelta(days=365))
+        accelerator = Accelerator(
+            dataloader_config=dataloader_config,
+            kwargs_handlers=[kwargs],
+            mixed_precision="bf16" if use_bf16 else "no",
+        )
         device = accelerator.device
         # only log main process info
         LOGGER.addFilter(lambda _: accelerator.is_main_process)
