@@ -169,33 +169,41 @@ def load_dataframe(paths: list[Path], config: dict) -> pd.DataFrame:
 def build_dataloaders(
     config: dict[str, Any],
     config_path: str,
+    device: torch.device,
+    is_main: bool = False,
 ) -> tuple[DataLoader, DataLoader]:
-    """Build train and val DataLoaders."""
     train_paths = resolve_file_pattern(config, split="train")
     val_paths = resolve_file_pattern(config, split="val")
 
+    LOGGER.info("Loading training dataset...")
     train_df = load_dataframe(train_paths, config)
+    LOGGER.info("Loading validation dataset...")
     val_df = load_dataframe(val_paths, config)
 
     train_ds = JetDataset(train_df, config_path=config_path)
     val_ds = JetDataset(val_df, config_path=config_path)
 
+    collate_fn = train_ds.make_collate_fn(device=device)
+
     batch_size = config["training"]["batch_size"]
+    num_workers = 4 if is_main else 0
 
     train_loader = DataLoader(
         train_ds,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=num_workers,
+        pin_memory=False,
         drop_last=True,
+        collate_fn=collate_fn,
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=num_workers,
+        pin_memory=False,
+        collate_fn=collate_fn,
     )
     return train_loader, val_loader
 
@@ -365,24 +373,13 @@ def run_epoch(
 
     with grad_ctx:
         for batch in pbar:
-            labels = batch.pop("label")
-            sample_weights = batch.pop("sample_weight", None)  # (B,) or None
-            batch_dev = {name: dict(group) for name, group in batch.items()}
-
-            if accelerator is None:
-                labels = labels.to(device)
-                if sample_weights is not None:
-                    sample_weights = sample_weights.to(device)
-                batch_dev = {
-                    name: {k: v.to(device) for k, v in group.items()}
-                    for name, group in batch_dev.items()
-                }
+            labels = batch.pop("label")  # already on device
+            sample_weights = batch.pop("sample_weight", None)  # already on device
 
             with amp_ctx:
-                logits = model(batch_dev)
+                logits = model(batch)
                 loss_per_sample = criterion(logits, labels)  # (B,)
                 if sample_weights is not None:
-                    # normalise within batch so loss magnitude stays stable
                     w = sample_weights / sample_weights.sum()
                     loss = (loss_per_sample * w).sum()
                 else:
@@ -410,7 +407,6 @@ def run_epoch(
     avg_acc = correct / total
 
     if accelerator is not None:
-        # Gather scalars across all processes
         t = torch.tensor([avg_loss, avg_acc], device=accelerator.device)
         t = accelerator.gather(t).mean(dim=0)
         avg_loss, avg_acc = t[0].item(), t[1].item()
@@ -498,7 +494,14 @@ def main() -> None:
 
     # --- Data ---
     LOGGER.info("Building dataloaders...")
-    train_loader, val_loader = build_dataloaders(config, config_path=args.config)
+    if accelerator is not None and not accelerator.is_main_process:
+        # Non-main processes wait; main process loads data
+        accelerator.wait_for_everyone()
+        train_loader, val_loader = build_dataloaders(config, config_path=args.config, device=device)
+    else:
+        train_loader, val_loader = build_dataloaders(config, config_path=args.config, device=device)
+        if accelerator is not None:
+            accelerator.wait_for_everyone()
 
     # --- Model ---
     LOGGER.info("Building model...")
