@@ -1,0 +1,254 @@
+name: transformer-allmasses-noptop
+
+use_accelerator: true
+use_bf16: false
+float32_matmul_precision: "high"
+
+output_dir: "/path/to/output/${name}"
+dataset:
+  splits: ["train", "val", "test"]
+  years: ["2024"]
+  dir: "/path/to/dataset"
+  file_pattern: "${split}/${year}_${class}.parquet"
+  weight_key: "finalWeight"
+  classes:
+    # Calculated based on sum weights to balance background (qcd + ttbar) and signal (hh4b + vbfhh4b)
+    # based on https://github.com/LPC-HH/HH4b/blob/5d1d87b9f6ba3b74f3700623b7ec9d0706a1d519/src/HH4b/boosted/TrainBDT.py#L249
+    - name: qcd
+      cls_weights: 1.e-5
+    - name: ttbar
+      cls_weights: 1.e-5
+    - name: hh4b
+      cls_weights: 2.3616065278539775
+    - name: vbfhh4b
+      cls_weights: 346.6203536424499
+
+training:
+  batch_size: 2048
+  patience: 10
+  num_epochs: 200
+  optimizer:
+    type: AdamW
+    kwargs:
+      lr: 1.e-4
+  scheduler:
+    name: "SequentialLR"
+    params:
+      milestones: [20]
+      schedulers:
+        - name: "CosineScheduler"
+          params:
+            base_value: 0.0
+            final_value: 1.0
+            total_iters: 20
+        - name: "CosineScheduler"
+          params:
+            base_value: 1.0
+            final_value: 1.e-2
+            total_iters: 180
+
+inputs:
+  # event-level info
+  - name: event
+    idx: [0]
+    continuous_features:
+      - name: MET_pt
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 3.9
+            std: 0.75
+      - name: ht
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 6.9
+            std: 0.35
+      - name: nJets
+        transform: normal
+        kwargs:
+            mean: 7.0
+            std: 2.0
+
+  # AK8 jet 1
+  - name: bbFatJet1
+    idx: [0]
+    mask:
+      - name: bbFatJetPt
+        min: 0
+        max: "inf"
+    continuous_features:
+      - name: bbFatJetPt
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 6.0
+            std: 0.35
+      - name: bbFatJetMass
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.6
+            std: 0.5
+      - name: bbFatJetMsd
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.7
+            std: 0.5
+      - name: bbFatJetPNetMass
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.8
+            std: 0.4
+      - name: bbFatJetParT3massGeneric
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.7
+            std: 0.4
+      - name: bbFatJetParT3massX2p
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.5
+            std: 0.6
+      - name: bbFatJetEta
+        transform:
+          type: normal
+          kwargs:
+            mean: 0.0
+            std: 1.1
+      - name: bbFatJetPhi
+        transform:
+          type: min_max
+          kwargs:
+            min_val: -3.141592653589793
+            max_val: 3.141592653589793
+      # - name: bbFatJetParT3PTopbWev
+      # - name: bbFatJetParT3PTopbWmv
+      # - name: bbFatJetParT3PTopbWq
+      # - name: bbFatJetParT3PTopbWqq
+      # - name: bbFatJetParT3PTopbWtauhv
+    discrete_features:
+      - name: bbFatJetParT3TXbb
+        transform:
+          type: digitize
+          kwargs:
+            bins: [0.8, 0.9, 0.94, 0.97, 0.99]
+
+  # AK8 jet 2: no mass or TXbb info
+  - name: bbFatJet2
+    idx: [1]
+    mask:
+      - name: bbFatJetPt
+        min: 0
+        max: "inf"
+    continuous_features:
+      - name: bbFatJetPt
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 6.0
+            std: 0.35
+      - name: bbFatJetEta
+        transform:
+          type: normal
+          kwargs:
+            mean: 0.0
+            std: 1.1
+      - name: bbFatJetPhi
+        transform:
+          type: min_max
+          kwargs:
+            min_val: -3.141592653589793
+            max_val: 3.141592653589793
+
+  # AK4 jets
+  - name: AK4JetAway
+    mask:
+      - name: AK4JetAwayPt
+        min: 0
+        max: "inf"
+    idx: [0, 1]
+    continuous_features:
+      - name: AK4JetAwayPt
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.2
+            std: 0.75
+      - name: AK4JetAwayMass
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 2.2
+            std: 0.6
+      - name: AK4JetAwayEta
+        transform:
+          type: normal
+          kwargs:
+            mean: 0.0
+            std: 1.5
+      - name: AK4JetAwayPhi
+        transform:
+          type: min_max
+          kwargs:
+            min_val: -3.141592653589793
+            max_val: 3.141592653589793
+
+  # VBF jets
+  - name: VBFJet
+    mask:
+      - name: VBFJetPt
+        min: 0
+        max: "inf"
+    idx: [0, 1]
+    continuous_features:
+      - name: VBFJetPt
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 4.15
+            std: 0.8
+      - name: VBFJetMass
+        transform:
+          type: log_normal
+          kwargs:
+            mean: 2.15
+            std: 0.7
+      - name: VBFJetEta
+        transform:
+          type: normal
+          kwargs:
+            mean: 0.0
+            std: 2.5
+      - name: VBFJetPhi
+        transform:
+          type: min_max
+          kwargs:
+            min_val: -3.141592653589793
+            max_val: 3.141592653589793
+
+architecture:
+  encoder:
+    dim: 512
+    num_layers: 8
+    num_heads: 16
+    activation: "SwiGLU"
+    norm: "RMSNorm"
+    layer_scale_init: 1.0
+    num_registers: 4
+    mlp_ratio: 4
+    qkv_bias: true
+    attention_dropout: 0.0
+    norm_eps: 1.e-6
+    apply_final_norm: true
+    apply_embedding_norm: false
+  head:
+    mlp_hidden_dim: 4096
+    activation: "GELU"
+    num_hidden_layers: 2
+    batch_norm: true
+    dropout: 0.1
