@@ -1015,6 +1015,7 @@ def ratioHistPlot(
 
 
         tab1d.keywords["observables"] = ["N"]
+        tab1d.keywords["xnames"] = ["M"]
         tab1d.keywords["reactions"] = [
             "P P --> H H",
         ]
