@@ -211,7 +211,9 @@ def plot_fits(args):
                     "cms_label": args.cms_label,
                 }
 
-                plotting.ratioHistPlot(**plot_params, data_err=True, hepdata=args.hepdata, figure=args.figure)
+                plotting.ratioHistPlot(
+                    **plot_params, data_err=True, hepdata=args.hepdata, figure=args.figure
+                )
 
 
 if __name__ == "__main__":

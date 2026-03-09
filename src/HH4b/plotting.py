@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
+from hepdata_lib import Submission, Table, Uncertainty, Variable
+from hepdata_lib.hist_utils import read_hist
 from hist import Hist
 from hist.intervals import poisson_interval, ratio_uncertainty
-from hepdata_lib.hist_utils import read_hist
-from hepdata_lib import Table, Variable, Uncertainty, Submission
 from matplotlib.ticker import MaxNLocator
 from numpy.typing import ArrayLike
 from pyparsing import Any
@@ -965,7 +965,7 @@ def ratioHistPlot(
         submission = Submission()
         tab = {}
         labels = {}
-        for bg_key in bg_keys:        
+        for bg_key in bg_keys:
             tab[bg_key] = read_hist(hists[bg_key, :])
             labels[bg_key] = bg_labels[bg_keys.index(bg_key)]
         for sig_key, sig_scale in sig_scale_dict.items():
@@ -975,32 +975,33 @@ def ratioHistPlot(
         labels[data_key] = "Data"
         tab["bg_total"] = read_hist(bg_tot)
         labels["bg_total"] = "Pred"
-        
+
         tab1d = Table(f"Figure {figure}")
         observable = hists.axes[1].label.replace(" (GeV)", "")
         tab1d.description = f"The background-only fit distributions of the regressed mass of the subleading H boson candidate {observable} in {title}."
         tab1d.location = f"Data from Figure {figure}"
         tab1d.add_image(f"{name}.pdf")
 
-        
         var = Variable(observable, is_independent=True, is_binned=True, units="GeV")
         var.values = tab[data_key]["H2PNetMass"]
         tab1d.add_variable(var)
-        
+
         # Filling in entries
         for key in tab:
             var = Variable(
-                labels[key], is_independent=False, is_binned=False, units=f"Events / {hists.axes[1].edges[1] - hists.axes[1].edges[0]:.0f} GeV",
+                labels[key],
+                is_independent=False,
+                is_binned=False,
+                units=f"Events / {hists.axes[1].edges[1] - hists.axes[1].edges[0]:.0f} GeV",
             )
             var.values = tab[key]["hist_value"]
             tab1d.add_variable(var)
-            
 
             if key == data_key:
                 unc = Uncertainty("stat.", is_symmetric=False)
                 s = tab[data_key]["hist_value"]
                 lo, up = poisson_interval(tab[data_key]["hist_value"])
-                unc.values = zip(lo - s, up -s)
+                unc.values = zip(lo - s, up - s)
                 var.add_uncertainty(unc)
             elif key == "bg_total" and bg_err is not None:
                 unc = Uncertainty("syst.", is_symmetric=False)
@@ -1009,10 +1010,9 @@ def ratioHistPlot(
                     (bg_err[1].values() - bg_tot.values()).tolist(),
                 )
                 var.add_uncertainty(unc)
-            
+
             var.add_qualifier("SQRT(S)", 13.6, "TeV")
             var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
-
 
         tab1d.keywords["observables"] = ["N"]
         tab1d.keywords["xnames"] = ["M"]
@@ -1020,7 +1020,6 @@ def ratioHistPlot(
             "P P --> H H",
         ]
         tab1d.keywords["phrases"] = ["Higgs", "Bottom"]
-
 
         submission.add_table(tab1d)
         submission.create_files(f"hepdata/{figure}", remove_old=True)
