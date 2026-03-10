@@ -498,20 +498,28 @@ def load_process_run3_samples(
     # define cutflows
     samples_year = list(samples_run3[year].keys())
 
-    # For 2025, reuse 2023 MC selectors and scale MC yields by lumi.
-    # Data still comes from 2025 runs.
+    # MC fallback and luminosity scaling for years without dedicated MC (e.g. 2025).
+    # We split 2024 MC 50/50: half for 2024 templates, half for 2025 templates.
+    # Split is deterministic via (run + luminosityBlock + event) % 2.
     mc_fallback_year = None
     mc_lumi_scale = 1.0
+    mc_split_half = None  # 0 = use for 2024, 1 = use for 2025
     if year == "2025":
-        mc_fallback_year = "2023"
+        # 2025 has no MC: use 2024 MC (other half), scale yields to 2025 lumi.
+        mc_fallback_year = "2024"
         target_lumi = hh_vars.LUMI.get(year)
         if target_lumi is None:
-            # Build aggregated lumi from available 2025 sub-eras when a combined key is absent.
             target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # LUMI SCALING: MC weights are norm'd to source-year lumi; multiply by target/source
+        # to get yields appropriate for 2025.
         mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
+        mc_split_half = 1  # use events with (run+lumi+evt)%2 == 1
         samples_year = [hh_vars.data_key] + [
             k for k in samples_run3[mc_fallback_year].keys() if k != hh_vars.data_key
         ]
+    elif year == "2024":
+        # Use half of 2024 MC for 2024 templates; the other half is reserved for 2025.
+        mc_split_half = 0  # use events with (run+lumi+evt)%2 == 0
 
     if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
@@ -534,6 +542,7 @@ def load_process_run3_samples(
 
         samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
+        extra_cols = [("GenHiggsMass", 2)] if args.event_list and key != hh_vars.data_key and key in hh_vars.sig_keys else None
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             source_year,
@@ -544,17 +553,47 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
+            extra_load_columns=extra_cols,
         )
         if key not in events_dict:
             logger.warning(f"Skipping {key}: no events loaded for current selectors")
             continue
         events_dict = events_dict[key]
 
-        # 2025 MC is sourced from 2023 selectors; scale to 2025 lumi.
+        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
+        if mc_split_half is not None and key != hh_vars.data_key:
+            run_ = events_dict["run"].to_numpy().squeeze()
+            lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
+            evt_ = events_dict["event"].to_numpy().squeeze()
+            # Avoid overflow: (a+b+c)%2 = (a%2 + b%2 + c%2)%2
+            mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
+            events_dict = events_dict.loc[mask].copy()
+
+            # LUMI SCALING (2024): we keep half the events; scale weights by 2 so that
+            # the total weighted yield matches full 2024 MC (i.e. full 2024 lumi).
+            if year == "2024":
+                weight_cols = [
+                    col
+                    for col in events_dict.columns.get_level_values(0).unique()
+                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                    or (
+                        col.startswith("weight_")
+                        and "noxsec" not in col
+                        and "nonorm" not in col
+                    )
+                ]
+                for col in weight_cols:
+                    events_dict[col] = events_dict[col] * 2.0
+
+        # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
+        # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
         if mc_fallback_year is not None and key != hh_vars.data_key:
             weight_cols = []
             for col in events_dict.columns.get_level_values(0).unique():
-                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)):
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
+                    col.startswith("weight_")
+                    and ("noxsec" not in col and "nonorm" not in col)
+                ):
                     weight_cols.append(col)
             for col in weight_cols:
                 events_dict[col] = events_dict[col] * mc_lumi_scale
@@ -700,6 +739,12 @@ def load_process_run3_samples(
                 "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
             }
         )
+
+        # add H1/H2 generator-level masses for event list (MC signal only)
+        gen_mass_cols = [c for c in events_dict.columns if isinstance(c, tuple) and c[0] == "GenHiggsMass"]
+        if len(gen_mass_cols) >= 2:
+            more_vars["H1GenMass"] = events_dict[gen_mass_cols[0]].to_numpy()
+            more_vars["H2GenMass"] = events_dict[gen_mass_cols[1]].to_numpy()
 
         nevents = len(bdt_events["H1Pt"])
 
@@ -1901,7 +1946,7 @@ def postprocess_run3(args):
         )
     if args.event_list:
 
-        eventlist_dict = [
+        eventlist_dict_base = [
             "event",
             "bdt_score",
             "bdt_score_vbf",
@@ -1919,6 +1964,9 @@ def postprocess_run3(args):
         for year, year_dict in events_dict_postprocess.items():
             for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
+                    eventlist_dict = list(eventlist_dict_base)
+                    if "H1GenMass" in tree_df.columns and "H2GenMass" in tree_df.columns:
+                        eventlist_dict.extend(["H1GenMass", "H2GenMass"])
                     event_list = tree_df[eventlist_dict]
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 

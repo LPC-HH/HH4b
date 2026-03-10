@@ -305,6 +305,7 @@ def load_run3_samples(
     mass_str: str,
     bdt_version: str,
     load_bdt_scores: bool = True,
+    extra_load_columns: list | None = None,
 ):
     assert txbb_version in [
         "pnet-v12",
@@ -342,6 +343,10 @@ def load_run3_samples(
 
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
+    if extra_load_columns:
+        load_columns_year_mc = load_columns_year + extra_load_columns
+    else:
+        load_columns_year_mc = load_columns_year
 
     samples_syst_ggf = {
         sample: samples_run3[year][sample]
@@ -375,9 +380,9 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics + load_columns_ggf
+                load_columns_year_mc + load_columns_systematics + load_columns_ggf
                 if load_systematics
-                else load_columns_year
+                else load_columns_year_mc
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
@@ -394,9 +399,9 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics + load_columns_vbf
+                load_columns_year_mc + load_columns_systematics + load_columns_vbf
                 if load_systematics
-                else load_columns_year
+                else load_columns_year_mc
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
