@@ -608,14 +608,25 @@ def load_process_run3_samples(
 
         logger.info("Add BDT scores")
         bdt_events = {}
+        chunk_size = args.bdt_inference_chunk_size
         for jshift in jshifts:
             _jshift = f"_{jshift}" if jshift != "" else ""
             bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
                 events_dict, get_var_mapping(jshift)
             )
             if rerun_inference:
-                print("Re-run inference")
-                preds = bdt_model.predict_proba(bdt_events[jshift])
+                logger.info("Re-run inference")
+                bdt_df = bdt_events[jshift]
+                n = len(bdt_df)
+                if chunk_size > 0 and n > chunk_size:
+                    preds_list = []
+                    for start in range(0, n, chunk_size):
+                        end = min(start + chunk_size, n)
+                        chunk = bdt_df.iloc[start:end]
+                        preds_list.append(bdt_model.predict_proba(chunk))
+                    preds = np.concatenate(preds_list, axis=0)
+                else:
+                    preds = bdt_model.predict_proba(bdt_df)
                 add_bdt_scores(
                     bdt_events[jshift],
                     preds,
@@ -2169,6 +2180,12 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
+    parser.add_argument(
+        "--bdt-inference-chunk-size",
+        type=int,
+        default=500_000,
+        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 500000)",
+    )
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
