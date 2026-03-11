@@ -184,6 +184,22 @@ src/HH4b/processors/skimmer_plots
 
 running_jobs.txt
 
+# CMSSW (build dir - huge)
+CMSSW_11_3_4/
+src/CMSSW_11_3_4/
+
+# rhalphalib (if installed as package)
+rhalphalib/
+
+# PID files
+*.pid
+run.pid
+
+# Logs/outputs under src
+src/HH4b/postprocessing/*.out
+src/HH4b/boosted/*.out
+queue_master.out
+
 .bashrc
 .condor_config
 .local/
