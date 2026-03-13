@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,7 @@ from utils import (
     JetDataset,
     configure_logger,
     get_scheduler,
+    jet_collate_fn,
     load_checkpoint,
     resolve_output_dir,
     save_checkpoint,
@@ -83,19 +85,33 @@ class FocalLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        # Standard CE per sample: (B,)
+        # 1. Get standard log probabilities
         log_prob = F.log_softmax(logits, dim=-1)
-        ce = F.nll_loss(log_prob, targets, weight=self.weight, reduction="none")
 
-        # p_t = exp(-ce) for the true class
-        pt = torch.exp(-ce)
-        focal = (1.0 - pt) ** self.gamma * ce
+        # 2. Get UNWEIGHTED cross-entropy to properly calculate p_t
+        ce_unweighted = F.nll_loss(log_prob, targets, reduction="none")
 
+        # 3. Extract p_t (true probability of the correct class)
+        pt = torch.exp(-ce_unweighted)
+
+        # 4. Calculate the focal modifier
+        focal_term = (1.0 - pt) ** self.gamma
+
+        # 5. Apply class weights if provided
+        if self.weight is not None:
+            # Gather the specific weight for each target in the batch
+            alpha = self.weight[targets]
+            loss = alpha * focal_term * ce_unweighted
+        else:
+            loss = focal_term * ce_unweighted
+
+        # 6. Apply reduction
         if self.reduction == "mean":
-            return focal.mean()
+            return loss.mean()
         elif self.reduction == "sum":
-            return focal.sum()
-        return focal
+            return loss.sum()
+
+        return loss
 
 
 def build_loss(config: dict[str, Any], device: torch.device) -> nn.Module:
@@ -166,49 +182,61 @@ def load_dataframe(paths: list[Path], config: dict) -> pd.DataFrame:
     return df
 
 
+def _pad_dataframe(df: pd.DataFrame, batch_size: int, weight_key: str | None) -> pd.DataFrame:
+    remainder = len(df) % batch_size
+    if remainder == 0:
+        return df
+    n_pad = batch_size - remainder
+    pad = df.iloc[:n_pad].copy()
+    if weight_key is not None:
+        pad[weight_key] = 0.0
+        return pd.concat([df, pad], ignore_index=True)
+    else:
+        # No weight column — just trim instead of padding with unmasked samples
+        n_keep = len(df) - remainder
+        LOGGER.warning(
+            f"No weight_key set; trimming {remainder} samples to avoid partial last batch "
+            f"({len(df):,} → {n_keep:,})"
+        )
+        return df.iloc[:n_keep].reset_index(drop=True)
+
+
 def build_dataloaders(
     config: dict[str, Any],
     config_path: str,
     device: torch.device,
     is_main: bool = False,
+    accelerator: Accelerator | None = None,
 ) -> tuple[DataLoader, DataLoader]:
-    train_paths = resolve_file_pattern(config, split="train")
-    val_paths = resolve_file_pattern(config, split="val")
-
-    LOGGER.info("Loading training dataset...")
-    train_df = load_dataframe(train_paths, config)
-    LOGGER.info("Loading validation dataset...")
-    val_df = load_dataframe(val_paths, config)
-
-    train_ds = JetDataset(train_df, config_path=config_path)
-    val_ds = JetDataset(val_df, config_path=config_path)
-
-    collate_fn = train_ds.make_collate_fn(device=device)
-
+    group_configs = JetDataset.build_group_configs(config)
+    collate_fn = partial(jet_collate_fn, group_configs=group_configs, device=device)
     batch_size = config["training"]["batch_size"]
-    num_workers = 4 if is_main else 0
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=False,
-        drop_last=True,
-        collate_fn=collate_fn,
-    )
-    val_loader = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=False,
-        collate_fn=collate_fn,
-    )
+    if is_main:
+        train_df = load_dataframe(resolve_file_pattern(config, "train"), config)
+        val_df = load_dataframe(resolve_file_pattern(config, "val"), config)
+        train_df = _pad_dataframe(train_df, batch_size, config["dataset"].get("weight_key"))
+        val_df = _pad_dataframe(val_df, batch_size, config["dataset"].get("weight_key"))
+        train_ds = JetDataset(train_df, config_path=config_path)
+        val_ds = JetDataset(val_df, config_path=config_path)
+
+        train_loader = DataLoader(
+            train_ds, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn
+        )
+        val_loader = DataLoader(
+            val_ds, batch_size=batch_size, shuffle=False, drop_last=False, collate_fn=collate_fn
+        )
+    else:
+        train_loader = DataLoader([], collate_fn=collate_fn)
+        val_loader = DataLoader([], collate_fn=collate_fn)
+
+    if accelerator is not None:
+        accelerator.wait_for_everyone()
+
     return train_loader, val_loader
 
 
-def build_model(config: dict[str, Any], dataset: JetDataset) -> JetClassifier:
+def build_model(config: dict[str, Any]) -> JetClassifier:
     """Build JetClassifier from config + dataset group configs.
 
     Steps:
@@ -226,7 +254,7 @@ def build_model(config: dict[str, Any], dataset: JetDataset) -> JetClassifier:
     num_classes = len(config["dataset"]["classes"])
 
     # --- InputEmbeddings ---
-    group_configs: list[GroupConfig] = dataset.group_configs()
+    group_configs: list[GroupConfig] = JetDataset.build_group_configs(config)
     embeddings = nn.ModuleDict()
     for grp in group_configs:
         embeddings[grp.name] = InputEmbedding(
@@ -380,8 +408,7 @@ def run_epoch(
                 logits = model(batch)
                 loss_per_sample = criterion(logits, labels)  # (B,)
                 if sample_weights is not None:
-                    w = sample_weights / sample_weights.sum()
-                    loss = (loss_per_sample * w).sum()
+                    loss = (loss_per_sample * sample_weights).sum() / sample_weights.sum()
                 else:
                     loss = loss_per_sample.mean()
 
@@ -394,13 +421,18 @@ def run_epoch(
                 optimizer.step()
 
             batch_size = labels.size(0)
-            total_loss += loss.item() * batch_size
-            correct += (logits.argmax(dim=-1) == labels).sum().item()
-            total += batch_size
+            if sample_weights is not None:
+                total_loss += loss.item() * sample_weights.sum().item()
+                correct += ((logits.argmax(dim=-1) == labels) * sample_weights).sum().item()
+                total += sample_weights.sum().item()
+            else:
+                total_loss += loss.item() * batch_size
+                correct += (logits.argmax(dim=-1) == labels).sum().item()
+                total += batch_size
 
             pbar.set_postfix(
-                loss=f"{total_loss / total:.4f}",
-                acc=f"{correct / total:.4f}",
+                loss=f"{total_loss / total:.5e}",
+                acc=f"{correct / total:.2%}",
             )
 
     avg_loss = total_loss / total
@@ -408,8 +440,14 @@ def run_epoch(
 
     if accelerator is not None:
         t = torch.tensor([avg_loss, avg_acc], device=accelerator.device)
-        t = accelerator.gather(t).mean(dim=0)
-        avg_loss, avg_acc = t[0].item(), t[1].item()
+        gathered = accelerator.gather(t)  # (num_gpus * 2,) or (2,)
+        gathered = gathered.view(-1, 2).mean(dim=0)  # always (2,)
+        avg_loss, avg_acc = gathered[0].item(), gathered[1].item()
+
+        LOGGER.info(
+            f"Epoch {epoch:03d} [{phase}] | "
+            f"avg_loss={avg_loss:.5e} avg_acc={avg_acc:.2%} (gathered across {accelerator.num_processes} processes)"
+        )
 
     return avg_loss, avg_acc
 
@@ -494,20 +532,13 @@ def main() -> None:
 
     # --- Data ---
     LOGGER.info("Building dataloaders...")
-    if accelerator is not None and not accelerator.is_main_process:
-        # Non-main processes wait; main process loads data
-        accelerator.wait_for_everyone()
-        train_loader, val_loader = build_dataloaders(config, config_path=args.config, device=device)
-    else:
-        train_loader, val_loader = build_dataloaders(config, config_path=args.config, device=device)
-        if accelerator is not None:
-            accelerator.wait_for_everyone()
+    train_loader, val_loader = build_dataloaders(
+        config, config_path=args.config, device=device, is_main=is_main, accelerator=accelerator
+    )
 
     # --- Model ---
     LOGGER.info("Building model...")
-    # Use train dataset to infer group configs
-    train_ds: JetDataset = train_loader.dataset  # type: ignore[assignment]
-    model = build_model(config, dataset=train_ds)
+    model = build_model(config)
     if accelerator is None:
         model = model.to(device)
 
@@ -541,7 +572,7 @@ def main() -> None:
     patience = training_cfg.get("patience", float("inf"))
     epochs_no_improve = 0
 
-    LOGGER.info(f"Starting training from epoch {start_epoch} / {num_epochs}")
+    LOGGER.info(f"Starting training from epoch {start_epoch}/{num_epochs}")
 
     for epoch in range(start_epoch, num_epochs):
         train_loss, train_acc = run_epoch(
@@ -579,9 +610,9 @@ def main() -> None:
 
         if is_main:
             LOGGER.info(
-                f"Epoch {epoch:03d} | "
-                f"train_loss={train_loss:.4f} train_acc={train_acc:.4f} | "
-                f"val_loss={val_loss:.4f} val_acc={val_acc:.4f}"
+                f"Epoch {epoch:04d} | "
+                f"train_loss={train_loss:.5e} train_acc={train_acc:.2%} | "
+                f"val_loss={val_loss:.5e} val_acc={val_acc:.2%}"
                 + (" ← best" if is_best else f" (no improve {epochs_no_improve}/{patience})")
             )
 

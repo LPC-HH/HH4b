@@ -182,28 +182,32 @@ class JetDataset(Dataset):
 
     def __init__(
         self,
-        df: pd.DataFrame,
-        config_path: str,
+        df: pd.DataFrame | None = None,
+        config_path: str | None = None,
         label_col: str | None = "label",
     ):
         super().__init__()
+        self._len = 0
 
-        with Path(config_path).open() as f:
-            self.cfg = yaml.safe_load(f)
+        if config_path is not None:
+            with Path(config_path).open() as f:
+                self.cfg = yaml.safe_load(f)
+            self.groups: list[GroupConfig] = self.build_group_configs(self.cfg)
+            self.classes = [c["name"] for c in self.cfg["dataset"]["classes"]]
+            self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
+            self.weight_key = self.cfg["dataset"].get("weight_key")
+            self.label_col = label_col
 
-        self.label_col = label_col
-        self.classes: list[str] = [c["name"] for c in self.cfg["dataset"]["classes"]]
-        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
-        self.groups: list[GroupConfig] = [GroupConfig(g) for g in self.cfg["inputs"]]
-        self.weight_key: str | None = self.cfg["dataset"].get("weight_key")
+        if df is None:
+            return  # non-main rank: valid _len=0, groups set, no data
 
+        # --- data loading (main process only) ---
         df = df.reset_index(drop=True)
         self._len = len(df)
-
-        # --- Convert every needed column to a numpy array up-front ---
-        # Workers share these arrays via CoW after fork — no pandas overhead.
         needed_cols = self._collect_needed_columns()
-        self._cols: dict[tuple[str, str], np.ndarray] = {}
+        self._cols = {
+            col: df[col].to_numpy(dtype=np.float32, na_value=np.nan) for col in needed_cols
+        }
         for col in needed_cols:
             if col not in df.columns:
                 raise KeyError(f"Column {col} not found. " f"Available: {list(df.columns[:10])}...")
@@ -255,7 +259,7 @@ class JetDataset(Dataset):
     # ------------------------------------------------------------------
 
     def __len__(self) -> int:
-        return self._len
+        return getattr(self, "_len", 0)
 
     def __getitem__(self, i: int) -> dict[str, Any]:
         sample: dict[str, Any] = {}
@@ -339,3 +343,8 @@ class JetDataset(Dataset):
     def make_collate_fn(self, device: torch.device | None = None):
         """Convenience method — returns a ready-to-use collate_fn for this dataset."""
         return partial(jet_collate_fn, group_configs=self.groups, device=device)
+
+    @staticmethod
+    def build_group_configs(config: dict) -> list[GroupConfig]:
+        """Helper to extract group configs from a full model config dict."""
+        return [GroupConfig(g) for g in config["inputs"]]

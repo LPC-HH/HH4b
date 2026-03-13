@@ -9,7 +9,7 @@ from .ckpt import (
     resolve_output_dir,
     save_checkpoint,
 )
-from .dataset import GroupConfig, JetDataset
+from .dataset import GroupConfig, JetDataset, jet_collate_fn
 from .feature_transform import FeatureTransform
 from .logger import LOGGER, configure_logger
 from .scheduler import get_scheduler

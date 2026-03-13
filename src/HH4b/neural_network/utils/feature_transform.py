@@ -36,4 +36,5 @@ class FeatureTransform:
         Example: bins=[0.8, 0.9, 1.0] ->
         x < 0.8: 0 | 0.8 <= x < 0.9: 1 | 0.9 <= x < 1.0: 2 | x >= 1.0: 3
         """
-        return torch.bucketize(x, torch.tensor(bins))
+        bins = torch.tensor(bins, device=x.device)
+        return torch.bucketize(x, bins)
