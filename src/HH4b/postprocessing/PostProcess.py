@@ -5,6 +5,7 @@ import importlib
 import logging
 import logging.config
 import pprint
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
@@ -171,6 +172,63 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1] + preds[:, 2]
         )
+
+
+def _build_and_score_bdt_events(
+    events: pd.DataFrame,
+    make_bdt_dataframe,
+    key_map: Callable,
+    rerun_inference: bool,
+    bdt_model,
+    chunk_size: int,
+    weight_ttbar: float,
+    bdt_disc: bool,
+    jshift: str,
+) -> pd.DataFrame:
+    """Build BDT inputs in row chunks to reduce peak memory before inference."""
+    n_events = len(events)
+    if chunk_size <= 0 or n_events <= chunk_size:
+        chunks = [(0, n_events)]
+    else:
+        chunks = [(start, min(start + chunk_size, n_events)) for start in range(0, n_events, chunk_size)]
+
+    built_chunks: list[pd.DataFrame] = []
+    jlabel = f"_{jshift}" if jshift != "" else ""
+
+    total_chunks = len(chunks)
+    for i, (start, end) in enumerate(chunks, start=1):
+        progress_msg = f"BDT chunk {i}/{total_chunks} for jshift {jshift or 'nominal'}"
+        if sys.stderr.isatty():
+            print(f"\r{progress_msg}", end="" if i < total_chunks else "\n", file=sys.stderr, flush=True)
+        elif _should_log_chunk_progress(i, total_chunks):
+            logger.info(progress_msg)
+        events_chunk = events.iloc[start:end]
+        bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        if rerun_inference:
+            preds = bdt_model.predict_proba(bdt_chunk)
+            add_bdt_scores(
+                bdt_chunk,
+                preds,
+                jshift,
+                weight_ttbar=weight_ttbar,
+                bdt_disc=bdt_disc,
+            )
+        else:
+            bdt_chunk[f"bdt_score{jlabel}"] = events_chunk[f"bdt_score{jlabel}"]
+            bdt_chunk[f"bdt_score_vbf{jlabel}"] = events_chunk[f"bdt_score_vbf{jlabel}"]
+        built_chunks.append(bdt_chunk)
+
+    if len(built_chunks) == 1:
+        return built_chunks[0]
+    return pd.concat(built_chunks, ignore_index=True)
+
+
+def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
+    """Limit progress logs for redirected output files."""
+    if total_chunks <= 10:
+        return True
+    interval = max(1, total_chunks // 10)
+    return chunk_num == 1 or chunk_num == total_chunks or chunk_num % interval == 0
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -610,38 +668,23 @@ def load_process_run3_samples(
         bdt_events = {}
         chunk_size = args.bdt_inference_chunk_size
         for jshift in jshifts:
-            _jshift = f"_{jshift}" if jshift != "" else ""
-            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict, get_var_mapping(jshift)
-            )
             if rerun_inference:
                 logger.info("Re-run inference")
-                bdt_df = bdt_events[jshift]
-                n = len(bdt_df)
-                if chunk_size > 0 and n > chunk_size:
-                    preds_list = []
-                    for start in range(0, n, chunk_size):
-                        end = min(start + chunk_size, n)
-                        chunk = bdt_df.iloc[start:end]
-                        preds_list.append(bdt_model.predict_proba(chunk))
-                    preds = np.concatenate(preds_list, axis=0)
-                else:
-                    preds = bdt_model.predict_proba(bdt_df)
-                add_bdt_scores(
-                    bdt_events[jshift],
-                    preds,
-                    jshift,
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
             else:
                 # assert bdt_disc is true
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
-                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
-                    f"bdt_score_vbf{_jshift}"
-                ]
+            bdt_events[jshift] = _build_and_score_bdt_events(
+                events_dict,
+                make_bdt_dataframe,
+                get_var_mapping(jshift),
+                rerun_inference=rerun_inference,
+                bdt_model=bdt_model if rerun_inference else None,
+                chunk_size=chunk_size,
+                weight_ttbar=args.weight_ttbar_bdt,
+                bdt_disc=args.bdt_disc,
+                jshift=jshift,
+            )
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -2183,8 +2226,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bdt-inference-chunk-size",
         type=int,
-        default=500_000,
-        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 500000)",
+        default=0,
+        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 0)",
     )
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
