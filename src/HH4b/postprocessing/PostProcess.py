@@ -1671,6 +1671,27 @@ def abcd(
     return s, background, dmt
 
 
+def _compute_all_hist_samples(
+    sample_keys: list[str],
+    sig_keys: list[str],
+    weight_shifts: dict,
+) -> list[str]:
+    """Pre-compute all histogram sample names including weight-shift variations.
+
+    Used for per-sample template generation so all calls share the same StrCategory
+    axis, enabling histogram accumulation via addition.
+    """
+    hist_samples = list(sample_keys)
+    for shift in ["down", "up"]:
+        for sig_key in sig_keys:
+            hist_samples.append(f"{sig_key}_txbb_{shift}")
+        for wshift, wsyst in weight_shifts.items():
+            for wsample in wsyst.samples:
+                if wsample in sample_keys:
+                    hist_samples.append(f"{wsample}_{wshift}_{shift}")
+    return hist_samples
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -1780,7 +1801,9 @@ def postprocess_run3(args):
         )
         print("Combined years")
     else:
-        events_combined = events_dict_postprocess[args.years[0]]
+        # Shallow copy so per-sample deletion in the template loop does not affect
+        # events_dict_postprocess (needed by the event_list section below).
+        events_combined = dict(events_dict_postprocess[args.years[0]])
         scaled_by = {}
     if args.control_plots:
         # quick fix: '2024' is only stand-in, plots all combined events
@@ -1966,33 +1989,50 @@ def postprocess_run3(args):
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
-    # individual templates per year
+    # individual templates per year, processed one sample at a time to reduce peak memory
     for year in args.years:
+        all_hist_samples = _compute_all_hist_samples(
+            list(events_combined.keys()), args.sig_keys, weight_shifts
+        )
         templates = {}
-        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
-            events_by_year = {}
-            for sample, events in events_combined.items():
-                events_by_year[sample] = events[events["year"] == year]
-            ttemps = postprocessing.get_templates(
-                events_by_year,
-                year=year,
-                sig_keys=args.sig_keys,
-                plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                selection_regions=selection_regions,
-                shape_vars=[fit_shape_var],
-                systematics={},
-                template_dir=templ_dir,
-                bg_keys=bg_keys_combined,
-                plot_dir=Path(f"{templ_dir}/{year}"),
-                weight_key="weight",
-                weight_shifts=weight_shifts,
-                plot_shifts=False,  # skip for time
-                show=False,
-                energy=13.6,
-                jshift=jshift,
-                blind=args.blind,
-            )
-            templates = {**templates, **ttemps}
+        sample_keys = list(events_combined.keys())
+        for sample_key in sample_keys:
+            print(f"Creating templates for sample: {sample_key}")
+            for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
+                events_by_year = {
+                    sample_key: events_combined[sample_key][
+                        events_combined[sample_key]["year"] == year
+                    ]
+                }
+                ttemps = postprocessing.get_templates(
+                    events_by_year,
+                    year=year,
+                    sig_keys=args.sig_keys,
+                    plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+                    selection_regions=selection_regions,
+                    shape_vars=[fit_shape_var],
+                    systematics={},
+                    # skip per-region cutflow CSVs during per-sample calls (partial data)
+                    template_dir="",
+                    bg_keys=bg_keys_combined,
+                    plot_dir="",
+                    weight_key="weight",
+                    weight_shifts=weight_shifts,
+                    plot_shifts=False,
+                    show=False,
+                    energy=13.6,
+                    jshift=jshift,
+                    blind=args.blind,
+                    all_hist_samples=all_hist_samples,
+                )
+                # Accumulate: add per-sample histograms (axes match via all_hist_samples)
+                for key, h in ttemps.items():
+                    if key not in templates:
+                        templates[key] = h
+                    else:
+                        templates[key] = templates[key] + h
+            # Free this sample's dataframe to reduce memory usage
+            del events_combined[sample_key]
 
         # save templates per year
         postprocessing.save_templates(
