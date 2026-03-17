@@ -256,10 +256,12 @@ class ScoreAccumulator:
 
     def gather(self, accelerator: Accelerator) -> ScoreAccumulator:
         logits, labels, weights = self.finalize()
-        logits = accelerator.gather(logits)
-        labels = accelerator.gather(labels)
+
+        logits = accelerator.gather(logits.to(accelerator.device))
+        labels = accelerator.gather(labels.to(accelerator.device))
         if weights is not None:
-            weights = accelerator.gather(weights)
+            weights = accelerator.gather(weights.to(accelerator.device))
+
         new = ScoreAccumulator()
-        new.update(logits, labels, weights)
+        new.update(logits.cpu(), labels.cpu(), weights.cpu() if weights is not None else None)
         return new
