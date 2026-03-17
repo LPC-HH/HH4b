@@ -12,4 +12,5 @@ from .ckpt import (
 from .dataset import GroupConfig, JetDataset, jet_collate_fn
 from .feature_transform import FeatureTransform
 from .logger import LOGGER, configure_logger
+from .roc import ScoreAccumulator, compute_roc_metrics, save_roc_plot
 from .scheduler import get_scheduler

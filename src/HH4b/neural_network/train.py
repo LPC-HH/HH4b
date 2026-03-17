@@ -37,12 +37,15 @@ from utils import (
     LOGGER,
     GroupConfig,
     JetDataset,
+    ScoreAccumulator,
+    compute_roc_metrics,
     configure_logger,
     get_scheduler,
     jet_collate_fn,
     load_checkpoint,
     resolve_output_dir,
     save_checkpoint,
+    save_roc_plot,
 )
 
 
@@ -171,14 +174,27 @@ def load_dataframe(paths: list[Path], config: dict) -> pd.DataFrame:
     for p in paths:
         df = pd.read_parquet(p)
         # Infer class from filename stem, e.g. "2024_hh4b.parquet" → "hh4b"
-        cls_name = next((c for c in classes if c in p.stem), None)
+        cls_name = next(
+            (c for c in sorted(classes, key=len, reverse=True) if c in p.stem),
+            None,
+        )
         if cls_name is None:
             raise ValueError(f"Cannot infer class from filename: {p.name}")
         df["label"] = class_to_idx[cls_name]
         frames.append(df)
 
     df = pd.concat(frames, ignore_index=True)
-    LOGGER.info(f"Loaded {len(df):,} rows from {len(paths)} file(s)")
+    counts = df["label"].value_counts().sort_index()
+    idx_to_class = dict(enumerate(classes))
+    count_str = "  ".join(f"{idx_to_class.get(i, i)}={n:,}" for i, n in counts.items())
+    # Warn loudly for any class that ended up with zero rows
+    loaded_classes = set(counts[counts > 0].index.tolist())
+    for cls, idx in class_to_idx.items():
+        if idx not in loaded_classes:
+            LOGGER.warning(
+                f"Class '{cls}' has ZERO rows in this split — check that the file exists!"
+            )
+    LOGGER.info(f"Loaded {len(df):,} rows from {len(paths)} file(s)  [{count_str}]")
     return df
 
 
@@ -377,10 +393,20 @@ def run_epoch(
     use_bf16: bool = False,
     epoch: int = 0,
     accelerator: Accelerator | None = None,
-) -> tuple[float, float]:
-    """Run one epoch. Returns (avg_loss, accuracy)."""
+    wandb_run: Any = None,
+    global_step: int = 0,
+    collect_scores: bool = False,
+) -> tuple[float, float, int, ScoreAccumulator | None]:
+    """Run one epoch. Returns (avg_loss, accuracy, global_step, score_accumulator|None).
+
+    Args:
+        collect_scores: If True, accumulate logits/labels/weights for ROC computation.
+                        Only meaningful for validation (is_train=False).
+    """
     model.train() if is_train else model.eval()
     total_loss, correct, total = 0.0, 0, 0
+
+    accumulator = ScoreAccumulator() if collect_scores else None
 
     amp_ctx = (
         torch.autocast(device_type=device.type, dtype=torch.bfloat16)
@@ -407,8 +433,11 @@ def run_epoch(
             with amp_ctx:
                 logits = model(batch)
                 loss_per_sample = criterion(logits, labels)  # (B,)
+
                 if sample_weights is not None:
-                    loss = (loss_per_sample * sample_weights).sum() / sample_weights.sum()
+                    loss = (loss_per_sample * sample_weights).sum() / sample_weights.sum().clamp(
+                        min=1e-8
+                    )
                 else:
                     loss = loss_per_sample.mean()
 
@@ -419,6 +448,31 @@ def run_epoch(
                 else:
                     loss.backward()
                 optimizer.step()
+
+                # --- Batch-level W&B logging (train only) ---
+                if wandb_run is not None and is_main:
+                    if sample_weights is not None:
+                        batch_acc = (
+                            ((logits.argmax(dim=-1) == labels) * sample_weights).sum()
+                            / sample_weights.sum()
+                        ).item()
+                    else:
+                        batch_acc = (logits.argmax(dim=-1) == labels).float().mean().item()
+                    wandb_run.log(
+                        {
+                            "batch/loss": loss.item(),
+                            "batch/acc": batch_acc,
+                            "batch/lr": optimizer.param_groups[0]["lr"],
+                            "global_step": global_step,
+                        },
+                        step=global_step,
+                    )
+
+                global_step += 1
+
+            # --- Score accumulation (val only) ---
+            if accumulator is not None:
+                accumulator.update(logits, labels, sample_weights)
 
             batch_size = labels.size(0)
             if sample_weights is not None:
@@ -449,7 +503,103 @@ def run_epoch(
             f"avg_loss={avg_loss:.5e} avg_acc={avg_acc:.2%} (gathered across {accelerator.num_processes} processes)"
         )
 
-    return avg_loss, avg_acc
+    return avg_loss, avg_acc, global_step, accumulator
+
+
+# ---------------------------------------------------------------------------
+# ROC evaluation
+# ---------------------------------------------------------------------------
+
+
+def run_roc_eval(
+    accumulator: ScoreAccumulator,
+    config: dict[str, Any],
+    output_dir: Path,
+    epoch: int,
+    wandb_run: Any = None,
+    global_step: int = 0,
+    split: str = "val",
+) -> dict[str, dict[str, Any]]:
+    """Compute ROC metrics for all configured roc_groups and log/save results.
+
+    Args:
+        accumulator:  Filled ScoreAccumulator from the val loop.
+        config:       Full training config dict.
+        output_dir:   Experiment output directory (plots saved under roc_curves/).
+        epoch:        Current epoch (used for filenames and logging).
+        wandb_run:    Active W&B run or None.
+        global_step:  Current global step for W&B x-axis.
+        split:        Which split was evaluated (filters roc_groups by their 'splits' field).
+
+    Returns:
+        {group_name: result_dict} for all evaluated groups.
+    """
+    roc_groups = config["training"].get("roc_groups", [])
+    if not roc_groups:
+        return {}
+
+    classes = [c["name"] for c in config["dataset"]["classes"]]
+    class_to_idx = {c: i for i, c in enumerate(classes)}
+
+    all_logits, all_labels, all_weights = accumulator.finalize()
+
+    results: dict[str, dict[str, Any]] = {}
+    wandb_metrics: dict[str, float] = {}
+
+    for roc_group in roc_groups:
+        # Only evaluate groups configured for this split
+        if split not in roc_group.get("splits", ["val"]):
+            continue
+
+        name = roc_group["name"]
+        res = compute_roc_metrics(
+            all_logits=all_logits,
+            all_labels=all_labels,
+            all_weights=all_weights,
+            roc_group=roc_group,
+            class_to_idx=class_to_idx,
+        )
+        results[name] = res
+
+        # --- Log to console ---
+        # sig_effs is a list of (eps_b_target, eps_s_achieved) tuples
+        sig_eff_strs = "  ".join(
+            f"eps_s={eps_s:.4f}@eps_b={eps_b:.0e}" for eps_b, eps_s in res["sig_effs"]
+        )
+        LOGGER.info(f"  ROC [{name}] | AUC={res['auc']:.4f}  {sig_eff_strs}")
+
+        # --- Collect W&B metrics ---
+        wandb_metrics[f"roc/{name}/auc"] = res["auc"]
+        for eps_b, eps_s in res["sig_effs"]:
+            wandb_metrics[f"roc/{name}/sig_eff@bkg{eps_b:.0e}"] = eps_s
+
+    if not results:
+        return results
+
+    # --- Save ROC curve plots ---
+    roc_plot_dir = output_dir / "roc_curves"
+    save_roc_plot(results, roc_plot_dir, epoch)
+    LOGGER.info(f"  ROC plots saved → {roc_plot_dir}/roc_epoch_{epoch:04d}.[png|pdf]")
+
+    # --- Log to W&B ---
+    if wandb_run is not None and wandb_metrics:
+        wandb_metrics["epoch"] = epoch
+        wandb_run.log(wandb_metrics, step=global_step)
+
+        # Also log the ROC plot image
+        try:
+            import wandb  # noqa: PLC0415
+
+            fig_path = roc_plot_dir / f"roc_epoch_{epoch:04d}.png"
+            if fig_path.exists():
+                wandb_run.log(
+                    {"roc/curves": wandb.Image(str(fig_path), caption=f"Epoch {epoch:04d}")},
+                    step=global_step,
+                )
+        except Exception:
+            pass
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -522,11 +672,12 @@ def main() -> None:
             import wandb  # noqa: PLC0415
 
             wandb_run = wandb.init(
-                project=config.get("name", "jet-classifier"),
+                project="HH4b-nn-trainings",
+                name=config.get("name", "jet-classifier"),
                 config=config,
                 dir=str(output_dir),
             )
-            LOGGER.info("W&B run initialised")
+            LOGGER.info("W&B run initialized")
         except ImportError:
             LOGGER.warning("wandb not installed — skipping W&B logging")
 
@@ -566,16 +717,23 @@ def main() -> None:
         if scheduler is not None:
             scheduler = accelerator.prepare(scheduler)
 
+    # --- ROC config ---
+    roc_groups = config["training"].get("roc_groups", [])
+    has_roc = bool(roc_groups) and is_main
+    if has_roc:
+        LOGGER.info(f"ROC evaluation enabled for {len(roc_groups)} group(s)")
+
     # --- Training loop ---
     training_cfg = config["training"]
     num_epochs = training_cfg["num_epochs"]
     patience = training_cfg.get("patience", float("inf"))
     epochs_no_improve = 0
+    global_step = 0  # tracks total batches seen across all epochs
 
     LOGGER.info(f"Starting training from epoch {start_epoch}/{num_epochs}")
 
     for epoch in range(start_epoch, num_epochs):
-        train_loss, train_acc = run_epoch(
+        train_loss, train_acc, global_step, _ = run_epoch(
             model=model,
             loader=train_loader,
             criterion=criterion,
@@ -585,8 +743,11 @@ def main() -> None:
             use_bf16=use_bf16,
             epoch=epoch,
             accelerator=accelerator,
+            wandb_run=wandb_run,
+            global_step=global_step,
+            collect_scores=False,
         )
-        val_loss, val_acc = run_epoch(
+        val_loss, val_acc, _, val_accumulator = run_epoch(
             model=model,
             loader=val_loader,
             criterion=criterion,
@@ -596,7 +757,13 @@ def main() -> None:
             use_bf16=use_bf16,
             epoch=epoch,
             accelerator=accelerator,
+            wandb_run=None,  # no batch-level logging for val
+            global_step=global_step,
+            collect_scores=has_roc,  # accumulate scores only if ROC groups are configured
         )
+
+        if val_accumulator is not None and accelerator is not None:
+            val_accumulator = val_accumulator.gather(accelerator)
 
         if scheduler is not None:
             scheduler.step()
@@ -627,6 +794,18 @@ def main() -> None:
                 accelerator=accelerator,
             )
 
+            # --- ROC evaluation ---
+            if has_roc and val_accumulator is not None:
+                run_roc_eval(
+                    accumulator=val_accumulator,
+                    config=config,
+                    output_dir=output_dir,
+                    epoch=epoch,
+                    wandb_run=wandb_run,
+                    global_step=global_step,
+                    split="val",
+                )
+
             if wandb_run is not None:
                 wandb_run.log(
                     {
@@ -636,7 +815,8 @@ def main() -> None:
                         "val/loss": val_loss,
                         "val/acc": val_acc,
                         "lr": optimizer.param_groups[0]["lr"],
-                    }
+                    },
+                    step=global_step,
                 )
 
         should_stop = epochs_no_improve >= patience
