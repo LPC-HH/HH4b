@@ -186,6 +186,10 @@ load_columns_ttbar = [
 load_columns_ggf = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
+    ("single_weight_genweight", 1),
+    ("GenHiggsPt", 2),
+    ("GenHiggsEta", 2),
+    ("GenHiggsPhi", 2),
     ("GenHiggsMass", 2),
 ]
 
@@ -193,6 +197,10 @@ load_columns_ggf = [
 load_columns_vbf = [
     ("scale_weights", 6),
     ("pdf_weights", 101),
+    ("single_weight_genweight", 1),
+    ("GenHiggsPt", 2),
+    ("GenHiggsEta", 2),
+    ("GenHiggsPhi", 2),
     ("GenHiggsMass", 2),
 ]
 

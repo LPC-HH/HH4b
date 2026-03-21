@@ -595,6 +595,7 @@ def load_process_run3_samples(
 
         # remove duplicates
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        nevents = len(bdt_events.index)
 
         # add more variables for control plots
         # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
@@ -657,6 +658,25 @@ def load_process_run3_samples(
                     for i in range(n_pdf_weights)
                 }
             )
+            kl, k2v = _parse_signal_couplings(key)
+            more_vars.update(
+                {
+                    "kl": np.full(nevents, kl),
+                    "k2v": np.full(nevents, k2v),
+                }
+            )
+            for source, target in [
+                ("single_weight_genweight", "genWeight"),
+                ("lumiwgt", "lumiwgt"),
+                ("xsecWeight", "xsecWeight"),
+            ]:
+                if source in events_dict:
+                    more_vars[target] = events_dict[source].squeeze().to_numpy()
+            for column in ["Pt", "Eta", "Phi", "Mass"]:
+                source = f"GenHiggs{column}"
+                if source in events_dict:
+                    more_vars[f"{source}1"] = events_dict[source][0].to_numpy()
+                    more_vars[f"{source}2"] = events_dict[source][1].to_numpy()
             if "GenHiggsMass" in events_dict:
                 more_vars.update(
                     {
@@ -685,8 +705,6 @@ def load_process_run3_samples(
                 "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
             }
         )
-
-        nevents = len(bdt_events["H1Pt"])
 
         # triggerWeights
         trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
@@ -1088,6 +1106,21 @@ def load_process_run3_samples(
         if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
+            columns += [
+                "lumiwgt",
+                "xsecWeight",
+                "genWeight",
+                "kl",
+                "k2v",
+                "GenHiggsPt1",
+                "GenHiggsEta1",
+                "GenHiggsPhi1",
+                "GenHiggsMass1",
+                "GenHiggsPt2",
+                "GenHiggsEta2",
+                "GenHiggsPhi2",
+                "GenHiggsMass2",
+            ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
@@ -1588,11 +1621,88 @@ EVENTLIST_BASE_COLUMNS = [
 ]
 
 
-def _build_event_list_frame(tree_df: pd.DataFrame) -> pd.DataFrame:
+def _decode_coupling_value(value: str) -> float:
+    if value.startswith("m"):
+        sign = -1.0
+        value = value[1:]
+    else:
+        sign = 1.0
+    return sign * float(value.replace("p", "."))
+
+
+def _parse_signal_couplings(sample_key: str) -> tuple[float, float]:
+    if sample_key.startswith("hh4b"):
+        if "-kl" in sample_key:
+            return _decode_coupling_value(sample_key.split("-kl", 1)[1]), 1.0
+        return 1.0, 1.0
+
+    if sample_key.startswith("vbfhh4b"):
+        kl = 1.0
+        k2v = 1.0
+        for token in sample_key.split("-")[1:]:
+            if token.startswith("k2v"):
+                k2v = _decode_coupling_value(token.removeprefix("k2v"))
+            elif token.startswith("kl"):
+                kl = _decode_coupling_value(token.removeprefix("kl"))
+        return kl, k2v
+
+    raise ValueError(f"Unsupported signal key for coupling parsing: {sample_key}")
+
+
+def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
+    required = [
+        "GenHiggsPt1",
+        "GenHiggsEta1",
+        "GenHiggsPhi1",
+        "GenHiggsMass1",
+        "GenHiggsPt2",
+        "GenHiggsEta2",
+        "GenHiggsPhi2",
+        "GenHiggsMass2",
+    ]
+    if any(column not in tree_df.columns for column in required):
+        return
+
+    higgs1_leads = tree_df["GenHiggsPt1"].to_numpy() >= tree_df["GenHiggsPt2"].to_numpy()
+    ordered_columns = {}
+    for kin, first, second in [
+        ("pt", "GenHiggsPt1", "GenHiggsPt2"),
+        ("eta", "GenHiggsEta1", "GenHiggsEta2"),
+        ("phi", "GenHiggsPhi1", "GenHiggsPhi2"),
+        ("m", "GenHiggsMass1", "GenHiggsMass2"),
+    ]:
+        first_values = tree_df[first].to_numpy()
+        second_values = tree_df[second].to_numpy()
+        ordered_columns[f"genp_H1_FC_{kin}"] = np.where(higgs1_leads, first_values, second_values)
+        ordered_columns[f"genp_H2_FC_{kin}"] = np.where(higgs1_leads, second_values, first_values)
+
+    for column in [
+        "genp_H1_FC_pt",
+        "genp_H1_FC_eta",
+        "genp_H1_FC_phi",
+        "genp_H1_FC_m",
+        "genp_H2_FC_pt",
+        "genp_H2_FC_eta",
+        "genp_H2_FC_phi",
+        "genp_H2_FC_m",
+    ]:
+        event_list[column] = ordered_columns[column]
+
+
+def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str, year: str) -> pd.DataFrame:
     event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
-    for column in ["GenHiggsMass1", "GenHiggsMass2"]:
-        if column in tree_df.columns:
-            event_list[column] = tree_df[column].to_numpy()
+    categories = tree_df["Category"].to_numpy()
+    event_list["GGF_CATEGORY"] = np.isin(categories, [1, 2, 3])
+    event_list["VBF_CATEGORY"] = categories == 0
+
+    if key in hh_vars.sig_keys:
+        for column in ["lumiwgt", "xsecWeight", "genWeight", "kl", "k2v"]:
+            if column in tree_df.columns:
+                event_list[column] = tree_df[column].to_numpy()
+        _add_ordered_gen_higgs_columns(event_list, tree_df)
+        for column in ["GenHiggsMass1", "GenHiggsMass2"]:
+            if column in tree_df.columns:
+                event_list[column] = tree_df[column].to_numpy()
     return event_list
 
 
@@ -1890,7 +2000,7 @@ def postprocess_run3(args):
         for year, year_dict in events_dict_postprocess.items():
             for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = _build_event_list_frame(tree_df)
+                    event_list = _build_event_list_frame(tree_df, key=key, year=year)
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 
                     # Define the ROOT file path

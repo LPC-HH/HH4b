@@ -248,6 +248,9 @@ def _normalize_weights(
         #     raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
     events["finalWeight"] = events["weight"] / totals["np_nominal"]
+    if sample in xsecs:
+        events["xsecWeight"] = xsecs[sample] / totals["np_nominal"]
+        events["lumiwgt"] = LUMI[year]
 
     if not variations:
         return
