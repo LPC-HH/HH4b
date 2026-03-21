@@ -186,12 +186,14 @@ load_columns_ttbar = [
 load_columns_ggf = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
+    ("GenHiggsMass", 2),
 ]
 
 # load scale and pdf weights for vbf signal (missing alpha_s variations)
 load_columns_vbf = [
     ("scale_weights", 6),
     ("pdf_weights", 101),
+    ("GenHiggsMass", 2),
 ]
 
 # only the BG MC samples that are used in the fits

@@ -657,6 +657,13 @@ def load_process_run3_samples(
                     for i in range(n_pdf_weights)
                 }
             )
+            if "GenHiggsMass" in events_dict:
+                more_vars.update(
+                    {
+                        "GenHiggsMass1": events_dict["GenHiggsMass"][0].to_numpy(),
+                        "GenHiggsMass2": events_dict["GenHiggsMass"][1].to_numpy(),
+                    }
+                )
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -1568,6 +1575,27 @@ def _compute_all_hist_samples(
     return hist_samples
 
 
+EVENTLIST_BASE_COLUMNS = [
+    "event",
+    "bdt_score",
+    "bdt_score_vbf",
+    "H2TXbb",
+    "H2Msd",
+    "run",
+    "Category",
+    "H2PNetMass",
+    "luminosityBlock",
+]
+
+
+def _build_event_list_frame(tree_df: pd.DataFrame) -> pd.DataFrame:
+    event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
+    for column in ["GenHiggsMass1", "GenHiggsMass2"]:
+        if column in tree_df.columns:
+            event_list[column] = tree_df[column].to_numpy()
+    return event_list
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -1855,6 +1883,29 @@ def postprocess_run3(args):
         cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
+    if args.event_list:
+        eventlist_folder = args.event_list_dir
+        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
+
+        for year, year_dict in events_dict_postprocess.items():
+            for key, tree_df in year_dict.items():
+                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
+                    event_list = _build_event_list_frame(tree_df)
+                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
+
+                    # Define the ROOT file path
+                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
+
+                    # Check if the ROOT file already exists
+                    if Path(file_path).exists():
+                        # File exists, use update mode to append the new tree
+                        with uproot.update(file_path) as file:
+                            file[key] = array_to_save  # Append new tree
+                    else:
+                        # File doesn't exist, create a new one
+                        with uproot.recreate(file_path) as file:
+                            file[key] = array_to_save  # Create the first tree
+
     if not args.templates:
         return
 
@@ -1910,42 +1961,6 @@ def postprocess_run3(args):
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
-    if args.event_list:
-
-        eventlist_dict = [
-            "event",
-            "bdt_score",
-            "bdt_score_vbf",
-            "H2TXbb",
-            "H2Msd",
-            "run",
-            "Category",
-            "H2PNetMass",
-            "luminosityBlock",
-        ]
-
-        eventlist_folder = args.event_list_dir
-        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
-
-        for year, year_dict in events_dict_postprocess.items():
-            for key, tree_df in year_dict.items():
-                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = tree_df[eventlist_dict]
-                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
-
-                    # Define the ROOT file path
-                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
-
-                    # Check if the ROOT file already exists
-                    if Path(file_path).exists():
-                        # File exists, use update mode to append the new tree
-                        with uproot.update(file_path) as file:
-                            file[key] = array_to_save  # Append new tree
-                    else:
-                        # File doesn't exist, create a new one
-                        with uproot.recreate(file_path) as file:
-                            file[key] = array_to_save  # Create the first tree
-
     # combined templates
     # skip for time
     """
