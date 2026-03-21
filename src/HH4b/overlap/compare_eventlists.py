@@ -138,8 +138,10 @@ def main():
             if r["status"] not in ("ok", "both_missing"):
                 all_ok = False
 
-            print(f"  {tree_name}: curr={r['current_count']} prev={r['previous_count']} "
-                  f"both={r['in_both']} only_curr={r['only_in_current']} only_prev={r['only_in_previous']} [{status}]")
+            print(
+                f"  {tree_name}: curr={r['current_count']} prev={r['previous_count']} "
+                f"both={r['in_both']} only_curr={r['only_in_current']} only_prev={r['only_in_previous']} [{status}]"
+            )
             if args.verbose and r.get("sample_only_current"):
                 print(f"    sample only in current: {r['sample_only_current']}")
             if args.verbose and r.get("sample_only_previous"):
