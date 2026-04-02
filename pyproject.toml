@@ -73,6 +73,10 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  "ignore:pkg_resources is deprecated:DeprecationWarning",
+  "ignore:jsonschema.RefResolver is deprecated:DeprecationWarning",
+  "ignore:jsonschema.exceptions.RefResolutionError is deprecated:DeprecationWarning",
+  "ignore::UserWarning:pkg_resources.*",
 ]
 log_cli_level = "INFO"
 testpaths = [
