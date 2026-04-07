@@ -211,7 +211,9 @@ def plot_fits(args):
                     "cms_label": args.cms_label,
                 }
 
-                plotting.ratioHistPlot(**plot_params, data_err=True)
+                plotting.ratioHistPlot(
+                    **plot_params, data_err=True, hepdata=args.hepdata, figure=args.figure
+                )
 
 
 if __name__ == "__main__":
@@ -252,9 +254,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cms-label", type=str, default=None, choices=["Preliminary", "Supplementary", None]
     )
+    parser.add_argument(
+        "--figure", type=str, default=None, help="figure number to put in hepdata tables"
+    )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")
     run_utils.add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
+    run_utils.add_bool_arg(parser, "hepdata", "make hepdata files", default=False)
 
     args = parser.parse_args()
 
