@@ -787,7 +787,7 @@ def ratioHistPlot(
                 xerr=False,
                 elinewidth=2,
                 capsize=0,
-                label="Prefit",
+                label="Pre-fit",
             )
 
         hep.histplot(
@@ -800,7 +800,7 @@ def ratioHistPlot(
             color="black",
             xerr=False,
             capsize=0,
-            label="Postfit",
+            label="Post-fit",
         )
         rax.set_xlabel(hists.axes[1].label)
 

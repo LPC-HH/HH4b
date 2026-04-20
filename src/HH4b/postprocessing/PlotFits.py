@@ -198,6 +198,7 @@ def plot_fits(args):
                     "xlim": 220,
                     "xlim_low": 60,
                     "ratio_ylims": pass_ratio_ylims if pass_region else fail_ratio_ylims,
+                    # "title": f"Approach-2, {region_label}",
                     "title": region_label,
                     "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}",
                     "bg_order": bkg_order,
