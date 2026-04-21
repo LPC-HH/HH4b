@@ -1014,25 +1014,26 @@ def ratioHistPlot(
             var.add_qualifier("SQRT(S)", 13.6, "TeV")
             var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
 
-
         var = Variable("Data/Pred, Post-fit", is_independent=False, is_binned=False, units="A.U.")
-        var.values = yvalue        
+        var.values = yvalue
         unc = Uncertainty("stat.", is_symmetric=False)
         unc.values = zip(yerr[0] - yvalue, yerr[1] - yvalue)
-        var.add_uncertainty(unc)        
+        var.add_uncertainty(unc)
         if bg_err is not None:
             unc = Uncertainty("syst.", is_symmetric=False)
             unc.values = zip(
-                (bg_err[0].values()/bg_tot.values() - 1).tolist(),
-                (bg_err[1].values()/bg_tot.values() - 1).tolist(),
+                (bg_err[0].values() / bg_tot.values() - 1).tolist(),
+                (bg_err[1].values() / bg_tot.values() - 1).tolist(),
             )
             var.add_uncertainty(unc)
         var.add_qualifier("SQRT(S)", 13.6, "TeV")
-        var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")    
+        var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
         tab1d.add_variable(var)
 
         if prefit_hists:
-            var = Variable("Data/Pred, Pre-fit", is_independent=False, is_binned=False, units="A.U.")    
+            var = Variable(
+                "Data/Pred, Pre-fit", is_independent=False, is_binned=False, units="A.U."
+            )
             var.values = yvalue_prefit
             unc = Uncertainty("stat.", is_symmetric=False)
             unc.values = zip(yerr_prefit[0] - yvalue_prefit, yerr_prefit[1] - yvalue_prefit)
@@ -1042,8 +1043,13 @@ def ratioHistPlot(
             tab1d.add_variable(var)
 
         if add_pull:
-            var = Variable(r"$\frac{Data - Pred}{\sigma_{Data}}$", is_independent=False, is_binned=False, units="A.U.")
-            var.values = yhist            
+            var = Variable(
+                r"$\frac{Data - Pred}{\sigma_{Data}}$",
+                is_independent=False,
+                is_binned=False,
+                units="A.U.",
+            )
+            var.values = yhist
             var.add_qualifier("SQRT(S)", 13.6, "TeV")
             var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
             tab1d.add_variable(var)
