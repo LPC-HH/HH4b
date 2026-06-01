@@ -166,6 +166,8 @@ test.ipynb
 outfiles
 plots
 cards
+!tests/fixtures/cards/
+!tests/fixtures/cards/**
 docker_stderror
 /*.jdl
 /*.sh
