@@ -443,6 +443,80 @@ def get_key_index(h: Hist, axis_name: str):
     return np.where(np.array(list(h.axes[0])) == axis_name)[0][0]
 
 
+def rename_sample_axis(h: Hist, suffix: str) -> Hist:
+    """Return a copy of ``h`` with ``suffix`` appended to every label of its first
+    (``Sample``) axis. All other axes, values, variances and flow bins are preserved.
+    """
+    new_labels = [f"{sample}{suffix}" for sample in h.axes[0]]
+    reth = Hist(
+        hist.axis.StrCategory(new_labels, name=h.axes[0].name),
+        *h.axes[1:],
+        storage=h.storage_type(),
+    )
+    reth.view(flow=True)[...] = h.view(flow=True)
+    return reth
+
+
+def combine_hists(*hists: Hist) -> Hist:
+    """Concatenate histograms along their first (``Sample``) StrCategory axis.
+
+    All inputs must share identical non-``Sample`` axes, and sample labels must be
+    unique across inputs (duplicates would make name-based indexing ambiguous).
+    Values, variances and flow bins are carried through unchanged.
+    """
+    if not hists:
+        raise ValueError("combine_hists requires at least one histogram")
+
+    ref_axes = hists[0].axes[1:]
+    for h in hists[1:]:
+        if h.axes[1:] != ref_axes:
+            raise ValueError("all histograms must share identical non-Sample axes")
+
+    csamples = []
+    for h in hists:
+        csamples += list(h.axes[0])
+    if len(set(csamples)) != len(csamples):
+        raise ValueError(f"duplicate sample names across inputs: {csamples}")
+
+    reth = Hist(
+        hist.axis.StrCategory(csamples, name=hists[0].axes[0].name),
+        *ref_axes,
+        storage=hists[0].storage_type(),
+    )
+    for h in hists:
+        for sample in h.axes[0]:
+            reth.view(flow=True)[get_key_index(reth, sample), ...] = h[sample, ...].view(flow=True)
+
+    return reth
+
+
+def align_sample_axis(h: Hist, order: list[str], fill_missing: bool = False) -> Hist:
+    """Return a copy of ``h`` with its first (``Sample``) axis reordered to ``order``.
+
+    Useful for making histograms whose Sample axes hold the same labels in a different
+    order (a reprocessed year), or a different set (a year missing some samples),
+    mergeable with ``+`` / :func:`sum`. If ``fill_missing`` is True, labels in
+    ``order`` absent from ``h`` are created as empty (zero) bins; otherwise a missing
+    label raises ``ValueError``.
+    """
+    labels = set(h.axes[0])
+    if not fill_missing:
+        missing = [sample for sample in order if sample not in labels]
+        if missing:
+            raise ValueError(f"cannot align: samples not present in histogram: {missing}")
+
+    reth = Hist(
+        hist.axis.StrCategory(order, name=h.axes[0].name),
+        *h.axes[1:],
+        storage=h.storage_type(),
+    )
+    for sample in order:
+        if sample in labels:
+            reth.view(flow=True)[get_key_index(reth, sample), ...] = h[sample, ...].view(flow=True)
+
+    return reth
+
+
 def getParticles(particle_list, particle_type):
     """
     Finds particles in `particle_list` of type `particle_type`
