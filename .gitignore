@@ -195,3 +195,9 @@ data/nanov15/CMSSW*
 data/nanov15/*.json
 
 *.C
+
+# Local experiment logs and benchmarks
+lab_notebook/
+bench/
+bench_memory.sh
+bench_diff_templates.py

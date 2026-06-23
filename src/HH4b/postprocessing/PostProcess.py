@@ -647,17 +647,14 @@ def load_process_run3_samples(
         more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
         # scale, pdf weights
         if key in hh_vars.sig_keys + ["ttbar"]:
-            more_vars.update(
-                {f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy() for i in range(6)}
-            )
+            scale_np = events_dict["scale_weights"].to_numpy()
+            more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
         n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            pdf_np = events_dict["pdf_weights"].to_numpy()
             more_vars.update(
-                {
-                    f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
-                    for i in range(n_pdf_weights)
-                }
+                {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
             )
             kl, k2v = _parse_signal_couplings(key)
             more_vars.update(
