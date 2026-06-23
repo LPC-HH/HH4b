@@ -18,6 +18,7 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     jec_shifts,
+    jecs,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -281,6 +282,130 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
                 years=years + ["2022-2023"],
             )
     return weight_shifts
+
+
+def _sum_over_years(templates: dict[str, dict[str, Hist]], years: list[str], key: str) -> Hist:
+    """Sum ``templates[year][key]`` over ``years``, tolerating per-year Sample-axis
+    differences. The Sample axes are unioned (preserving first-seen order); each year
+    is realigned to that union with missing samples zero-filled (so a sample present
+    only in some years, e.g. ``qcd`` absent from 2024/2025, sums over the years that
+    have it). Mismatched non-Sample axes (e.g. binning) still raise via the sum."""
+    hists = [templates[year][key] for year in years]
+
+    union = list(hists[0].axes[0])
+    seen = set(union)
+    for h in hists[1:]:
+        for sample in h.axes[0]:
+            if sample not in seen:
+                seen.add(sample)
+                union.append(sample)
+
+    aligned = [
+        h if list(h.axes[0]) == union else utils.align_sample_axis(h, union, fill_missing=True)
+        for h in hists
+    ]
+    return sum(aligned)
+
+
+def combine_templates(
+    templates: dict[str, dict[str, Hist]],
+    years: list[str],
+    region: str,
+    shift: str | None = None,
+) -> Hist:
+    """Sum a region's per-year templates into a single plot-ready histogram.
+
+    Weight-based systematics are stored as ``{sample}_{shift}_{up,down}`` Sample
+    categories inside the nominal histogram, so for those (and for the nominal,
+    ``shift=None``) this just sums across ``years``.
+
+    JEC/JMSR systematics (``shift`` in ``jecs`` or ``jmsr``) live in separate
+    per-year histograms keyed ``{region}_{shift}_{up,down}``; those are summed
+    across years, their samples renamed to ``{sample}_{shift}_{up,down}``, and
+    concatenated onto the nominal histogram so that ``plotting.sigErrRatioPlot``
+    can find the up/down categories.
+    """
+    nominal = _sum_over_years(templates, years, region)
+
+    if shift is None or (shift not in jecs and shift not in jmsr):
+        return nominal
+
+    combined = [nominal]
+    for direction in ["up", "down"]:
+        shifted = _sum_over_years(templates, years, f"{region}_{shift}_{direction}")
+        combined.append(utils.rename_sample_axis(shifted, f"_{shift}_{direction}"))
+
+    return utils.combine_hists(*combined)
+
+
+def shift_available(
+    templates: dict[str, dict[str, Hist]],
+    years: list[str],
+    region: str,
+    shift: str,
+    sample: str,
+) -> bool:
+    """Whether ``combine_templates`` can build ``shift`` for ``region``/``sample``.
+
+    JEC/JMSR shifts need ``{region}_{shift}_{up,down}`` histograms present for every
+    year; weight shifts need the ``{sample}_{shift}_{up,down}`` Sample categories in
+    the nominal histogram. Lets a driver skip systematics absent from a template set
+    (e.g. a JES variation that was never produced).
+    """
+    if shift in jecs or shift in jmsr:
+        return all(
+            f"{region}_{shift}_up" in templates[year]
+            and f"{region}_{shift}_down" in templates[year]
+            for year in years
+        )
+    nominal = templates[years[0]][region]
+    return f"{sample}_{shift}_up" in nominal.axes[0]
+
+
+def get_shape_systematics(
+    weight_shifts: dict,
+    sample: str,
+    include_jec: bool = True,
+    include_jmsr: bool = True,
+) -> list[str]:
+    """List the systematic shift names applicable to ``sample`` for shape plots.
+
+    Returns the weight shifts whose ``samples`` include ``sample``, followed by
+    the JEC and/or JMSR shift names.
+    """
+    shifts = [wshift for wshift, wsyst in weight_shifts.items() if sample in wsyst.samples]
+    if include_jec:
+        shifts += list(jecs)
+    if include_jmsr:
+        shifts += list(jmsr)
+    return shifts
+
+
+def compute_jmsr_variations(
+    templ: Hist,
+    sample_name: str,
+    year: str,
+    mass_obs: str = "bbFatJetParTmassVis",
+) -> dict[str, Hist]:
+    """Morph a 1D mass template with the JMS/JMR scale & resolution values.
+
+    Applies ``smorph`` to produce the nominally-smeared template plus the JMS and
+    JMR up/down variations for ``year``, returning a dict keyed ``nominal``,
+    ``jms_up``, ``jms_down``, ``jmr_up``, ``jmr_down``. This is the reusable form
+    of the JMS/JMR morphing cross-check from ``CombineTemplates.ipynb``.
+    """
+    # smorph pulls in rhalphalib (MorphHistW2), which is not a core/CI dependency
+    from HH4b.postprocessing.datacardHelpers import smorph  # noqa: PLC0415
+
+    jms = jmsr_values[mass_obs]["JMS"][year]
+    jmr = jmsr_values[mass_obs]["JMR"][year]
+    return {
+        "nominal": smorph(templ, sample_name, jms["nom"], jmr["nom"]),
+        "jms_up": smorph(templ, sample_name, jms["up"], jmr["nom"]),
+        "jms_down": smorph(templ, sample_name, jms["down"], jmr["nom"]),
+        "jmr_up": smorph(templ, sample_name, jms["nom"], jmr["up"]),
+        "jmr_down": smorph(templ, sample_name, jms["nom"], jmr["down"]),
+    }
 
 
 def load_run3_samples(

@@ -73,10 +73,19 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+<<<<<<< eventlist-clean
   "ignore:pkg_resources is deprecated:DeprecationWarning",
   "ignore:jsonschema.RefResolver is deprecated:DeprecationWarning",
   "ignore:jsonschema.exceptions.RefResolutionError is deprecated:DeprecationWarning",
   "ignore::UserWarning:pkg_resources.*",
+=======
+  # coffea/uproot import pkg_resources at import time; that DeprecationWarning is
+  # upstream noise (nothing in HH4b triggers it) but would otherwise fail collection
+  # of any test that imports the package under the "error" filter above.
+  "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+  # hepdata_validator triggers jsonschema's deprecation warnings on import
+  "ignore:jsonschema.* is deprecated:DeprecationWarning",
+>>>>>>> main
 ]
 log_cli_level = "INFO"
 testpaths = [
