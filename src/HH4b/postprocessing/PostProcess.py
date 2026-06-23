@@ -21,6 +21,7 @@ import uproot
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b.eventlist_manifest import write_eventlist_manifest
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -595,6 +596,7 @@ def load_process_run3_samples(
 
         # remove duplicates
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        nevents = len(bdt_events.index)
 
         # add more variables for control plots
         # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
@@ -654,6 +656,28 @@ def load_process_run3_samples(
             more_vars.update(
                 {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
             )
+            kl, k2v = _parse_signal_couplings(key)
+            more_vars.update(
+                {
+                    "kl": np.full(nevents, kl),
+                    "k2v": np.full(nevents, k2v),
+                }
+            )
+            for source, target in [
+                ("single_weight_genweight", "genWeight"),
+                ("lumiwgt", "lumiwgt"),
+                ("xsecWeight", "xsecWeight"),
+            ]:
+                values = _get_column_array(events_dict, source)
+                if values is not None:
+                    more_vars[target] = values
+            for column in ["Pt", "Eta", "Phi", "Mass"]:
+                source = f"GenHiggs{column}"
+                first = _get_indexed_column_array(events_dict, source, 0)
+                second = _get_indexed_column_array(events_dict, source, 1)
+                if first is not None and second is not None:
+                    more_vars[f"{source}1"] = first
+                    more_vars[f"{source}2"] = second
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -675,8 +699,6 @@ def load_process_run3_samples(
                 "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
             }
         )
-
-        nevents = len(bdt_events["H1Pt"])
 
         # triggerWeights
         trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
@@ -1078,6 +1100,21 @@ def load_process_run3_samples(
         if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
+            columns += [
+                "lumiwgt",
+                "xsecWeight",
+                "genWeight",
+                "kl",
+                "k2v",
+                "GenHiggsPt1",
+                "GenHiggsEta1",
+                "GenHiggsPhi1",
+                "GenHiggsMass1",
+                "GenHiggsPt2",
+                "GenHiggsEta2",
+                "GenHiggsPhi2",
+                "GenHiggsMass2",
+            ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
@@ -1544,6 +1581,135 @@ def abcd(
     return s, background, dmt
 
 
+def _compute_all_hist_samples(
+    sample_keys: list[str],
+    sig_keys: list[str],
+    weight_shifts: dict,
+) -> list[str]:
+    """Pre-compute all histogram sample names including weight-shift variations.
+
+    Used for per-sample template generation so all calls share the same StrCategory
+    axis, enabling histogram accumulation via addition.
+    """
+    hist_samples = list(sample_keys)
+    for shift in ["down", "up"]:
+        for sig_key in sig_keys:
+            hist_samples.append(f"{sig_key}_txbb_{shift}")
+        for wshift, wsyst in weight_shifts.items():
+            for wsample in wsyst.samples:
+                if wsample in sample_keys:
+                    hist_samples.append(f"{wsample}_{wshift}_{shift}")
+    return hist_samples
+
+
+EVENTLIST_BASE_COLUMNS = [
+    "event",
+    "bdt_score",
+    "bdt_score_vbf",
+    "H2TXbb",
+    "H2Msd",
+    "run",
+    "Category",
+    "H2PNetMass",
+    "luminosityBlock",
+]
+
+
+def _decode_coupling_value(value: str) -> float:
+    if value.startswith("m"):
+        sign = -1.0
+        value = value[1:]
+    else:
+        sign = 1.0
+    return sign * float(value.replace("p", "."))
+
+
+def _parse_signal_couplings(sample_key: str) -> tuple[float, float]:
+    if sample_key.startswith("hh4b"):
+        if "-kl" in sample_key:
+            return _decode_coupling_value(sample_key.split("-kl", 1)[1]), 1.0
+        return 1.0, 1.0
+
+    if sample_key.startswith("vbfhh4b"):
+        kl = 1.0
+        k2v = 1.0
+        for token in sample_key.split("-")[1:]:
+            if token.startswith("k2v"):
+                k2v = _decode_coupling_value(token.removeprefix("k2v"))
+            elif token.startswith("kl"):
+                kl = _decode_coupling_value(token.removeprefix("kl"))
+        return kl, k2v
+
+    raise ValueError(f"Unsupported signal key for coupling parsing: {sample_key}")
+
+
+def _get_column_array(events: pd.DataFrame, column: str) -> np.ndarray | None:
+    for key in (column, (column, 0)):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _get_indexed_column_array(events: pd.DataFrame, column: str, index: int) -> np.ndarray | None:
+    for key in ((column, index), f"{column}{index + 1}"):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
+    gen_higgs = {}
+    for kin in ["Pt", "Eta", "Phi", "Mass"]:
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, f"GenHiggs{kin}", idx)
+            if values is None:
+                return
+            gen_higgs[f"GenHiggs{kin}{idx + 1}"] = values
+
+    higgs1_leads = gen_higgs["GenHiggsPt1"] >= gen_higgs["GenHiggsPt2"]
+    ordered_columns = {}
+    for kin, first, second in [
+        ("pt", "GenHiggsPt1", "GenHiggsPt2"),
+        ("eta", "GenHiggsEta1", "GenHiggsEta2"),
+        ("phi", "GenHiggsPhi1", "GenHiggsPhi2"),
+        ("m", "GenHiggsMass1", "GenHiggsMass2"),
+    ]:
+        first_values = gen_higgs[first]
+        second_values = gen_higgs[second]
+        ordered_columns[f"genp_H1_FC_{kin}"] = np.where(higgs1_leads, first_values, second_values)
+        ordered_columns[f"genp_H2_FC_{kin}"] = np.where(higgs1_leads, second_values, first_values)
+
+    for column in [
+        "genp_H1_FC_pt",
+        "genp_H1_FC_eta",
+        "genp_H1_FC_phi",
+        "genp_H1_FC_m",
+        "genp_H2_FC_pt",
+        "genp_H2_FC_eta",
+        "genp_H2_FC_phi",
+        "genp_H2_FC_m",
+    ]:
+        event_list[column] = ordered_columns[column]
+
+
+def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str) -> pd.DataFrame:
+    event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
+    categories = tree_df["Category"].to_numpy()
+    event_list["ggf_category"] = np.where(np.isin(categories, [1, 2, 3]), categories, 0)
+    event_list["VBF_CATEGORY"] = categories == 0
+
+    if key in hh_vars.sig_keys:
+        for column in ["lumiwgt", "xsecWeight", "genWeight", "kl", "k2v"]:
+            if column in tree_df.columns:
+                event_list[column] = tree_df[column].to_numpy()
+        _add_ordered_gen_higgs_columns(event_list, tree_df)
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, "GenHiggsMass", idx)
+            if values is not None:
+                event_list[f"GenHiggsMass{idx + 1}"] = values
+    return event_list
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -1649,7 +1815,9 @@ def postprocess_run3(args):
         )
         print("Combined years")
     else:
-        events_combined = events_dict_postprocess[args.years[0]]
+        # Shallow copy so per-sample deletion in the template loop does not affect
+        # events_dict_postprocess (needed by the event_list section below).
+        events_combined = dict(events_dict_postprocess[args.years[0]])
         scaled_by = {}
     if args.control_plots:
         # quick fix: '2024' is only stand-in, plots all combined events
@@ -1829,65 +1997,14 @@ def postprocess_run3(args):
         cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
-    if not args.templates:
-        return
-
-    if not args.vbf:
-        selection_regions.pop("pass_vbf")
-
-    # individual templates per year
-    for year in args.years:
-        templates = {}
-        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
-            events_by_year = {}
-            for sample, events in events_combined.items():
-                events_by_year[sample] = events[events["year"] == year]
-            ttemps = postprocessing.get_templates(
-                events_by_year,
-                year=year,
-                sig_keys=args.sig_keys,
-                plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                selection_regions=selection_regions,
-                shape_vars=[fit_shape_var],
-                systematics={},
-                template_dir=templ_dir,
-                bg_keys=bg_keys_combined,
-                plot_dir=Path(f"{templ_dir}/{year}"),
-                weight_key="weight",
-                weight_shifts=weight_shifts,
-                plot_shifts=False,  # skip for time
-                show=False,
-                energy=13.6,
-                jshift=jshift,
-                blind=args.blind,
-            )
-            templates = {**templates, **ttemps}
-
-        # save templates per year
-        postprocessing.save_templates(
-            templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
-        )
     if args.event_list:
-
-        eventlist_dict = [
-            "event",
-            "bdt_score",
-            "bdt_score_vbf",
-            "H2TXbb",
-            "H2Msd",
-            "run",
-            "Category",
-            "H2PNetMass",
-            "luminosityBlock",
-        ]
-
         eventlist_folder = args.event_list_dir
         Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
 
         for year, year_dict in events_dict_postprocess.items():
             for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = tree_df[eventlist_dict]
+                    event_list = _build_event_list_frame(tree_df, key=key)
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 
                     # Define the ROOT file path
@@ -1903,6 +2020,67 @@ def postprocess_run3(args):
                         with uproot.recreate(file_path) as file:
                             file[key] = array_to_save  # Create the first tree
 
+        write_eventlist_manifest(
+            Path(eventlist_folder) / "eventlist_manifest.json",
+            args,
+            mass_window,
+        )
+
+    if not args.templates:
+        return
+
+    if not args.vbf:
+        selection_regions.pop("pass_vbf")
+
+    # individual templates per year, processed one sample at a time to reduce peak memory
+    for year in args.years:
+        all_hist_samples = _compute_all_hist_samples(
+            list(events_combined.keys()), args.sig_keys, weight_shifts
+        )
+        templates = {}
+        sample_keys = list(events_combined.keys())
+        for sample_key in sample_keys:
+            print(f"Creating templates for sample: {sample_key}")
+            for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
+                events_by_year = {
+                    sample_key: events_combined[sample_key][
+                        events_combined[sample_key]["year"] == year
+                    ]
+                }
+                ttemps = postprocessing.get_templates(
+                    events_by_year,
+                    year=year,
+                    sig_keys=args.sig_keys,
+                    plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+                    selection_regions=selection_regions,
+                    shape_vars=[fit_shape_var],
+                    systematics={},
+                    # skip per-region cutflow CSVs during per-sample calls (partial data)
+                    template_dir="",
+                    bg_keys=bg_keys_combined,
+                    plot_dir="",
+                    weight_key="weight",
+                    weight_shifts=weight_shifts,
+                    plot_shifts=False,
+                    show=False,
+                    energy=13.6,
+                    jshift=jshift,
+                    blind=args.blind,
+                    all_hist_samples=all_hist_samples,
+                )
+                # Accumulate: add per-sample histograms (axes match via all_hist_samples)
+                for key, h in ttemps.items():
+                    if key not in templates:
+                        templates[key] = h
+                    else:
+                        templates[key] = templates[key] + h
+            # Free this sample's dataframe to reduce memory usage
+            del events_combined[sample_key]
+
+        # save templates per year
+        postprocessing.save_templates(
+            templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
+        )
     # combined templates
     # skip for time
     """

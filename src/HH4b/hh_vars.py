@@ -97,9 +97,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        # ],
     },
     "2022EE": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -132,9 +132,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        # ],
     },
     "2023": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -167,9 +167,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        # ],
     },
     "2023BPix": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV?"],
@@ -202,9 +202,9 @@ samples_run3_sig = {
         "vbfhh4b-kvm2p12-k2v3p87-klm5p96": [
             "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
         ],
-        "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
-            "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
-        ],
+        # "vbfhh4b-kv2p12-k2v3p87-klm5p96": [
+        #     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96_TuneCP5_13p6TeV_madgraph-pythia8"
+        # ],
     },
     "2024": {
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"],
