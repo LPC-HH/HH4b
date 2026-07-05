@@ -53,7 +53,7 @@ class GroupConfig:
 
 
 # ---------------------------------------------------------------------------
-# Collate — runs in the MAIN PROCESS, not in workers
+# Collate — runs in the DataLoader worker (or main process if num_workers=0)
 # ---------------------------------------------------------------------------
 
 
@@ -65,21 +65,24 @@ def jet_collate_fn(
     """Stack per-sample raw tensors into (B, N, D) batches and apply all
     feature transforms in one vectorised pass.
 
-    Because this runs in the main process (DataLoader calls collate after
-    fetching from workers), it is safe to move tensors to a CUDA device and
-    run transforms there without hitting the CUDA-in-forked-worker restriction.
+    PyTorch's DataLoader runs ``collate_fn`` inside each worker subprocess
+    when ``num_workers > 0``.  Forked workers cannot initialise CUDA, so
+    pass ``device=None`` (or a CPU device) when ``num_workers > 0`` and rely
+    on ``pin_memory`` + downstream ``.to(device)`` (or ``accelerator.prepare``)
+    for the H2D copy.  Only pass a CUDA device when ``num_workers == 0``.
 
     Use via ``functools.partial``::
 
         from functools import partial
-        collate_fn = partial(jet_collate_fn, group_configs=ds.group_configs(), device=device)
-        DataLoader(ds, ..., collate_fn=collate_fn)
+        collate_fn = partial(jet_collate_fn, group_configs=ds.group_configs(), device=None)
+        DataLoader(ds, ..., collate_fn=collate_fn, num_workers=2, pin_memory=True)
 
     Args:
         batch:         List of per-sample dicts from ``JetDataset.__getitem__``.
         group_configs: Group configs from ``JetDataset.group_configs()``.
         device:        Target device for the returned tensors.  ``None`` keeps
                        tensors on CPU (rely on ``pin_memory`` for fast H2D).
+                       Must be ``None`` / CPU when used with ``num_workers > 0``.
     """
     result: dict[str, Any] = {}
 
@@ -205,9 +208,7 @@ class JetDataset(Dataset):
         df = df.reset_index(drop=True)
         self._len = len(df)
         needed_cols = self._collect_needed_columns()
-        self._cols = {
-            col: df[col].to_numpy(dtype=np.float32, na_value=np.nan) for col in needed_cols
-        }
+        self._cols = {}
         for col in needed_cols:
             if col not in df.columns:
                 raise KeyError(f"Column {col} not found. " f"Available: {list(df.columns[:10])}...")
@@ -222,6 +223,59 @@ class JetDataset(Dataset):
             self._weights: np.ndarray | None = df[self.weight_key].to_numpy(dtype=np.float32)
         else:
             self._weights = None
+
+        # --- Pre-build contiguous arrays per group for fast batch slicing ---
+        self._group_arrays: dict[str, dict[str, np.ndarray]] = {}
+        for grp in self.groups:
+            N = len(grp.idx)
+            L = self._len
+
+            # Continuous: (L, N, D_cont)
+            if grp.continuous:
+                cont = np.stack(
+                    [
+                        np.stack(
+                            [self._cols[(feat["name"], str(idx))] for feat in grp.continuous],
+                            axis=-1,
+                        )
+                        for idx in grp.idx
+                    ],
+                    axis=1,
+                )  # (L, N, D_cont)
+            else:
+                cont = np.zeros((L, N, 0), dtype=np.float32)
+
+            # Discrete: (L, N, D_disc)
+            if grp.discrete:
+                disc = np.stack(
+                    [
+                        np.stack(
+                            [self._cols[(feat["name"], str(idx))] for feat in grp.discrete],
+                            axis=-1,
+                        )
+                        for idx in grp.idx
+                    ],
+                    axis=1,
+                )  # (L, N, D_disc)
+            else:
+                disc = np.zeros((L, N, 0), dtype=np.float32)
+
+            # Mask: (L, N) — True = invalid
+            mask = np.zeros((L, N), dtype=np.bool_)
+            for m_cfg in grp.masks:
+                lo = m_cfg.get("min", float("-inf"))
+                hi = m_cfg.get("max", float("inf"))
+                lo = float(lo) if lo != "inf" else float("inf")
+                hi = float(hi) if hi != "-inf" else float("-inf")
+                for n, idx in enumerate(grp.idx):
+                    vals = self._cols[(m_cfg["name"], str(idx))]
+                    mask[:, n] |= ~((vals > lo) & (vals < hi))
+
+            self._group_arrays[grp.name] = {
+                "continuous": cont,
+                "discrete": disc,
+                "mask": mask,
+            }
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -251,9 +305,6 @@ class JetDataset(Dataset):
                         out.append(k)
         return out
 
-    def _get(self, feature: str, idx: int, row: int) -> float:
-        return float(self._cols[(feature, str(idx))][row])
-
     # ------------------------------------------------------------------
     # Dataset protocol
     # ------------------------------------------------------------------
@@ -265,7 +316,12 @@ class JetDataset(Dataset):
         sample: dict[str, Any] = {}
 
         for grp in self.groups:
-            sample[grp.name] = self._process_group(i, grp)
+            arrs = self._group_arrays[grp.name]
+            sample[grp.name] = {
+                "continuous": torch.from_numpy(arrs["continuous"][i]),  # (N, D_cont)
+                "discrete": torch.from_numpy(arrs["discrete"][i]),  # (N, D_disc)
+                "mask": torch.from_numpy(arrs["mask"][i]),  # (N,)
+            }
 
         if self._labels is not None:
             sample["label"] = torch.tensor(int(self._labels[i]), dtype=torch.long)
@@ -274,61 +330,6 @@ class JetDataset(Dataset):
             sample["sample_weight"] = torch.tensor(float(self._weights[i]), dtype=torch.float32)
 
         return sample
-
-    def _process_group(self, i: int, grp: GroupConfig) -> dict[str, torch.Tensor]:
-        """Return raw (un-transformed) tensors for one group.
-
-        Transforms are applied later in ``jet_collate_fn`` on the full batch in
-        the main process, which (a) vectorises them and (b) allows GPU execution
-        without hitting the CUDA-in-forked-worker restriction.
-        """
-        N = len(grp.idx)
-
-        # --- Validity mask ---
-        mask = torch.zeros(N, dtype=torch.bool)
-        for m_cfg in grp.masks:
-            lo = m_cfg.get("min", float("-inf"))
-            hi = m_cfg.get("max", float("inf"))
-            lo = float(lo) if lo != "inf" else float("inf")
-            hi = float(hi) if hi != "-inf" else float("-inf")
-            for n, idx in enumerate(grp.idx):
-                val = self._get(m_cfg["name"], idx, i)
-                if not (lo < val < hi):
-                    mask[n] = True
-
-        # --- Raw continuous (N, D_cont) float32 ---
-        if grp.continuous:
-            continuous = torch.from_numpy(
-                np.array(
-                    [
-                        [self._cols[(feat["name"], str(idx))][i] for feat in grp.continuous]
-                        for idx in grp.idx
-                    ],
-                    dtype=np.float32,
-                )
-            )  # (N, D_cont)
-        else:
-            continuous = torch.zeros(N, 0, dtype=torch.float32)
-
-        # --- Raw discrete (N, D_disc) float32 — collate applies digitize then casts to long ---
-        if grp.discrete:
-            discrete = torch.from_numpy(
-                np.array(
-                    [
-                        [self._cols[(feat["name"], str(idx))][i] for feat in grp.discrete]
-                        for idx in grp.idx
-                    ],
-                    dtype=np.float32,
-                )
-            )  # (N, D_disc)
-        else:
-            discrete = torch.zeros(N, 0, dtype=torch.float32)
-
-        return {
-            "continuous": continuous,  # (N, D_cont) float32, raw
-            "discrete": discrete,  # (N, D_disc) float32, raw
-            "mask": mask,  # (N,) bool
-        }
 
     # ------------------------------------------------------------------
     # Helpers for model / dataloader building

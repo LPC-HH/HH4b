@@ -9,18 +9,20 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import json
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import yaml
 from accelerate import Accelerator, DataLoaderConfiguration
-from accelerate.utils import InitProcessGroupKwargs
+from accelerate.utils import InitProcessGroupKwargs, send_to_device
 
 # ---------------------------------------------------------------------------
 # Project imports
@@ -39,12 +41,14 @@ from utils import (
     JetDataset,
     ScoreAccumulator,
     compute_roc_metrics,
+    compute_roc_per_signal,
     configure_logger,
     get_scheduler,
     jet_collate_fn,
     load_checkpoint,
     resolve_output_dir,
     save_checkpoint,
+    save_roc_per_signal,
     save_roc_plot,
 )
 
@@ -225,8 +229,13 @@ def build_dataloaders(
     accelerator: Accelerator | None = None,
 ) -> tuple[DataLoader, DataLoader]:
     group_configs = JetDataset.build_group_configs(config)
-    collate_fn = partial(jet_collate_fn, group_configs=group_configs, device=device)
     batch_size = config["training"]["batch_size"]
+    num_workers = config["training"].get("num_workers", 2)
+    # collate runs in worker subprocesses when num_workers>0; forked workers
+    # can't initialize CUDA, so keep transforms on CPU and let Accelerate /
+    # pin_memory handle the H2D copy.
+    collate_device = device if num_workers == 0 else None
+    collate_fn = partial(jet_collate_fn, group_configs=group_configs, device=collate_device)
 
     if is_main:
         train_df = load_dataframe(resolve_file_pattern(config, "train"), config)
@@ -237,10 +246,24 @@ def build_dataloaders(
         val_ds = JetDataset(val_df, config_path=config_path)
 
         train_loader = DataLoader(
-            train_ds, batch_size=batch_size, shuffle=True, drop_last=False, collate_fn=collate_fn
+            train_ds,
+            batch_size=batch_size,
+            shuffle=True,
+            drop_last=False,
+            collate_fn=collate_fn,
+            num_workers=num_workers,
+            pin_memory=(device.type == "cuda"),
+            persistent_workers=(num_workers > 0),
         )
         val_loader = DataLoader(
-            val_ds, batch_size=batch_size, shuffle=False, drop_last=False, collate_fn=collate_fn
+            val_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            drop_last=False,
+            collate_fn=collate_fn,
+            num_workers=num_workers,
+            pin_memory=(device.type == "cuda"),
+            persistent_workers=(num_workers > 0),
         )
     else:
         train_loader = DataLoader([], collate_fn=collate_fn)
@@ -250,6 +273,34 @@ def build_dataloaders(
         accelerator.wait_for_everyone()
 
     return train_loader, val_loader
+
+
+def build_split_dataloader(
+    config: dict[str, Any],
+    config_path: str,
+    split: str,
+    device: torch.device,
+) -> DataLoader:
+    """Build a DataLoader for an arbitrary split (train/val/test)."""
+    group_configs = JetDataset.build_group_configs(config)
+    batch_size = config["training"]["batch_size"]
+    num_workers = config["training"].get("num_workers", 2)
+    collate_device = device if num_workers == 0 else None
+    collate_fn = partial(jet_collate_fn, group_configs=group_configs, device=collate_device)
+
+    df = load_dataframe(resolve_file_pattern(config, split), config)
+    df = _pad_dataframe(df, batch_size, config["dataset"].get("weight_key"))
+    ds = JetDataset(df, config_path=config_path)
+    return DataLoader(
+        ds,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False,
+        collate_fn=collate_fn,
+        num_workers=num_workers,
+        pin_memory=(device.type == "cuda"),
+        persistent_workers=(num_workers > 0),
+    )
 
 
 def build_model(config: dict[str, Any]) -> JetClassifier:
@@ -287,6 +338,7 @@ def build_model(config: dict[str, Any]) -> JetClassifier:
         activation=enc_cfg.get("activation", "SwiGLU"),
         norm=enc_cfg.get("norm", "LayerNorm"),
         layer_scale_init=enc_cfg.get("layer_scale_init", 1e-4),
+        drop_path_rate=enc_cfg.get("drop_path_rate", 0.0),
         num_registers=enc_cfg.get("num_registers", 0),
         mlp_ratio=enc_cfg.get("mlp_ratio", 4),
         qkv_bias=enc_cfg.get("qkv_bias", True),
@@ -316,6 +368,7 @@ def build_model(config: dict[str, Any]) -> JetClassifier:
         encoder=encoder,
         head=head,
         dim=dim,
+        use_type_embed=arch.get("use_type_embed", False),
     )
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -396,16 +449,13 @@ def run_epoch(
     wandb_run: Any = None,
     global_step: int = 0,
     collect_scores: bool = False,
+    max_grad_norm: float | None = None,
+    use_weights_loss: bool = True,
+    use_weights_acc: bool = True,
+    use_weights_roc: bool = True,
 ) -> tuple[float, float, int, ScoreAccumulator | None]:
-    """Run one epoch. Returns (avg_loss, accuracy, global_step, score_accumulator|None).
-
-    Args:
-        collect_scores: If True, accumulate logits/labels/weights for ROC computation.
-                        Only meaningful for validation (is_train=False).
-    """
     model.train() if is_train else model.eval()
     total_loss, correct, total = 0.0, 0, 0
-
     accumulator = ScoreAccumulator() if collect_scores else None
 
     amp_ctx = (
@@ -427,15 +477,30 @@ def run_epoch(
 
     with grad_ctx:
         for batch in pbar:
-            labels = batch.pop("label")  # already on device
-            sample_weights = batch.pop("sample_weight", None)  # already on device
+            # Accelerate-prepared loaders yield on-device batches; raw eval
+            # loaders yield CPU batches (collate runs in workers). send_to_device
+            # is a no-op when tensors are already on `device`.
+            batch = send_to_device(batch, device, non_blocking=True)  # noqa: PLW2901
+            labels = batch.pop("label")
+            sample_weight_raw = batch.pop("sample_weight", None)
+
+            # Resolve per-use weights — fall back to uniform 1s when flag is off
+            # or when no weight_key was provided in the dataset config.
+            def _weights_or_ones(use_flag: bool) -> torch.Tensor | None:
+                if use_flag and sample_weight_raw is not None:  # noqa: B023
+                    return sample_weight_raw  # noqa: B023
+                return None  # caller treats None as uniform weight
+
+            loss_weights = _weights_or_ones(use_weights_loss)
+            acc_weights = _weights_or_ones(use_weights_acc)
+            roc_weights = _weights_or_ones(use_weights_roc)
 
             with amp_ctx:
                 logits = model(batch)
                 loss_per_sample = criterion(logits, labels)  # (B,)
 
-                if sample_weights is not None:
-                    loss = (loss_per_sample * sample_weights).sum() / sample_weights.sum().clamp(
+                if loss_weights is not None:
+                    loss = (loss_per_sample * loss_weights).sum() / loss_weights.sum().clamp(
                         min=1e-8
                     )
                 else:
@@ -447,14 +512,18 @@ def run_epoch(
                     accelerator.backward(loss)
                 else:
                     loss.backward()
+                if max_grad_norm is not None:
+                    if accelerator is not None:
+                        accelerator.clip_grad_norm_(model.parameters(), max_grad_norm)
+                    else:
+                        nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                 optimizer.step()
 
-                # --- Batch-level W&B logging (train only) ---
                 if wandb_run is not None and is_main:
-                    if sample_weights is not None:
+                    if acc_weights is not None:
                         batch_acc = (
-                            ((logits.argmax(dim=-1) == labels) * sample_weights).sum()
-                            / sample_weights.sum()
+                            ((logits.argmax(dim=-1) == labels) * acc_weights).sum()
+                            / acc_weights.sum()
                         ).item()
                     else:
                         batch_acc = (logits.argmax(dim=-1) == labels).float().mean().item()
@@ -467,20 +536,23 @@ def run_epoch(
                         },
                         step=global_step,
                     )
-
                 global_step += 1
 
-            # --- Score accumulation (val only) ---
+            # Score accumulation passes roc_weights (may be None)
             if accumulator is not None:
-                accumulator.update(logits, labels, sample_weights)
+                accumulator.update(logits, labels, roc_weights)
 
+            # Epoch-level loss/acc tracking uses loss_weights and acc_weights respectively
             batch_size = labels.size(0)
-            if sample_weights is not None:
-                total_loss += loss.item() * sample_weights.sum().item()
-                correct += ((logits.argmax(dim=-1) == labels) * sample_weights).sum().item()
-                total += sample_weights.sum().item()
+            if loss_weights is not None:
+                total_loss += loss.item() * loss_weights.sum().item()
             else:
                 total_loss += loss.item() * batch_size
+
+            if acc_weights is not None:
+                correct += ((logits.argmax(dim=-1) == labels) * acc_weights).sum().item()
+                total += acc_weights.sum().item()
+            else:
                 correct += (logits.argmax(dim=-1) == labels).sum().item()
                 total += batch_size
 
@@ -494,13 +566,13 @@ def run_epoch(
 
     if accelerator is not None:
         t = torch.tensor([avg_loss, avg_acc], device=accelerator.device)
-        gathered = accelerator.gather(t)  # (num_gpus * 2,) or (2,)
-        gathered = gathered.view(-1, 2).mean(dim=0)  # always (2,)
+        gathered = accelerator.gather(t)
+        gathered = gathered.view(-1, 2).mean(dim=0)
         avg_loss, avg_acc = gathered[0].item(), gathered[1].item()
-
         LOGGER.info(
             f"Epoch {epoch:03d} [{phase}] | "
-            f"avg_loss={avg_loss:.5e} avg_acc={avg_acc:.2%} (gathered across {accelerator.num_processes} processes)"
+            f"avg_loss={avg_loss:.5e} avg_acc={avg_acc:.2%} "
+            f"(gathered across {accelerator.num_processes} processes)"
         )
 
     return avg_loss, avg_acc, global_step, accumulator
@@ -519,6 +591,7 @@ def run_roc_eval(
     wandb_run: Any = None,
     global_step: int = 0,
     split: str = "val",
+    subsample_fraction: float = 1.0,
 ) -> dict[str, dict[str, Any]]:
     """Compute ROC metrics for all configured roc_groups and log/save results.
 
@@ -542,6 +615,19 @@ def run_roc_eval(
     class_to_idx = {c: i for i, c in enumerate(classes)}
 
     all_logits, all_labels, all_weights = accumulator.finalize()
+    if subsample_fraction < 1.0 and subsample_fraction > 0.0:
+        n_samples = all_labels.size(0)
+        n_keep = int(n_samples * subsample_fraction)
+        indices = torch.randperm(n_samples)[:n_keep]
+        all_logits = all_logits[indices]
+        all_labels = all_labels[indices]
+        if all_weights is not None:
+            all_weights = all_weights[indices]
+
+        LOGGER.info(
+            f"Subsampled {n_samples:,} → {n_keep:,} for ROC evaluation "
+            f"(fraction={subsample_fraction:.2%})"
+        )
 
     results: dict[str, dict[str, Any]] = {}
     wandb_metrics: dict[str, float] = {}
@@ -576,10 +662,37 @@ def run_roc_eval(
     if not results:
         return results
 
-    # --- Save ROC curve plots ---
+    # --- Save ROC curve plots (config-driven, all on one figure) ---
     roc_plot_dir = output_dir / "roc_curves"
-    save_roc_plot(results, roc_plot_dir, epoch)
-    LOGGER.info(f"  ROC plots saved → {roc_plot_dir}/roc_epoch_{epoch:04d}.[png|pdf]")
+    epoch_str = f"{epoch:04d}" if isinstance(epoch, int) else str(epoch)
+    plot_filename = f"roc_{split}_epoch_{epoch_str}"
+    plot_title = f"ROC Curves -- {split} -- Epoch {epoch_str}"
+    save_roc_plot(results, roc_plot_dir, epoch, title=plot_title, filename=plot_filename)
+    LOGGER.info(f"  ROC plots saved → {roc_plot_dir}/{plot_filename}.[png|pdf]")
+
+    # --- Save per-signal ROC plots (one figure per signal, like TrainBDT.py) ---
+    sig_keys = config["training"].get("sig_keys", [])
+    bg_keys = config["training"].get("bg_keys", [])
+    if not sig_keys or not bg_keys:
+        # Infer from roc_groups if not explicitly set
+        all_sig = set()
+        all_bg = set()
+        for rg in roc_groups:
+            all_sig.update(rg.get("signal", []))
+            all_bg.update(rg.get("background", []))
+        sig_keys = sorted(all_sig)
+        bg_keys = sorted(all_bg)
+    if sig_keys and bg_keys:
+        per_sig_results = compute_roc_per_signal(
+            all_logits,
+            all_labels,
+            all_weights,
+            sig_keys=sig_keys,
+            bg_keys=bg_keys,
+            class_to_idx=class_to_idx,
+            bkg_effs=roc_groups[0].get("bkg_effs", [1e-1, 1e-2, 1e-3, 1e-4]),
+        )
+        save_roc_per_signal(per_sig_results, roc_plot_dir, epoch, split=split)
 
     # --- Log to W&B ---
     if wandb_run is not None and wandb_metrics:
@@ -603,6 +716,115 @@ def run_roc_eval(
 
 
 # ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+
+
+def evaluate_splits(
+    model: nn.Module,
+    config: dict[str, Any],
+    config_path: str,
+    device: torch.device,
+    output_dir: Path,
+    epoch: int | str,
+    criterion: nn.Module,
+    use_bf16: bool = False,
+    splits: list[str] | None = None,
+    use_weights_loss: bool = True,
+    use_weights_acc: bool = True,
+    use_weights_roc: bool = True,
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Run inference on train/val/test splits and produce ROC curves + metrics JSON.
+
+    Returns:
+        {split_name: {roc_group_name: result_dict}}
+    """
+    if splits is None:
+        splits = ["train", "val", "test"]
+
+    classes = [c["name"] for c in config["dataset"]["classes"]]
+    idx_to_class = {i: c for i, c in enumerate(classes)}  # noqa: C416
+
+    all_results: dict[str, dict[str, dict[str, Any]]] = {}
+
+    for split in splits:
+        LOGGER.info(f"Evaluating split: {split}")
+        try:
+            loader = build_split_dataloader(config, config_path, split, device)
+        except FileNotFoundError:
+            LOGGER.warning(f"No data found for split '{split}' — skipping.")
+            continue
+
+        _, _, _, accumulator = run_epoch(
+            model=model,
+            loader=loader,
+            criterion=criterion,
+            optimizer=None,
+            device=device,
+            is_train=False,
+            use_bf16=use_bf16,
+            epoch=0,
+            collect_scores=True,
+            use_weights_loss=use_weights_loss,
+            use_weights_acc=use_weights_acc,
+            use_weights_roc=use_weights_roc,
+        )
+
+        if accumulator is None:
+            continue
+
+        # --- Save per-sample-key scores and weights ---
+        all_logits, all_labels, all_weights = accumulator.finalize()
+        probs = torch.softmax(all_logits, dim=-1).cpu().numpy()  # (N, num_classes)
+        labels_np = all_labels.cpu().numpy()
+        weights_np = all_weights.cpu().numpy() if all_weights is not None else None
+
+        scores_dir = output_dir / "scores" / f"epoch_{epoch}" / split
+        scores_dir.mkdir(parents=True, exist_ok=True)
+
+        for cls_idx, cls_name in idx_to_class.items():
+            mask = labels_np == cls_idx
+            if not mask.any():
+                continue
+            sample_data = {"scores": probs[mask]}  # (n_samples, num_classes)
+            if weights_np is not None:
+                sample_data["weights"] = weights_np[mask]
+            np.savez(scores_dir / f"{cls_name}.npz", **sample_data)
+            n = int(mask.sum())
+            LOGGER.info(f"  Saved {n:,} scores for {cls_name} → {scores_dir / f'{cls_name}.npz'}")
+
+        # --- ROC evaluation ---
+        results = run_roc_eval(
+            accumulator=accumulator,
+            config=config,
+            output_dir=output_dir,
+            epoch=epoch,
+            split=split,
+        )
+        all_results[split] = results
+
+    # Save combined metrics to JSON
+    metrics_path = output_dir / "roc_curves" / f"eval_metrics_epoch_{epoch}.json"
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Convert to JSON-serializable format
+    json_metrics: dict[str, Any] = {}
+    for split, groups in all_results.items():
+        json_metrics[split] = {}
+        for group_name, res in groups.items():
+            json_metrics[split][group_name] = {
+                "auc": res["auc"],
+                "sig_effs": {f"{eps_b:.0e}": eps_s for eps_b, eps_s in res["sig_effs"]},
+            }
+
+    with metrics_path.open("w") as f:
+        json.dump(json_metrics, f, indent=2)
+    LOGGER.info(f"Evaluation metrics saved → {metrics_path}")
+
+    return all_results
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -611,7 +833,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train JetClassifier")
     parser.add_argument("--config", "-c", type=str, required=True, help="Path to config YAML")
     parser.add_argument("--use-wandb", action="store_true", help="Enable Weights & Biases logging")
-    parser.add_argument("--log-level", type=str, default="INFO")
+    parser.add_argument(
+        "--evaluation-only",
+        action="store_true",
+        help="Skip training; load checkpoint, run inference on train/val/test, and plot ROC curves.",
+    )
+    parser.add_argument(
+        "--eval-epoch",
+        type=str,
+        default="best",
+        help="Checkpoint epoch to load for evaluation (default: 'best'). Use an int or 'best'.",
+    )
+    parser.add_argument("--log-level", type=str, default="DEBUG")
     parser.add_argument(
         "--log-file",
         type=str,
@@ -667,7 +900,7 @@ def main() -> None:
 
     # --- W&B ---
     wandb_run = None
-    if args.use_wandb and is_main:
+    if args.use_wandb and is_main and not args.evaluation_only:
         try:
             import wandb  # noqa: PLC0415
 
@@ -681,29 +914,79 @@ def main() -> None:
         except ImportError:
             LOGGER.warning("wandb not installed — skipping W&B logging")
 
-    # --- Data ---
-    LOGGER.info("Building dataloaders...")
-    train_loader, val_loader = build_dataloaders(
-        config, config_path=args.config, device=device, is_main=is_main, accelerator=accelerator
-    )
-
     # --- Model ---
     LOGGER.info("Building model...")
     model = build_model(config)
     if accelerator is None:
         model = model.to(device)
 
+    # --- torch.compile ---
+    if config.get("compile", False):
+        LOGGER.info("Compiling model with torch.compile...")
+        model = torch.compile(model)
+
+    # --- Loss ---
+    criterion = build_loss(config, device)
+
+    # --- Weight flags ---
+    training_cfg = config["training"]
+    use_weights_cfg = training_cfg.get("use_weights", {})
+    if isinstance(use_weights_cfg, bool):
+        use_weights_cfg = {"loss": use_weights_cfg, "acc": use_weights_cfg, "roc": use_weights_cfg}
+    uw_loss = use_weights_cfg.get("loss", True)
+    uw_acc = use_weights_cfg.get("acc", True)
+    uw_roc = use_weights_cfg.get("roc", True)
+
+    # ===================================================================
+    # Evaluation-only mode
+    # ===================================================================
+    if args.evaluation_only:
+        eval_epoch = args.eval_epoch
+        # Try to parse as int; otherwise keep as string (e.g. "best")
+        try:  # noqa: SIM105
+            eval_epoch = int(eval_epoch)
+        except ValueError:
+            pass
+
+        LOGGER.info(f"Evaluation-only mode — loading checkpoint epoch={eval_epoch}")
+        ckpt = load_checkpoint(config=config, epoch_num=eval_epoch, map_location="cpu")
+        model.load_state_dict(ckpt["model"])
+        model.eval()
+
+        evaluate_splits(
+            model=model,
+            config=config,
+            config_path=args.config,
+            device=device,
+            output_dir=output_dir,
+            epoch=eval_epoch,
+            criterion=criterion,
+            use_bf16=use_bf16,
+            use_weights_loss=uw_loss,
+            use_weights_acc=uw_acc,
+            use_weights_roc=uw_roc,
+        )
+        LOGGER.info("Evaluation complete.")
+        return
+
+    # ===================================================================
+    # Training mode
+    # ===================================================================
+
+    # --- Data ---
+    LOGGER.info("Building dataloaders...")
+    train_loader, val_loader = build_dataloaders(
+        config, config_path=args.config, device=device, is_main=is_main, accelerator=accelerator
+    )
+
     # --- Optimizer ---
-    opt_cfg = config["training"]["optimizer"]
+    opt_cfg = training_cfg["optimizer"]
     optimizer = getattr(torch.optim, opt_cfg["type"])(
         model.parameters(), **opt_cfg.get("kwargs", {})
     )
 
     # --- Scheduler ---
     scheduler = get_scheduler(optimizer, config)
-
-    # --- Loss ---
-    criterion = build_loss(config, device)
 
     # --- Resume ---
     start_epoch, best_val_loss = maybe_resume(
@@ -718,13 +1001,17 @@ def main() -> None:
             scheduler = accelerator.prepare(scheduler)
 
     # --- ROC config ---
-    roc_groups = config["training"].get("roc_groups", [])
-    has_roc = bool(roc_groups) and is_main
+    roc_groups = training_cfg.get("roc_groups", [])
+    has_roc = bool(roc_groups)
     if has_roc:
         LOGGER.info(f"ROC evaluation enabled for {len(roc_groups)} group(s)")
 
-    # --- Training loop ---
-    training_cfg = config["training"]
+    max_grad_norm = training_cfg.get("max_grad_norm", None)
+
+    LOGGER.info(f"use_weights — loss={uw_loss}  acc={uw_acc}  roc={uw_roc}")
+    if max_grad_norm is not None:
+        LOGGER.info(f"Gradient clipping enabled: max_grad_norm={max_grad_norm}")
+
     num_epochs = training_cfg["num_epochs"]
     patience = training_cfg.get("patience", float("inf"))
     epochs_no_improve = 0
@@ -746,8 +1033,13 @@ def main() -> None:
             wandb_run=wandb_run,
             global_step=global_step,
             collect_scores=False,
+            max_grad_norm=max_grad_norm,
+            use_weights_loss=uw_loss,
+            use_weights_acc=uw_acc,
+            use_weights_roc=uw_roc,
         )
-        val_loss, val_acc, _, val_accumulator = run_epoch(
+        # First pass without score collection to determine val_loss
+        val_loss, val_acc, _, _ = run_epoch(
             model=model,
             loader=val_loader,
             criterion=criterion,
@@ -757,13 +1049,13 @@ def main() -> None:
             use_bf16=use_bf16,
             epoch=epoch,
             accelerator=accelerator,
-            wandb_run=None,  # no batch-level logging for val
+            wandb_run=None,
             global_step=global_step,
-            collect_scores=has_roc,  # accumulate scores only if ROC groups are configured
+            collect_scores=False,
+            use_weights_loss=uw_loss,
+            use_weights_acc=uw_acc,
+            use_weights_roc=uw_roc,
         )
-
-        if val_accumulator is not None and accelerator is not None:
-            val_accumulator = val_accumulator.gather(accelerator)
 
         if scheduler is not None:
             scheduler.step()
@@ -774,6 +1066,29 @@ def main() -> None:
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
+
+        # Collect scores only on new best epochs (avoids overhead on non-improving epochs)
+        val_accumulator = None
+        if has_roc and is_best:
+            _, _, _, val_accumulator = run_epoch(
+                model=model,
+                loader=val_loader,
+                criterion=criterion,
+                optimizer=None,
+                device=device,
+                is_train=False,
+                use_bf16=use_bf16,
+                epoch=epoch,
+                accelerator=accelerator,
+                wandb_run=None,
+                global_step=global_step,
+                collect_scores=True,
+                use_weights_loss=uw_loss,
+                use_weights_acc=uw_acc,
+                use_weights_roc=uw_roc,
+            )
+            if val_accumulator is not None and accelerator is not None:
+                val_accumulator = val_accumulator.gather(accelerator)
 
         if is_main:
             LOGGER.info(
@@ -794,8 +1109,9 @@ def main() -> None:
                 accelerator=accelerator,
             )
 
-            # --- ROC evaluation ---
-            if has_roc and val_accumulator is not None:
+            # --- ROC evaluation (best epochs only) ---
+            if val_accumulator is not None:
+                LOGGER.info(f"Running ROC evaluation for new best epoch {epoch:04d}...")
                 run_roc_eval(
                     accumulator=val_accumulator,
                     config=config,
@@ -831,6 +1147,25 @@ def main() -> None:
                     f"Early stopping triggered after {patience} epochs without improvement."
                 )
             break
+
+    # --- End-of-training evaluation on all splits ---
+    if is_main and has_roc:
+        LOGGER.info("Running final evaluation on train/val/test splits...")
+        # Unwrap model for evaluation if using accelerate
+        eval_model = accelerator.unwrap_model(model) if accelerator is not None else model
+        evaluate_splits(
+            model=eval_model,
+            config=config,
+            config_path=args.config,
+            device=device,
+            output_dir=output_dir,
+            epoch="final",
+            criterion=criterion,
+            use_bf16=use_bf16,
+            use_weights_loss=uw_loss,
+            use_weights_acc=uw_acc,
+            use_weights_roc=uw_roc,
+        )
 
     if is_main:
         LOGGER.info(f"Training complete. Best val_loss={best_val_loss:.4f}")

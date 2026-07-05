@@ -34,6 +34,7 @@ class JetClassifier(nn.Module):
         encoder: TransformerEncoder,
         head: nn.Module,
         dim: int,
+        use_type_embed: bool = False,
     ):
         super().__init__()
         self.embeddings = embeddings
@@ -41,6 +42,11 @@ class JetClassifier(nn.Module):
         self.head = head
         self.cls_token = nn.Parameter(torch.zeros(1, 1, dim))
         nn.init.trunc_normal_(self.cls_token, std=0.02)
+
+        self.use_type_embed = use_type_embed
+        if use_type_embed:
+            self.type_embed = nn.Embedding(len(embeddings), dim)
+            nn.init.trunc_normal_(self.type_embed.weight, std=0.02)
 
     def forward(self, batch: dict[str, dict[str, torch.Tensor]]) -> torch.Tensor:
         """
@@ -55,8 +61,10 @@ class JetClassifier(nn.Module):
         tokens_list = []
         masks_list = []
 
-        for name, embedding in self.embeddings.items():
+        for i, (name, embedding) in enumerate(self.embeddings.items()):
             tokens, mask = embedding(batch[name])  # (B, N_i, dim), (B, N_i)
+            if self.use_type_embed:
+                tokens = tokens + self.type_embed.weight[i]  # broadcast (dim,) over (B, N_i, dim)
             tokens_list.append(tokens)
             masks_list.append(mask)
 

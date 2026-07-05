@@ -72,6 +72,27 @@ class LayerScale(nn.Module):
         return self.gamma * x
 
 
+class DropPath(nn.Module):
+    """Stochastic depth: randomly drops entire residual branches during training.
+
+    Each sample in the batch independently survives with probability ``1 - drop_prob``.
+    At test time the module is an identity.
+    """
+
+    def __init__(self, drop_prob: float = 0.0):
+        super().__init__()
+        self.drop_prob = drop_prob
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.drop_prob == 0.0 or not self.training:
+            return x
+        keep_prob = 1.0 - self.drop_prob
+        # (B, 1, 1) mask so entire token sequence is kept or dropped per sample
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+        mask = torch.rand(shape, dtype=x.dtype, device=x.device) < keep_prob
+        return x * mask / keep_prob
+
+
 class TransformerEncoderLayer(nn.Module):
     """Pre-norm transformer encoder layer.
 
@@ -82,6 +103,7 @@ class TransformerEncoderLayer(nn.Module):
         activation:       'GELU' or 'SwiGLU'.
         norm:             'LayerNorm' or 'RMSNorm'.
         layer_scale_init: Init value for LayerScale (None to disable).
+        drop_path:        Drop path (stochastic depth) rate for this layer.
         qkv_bias:         Whether to use bias in QKV projections.
         attention_dropout: Dropout on attention weights.
         norm_eps:         Epsilon for norm layers.
@@ -95,6 +117,7 @@ class TransformerEncoderLayer(nn.Module):
         activation: Literal["GELU", "SwiGLU"] = "SwiGLU",
         norm: Literal["LayerNorm", "RMSNorm"] = "LayerNorm",
         layer_scale_init: float | None = 1e-4,
+        drop_path: float = 0.0,
         qkv_bias: bool = True,
         attention_dropout: float = 0.0,
         norm_eps: float = 1e-5,
@@ -121,6 +144,8 @@ class TransformerEncoderLayer(nn.Module):
         self.ls2 = (
             LayerScale(dim, layer_scale_init) if layer_scale_init is not None else nn.Identity()
         )
+        self.drop_path1 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path2 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(
         self,
@@ -138,12 +163,12 @@ class TransformerEncoderLayer(nn.Module):
         residual = x
         x = self.norm1(x)
         attn_out, _ = self.attn(x, x, x, key_padding_mask=key_padding_mask)
-        x = residual + self.ls1(attn_out)
+        x = residual + self.drop_path1(self.ls1(attn_out))
 
         # --- FFN (pre-norm) ---
         residual = x
         x = self.norm2(x)
-        x = residual + self.ls2(self.ffn(x))
+        x = residual + self.drop_path2(self.ls2(self.ffn(x)))
 
         return x
 
@@ -158,6 +183,9 @@ class TransformerEncoder(nn.Module):
         activation:           'GELU' or 'SwiGLU'. Default 'SwiGLU'.
         norm:                 'LayerNorm' or 'RMSNorm'. Default 'LayerNorm'.
         layer_scale_init:     LayerScale init value (None to disable). Default 1e-4.
+        drop_path_rate:       Maximum drop path (stochastic depth) rate. Linearly
+                              increases from 0 at the first layer to this value at
+                              the last layer. Default 0.0 (disabled).
         num_registers:        Number of learnable register tokens prepended before
                               the input tokens (à la DINOv2). Default 0.
         mlp_ratio:            FFN hidden dim multiplier (ffn_dim = mlp_ratio * dim).
@@ -179,6 +207,7 @@ class TransformerEncoder(nn.Module):
         activation: Literal["GELU", "SwiGLU"] = "SwiGLU",
         norm: Literal["LayerNorm", "RMSNorm"] = "LayerNorm",
         layer_scale_init: float | None = 1e-4,
+        drop_path_rate: float = 0.0,
         num_registers: int = 0,
         mlp_ratio: int = 4,
         qkv_bias: bool = True,
@@ -196,6 +225,9 @@ class TransformerEncoder(nn.Module):
         else:
             ffn_dim = mlp_ratio * dim
 
+        # Linearly increasing drop path rates from 0 to drop_path_rate
+        dpr = [drop_path_rate * i / max(num_layers - 1, 1) for i in range(num_layers)]
+
         self.layers = nn.ModuleList(
             [
                 TransformerEncoderLayer(
@@ -205,11 +237,12 @@ class TransformerEncoder(nn.Module):
                     activation=activation,
                     norm=norm,
                     layer_scale_init=layer_scale_init,
+                    drop_path=dpr[i],
                     qkv_bias=qkv_bias,
                     attention_dropout=attention_dropout,
                     norm_eps=norm_eps,
                 )
-                for _ in range(num_layers)
+                for i in range(num_layers)
             ]
         )
 
