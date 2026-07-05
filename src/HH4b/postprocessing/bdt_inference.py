@@ -88,12 +88,47 @@ def compute_scores(
         )
 
 
-def run_inference(model, events, bdt_dataframe_fn, jshifts, args):
+def model_feature_names(model_name: str) -> list | None:
+    """Training feature order from the model's metrics.json (the .model file
+    doesn't store names).  Returns None if absent (old models) -> no year
+    injection, original behaviour."""
+    import json  # noqa: PLC0415
+
+    p = HH4B_DIR / f"src/HH4b/boosted/bdt_trainings_run3/{model_name}/metrics.json"
+    if not p.exists():
+        return None
+    feats = json.loads(p.read_text()).get("features")
+    return list(feats) if feats else None
+
+
+def _add_year_features(df, feat_names, year):
+    """For year-aware BDTs: append the one-hot ``year_<tag>`` columns from
+    ``feat_names`` set from this sample's ``year`` (era -> tag by longest prefix,
+    e.g. 2022EE->2022, 2023BPix->2023; 2025 uses 2024 MC -> year_2024).  No-op
+    if there are no year_* features.  Returns the feature columns in training
+    order (or None to keep the original df)."""
+    if feat_names is None:
+        return None
+    year_cols = [c for c in feat_names if str(c).startswith("year_")]
+    if not year_cols:
+        return list(feat_names)
+    tags = ["2022", "2023", "2024", "2025"]
+    tag = max((t for t in tags if str(year).startswith(t)), key=len, default=str(year))
+    if tag == "2025":
+        tag = "2024"  # 2025 evaluated on 2024 MC
+    for c in year_cols:
+        df[c] = np.float32(1.0 if c == f"year_{tag}" else 0.0)
+    return list(feat_names)
+
+
+def run_inference(model, events, bdt_dataframe_fn, jshifts, args, year=None, feat_names=None):
     """Run BDT inference for all JEC/JMR shifts and combine results."""
     results = []
     for jshift in jshifts:
         df = bdt_dataframe_fn(events, get_var_mapping(jshift))
-        preds = model.predict_proba(df)
+        feat_order = _add_year_features(df, feat_names, year)
+        X = df[feat_order] if feat_order is not None else df
+        preds = model.predict_proba(X)
         compute_scores(df, preds, jshift, args.weight_ttbar_bdt, args.bdt_disc)
         results.append(df)
         del preds
@@ -130,6 +165,7 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
 
         # Load model and BDT dataframe function
         model = load_model(args.bdt_model)
+        feat_names = model_feature_names(args.bdt_model)  # year-aware -> has year_*
         bdt_dataframe_fn = importlib.import_module(
             f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
         ).bdt_dataframe
@@ -169,7 +205,9 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
                 end = min((i + 1) * args.chunk_size, n_events)
                 chunk = events.iloc[start:end].copy()
 
-                result = run_inference(model, chunk, bdt_dataframe_fn, jshifts, args)
+                result = run_inference(
+                    model, chunk, bdt_dataframe_fn, jshifts, args, year=year, feat_names=feat_names
+                )
                 result["year"] = year
                 weight = chunk["finalWeight"].to_numpy()
                 if year == "2025" and sample != "data":
@@ -177,13 +215,43 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
                     # TODO: remove this chunk once 2025 MC is available
                     weight *= LUMI["2025"] / LUMI["2024"]
                 result["finalWeight"] = weight
+
+                # ttbar analysis
+                if sample in ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q", "ttbar"]:
+                    P4_vars = ["Eta", "Phi", "Mass", "Pt"]
+
+                    for i in range(2):  # noqa: PLW2901
+                        for var in P4_vars:
+                            result[f"GenTop{var}_{i}"] = chunk[("GenTop" + var, i)].to_numpy()
+                        for var in P4_vars:
+                            result[f"GenTopW{i}{var}"] = chunk[(f"GenTopW{i}{var}", 0)].to_numpy()
+
+                        result[f"bbFatJetTopMatch_{i}"] = chunk[("bbFatJetTopMatch", i)].to_numpy()
+                        result[f"bbFatJetTopMatchIndex_{i}"] = chunk[
+                            ("bbFatJetTopMatchIndex", i)
+                        ].to_numpy()
+                        result[f"bbFatJetNumBMatchedTop1_{i}"] = chunk[
+                            ("bbFatJetNumBMatchedTop1", i)
+                        ].to_numpy()
+                        result[f"bbFatJetNumBMatchedTop2_{i}"] = chunk[
+                            ("bbFatJetNumBMatchedTop2", i)
+                        ].to_numpy()
+                        result[f"bbFatJetNumQMatchedTop1_{i}"] = chunk[
+                            ("bbFatJetNumQMatchedTop1", i)
+                        ].to_numpy()
+                        result[f"bbFatJetNumQMatchedTop2_{i}"] = chunk[
+                            ("bbFatJetNumQMatchedTop2", i)
+                        ].to_numpy()
+
                 result.to_parquet(sample_dir / f"chunk_{i:04d}.parquet")
 
                 del chunk, result
                 gc.collect()
         else:
             # Process entire sample at once
-            result = run_inference(model, events, bdt_dataframe_fn, jshifts, args)
+            result = run_inference(
+                model, events, bdt_dataframe_fn, jshifts, args, year=year, feat_names=feat_names
+            )
             result["year"] = year
             weight = events["finalWeight"].to_numpy()
             if year == "2025" and sample != "data":
@@ -273,11 +341,11 @@ def main():
     # Data configuration
     parser.add_argument(
         "--data-dir",
-        default="/ceph/cms/store/user/zichun/bbbb/signal_processed/bdt_inference/",
-        help="Base directory for input ntuples",
+        default="/ceph/cms/store/user/zichun/bbbb/skimmer",
+        help="Base directory for input skimmed ntuples",
     )
     parser.add_argument(
-        "--tag", default="nanov15_20251202_v15_signal", help="Tag for input ntuples"
+        "--tag", required=True, help="Tag for input ntuples (subdirectory name under --data-dir)"
     )
     parser.add_argument(
         "--years", nargs="+", default=hh_vars.years, choices=hh_vars.years, help="Years to process"
@@ -332,7 +400,7 @@ def main():
     # Output configuration
     parser.add_argument(
         "--output-dir",
-        default="/home/users/zichun/ceph/bbbb/bdt_inference/",
+        default="/ceph/cms/store/user/zichun/bbbb/signal_processed/bdt_inference",
         help="Directory to save inference results",
     )
     parser.add_argument(
