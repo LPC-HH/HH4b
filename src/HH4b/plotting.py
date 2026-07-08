@@ -384,6 +384,7 @@ def ratioHistPlot(
     ratio_err: ArrayLike | None = None,
     ratio_label: str = "Data/Pred",
     cms_label: str | None = None,
+    xbin_gev: bool = True,
 ):
     """
     Makes and saves a histogram plot, with backgrounds stacked, signal separate (and optionally
@@ -485,7 +486,7 @@ def ratioHistPlot(
     plt.rcParams.update({"font.size": 30})
 
     # plot histograms
-    if np.allclose(hists.axes[1].widths, hists.axes[1].widths[0]):
+    if np.allclose(hists.axes[1].widths, hists.axes[1].widths[0], atol=1) and xbin_gev:
         ax.set_ylabel(f"Events / {hists.axes[1].edges[1] - hists.axes[1].edges[0]:.0f} GeV")
     else:
         ax.set_ylabel("Events / bin")

@@ -68,8 +68,13 @@ HLTs = {
     ],
     "2024": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        "AK8PFJet400_SoftDropMass40",
-        "AK8PFJet425_SoftDropMass40",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
+    ],
+    "2025": [
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
     ],
 }
 
@@ -125,6 +130,15 @@ columns_to_load = {
         ("bbFatJetParTPQCD2HF", 2),
         ("bbFatJetrawFactor", 2),
     ],
+    "glopart-v3": columns_to_load_default
+    + [
+        ("bbFatJetParT3TXbb", 2),
+        ("bbFatJetParT3PQCD", 2),
+        ("bbFatJetParT3PXbb", 2),
+        ("bbFatJetParT3massGeneric", 2),
+        ("bbFatJetParT3massX2p", 2),
+        ("bbFatJetrawFactor", 2),
+    ],
 }
 
 filters_to_apply = {
@@ -154,6 +168,14 @@ filters_to_apply = {
             ("('bbFatJetPt', '1')", ">=", 250),
         ],
     ],
+    "glopart-v3": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+            # ("('bbFatJetParT3massX2p', '0')", ">=", 60),
+            # ("('bbFatJetParT3massX2p', '1')", ">=", 60),
+        ],
+    ],
 }
 
 load_columns_syst = [
@@ -180,6 +202,28 @@ load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 # load scale weights for ttbar
 load_columns_ttbar = [
     ("scale_weights", 6),
+]
+
+# TODO: remove after analysis
+load_columns_ttbar_gen = [
+    ("GenTopPt", 2),
+    ("GenTopEta", 2),
+    ("GenTopPhi", 2),
+    ("GenTopMass", 2),
+    ("GenTopW0Pt", 1),
+    ("GenTopW0Eta", 1),
+    ("GenTopW0Phi", 1),
+    ("GenTopW0Mass", 1),
+    ("GenTopW1Pt", 1),
+    ("GenTopW1Eta", 1),
+    ("GenTopW1Phi", 1),
+    ("GenTopW1Mass", 1),
+    ("bbFatJetTopMatch", 2),
+    ("bbFatJetTopMatchIndex", 2),
+    ("bbFatJetNumBMatchedTop1", 2),
+    ("bbFatJetNumBMatchedTop2", 2),
+    ("bbFatJetNumQMatchedTop1", 2),
+    ("bbFatJetNumQMatchedTop2", 2),
 ]
 
 # load scale and pdf weights for ggf signal
@@ -284,16 +328,20 @@ def load_run3_samples(
     mass_str: str,
     bdt_version: str,
     load_bdt_scores: bool = True,
+    extra_columns: list[tuple[str, int]] | None = None,
 ):
     assert txbb_version in [
         "pnet-v12",
         "pnet-legacy",
         "glopart-v2",
-    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
+        "glopart-v3",
+    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2, glopart-v3"
 
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
-    load_columns = columns_to_load[txbb_version]
+    load_columns = columns_to_load[txbb_version].copy()
+    if extra_columns:
+        load_columns += extra_columns
     load_columns_systematics = load_columns_syst.copy()
     if load_bdt_scores:
         load_columns += [
@@ -379,10 +427,14 @@ def load_run3_samples(
             samples_ttbar,
             year,
             filters=filters,
+            # TODO: remove load_columns_ttbar_gen after analysis
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics + load_columns_ttbar
+                load_columns_year
+                + load_columns_systematics
+                + load_columns_ttbar
+                + load_columns_ttbar_gen
                 if load_systematics
-                else load_columns_year
+                else load_columns_year + load_columns_ttbar_gen
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
@@ -518,21 +570,22 @@ def combine_run3_samples(
                 ]
             )
         else:
-            combined = pd.concat(
-                [
-                    events_dict_years[year][key].copy()
-                    for year in scale_processes[key]
-                    if year in years_run3
-                ]
-            )
-            lumi_scale = lumi_total / np.sum(
-                [LUMI[year] for year in scale_processes[key] if year in years_run3]
-            )
-            print(
-                f"LUMI available: {np.sum([LUMI[year] for year in scale_processes[key] if year in years_run3])}"
-            )
+            # only eras where this process was actually loaded (sample availability
+            # drifts across years, e.g. some VBF kappa points); keep the concat and
+            # the lumi-scale denominator consistent with what is really present
+            present_years = [
+                year
+                for year in scale_processes[key]
+                if year in years_run3 and key in events_dict_years[year]
+            ]
+            if not present_years:
+                print(f"WARNING: {key} not present in any of {scale_processes[key]}; skipping")
+                continue
+            combined = pd.concat([events_dict_years[year][key].copy() for year in present_years])
+            lumi_scale = lumi_total / np.sum([LUMI[year] for year in present_years])
+            print(f"LUMI available: {np.sum([LUMI[year] for year in present_years])}")
             scaled_by[key] = lumi_scale
-            print(f"Concatenate {scale_processes[key]}, scaling {key} by {lumi_scale:.2f}")
+            print(f"Concatenate {present_years}, scaling {key} by {lumi_scale:.2f}")
             combined[weight_key] = combined[weight_key] * lumi_scale
 
         events_combined[key] = combined
