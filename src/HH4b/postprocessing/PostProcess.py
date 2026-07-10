@@ -618,7 +618,11 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
-        )[key]
+        )
+        if key not in events_dict:
+            logger.warning(f"Skipping {key}: no events loaded for current selectors")
+            continue
+        events_dict = events_dict[key]
 
         # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
         if mc_split_half is not None and key != hh_vars.data_key:
@@ -1220,7 +1224,7 @@ def load_process_run3_samples(
             ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
-        columns = list(set(columns))
+        columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
             bdt_events = bdt_events.rename(
@@ -1587,6 +1591,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
 
     # Find the normalization needed to reweight QCD
     qcd_norm = 1.0
+    available_keys = set(events_dict.keys())
+    control_sig_keys = [k for k in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"] if k in available_keys]
+    control_bg_keys = [k for k in bg_keys if k in available_keys]
 
     hists = {}
     for i, shape_var in enumerate(control_plot_vars):
@@ -1600,8 +1607,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm_tmp = plotting.ratioHistPlot(
                 hists[shape_var.var],
                 year,
-                ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                bg_keys,
+                control_sig_keys,
+                control_bg_keys,
                 name=f"{plot_dir}/control/{year}/{shape_var.var}",
                 show=False,
                 log=True,
@@ -1646,14 +1653,18 @@ def abcd(
     bg_keys_all,
     sig_keys,
 ):
-    bg_keys = bg_keys_all.copy()
+    available_keys = set(events_dict.keys())
+    bg_keys = [k for k in bg_keys_all if k in available_keys]
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
+    sig_keys = [k for k in sig_keys if k in available_keys]
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     s = 0
     for key in sig_keys + ["data"] + bg_keys:
+        if key not in events_dict:
+            continue
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
@@ -1684,7 +1695,7 @@ def abcd(
     # A = B * C / D
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
-    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
+    background = bqcd + bg_tots[0] if bg_keys else bqcd
     return s, background, dmt
 
 
