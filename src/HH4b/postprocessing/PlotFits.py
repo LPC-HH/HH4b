@@ -95,11 +95,11 @@ def plot_fits(args):
         "fail": "QCD CR",
     }
     ylims = {
-        "passvbf": 12,
-        "passbin1": 10,
-        "passbin2": 40,
-        "passbin3": 300,
-        "fail": 300000,
+        "passvbf": 36,
+        "passbin1": 30,
+        "passbin2": 120,
+        "passbin3": 900,
+        "fail": 1500000,
     }
 
     if args.regions == "all":
@@ -172,7 +172,7 @@ def plot_fits(args):
             )
             bgerrs[shape][region] = templates["TotalBkg"].errors()
 
-    year = "2022-2023"
+    year = "2022-2025"
     pass_ratio_ylims = [0, 2]
     fail_ratio_ylims = [0, 2]
 

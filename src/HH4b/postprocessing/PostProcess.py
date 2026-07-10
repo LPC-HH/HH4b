@@ -69,19 +69,6 @@ mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
 
-# modify samples run3
-for year in samples_run3:
-    samples_run3[year]["qcd"] = [
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
-        # "QCD_HT-200to400",
-        "QCD_HT-400to600",
-        "QCD_HT-600to800",
-        "QCD_HT-800to1000",
-    ]
-
 selection_regions = {
     "pass_vbf": Region(
         cuts={
@@ -511,7 +498,31 @@ def load_process_run3_samples(
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
-    if not control_plots and not args.bdt_roc:
+
+    # MC fallback and luminosity scaling for years without dedicated MC (e.g. 2025).
+    # We split 2024 MC 50/50: half for 2024 templates, half for 2025 templates.
+    # Split is deterministic via (run + luminosityBlock + event) % 2.
+    mc_fallback_year = None
+    mc_lumi_scale = 1.0
+    mc_split_half = None  # 0 = use for 2024, 1 = use for 2025
+    if year == "2025":
+        # 2025 has no MC: use 2024 MC (other half), scale yields to 2025 lumi.
+        mc_fallback_year = "2024"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # LUMI SCALING: MC weights are norm'd to source-year lumi; multiply by target/source
+        # to get yields appropriate for 2025.
+        mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
+        mc_split_half = 1  # use events with (run+lumi+evt)%2 == 1
+        samples_year = [hh_vars.data_key] + [
+            k for k in samples_run3[mc_fallback_year] if k != hh_vars.data_key
+        ]
+    elif year == "2024":
+        # Use half of 2024 MC for 2024 templates; the other half is reserved for 2025.
+        mc_split_half = 0  # use events with (run+lumi+evt)%2 == 0
+
+    if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
@@ -526,11 +537,15 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
-        samples_to_process = {year: {key: samples_run3[year][key]}}
+        source_year = year
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            source_year = mc_fallback_year
+
+        samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
-            year,
+            source_year,
             samples_to_process,
             reorder_txbb=True,
             load_systematics=True,
@@ -539,6 +554,39 @@ def load_process_run3_samples(
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
         )[key]
+
+        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
+        if mc_split_half is not None and key != hh_vars.data_key:
+            run_ = events_dict["run"].to_numpy().squeeze()
+            lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
+            evt_ = events_dict["event"].to_numpy().squeeze()
+            # Avoid overflow: (a+b+c)%2 = (a%2 + b%2 + c%2)%2
+            mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
+            events_dict = events_dict.loc[mask].copy()
+
+            # LUMI SCALING (2024): we keep half the events; scale weights by 2 so that
+            # the total weighted yield matches full 2024 MC (i.e. full 2024 lumi).
+            if year == "2024":
+                weight_cols = [
+                    col
+                    for col in events_dict.columns.get_level_values(0).unique()
+                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                    or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+                ]
+                for col in weight_cols:
+                    events_dict[col] = events_dict[col] * 2.0
+
+        # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
+        # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            weight_cols = []
+            for col in events_dict.columns.get_level_values(0).unique():
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
+                    col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)
+                ):
+                    weight_cols.append(col)
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * mc_lumi_scale
 
         # inference and assign score
         jshifts = [""]

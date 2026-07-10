@@ -214,6 +214,29 @@ def format_columns(columns: list):
     return ret_columns
 
 
+def _resolve_xsec_key(sample: str, xsecs_dict: dict) -> str:
+    if sample in xsecs_dict:
+        return sample
+
+    aliases = [
+        sample.replace("QCD-4Jets_HT-", "QCD_HT-"),
+        sample.replace("TTHto2B_M-125", "ttHto2B_M-125"),
+    ]
+    for alias in aliases:
+        if alias in xsecs_dict:
+            return alias
+
+    # Last fallback: case-insensitive exact key match.
+    lowered = sample.lower()
+    ci_matches = [k for k in xsecs_dict if k.lower() == lowered]
+    if len(ci_matches) == 1:
+        return ci_matches[0]
+
+    raise KeyError(
+        f"No xsec entry for sample '{sample}' (tried aliases {aliases}, ci_matches={ci_matches})"
+    )
+
+
 def _normalize_weights(
     events: pd.DataFrame,
     year: str,
@@ -231,8 +254,9 @@ def _normalize_weights(
 
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
+        xsec_key = _resolve_xsec_key(sample, xsecs)
         warnings.warn(f"{sample} has not been scaled by its xsec and lumi!", stacklevel=0)
-        events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
+        events["weight"] = events["weight"].to_numpy() * xsecs[xsec_key] * LUMI[year]
         warnings.warn(
             f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
             stacklevel=0,
