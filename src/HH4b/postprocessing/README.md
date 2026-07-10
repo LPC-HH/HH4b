@@ -1,78 +1,124 @@
-# Run-3
+# Postprocessing README (Run-3)
 
-- To postprocess: `PostProcess.py`
-- To create datacards: `CreateDatacard.py`
-- To plot: `PlotFits.py`
+This document explains:
 
-### ANv1:
-```/uscms/home/jduarte1/nobackup/HH4b/src/HH4b/postprocessing/templates/Apr18
-```
-made with:
-```
-cd postprocessing
-python3 PostProcess.py --templates-tag Apr18 --tag 24Mar31_v12_signal --mass H2Msd --no-fom-scan --templates --bdt-model v1_msd30_nomulticlass --bdt-config v1_msd30
-python3 postprocessing/CreateDatacard.py --templates-dir postprocessing/templates/Apr18 --year 2022-2023  --model-name run3-bdt-apr18
-```
-Fits:
-```
-cd cards/run3-bdt-apr18
-run_blinded_hh4b.sh --workspace --bfit --limits --dfit --passbin=0
-python3 postprocessing/PlotFits.py --fit-file cards/run3-bdt-apr18/FitShapes.root --plots-dir ../../plots/PostFit/run3-bdt-apr18 --signal-scale 10
-```
+1. how Run-3 templates are generated in this repository, and
+2. how to unit test postprocessing logic without loading large parquet datasets.
 
-### ANv1
-```
-python3 PostProcess.py --templates-tag May2 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2Msd --no-legacy --bdt-config v1_msd30_txbb  --bdt-model v1_msd30_nomulticlass  --no-fom-scan --templates --txbb-wps 0.92 0.8 --bdt-wps 0.94 0.68 0.03 --years 2022 2022EE 2023 2023BPix
-```
+## 1) How templates are generated
 
-### ANv2
-Apr 22
-```bash
-python PostProcess.py --templates-tag 24Apr21_legacy_bdt_ggf --data-dir /ceph/cms/store/user/rkansal/bbbb/skimmer/ --tag 24Apr19LegacyFixes_v12_private_signal --mass H2PNetMass --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --legacy --no-fom-scan-bin1 --no-fom-scan --no-fom-scan-vbf --no-vbf
-```
-Frozen for ANv2
-```bash
-python3 PostProcess.py --templates-tag 24May9v2Msd40 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars  --bdt-model 24Apr21_legacy_vbf_vars --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-bdt-roc --templates --no-fom-scan --no-fom-scan-vbf --years 2022 2022EE 2023 2023BPix --training-years 2022EE --no-vbf
-```
+### Main entry point (current workflow)
 
-### ANv9
-```
-python3 PostProcess.py --templates-tag 24June3NewBDTNewSamplesPtSecond250 --tag 24May24_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24May31_lr_0p02_md_8_AK4Away --bdt-model 24May31_lr_0p02_md_8_AK4Away --txbb-wps 0.975 0.92 --bdt-wps 0.98 0.88 0.03 --vbf-txbb-wp 0.95 --vbf-bdt-wp 0.98 --no-bdt-roc --no-fom-scan --no-fom-scan-bin2 --no-fom-scan-bin1 --data-dir /ceph/cms/store/user/cmantill/bbbb/skimmer/ --method abcd --no-vbf-priority --vbf --no-fom-scan-vbf --templates --pt-second 250
-```
+Template production is driven by `PostProcess.py`.
 
-```
-python3 PostProcess.py --templates-tag 24June10NewBDTNewSamplesPtSecond300 -tag 24May24_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24May31_lr_0p02_md_8_AK4Away --bdt-model 24May31_lr_0p02_md_8_AK4Away --txbb-wps 0.975 0.92 --bdt-wps 0.98 0.88 0.03 --vbf-txbb-wp 0.95 --vbf-bdt-wp 0.98 --no-bdt-roc --no-fom-scan --no-fom-scan-bin2 --no-fom-scan-bin1 --data-dir /ceph/cms/store/user/cmantill/bbbb/skimmer/ --method abcd --no-vbf-priority --vbf --no-fom-scan-vbf --templates --pt-second 300
-```
-
-To scan:
-```bash
-python3 PostProcess.py --templates-tag Apr22 --tag 24Apr23LegacyLowerThresholds_v12_private_signal --mass H2PNetMass --legacy --bdt-config 24Apr21_legacy_vbf_vars --bdt-model 24Apr21_legacy_vbf_vars  --fom-scan --txbb-wps 0.99 0.94 --bdt-wps 0.94 0.68 0.03 --no-control-plots --no-bdt-roc --no-templates --no-fom-scan-vbf --years 2022EE --method sideband
-```
-
-For tt corrections:
-```bash
-python PostProcessTT.py --templates-tag 24May24 --tag 24May25_v12_private_had-tt --data-dir ../../../../data/skimmer/ --mass H2PNetMass --legacy --control-plots --bdt-model 24Apr21_legacy_vbf_vars --bdt-config 24Apr21_legacy_vbf_vars --year 2022 2022EE 2023 2023BPix
-```
-
-# Run-2
-```bash
-python3 PostProcessRun2.py --template-dir 20210712_regression --tag 20210712_regression --years 2016,2017,2018
-python3 CreateDatacardRun2.py --templates-dir templates/20210712_regression --year all --model-name run2-bdt-20210712 --bin-name pass_bin1
-./run_hh4b.sh --workspace --bfit --dfit --limits
-python3 PlotFitsRun2.py --fit-file cards/run2-bdt-20210712/FitShapes.root --plots-dir plots/run2-bdt-20210712/ --bin-name passbin1
-```
-
-# Unit testing postprocessing
-
-`tests/test_postprocessing_core.py` pins the behavior of the core postprocessing helpers
-(`add_bdt_scores`, the FOM functions, TXbb-SF jet selection, event counting, and the
-template utilities) with small synthetic DataFrames — no skimmer directories or parquet
-reads involved, so it runs in a couple of minutes.
-
-From the repo root:
+Current single-era production command (run from `src/HH4b/postprocessing`):
 
 ```bash
-PYTHONPATH=src python -m pytest tests/test_postprocessing_core.py -q
+nohup python3 PostProcess.py --templates-tag 26Jan15 --tag nanov15_20251202_v15_signal --mass H2PNetMass --txbb glopart-v3 --bdt-config v13_glopartv3 --bdt-model 25Feb5_v13_glopartv2_rawmass --fom-scan --data-dir /ceph/cms/store/user/zichun/bbbb/skimmer/ --no-vbf-priority --vbf --no-rerun-inference --txbb-wps 0.945 0.85 --bdt-wps 0.935 0.78 0.03 --vbf-txbb-wp 0.8 --vbf-bdt-wp 0.9825 --years 2024 --templates --no-fom-scan-bin1 --no-fom-scan-bin2 --no-fom-scan-vbf --control-plots > templates_2024.out 2>&1 &
 ```
 
-or run the full suite with `PYTHONPATH=src python -m pytest -q`.
+Equivalent (same options, multi-line for readability):
+
+```bash
+nohup python3 PostProcess.py \
+  --templates-tag 26Jan15 \
+  --tag nanov15_20251202_v15_signal \
+  --mass H2PNetMass \
+  --txbb glopart-v3 \
+  --bdt-config v13_glopartv3 \
+  --bdt-model 25Feb5_v13_glopartv2_rawmass \
+  --fom-scan \
+  --data-dir /ceph/cms/store/user/zichun/bbbb/skimmer/ \
+  --no-vbf-priority \
+  --vbf \
+  --no-rerun-inference \
+  --txbb-wps 0.945 0.85 \
+  --bdt-wps 0.935 0.78 0.03 \
+  --vbf-txbb-wp 0.8 \
+  --vbf-bdt-wp 0.9825 \
+  --years 2024 \
+  --templates \
+  --no-fom-scan-bin1 \
+  --no-fom-scan-bin2 \
+  --no-fom-scan-vbf \
+  --control-plots \
+  > templates_2024.out 2>&1 &
+```
+
+### What the script does (high level)
+
+`PostProcess.py` executes the following flow:
+
+- Parses runtime configuration (`--years`, `--txbb`, `--bdt-model`, WPs, booleans like `--templates`, `--control-plots`, `--fom-scan`).
+- Loads events per year/process via `load_process_run3_samples()`.
+- Runs or loads BDT inference outputs and applies region/category selections.
+- Builds control plots and optional FOM scans.
+- Builds histogram templates (including jec/jmsr shifts) and saves them.
+
+### Key outputs
+
+Given `--templates-tag <TAG>`:
+
+- Control/FOM plots: `plots/PostProcess/<TAG>/...`
+- Template files: `templates/<TAG>/<YEAR>_templates.pkl`
+- Cutflows: `templates/<TAG>/cutflows/preselection_cutflow_<YEAR>.csv`
+- Runtime args snapshot: `templates/<TAG>/args.txt`
+
+### Batch processing
+
+For multi-era production, pass several eras to `--years` (e.g. `--years 2022 2022EE`)
+or launch one `nohup ... > templates_<YEAR>.out` job per era as in the example above.
+
+## 2) Unit testing postprocessing
+
+### Goal
+
+Catch regressions in selector naming, year configuration, and orchestration logic without heavy IO.
+
+### Test files
+
+The current lightweight test suite is:
+
+- `tests/test_selectors.py`
+  - `check_selector()` behavior for exact (`?`), prefix, and contains (`*`) matching.
+- `tests/test_postprocessing_core.py`
+  - `add_bdt_scores` discriminants, FOM functions, TXbb-SF jet selection, and
+    template utilities on small synthetic DataFrames.
+- `tests/test_xsec_resolution.py`
+  - `_resolve_xsec_key()` alias/case-insensitive fallback behavior.
+- `tests/test_hhvars_contracts.py`
+  - year/sample/lumi configuration contracts (including 2024/2025-related guards).
+- `tests/test_postprocessing_load_run3_samples.py`
+  - monkeypatched `load_run3_samples()` orchestration test, no real parquet reads.
+
+### How these tests stay fast
+
+- no real skimmer directory scans
+- no parquet reads
+- no heavy template creation
+- monkeypatching of `utils.load_samples` for orchestration coverage
+
+### Run tests
+
+From repo root:
+
+```bash
+PYTHONPATH=src python -m pytest tests/test_selectors.py tests/test_postprocessing_core.py tests/test_xsec_resolution.py tests/test_hhvars_contracts.py tests/test_postprocessing_load_run3_samples.py -q
+```
+
+If you want the full test suite:
+
+```bash
+PYTHONPATH=src python -m pytest -q
+```
+
+### Environment note
+
+Some tests intentionally use dependency guards (`pytest.importorskip(...)`) so they skip cleanly in minimal environments.
+In the standard analysis environment (with `hist`, `pandas`, etc. installed), those tests execute normally.
+
+## Practical debugging tips
+
+- If a background is unexpectedly empty, verify `hh_vars.samples_run3[year]` includes that background key and selectors match on-disk naming for that era.
+- For per-era failures, inspect `src/HH4b/postprocessing/templates_<YEAR>.out` first.
+- When adding new eras, keep `hh_vars.years`, `samples_run3`, `LUMI`, and postprocessing HLT/correction fallbacks consistent.
