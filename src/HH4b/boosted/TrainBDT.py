@@ -59,16 +59,19 @@ txbb_preselection = {
     "bbFatJetPNetTXbb": 0.3,
     "bbFatJetPNetTXbbLegacy": 0.8,
     "bbFatJetParTTXbb": 0.3,
+    "bbFatJetParT3TXbb": 0.3,
 }
 msd1_preselection = {
     "bbFatJetPNetTXbb": 40,
     "bbFatJetPNetTXbbLegacy": 40,
     "bbFatJetParTTXbb": 40,
+    "bbFatJetParT3TXbb": 40,
 }
 msd2_preselection = {
     "bbFatJetPNetTXbb": 30,
     "bbFatJetPNetTXbbLegacy": 0,
     "bbFatJetParTTXbb": 30,
+    "bbFatJetParT3TXbb": 30,
 }
 
 control_plot_vars = [
@@ -1349,7 +1352,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--txbb",
-        choices=["pnet-v12", "pnet-legacy", "glopart-v2"],
+        choices=["pnet-v12", "pnet-legacy", "glopart-v2", "glopart-v3"],
         help="txbb version to be used for cuts and txbb performance comparison",
         required=True,
     )
@@ -1392,6 +1395,7 @@ if __name__ == "__main__":
         "pnet-v12": "bbFatJetPNetTXbb",
         "pnet-legacy": "bbFatJetPNetTXbbLegacy",
         "glopart-v2": "bbFatJetParTTXbb",
+        "glopart-v3": "bbFatJetParT3TXbb",
     }[args.txbb]
     args.mass_str = args.mass
 

@@ -978,7 +978,7 @@ def load_process_run3_samples(
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "pnet-v12"]:
+        elif args.txbb in ["glopart-v2", "glopart-v3", "pnet-v12"]:
             txbb_presel = 0.3
 
         for jshift in jshifts:
@@ -1484,6 +1484,10 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         txbb_label = "PNet 103X"
     elif txbb_version == "glopart-v2":
         txbb_label = "GloParTv2"
+    elif txbb_version == "glopart-v3":
+        txbb_label = "GloParTv3"
+    else:
+        txbb_label = txbb_version
 
     control_plot_vars = [
         ShapeVar(var="bdt_score", label=r"BDT score ggF", bins=[30, 0, 1], blind_window=[0.8, 1.0]),
@@ -1780,6 +1784,10 @@ def postprocess_run3(args):
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
+    # for glopart-v3, reuse the glopart-v2 windows
+    elif args.txbb == "glopart-v3":
+        fom_window_by_mass["H2PNetMass"] = [110, 155]
+        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
     mass_window = np.array(fom_window_by_mass[args.mass])
 
@@ -2220,7 +2228,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="glopart-v2",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     parser.add_argument(
