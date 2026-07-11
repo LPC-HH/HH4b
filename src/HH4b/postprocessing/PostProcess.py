@@ -21,6 +21,7 @@ import uproot
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b.eventlist_manifest import write_eventlist_manifest
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -67,19 +68,6 @@ mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
-
-# modify samples run3
-for year in samples_run3:
-    samples_run3[year]["qcd"] = [
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
-        # "QCD_HT-200to400",
-        "QCD_HT-400to600",
-        "QCD_HT-600to800",
-        "QCD_HT-800to1000",
-    ]
 
 selection_regions = {
     "pass_vbf": Region(
@@ -510,7 +498,31 @@ def load_process_run3_samples(
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
-    if not control_plots and not args.bdt_roc:
+
+    # MC fallback and luminosity scaling for years without dedicated MC (e.g. 2025).
+    # We split 2024 MC 50/50: half for 2024 templates, half for 2025 templates.
+    # Split is deterministic via (run + luminosityBlock + event) % 2.
+    mc_fallback_year = None
+    mc_lumi_scale = 1.0
+    mc_split_half = None  # 0 = use for 2024, 1 = use for 2025
+    if year == "2025":
+        # 2025 has no MC: use 2024 MC (other half), scale yields to 2025 lumi.
+        mc_fallback_year = "2024"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # LUMI SCALING: MC weights are norm'd to source-year lumi; multiply by target/source
+        # to get yields appropriate for 2025.
+        mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
+        mc_split_half = 1  # use events with (run+lumi+evt)%2 == 1
+        samples_year = [hh_vars.data_key] + [
+            k for k in samples_run3[mc_fallback_year] if k != hh_vars.data_key
+        ]
+    elif year == "2024":
+        # Use half of 2024 MC for 2024 templates; the other half is reserved for 2025.
+        mc_split_half = 0  # use events with (run+lumi+evt)%2 == 0
+
+    if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
@@ -525,11 +537,15 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
-        samples_to_process = {year: {key: samples_run3[year][key]}}
+        source_year = year
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            source_year = mc_fallback_year
+
+        samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
-            year,
+            source_year,
             samples_to_process,
             reorder_txbb=True,
             load_systematics=True,
@@ -538,6 +554,39 @@ def load_process_run3_samples(
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
         )[key]
+
+        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
+        if mc_split_half is not None and key != hh_vars.data_key:
+            run_ = events_dict["run"].to_numpy().squeeze()
+            lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
+            evt_ = events_dict["event"].to_numpy().squeeze()
+            # Avoid overflow: (a+b+c)%2 = (a%2 + b%2 + c%2)%2
+            mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
+            events_dict = events_dict.loc[mask].copy()
+
+            # LUMI SCALING (2024): we keep half the events; scale weights by 2 so that
+            # the total weighted yield matches full 2024 MC (i.e. full 2024 lumi).
+            if year == "2024":
+                weight_cols = [
+                    col
+                    for col in events_dict.columns.get_level_values(0).unique()
+                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                    or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+                ]
+                for col in weight_cols:
+                    events_dict[col] = events_dict[col] * 2.0
+
+        # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
+        # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            weight_cols = []
+            for col in events_dict.columns.get_level_values(0).unique():
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
+                    col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)
+                ):
+                    weight_cols.append(col)
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * mc_lumi_scale
 
         # inference and assign score
         jshifts = [""]
@@ -595,6 +644,7 @@ def load_process_run3_samples(
 
         # remove duplicates
         bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        nevents = len(bdt_events.index)
 
         # add more variables for control plots
         # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
@@ -645,18 +695,37 @@ def load_process_run3_samples(
         more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
         # scale, pdf weights
         if key in hh_vars.sig_keys + ["ttbar"]:
-            more_vars.update(
-                {f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy() for i in range(6)}
-            )
+            scale_np = events_dict["scale_weights"].to_numpy()
+            more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
         n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            pdf_np = events_dict["pdf_weights"].to_numpy()
+            more_vars.update(
+                {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
+            )
+            kl, k2v = _parse_signal_couplings(key)
             more_vars.update(
                 {
-                    f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
-                    for i in range(n_pdf_weights)
+                    "kl": np.full(nevents, kl),
+                    "k2v": np.full(nevents, k2v),
                 }
             )
+            for source, target in [
+                ("single_weight_genweight", "genWeight"),
+                ("lumiwgt", "lumiwgt"),
+                ("xsecWeight", "xsecWeight"),
+            ]:
+                values = _get_column_array(events_dict, source)
+                if values is not None:
+                    more_vars[target] = values
+            for column in ["Pt", "Eta", "Phi", "Mass"]:
+                source = f"GenHiggs{column}"
+                first = _get_indexed_column_array(events_dict, source, 0)
+                second = _get_indexed_column_array(events_dict, source, 1)
+                if first is not None and second is not None:
+                    more_vars[f"{source}1"] = first
+                    more_vars[f"{source}2"] = second
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -678,8 +747,6 @@ def load_process_run3_samples(
                 "luminosityBlock": events_dict["luminosityBlock"].squeeze(),
             }
         )
-
-        nevents = len(bdt_events["H1Pt"])
 
         # triggerWeights
         trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
@@ -911,7 +978,7 @@ def load_process_run3_samples(
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "pnet-v12"]:
+        elif args.txbb in ["glopart-v2", "glopart-v3", "pnet-v12"]:
             txbb_presel = 0.3
 
         for jshift in jshifts:
@@ -1081,6 +1148,21 @@ def load_process_run3_samples(
         if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
+            columns += [
+                "lumiwgt",
+                "xsecWeight",
+                "genWeight",
+                "kl",
+                "k2v",
+                "GenHiggsPt1",
+                "GenHiggsEta1",
+                "GenHiggsPhi1",
+                "GenHiggsMass1",
+                "GenHiggsPt2",
+                "GenHiggsEta2",
+                "GenHiggsPhi2",
+                "GenHiggsMass2",
+            ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         columns = list(set(columns))
@@ -1402,6 +1484,10 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         txbb_label = "PNet 103X"
     elif txbb_version == "glopart-v2":
         txbb_label = "GloParTv2"
+    elif txbb_version == "glopart-v3":
+        txbb_label = "GloParTv3"
+    else:
+        txbb_label = txbb_version
 
     control_plot_vars = [
         ShapeVar(var="bdt_score", label=r"BDT score ggF", bins=[30, 0, 1], blind_window=[0.8, 1.0]),
@@ -1547,6 +1633,135 @@ def abcd(
     return s, background, dmt
 
 
+def _compute_all_hist_samples(
+    sample_keys: list[str],
+    sig_keys: list[str],
+    weight_shifts: dict,
+) -> list[str]:
+    """Pre-compute all histogram sample names including weight-shift variations.
+
+    Used for per-sample template generation so all calls share the same StrCategory
+    axis, enabling histogram accumulation via addition.
+    """
+    hist_samples = list(sample_keys)
+    for shift in ["down", "up"]:
+        for sig_key in sig_keys:
+            hist_samples.append(f"{sig_key}_txbb_{shift}")
+        for wshift, wsyst in weight_shifts.items():
+            for wsample in wsyst.samples:
+                if wsample in sample_keys:
+                    hist_samples.append(f"{wsample}_{wshift}_{shift}")
+    return hist_samples
+
+
+EVENTLIST_BASE_COLUMNS = [
+    "event",
+    "bdt_score",
+    "bdt_score_vbf",
+    "H2TXbb",
+    "H2Msd",
+    "run",
+    "Category",
+    "H2PNetMass",
+    "luminosityBlock",
+]
+
+
+def _decode_coupling_value(value: str) -> float:
+    if value.startswith("m"):
+        sign = -1.0
+        value = value[1:]
+    else:
+        sign = 1.0
+    return sign * float(value.replace("p", "."))
+
+
+def _parse_signal_couplings(sample_key: str) -> tuple[float, float]:
+    if sample_key.startswith("hh4b"):
+        if "-kl" in sample_key:
+            return _decode_coupling_value(sample_key.split("-kl", 1)[1]), 1.0
+        return 1.0, 1.0
+
+    if sample_key.startswith("vbfhh4b"):
+        kl = 1.0
+        k2v = 1.0
+        for token in sample_key.split("-")[1:]:
+            if token.startswith("k2v"):
+                k2v = _decode_coupling_value(token.removeprefix("k2v"))
+            elif token.startswith("kl"):
+                kl = _decode_coupling_value(token.removeprefix("kl"))
+        return kl, k2v
+
+    raise ValueError(f"Unsupported signal key for coupling parsing: {sample_key}")
+
+
+def _get_column_array(events: pd.DataFrame, column: str) -> np.ndarray | None:
+    for key in (column, (column, 0)):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _get_indexed_column_array(events: pd.DataFrame, column: str, index: int) -> np.ndarray | None:
+    for key in ((column, index), f"{column}{index + 1}"):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
+    gen_higgs = {}
+    for kin in ["Pt", "Eta", "Phi", "Mass"]:
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, f"GenHiggs{kin}", idx)
+            if values is None:
+                return
+            gen_higgs[f"GenHiggs{kin}{idx + 1}"] = values
+
+    higgs1_leads = gen_higgs["GenHiggsPt1"] >= gen_higgs["GenHiggsPt2"]
+    ordered_columns = {}
+    for kin, first, second in [
+        ("pt", "GenHiggsPt1", "GenHiggsPt2"),
+        ("eta", "GenHiggsEta1", "GenHiggsEta2"),
+        ("phi", "GenHiggsPhi1", "GenHiggsPhi2"),
+        ("m", "GenHiggsMass1", "GenHiggsMass2"),
+    ]:
+        first_values = gen_higgs[first]
+        second_values = gen_higgs[second]
+        ordered_columns[f"genp_H1_FC_{kin}"] = np.where(higgs1_leads, first_values, second_values)
+        ordered_columns[f"genp_H2_FC_{kin}"] = np.where(higgs1_leads, second_values, first_values)
+
+    for column in [
+        "genp_H1_FC_pt",
+        "genp_H1_FC_eta",
+        "genp_H1_FC_phi",
+        "genp_H1_FC_m",
+        "genp_H2_FC_pt",
+        "genp_H2_FC_eta",
+        "genp_H2_FC_phi",
+        "genp_H2_FC_m",
+    ]:
+        event_list[column] = ordered_columns[column]
+
+
+def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str) -> pd.DataFrame:
+    event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
+    categories = tree_df["Category"].to_numpy()
+    event_list["ggf_category"] = np.where(np.isin(categories, [1, 2, 3]), categories, 0)
+    event_list["VBF_CATEGORY"] = categories == 0
+
+    if key in hh_vars.sig_keys:
+        for column in ["lumiwgt", "xsecWeight", "genWeight", "kl", "k2v"]:
+            if column in tree_df.columns:
+                event_list[column] = tree_df[column].to_numpy()
+        _add_ordered_gen_higgs_columns(event_list, tree_df)
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, "GenHiggsMass", idx)
+            if values is not None:
+                event_list[f"GenHiggsMass{idx + 1}"] = values
+    return event_list
+
+
 def postprocess_run3(args):
     global bg_keys  # noqa: PLW0602
 
@@ -1569,6 +1784,10 @@ def postprocess_run3(args):
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
+    # for glopart-v3, reuse the glopart-v2 windows
+    elif args.txbb == "glopart-v3":
+        fom_window_by_mass["H2PNetMass"] = [110, 155]
+        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
     mass_window = np.array(fom_window_by_mass[args.mass])
 
@@ -1652,7 +1871,9 @@ def postprocess_run3(args):
         )
         print("Combined years")
     else:
-        events_combined = events_dict_postprocess[args.years[0]]
+        # Shallow copy so per-sample deletion in the template loop does not affect
+        # events_dict_postprocess (needed by the event_list section below).
+        events_combined = dict(events_dict_postprocess[args.years[0]])
         scaled_by = {}
     if args.control_plots:
         # quick fix: '2024' is only stand-in, plots all combined events
@@ -1832,65 +2053,14 @@ def postprocess_run3(args):
         cutflow_combined = cutflow_combined.round(4)
         cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
 
-    if not args.templates:
-        return
-
-    if not args.vbf:
-        selection_regions.pop("pass_vbf")
-
-    # individual templates per year
-    for year in args.years:
-        templates = {}
-        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
-            events_by_year = {}
-            for sample, events in events_combined.items():
-                events_by_year[sample] = events[events["year"] == year]
-            ttemps = postprocessing.get_templates(
-                events_by_year,
-                year=year,
-                sig_keys=args.sig_keys,
-                plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                selection_regions=selection_regions,
-                shape_vars=[fit_shape_var],
-                systematics={},
-                template_dir=templ_dir,
-                bg_keys=bg_keys_combined,
-                plot_dir=Path(f"{templ_dir}/{year}"),
-                weight_key="weight",
-                weight_shifts=weight_shifts,
-                plot_shifts=False,  # skip for time
-                show=False,
-                energy=13.6,
-                jshift=jshift,
-                blind=args.blind,
-            )
-            templates = {**templates, **ttemps}
-
-        # save templates per year
-        postprocessing.save_templates(
-            templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
-        )
     if args.event_list:
-
-        eventlist_dict = [
-            "event",
-            "bdt_score",
-            "bdt_score_vbf",
-            "H2TXbb",
-            "H2Msd",
-            "run",
-            "Category",
-            "H2PNetMass",
-            "luminosityBlock",
-        ]
-
         eventlist_folder = args.event_list_dir
         Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
 
         for year, year_dict in events_dict_postprocess.items():
             for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = tree_df[eventlist_dict]
+                    event_list = _build_event_list_frame(tree_df, key=key)
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 
                     # Define the ROOT file path
@@ -1906,6 +2076,67 @@ def postprocess_run3(args):
                         with uproot.recreate(file_path) as file:
                             file[key] = array_to_save  # Create the first tree
 
+        write_eventlist_manifest(
+            Path(eventlist_folder) / "eventlist_manifest.json",
+            args,
+            mass_window,
+        )
+
+    if not args.templates:
+        return
+
+    if not args.vbf:
+        selection_regions.pop("pass_vbf")
+
+    # individual templates per year, processed one sample at a time to reduce peak memory
+    for year in args.years:
+        all_hist_samples = _compute_all_hist_samples(
+            list(events_combined.keys()), args.sig_keys, weight_shifts
+        )
+        templates = {}
+        sample_keys = list(events_combined.keys())
+        for sample_key in sample_keys:
+            print(f"Creating templates for sample: {sample_key}")
+            for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
+                events_by_year = {
+                    sample_key: events_combined[sample_key][
+                        events_combined[sample_key]["year"] == year
+                    ]
+                }
+                ttemps = postprocessing.get_templates(
+                    events_by_year,
+                    year=year,
+                    sig_keys=args.sig_keys,
+                    plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+                    selection_regions=selection_regions,
+                    shape_vars=[fit_shape_var],
+                    systematics={},
+                    # skip per-region cutflow CSVs during per-sample calls (partial data)
+                    template_dir="",
+                    bg_keys=bg_keys_combined,
+                    plot_dir="",
+                    weight_key="weight",
+                    weight_shifts=weight_shifts,
+                    plot_shifts=False,
+                    show=False,
+                    energy=13.6,
+                    jshift=jshift,
+                    blind=args.blind,
+                    all_hist_samples=all_hist_samples,
+                )
+                # Accumulate: add per-sample histograms (axes match via all_hist_samples)
+                for key, h in ttemps.items():
+                    if key not in templates:
+                        templates[key] = h
+                    else:
+                        templates[key] = templates[key] + h
+            # Free this sample's dataframe to reduce memory usage
+            del events_combined[sample_key]
+
+        # save templates per year
+        postprocessing.save_templates(
+            templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
+        )
     # combined templates
     # skip for time
     """
@@ -1997,7 +2228,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="glopart-v2",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     parser.add_argument(
