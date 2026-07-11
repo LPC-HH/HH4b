@@ -21,9 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the pinned analysis stack (numpy 1.23.5, coffea 0.7.21, xgboost 2.0.3)
-        # supports CPython 3.8-3.11; 3.10 is the analysis environment
-        python-version: ["3.10", "3.11"]
+        # CI mirrors the analysis environment: the pinned stack is effectively
+        # CPython 3.10-only (correctionlib 2.2.2 ships no 3.11+ wheels); re-add
+        # newer Pythons if/when the correctionlib pin is bumped
+        python-version: ["3.10"]
         runs-on: [ubuntu-latest]
 
     steps:
