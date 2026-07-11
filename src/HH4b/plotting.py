@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import mplhep as hep
 import numpy as np
-from hepdata_lib import Submission, Table, Uncertainty, Variable
-from hepdata_lib.hist_utils import read_hist
 from hist import Hist
 from hist.intervals import poisson_interval, ratio_uncertainty
 from matplotlib.ticker import MaxNLocator
@@ -271,6 +269,95 @@ def sigErrRatioPlot(
     rax.grid(axis="y")
 
     plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def jmsJmrComparisonPlot(
+    variations: dict,
+    jms_values: dict,
+    jmr_values: dict,
+    title: str = None,
+    xlabel: str = r"$m^\mathrm{reg}_{2}$ [GeV]",
+    ylabel: str = "Signal Yield",
+    original: Hist = None,
+    plot_dir: str = None,
+    name: str = None,
+    show: bool = False,
+    xlim: list = None,
+):
+    """Three-panel comparison of JMS/JMR mass-morphed templates.
+
+    Panel 1 overlays the nominal (and optionally a raw ``original`` JMS=1/JMR=1)
+    template; panels 2 and 3 show the JMS and JMR up/down variations.
+
+    Args:
+        variations: output of ``postprocessing.compute_jmsr_variations`` (keys
+            ``nominal``, ``jms_up``, ``jms_down``, ``jmr_up``, ``jmr_down``).
+        jms_values, jmr_values: ``{"nom","up","down"}`` scale/resolution values,
+            used only for the legend labels.
+        original: optional raw (JMS=1, JMR=1) template to overlay in panel 1.
+    """
+    nominal = variations["nominal"]
+    edges = nominal.axes[0].edges
+    ymax = np.max(nominal.values()) * 1.4
+
+    plt.figure(figsize=(21, 7))
+    ax1 = plt.subplot(131)
+    if original is not None:
+        hep.histplot(
+            original.values(),
+            edges,
+            yerr=np.sqrt(original.variances()),
+            histtype="step",
+            label="Original (JMS=1, JMR=1)",
+            ax=ax1,
+        )
+    hep.histplot(
+        nominal.values(),
+        edges,
+        yerr=np.sqrt(nominal.variances()),
+        histtype="step",
+        label=f"Nominal (JMS={jms_values['nom']}, JMR={jmr_values['nom']})",
+        ax=ax1,
+    )
+
+    ax2 = plt.subplot(132, sharey=ax1)
+    for key, scale in [("jms_down", jms_values["down"]), ("jms_up", jms_values["up"])]:
+        hep.histplot(
+            variations[key].values(),
+            edges,
+            yerr=np.sqrt(variations[key].variances()),
+            histtype="step",
+            label=f"{key.replace('_', ' ').upper()} (JMS={scale})",
+            ax=ax2,
+        )
+
+    ax3 = plt.subplot(133, sharey=ax1)
+    for key, smear in [("jmr_down", jmr_values["down"]), ("jmr_up", jmr_values["up"])]:
+        hep.histplot(
+            variations[key].values(),
+            edges,
+            yerr=np.sqrt(variations[key].variances()),
+            histtype="step",
+            label=f"{key.replace('_', ' ').upper()} (JMR={smear})",
+            ax=ax3,
+        )
+
+    for ax in [ax1, ax2, ax3]:
+        ax.legend(fontsize=18)
+        ax.set_ylim(0, ymax)
+        if xlim is not None:
+            ax.set_xlim(*xlim)
+        ax.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if title is not None:
+        ax2.set_title(title)
+
+    if plot_dir is not None and name is not None:
+        plt.savefig(f"{plot_dir}/{name}.pdf", bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -791,7 +878,7 @@ def ratioHistPlot(
                 xerr=False,
                 elinewidth=2,
                 capsize=0,
-                label="Prefit",
+                label="Pre-fit",
             )
 
         hep.histplot(
@@ -804,7 +891,7 @@ def ratioHistPlot(
             color="black",
             xerr=False,
             capsize=0,
-            label="Postfit",
+            label="Post-fit",
         )
         rax.set_xlabel(hists.axes[1].label)
 
@@ -962,6 +1049,15 @@ def ratioHistPlot(
         plt.close()
 
     if hepdata:
+        # hepdata_lib is only needed for HEPData export; keep it out of the import path
+        from hepdata_lib import (  # noqa: PLC0415
+            Submission,
+            Table,
+            Uncertainty,
+            Variable,
+        )
+        from hepdata_lib.hist_utils import read_hist  # noqa: PLC0415
+
         submission = Submission()
         tab = {}
         labels = {}
@@ -1014,8 +1110,47 @@ def ratioHistPlot(
             var.add_qualifier("SQRT(S)", 13.6, "TeV")
             var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
 
+        var = Variable("Data/Pred, Post-fit", is_independent=False, is_binned=False, units="A.U.")
+        var.values = yvalue
+        unc = Uncertainty("stat.", is_symmetric=False)
+        unc.values = zip(yerr[0] - yvalue, yerr[1] - yvalue)
+        var.add_uncertainty(unc)
+        if bg_err is not None:
+            unc = Uncertainty("syst.", is_symmetric=False)
+            unc.values = zip(
+                (bg_err[0].values() / bg_tot.values() - 1).tolist(),
+                (bg_err[1].values() / bg_tot.values() - 1).tolist(),
+            )
+            var.add_uncertainty(unc)
+        var.add_qualifier("SQRT(S)", 13.6, "TeV")
+        var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
+        tab1d.add_variable(var)
+
+        if prefit_hists:
+            var = Variable(
+                "Data/Pred, Pre-fit", is_independent=False, is_binned=False, units="A.U."
+            )
+            var.values = yvalue_prefit
+            unc = Uncertainty("stat.", is_symmetric=False)
+            unc.values = zip(yerr_prefit[0] - yvalue_prefit, yerr_prefit[1] - yvalue_prefit)
+            var.add_uncertainty(unc)
+            var.add_qualifier("SQRT(S)", 13.6, "TeV")
+            var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
+            tab1d.add_variable(var)
+
+        if add_pull:
+            var = Variable(
+                r"$\frac{Data - Pred}{\sigma_{Data}}$",
+                is_independent=False,
+                is_binned=False,
+                units="A.U.",
+            )
+            var.values = yhist
+            var.add_qualifier("SQRT(S)", 13.6, "TeV")
+            var.add_qualifier("LUMINOSITY", 62, "fb$^{-1}$")
+            tab1d.add_variable(var)
+
         tab1d.keywords["observables"] = ["N"]
-        tab1d.keywords["xnames"] = ["M"]
         tab1d.keywords["reactions"] = [
             "P P --> H H",
         ]

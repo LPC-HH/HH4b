@@ -18,6 +18,7 @@ from HH4b.hh_vars import (
     bg_keys,
     data_key,
     jec_shifts,
+    jecs,
     jmsr,
     jmsr_keys,
     jmsr_res,
@@ -68,8 +69,13 @@ HLTs = {
     ],
     "2024": [
         "AK8PFJet230_SoftDropMass40_PNetBB0p06",
-        "AK8PFJet400_SoftDropMass40",
-        "AK8PFJet425_SoftDropMass40",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
+    ],
+    "2025": [
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
     ],
 }
 
@@ -125,6 +131,15 @@ columns_to_load = {
         ("bbFatJetParTPQCD2HF", 2),
         ("bbFatJetrawFactor", 2),
     ],
+    # ParT v3 ntuples (used with txbb_version='glopart-v3'):
+    # use ParT3 TXbb and X2p mass branch
+    "glopart-v3": columns_to_load_default
+    + [
+        ("bbFatJetParT3TXbb", 2),
+        ("bbFatJetParT3PXbb", 2),
+        ("bbFatJetParT3massX2p", 2),
+        ("bbFatJetrawFactor", 2),
+    ],
 }
 
 filters_to_apply = {
@@ -149,6 +164,13 @@ filters_to_apply = {
         ],
     ],
     "glopart-v2": [
+        [
+            ("('bbFatJetPt', '0')", ">=", 250),
+            ("('bbFatJetPt', '1')", ">=", 250),
+        ],
+    ],
+    # ParT v3: same pT preselection as v2
+    "glopart-v3": [
         [
             ("('bbFatJetPt', '0')", ">=", 250),
             ("('bbFatJetPt', '1')", ">=", 250),
@@ -186,12 +208,22 @@ load_columns_ttbar = [
 load_columns_ggf = [
     ("scale_weights", 6),
     ("pdf_weights", 103),
+    ("single_weight_genweight", 1),
+    ("GenHiggsPt", 2),
+    ("GenHiggsEta", 2),
+    ("GenHiggsPhi", 2),
+    ("GenHiggsMass", 2),
 ]
 
 # load scale and pdf weights for vbf signal (missing alpha_s variations)
 load_columns_vbf = [
     ("scale_weights", 6),
     ("pdf_weights", 101),
+    ("single_weight_genweight", 1),
+    ("GenHiggsPt", 2),
+    ("GenHiggsEta", 2),
+    ("GenHiggsPhi", 2),
+    ("GenHiggsMass", 2),
 ]
 
 # only the BG MC samples that are used in the fits
@@ -273,6 +305,130 @@ def get_weight_shifts(txbb_version: str, bdt_version: str):
     return weight_shifts
 
 
+def _sum_over_years(templates: dict[str, dict[str, Hist]], years: list[str], key: str) -> Hist:
+    """Sum ``templates[year][key]`` over ``years``, tolerating per-year Sample-axis
+    differences. The Sample axes are unioned (preserving first-seen order); each year
+    is realigned to that union with missing samples zero-filled (so a sample present
+    only in some years, e.g. ``qcd`` absent from 2024/2025, sums over the years that
+    have it). Mismatched non-Sample axes (e.g. binning) still raise via the sum."""
+    hists = [templates[year][key] for year in years]
+
+    union = list(hists[0].axes[0])
+    seen = set(union)
+    for h in hists[1:]:
+        for sample in h.axes[0]:
+            if sample not in seen:
+                seen.add(sample)
+                union.append(sample)
+
+    aligned = [
+        h if list(h.axes[0]) == union else utils.align_sample_axis(h, union, fill_missing=True)
+        for h in hists
+    ]
+    return sum(aligned)
+
+
+def combine_templates(
+    templates: dict[str, dict[str, Hist]],
+    years: list[str],
+    region: str,
+    shift: str | None = None,
+) -> Hist:
+    """Sum a region's per-year templates into a single plot-ready histogram.
+
+    Weight-based systematics are stored as ``{sample}_{shift}_{up,down}`` Sample
+    categories inside the nominal histogram, so for those (and for the nominal,
+    ``shift=None``) this just sums across ``years``.
+
+    JEC/JMSR systematics (``shift`` in ``jecs`` or ``jmsr``) live in separate
+    per-year histograms keyed ``{region}_{shift}_{up,down}``; those are summed
+    across years, their samples renamed to ``{sample}_{shift}_{up,down}``, and
+    concatenated onto the nominal histogram so that ``plotting.sigErrRatioPlot``
+    can find the up/down categories.
+    """
+    nominal = _sum_over_years(templates, years, region)
+
+    if shift is None or (shift not in jecs and shift not in jmsr):
+        return nominal
+
+    combined = [nominal]
+    for direction in ["up", "down"]:
+        shifted = _sum_over_years(templates, years, f"{region}_{shift}_{direction}")
+        combined.append(utils.rename_sample_axis(shifted, f"_{shift}_{direction}"))
+
+    return utils.combine_hists(*combined)
+
+
+def shift_available(
+    templates: dict[str, dict[str, Hist]],
+    years: list[str],
+    region: str,
+    shift: str,
+    sample: str,
+) -> bool:
+    """Whether ``combine_templates`` can build ``shift`` for ``region``/``sample``.
+
+    JEC/JMSR shifts need ``{region}_{shift}_{up,down}`` histograms present for every
+    year; weight shifts need the ``{sample}_{shift}_{up,down}`` Sample categories in
+    the nominal histogram. Lets a driver skip systematics absent from a template set
+    (e.g. a JES variation that was never produced).
+    """
+    if shift in jecs or shift in jmsr:
+        return all(
+            f"{region}_{shift}_up" in templates[year]
+            and f"{region}_{shift}_down" in templates[year]
+            for year in years
+        )
+    nominal = templates[years[0]][region]
+    return f"{sample}_{shift}_up" in nominal.axes[0]
+
+
+def get_shape_systematics(
+    weight_shifts: dict,
+    sample: str,
+    include_jec: bool = True,
+    include_jmsr: bool = True,
+) -> list[str]:
+    """List the systematic shift names applicable to ``sample`` for shape plots.
+
+    Returns the weight shifts whose ``samples`` include ``sample``, followed by
+    the JEC and/or JMSR shift names.
+    """
+    shifts = [wshift for wshift, wsyst in weight_shifts.items() if sample in wsyst.samples]
+    if include_jec:
+        shifts += list(jecs)
+    if include_jmsr:
+        shifts += list(jmsr)
+    return shifts
+
+
+def compute_jmsr_variations(
+    templ: Hist,
+    sample_name: str,
+    year: str,
+    mass_obs: str = "bbFatJetParTmassVis",
+) -> dict[str, Hist]:
+    """Morph a 1D mass template with the JMS/JMR scale & resolution values.
+
+    Applies ``smorph`` to produce the nominally-smeared template plus the JMS and
+    JMR up/down variations for ``year``, returning a dict keyed ``nominal``,
+    ``jms_up``, ``jms_down``, ``jmr_up``, ``jmr_down``. This is the reusable form
+    of the JMS/JMR morphing cross-check from ``CombineTemplates.ipynb``.
+    """
+    # smorph pulls in rhalphalib (MorphHistW2), which is not a core/CI dependency
+    from HH4b.postprocessing.datacardHelpers import smorph  # noqa: PLC0415
+
+    jms = jmsr_values[mass_obs]["JMS"][year]
+    jmr = jmsr_values[mass_obs]["JMR"][year]
+    return {
+        "nominal": smorph(templ, sample_name, jms["nom"], jmr["nom"]),
+        "jms_up": smorph(templ, sample_name, jms["up"], jmr["nom"]),
+        "jms_down": smorph(templ, sample_name, jms["down"], jmr["nom"]),
+        "jmr_up": smorph(templ, sample_name, jms["nom"], jmr["up"]),
+        "jmr_down": smorph(templ, sample_name, jms["nom"], jmr["down"]),
+    }
+
+
 def load_run3_samples(
     input_dir: str,
     year: str,
@@ -289,7 +445,8 @@ def load_run3_samples(
         "pnet-v12",
         "pnet-legacy",
         "glopart-v2",
-    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2"
+        "glopart-v3",
+    ], "txbb_version parameter must be pnet-v12, pnet-legacy, glopart-v2, glopart-v3"
 
     txbb_str = txbb_strings[txbb_version]
     filters = filters_to_apply[txbb_version]
@@ -297,6 +454,14 @@ def load_run3_samples(
     # Re-instantiate lists to avoid mutating global variables
     load_columns = list(columns_to_load[txbb_version])
     load_columns_systematics = list(load_columns_syst)
+    if txbb_version == "glopart-v3":
+        load_columns_systematics = [
+            (
+                col.replace("bbFatJetParTmassVis", "bbFatJetParT3massX2p"),
+                ncols,
+            )
+            for col, ncols in load_columns_systematics
+        ]
 
     if load_bdt_scores:
         load_columns += [
@@ -662,6 +827,7 @@ def get_templates(
     show: bool = False,
     energy: float = 13.6,
     blind: bool = True,
+    all_hist_samples: list[str] | None = None,
 ) -> dict[str, Hist]:
     """
     (1) Makes histograms for each region in the ``selection_regions`` dictionary,
@@ -708,23 +874,28 @@ def get_templates(
 
         sig_events = {}
         for sig_key in sig_keys:
-            sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
+            if sig_key in events_dict:
+                sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
 
         # set up samples
-        hist_samples = list(events_dict.keys())
+        if all_hist_samples is not None:
+            # Use pre-specified axis so per-sample histograms can be accumulated
+            hist_samples = list(all_hist_samples)
+        else:
+            hist_samples = list(events_dict.keys())
 
-        if not do_jshift:
-            # set up weight-based variations
-            for shift in ["down", "up"]:
-                if pass_region:
-                    for sig_key in sig_keys:
-                        hist_samples.append(f"{sig_key}_txbb_{shift}")
+            if not do_jshift:
+                # set up weight-based variations
+                for shift in ["down", "up"]:
+                    if pass_region:
+                        for sig_key in sig_keys:
+                            hist_samples.append(f"{sig_key}_txbb_{shift}")
 
-                for wshift, wsyst in weight_shifts.items():
-                    # add to the axis even if not applied to this year to make it easier to sum later
-                    for wsample in wsyst.samples:
-                        if wsample in events_dict:
-                            hist_samples.append(f"{wsample}_{wshift}_{shift}")
+                    for wshift, wsyst in weight_shifts.items():
+                        # add to the axis even if not applied to this year to make it easier to sum later
+                        for wsample in wsyst.samples:
+                            if wsample in events_dict:
+                                hist_samples.append(f"{wsample}_{wshift}_{shift}")
 
         # histograms
         h = Hist(
