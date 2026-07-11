@@ -164,8 +164,8 @@ def _get_json_fname(year: str, label: str, region: str):
 def _load_trig_effs(year: str, label: str, region: str):
     year_ = year
     if "2024" in year or "2025" in year:
-        print(f"WARNING: Using 2023 trigger correction for {year}")
-        year_ = "2023"
+        print(f"WARNING: Using 2023BPix trigger efficiencies for {year}")
+        year_ = "2023BPix"
     fname = _get_json_fname(year_, label, region)
     return correctionlib.CorrectionSet.from_file(fname)
 
@@ -174,7 +174,7 @@ def _get_bins(year: str, label: str, region: str) -> dict[str, list[float]]:
     """Extract bins from json file"""
     year_ = year
     if "2024" in year or "2025" in year:
-        year_ = "2023"
+        year_ = "2023BPix"
     fname = _get_json_fname(year_, label, region)
     with Path(fname).open() as f:
         json_dict = json.load(f)
@@ -218,7 +218,7 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
 
     year_ = year
     if "2024" in year or "2025" in year:
-        year_ = "2023"
+        year_ = "2023BPix"
 
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
