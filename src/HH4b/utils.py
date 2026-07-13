@@ -391,27 +391,22 @@ def load_samples(
                 continue
 
             logger.debug(f"Loading {sample}")
+
             try:
                 non_empty_passed_list = []
                 for parquet_file in parquet_path.glob("*.parquet"):
-                    if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(
-                            parquet_file, filters=filters, columns=load_columns
-                        )
+                    # Read with column projection and filters upfront; check empty afterwards.
+                    # Previously the file was read twice: once with no args to test emptiness,
+                    # then again with columns/filters — doubling I/O per file.
+                    df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
+                    if not df_sample.empty:
                         non_empty_passed_list.append(df_sample)
                 events = pd.concat(non_empty_passed_list, ignore_index=True)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error loading {sample}: {e}")
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
-                non_empty_passed_list = []
-                for parquet_file in parquet_path.glob("*.parquet"):
-                    if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(
-                            parquet_file, filters=filters, columns=load_columns
-                        )
-                        non_empty_passed_list.append(df_sample)
-                events = pd.concat(non_empty_passed_list, ignore_index=True)
                 continue
 
             # no events?
