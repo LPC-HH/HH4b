@@ -28,7 +28,7 @@ jobs:
         runs-on: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -46,4 +46,4 @@ jobs:
           --durations=20
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v6.0.0
+        uses: codecov/codecov-action@v7.0.0
