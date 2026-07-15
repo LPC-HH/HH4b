@@ -688,7 +688,7 @@ def combine_run3_samples(
         else:
             combined = pd.concat(
                 [
-                    events_dict_years[year][key].copy()
+                    events_dict_years[year][key]
                     for year in scale_processes[key]
                     if year in years_run3
                 ]
@@ -875,7 +875,9 @@ def get_templates(
         sig_events = {}
         for sig_key in sig_keys:
             if sig_key in events_dict:
-                sig_events[sig_key] = deepcopy(events_dict[sig_key][sel[sig_key]])
+                # Boolean indexing already returns a new DataFrame; deepcopy is redundant
+                # and would recursively copy all underlying numpy arrays.
+                sig_events[sig_key] = events_dict[sig_key][sel[sig_key]]
 
         # set up samples
         if all_hist_samples is not None:

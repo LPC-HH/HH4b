@@ -5,6 +5,7 @@ import importlib
 import logging
 import logging.config
 import pprint
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
@@ -172,6 +173,70 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1] + preds[:, 2]
         )
+
+
+def _build_and_score_bdt_events(
+    events: pd.DataFrame,
+    make_bdt_dataframe,
+    key_map: Callable,
+    rerun_inference: bool,
+    bdt_model,
+    chunk_size: int,
+    weight_ttbar: float,
+    bdt_disc: bool,
+    jshift: str,
+) -> pd.DataFrame:
+    """Build BDT inputs in row chunks to reduce peak memory before inference."""
+    n_events = len(events)
+    if chunk_size <= 0 or n_events <= chunk_size:
+        chunks = [(0, n_events)]
+    else:
+        chunks = [
+            (start, min(start + chunk_size, n_events)) for start in range(0, n_events, chunk_size)
+        ]
+
+    built_chunks: list[pd.DataFrame] = []
+    jlabel = f"_{jshift}" if jshift != "" else ""
+
+    total_chunks = len(chunks)
+    for i, (start, end) in enumerate(chunks, start=1):
+        progress_msg = f"BDT chunk {i}/{total_chunks} for jshift {jshift or 'nominal'}"
+        if sys.stderr.isatty():
+            print(
+                f"\r{progress_msg}",
+                end="" if i < total_chunks else "\n",
+                file=sys.stderr,
+                flush=True,
+            )
+        elif _should_log_chunk_progress(i, total_chunks):
+            logger.info(progress_msg)
+        events_chunk = events.iloc[start:end]
+        bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        if rerun_inference:
+            preds = bdt_model.predict_proba(bdt_chunk)
+            add_bdt_scores(
+                bdt_chunk,
+                preds,
+                jshift,
+                weight_ttbar=weight_ttbar,
+                bdt_disc=bdt_disc,
+            )
+        else:
+            bdt_chunk[f"bdt_score{jlabel}"] = events_chunk[f"bdt_score{jlabel}"]
+            bdt_chunk[f"bdt_score_vbf{jlabel}"] = events_chunk[f"bdt_score_vbf{jlabel}"]
+        built_chunks.append(bdt_chunk)
+
+    if len(built_chunks) == 1:
+        return built_chunks[0]
+    return pd.concat(built_chunks, ignore_index=True)
+
+
+def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
+    """Limit progress logs for redirected output files."""
+    if total_chunks <= 10:
+        return True
+    interval = max(1, total_chunks // 10)
+    return chunk_num == 1 or chunk_num == total_chunks or chunk_num % interval == 0
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -553,7 +618,11 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
-        )[key]
+        )
+        if key not in events_dict:
+            logger.warning(f"Skipping {key}: no events loaded for current selectors")
+            continue
+        events_dict = events_dict[key]
 
         # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
         if mc_split_half is not None and key != hh_vars.data_key:
@@ -598,29 +667,25 @@ def load_process_run3_samples(
 
         logger.info("Add BDT scores")
         bdt_events = {}
+        chunk_size = args.bdt_inference_chunk_size
         for jshift in jshifts:
-            _jshift = f"_{jshift}" if jshift != "" else ""
-            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict, get_var_mapping(jshift)
-            )
             if rerun_inference:
-                print("Re-run inference")
-                preds = bdt_model.predict_proba(bdt_events[jshift])
-                add_bdt_scores(
-                    bdt_events[jshift],
-                    preds,
-                    jshift,
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
+                logger.info("Re-run inference")
             else:
                 # assert bdt_disc is true
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
-                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
-                    f"bdt_score_vbf{_jshift}"
-                ]
+            bdt_events[jshift] = _build_and_score_bdt_events(
+                events_dict,
+                make_bdt_dataframe,
+                get_var_mapping(jshift),
+                rerun_inference=rerun_inference,
+                bdt_model=bdt_model if rerun_inference else None,
+                chunk_size=chunk_size,
+                weight_ttbar=args.weight_ttbar_bdt,
+                bdt_disc=args.bdt_disc,
+                jshift=jshift,
+            )
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -640,10 +705,12 @@ def load_process_run3_samples(
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2dR")] = -1
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2mass")] = -1
 
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-
-        # remove duplicates
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        if len(jshifts) == 1:
+            bdt_events = bdt_events[jshifts[0]]
+        else:
+            bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+            # remove duplicates (shared nominal columns appear in every per-shift DataFrame)
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
         nevents = len(bdt_events.index)
 
         # add more variables for control plots
@@ -753,13 +820,11 @@ def load_process_run3_samples(
             events_dict, key, year, args.txbb, trigger_region, nevents
         )
 
-        # creating new dataframe with all variables
-        # repeatedly allocating new memory for pd.DataFrame is expensive
-        # best to use a dict instead
-        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
-        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
+        # Assign more_vars columns directly to avoid creating intermediate DataFrames.
+        # Some columns (e.g. H1Pt, H2Pt) already exist from bdt_dataframe; skip them.
+        for col, vals in more_vars.items():
+            if col not in bdt_events.columns:
+                bdt_events[col] = vals
 
         # TXbbWeight
         txbb_sf_weight = calculate_txbb_weights(
@@ -783,6 +848,9 @@ def load_process_run3_samples(
             logger.info(f"Keep {fraction}% of {key} for year {year}")
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
+
+        # Release the raw parquet DataFrame; all needed data is now in bdt_events.
+        del events_dict
 
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
@@ -852,26 +920,18 @@ def load_process_run3_samples(
                 stat_up = np.ones(nevents)
                 stat_dn = np.ones(nevents)
                 for ijet in get_jets_for_txbb_sf(key):
+                    # Cache array conversions: same columns are used for nominal/up/dn.
+                    txbb_arr = bdt_events[f"H{ijet}TXbb"].to_numpy()
+                    pt_arr = bdt_events[f"H{ijet}Pt"].to_numpy()
+                    pt_range = TXbb_pt_corr_bins[wp][j : j + 2]
                     nominal *= corrections.restrict_SF(
-                        txbb_sf["nominal"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["nominal"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_up *= corrections.restrict_SF(
-                        txbb_sf["stat_up"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_up"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_dn *= corrections.restrict_SF(
-                        txbb_sf["stat_dn"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_dn"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                 variation_vars.update(
                     {
@@ -967,8 +1027,9 @@ def load_process_run3_samples(
                     "weight_ttbarSF_tau32Down": bdt_events["weight"] * tau32sf_dn / tau32sf,
                 }
             )
-        temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # Assign variation columns directly; all are new so no duplicate guard needed.
+        for col, vals in variation_vars.items():
+            bdt_events[col] = vals
         bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
@@ -991,8 +1052,6 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
-            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
@@ -1165,7 +1224,7 @@ def load_process_run3_samples(
             ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
-        columns = list(set(columns))
+        columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
             bdt_events = bdt_events.rename(
@@ -1532,6 +1591,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
 
     # Find the normalization needed to reweight QCD
     qcd_norm = 1.0
+    available_keys = set(events_dict.keys())
+    control_sig_keys = [k for k in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"] if k in available_keys]
+    control_bg_keys = [k for k in bg_keys if k in available_keys]
 
     hists = {}
     for i, shape_var in enumerate(control_plot_vars):
@@ -1545,8 +1607,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm_tmp = plotting.ratioHistPlot(
                 hists[shape_var.var],
                 year,
-                ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                bg_keys,
+                control_sig_keys,
+                control_bg_keys,
                 name=f"{plot_dir}/control/{year}/{shape_var.var}",
                 show=False,
                 log=True,
@@ -1591,14 +1653,18 @@ def abcd(
     bg_keys_all,
     sig_keys,
 ):
-    bg_keys = bg_keys_all.copy()
+    available_keys = set(events_dict.keys())
+    bg_keys = [k for k in bg_keys_all if k in available_keys]
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
+    sig_keys = [k for k in sig_keys if k in available_keys]
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     s = 0
     for key in sig_keys + ["data"] + bg_keys:
+        if key not in events_dict:
+            continue
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
@@ -1629,7 +1695,7 @@ def abcd(
     # A = B * C / D
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
-    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
+    background = bqcd + bg_tots[0] if bg_keys else bqcd
     return s, background, dmt
 
 
@@ -2323,6 +2389,12 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
+    parser.add_argument(
+        "--bdt-inference-chunk-size",
+        type=int,
+        default=0,
+        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 0)",
+    )
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
