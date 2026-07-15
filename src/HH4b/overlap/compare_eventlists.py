@@ -132,7 +132,6 @@ def main():
 
             trees = [k.split(";")[0] for k in f]
 
-
         print(f"\n=== {year} ===")
         for tree_name in trees:
             r = compare_trees(curr_path, prev_path, tree_name, year, verbose=args.verbose)
