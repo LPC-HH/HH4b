@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 
@@ -30,8 +30,10 @@ classifiers = [
 ]
 dynamic = ["version", "dependencies"]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+# hatchling reads dynamic dependencies via the requirements_txt metadata hook
+# (a [tool.setuptools.dynamic] table is ignored by the hatchling backend)
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
 
 [project.optional-dependencies]
 test = [
@@ -73,6 +75,16 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  "ignore:pkg_resources is deprecated:DeprecationWarning",
+  "ignore:jsonschema.RefResolver is deprecated:DeprecationWarning",
+  "ignore:jsonschema.exceptions.RefResolutionError is deprecated:DeprecationWarning",
+  "ignore::UserWarning:pkg_resources.*",
+  # coffea/uproot import pkg_resources at import time; that DeprecationWarning is
+  # upstream noise (nothing in HH4b triggers it) but would otherwise fail collection
+  # of any test that imports the package under the "error" filter above.
+  "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+  # hepdata_validator triggers jsonschema's deprecation warnings on import
+  "ignore:jsonschema.* is deprecated:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 testpaths = [

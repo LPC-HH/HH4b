@@ -5,6 +5,7 @@ import importlib
 import logging
 import logging.config
 import pprint
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
@@ -21,6 +22,7 @@ import uproot
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b.eventlist_manifest import write_eventlist_manifest
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -67,19 +69,6 @@ mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
-
-# modify samples run3
-for year in samples_run3:
-    samples_run3[year]["qcd"] = [
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
-        # "QCD_HT-200to400",
-        "QCD_HT-400to600",
-        "QCD_HT-600to800",
-        "QCD_HT-800to1000",
-    ]
 
 selection_regions = {
     "pass_vbf": Region(
@@ -184,6 +173,70 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1] + preds[:, 2]
         )
+
+
+def _build_and_score_bdt_events(
+    events: pd.DataFrame,
+    make_bdt_dataframe,
+    key_map: Callable,
+    rerun_inference: bool,
+    bdt_model,
+    chunk_size: int,
+    weight_ttbar: float,
+    bdt_disc: bool,
+    jshift: str,
+) -> pd.DataFrame:
+    """Build BDT inputs in row chunks to reduce peak memory before inference."""
+    n_events = len(events)
+    if chunk_size <= 0 or n_events <= chunk_size:
+        chunks = [(0, n_events)]
+    else:
+        chunks = [
+            (start, min(start + chunk_size, n_events)) for start in range(0, n_events, chunk_size)
+        ]
+
+    built_chunks: list[pd.DataFrame] = []
+    jlabel = f"_{jshift}" if jshift != "" else ""
+
+    total_chunks = len(chunks)
+    for i, (start, end) in enumerate(chunks, start=1):
+        progress_msg = f"BDT chunk {i}/{total_chunks} for jshift {jshift or 'nominal'}"
+        if sys.stderr.isatty():
+            print(
+                f"\r{progress_msg}",
+                end="" if i < total_chunks else "\n",
+                file=sys.stderr,
+                flush=True,
+            )
+        elif _should_log_chunk_progress(i, total_chunks):
+            logger.info(progress_msg)
+        events_chunk = events.iloc[start:end]
+        bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        if rerun_inference:
+            preds = bdt_model.predict_proba(bdt_chunk)
+            add_bdt_scores(
+                bdt_chunk,
+                preds,
+                jshift,
+                weight_ttbar=weight_ttbar,
+                bdt_disc=bdt_disc,
+            )
+        else:
+            bdt_chunk[f"bdt_score{jlabel}"] = events_chunk[f"bdt_score{jlabel}"]
+            bdt_chunk[f"bdt_score_vbf{jlabel}"] = events_chunk[f"bdt_score_vbf{jlabel}"]
+        built_chunks.append(bdt_chunk)
+
+    if len(built_chunks) == 1:
+        return built_chunks[0]
+    return pd.concat(built_chunks, ignore_index=True)
+
+
+def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
+    """Limit progress logs for redirected output files."""
+    if total_chunks <= 10:
+        return True
+    interval = max(1, total_chunks // 10)
+    return chunk_num == 1 or chunk_num == total_chunks or chunk_num % interval == 0
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -510,7 +563,31 @@ def load_process_run3_samples(
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
-    if not control_plots and not args.bdt_roc:
+
+    # MC fallback and luminosity scaling for years without dedicated MC (e.g. 2025).
+    # We split 2024 MC 50/50: half for 2024 templates, half for 2025 templates.
+    # Split is deterministic via (run + luminosityBlock + event) % 2.
+    mc_fallback_year = None
+    mc_lumi_scale = 1.0
+    mc_split_half = None  # 0 = use for 2024, 1 = use for 2025
+    if year == "2025":
+        # 2025 has no MC: use 2024 MC (other half), scale yields to 2025 lumi.
+        mc_fallback_year = "2024"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # LUMI SCALING: MC weights are norm'd to source-year lumi; multiply by target/source
+        # to get yields appropriate for 2025.
+        mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
+        mc_split_half = 1  # use events with (run+lumi+evt)%2 == 1
+        samples_year = [hh_vars.data_key] + [
+            k for k in samples_run3[mc_fallback_year] if k != hh_vars.data_key
+        ]
+    elif year == "2024":
+        # Use half of 2024 MC for 2024 templates; the other half is reserved for 2025.
+        mc_split_half = 0  # use events with (run+lumi+evt)%2 == 0
+
+    if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
@@ -525,11 +602,15 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
-        samples_to_process = {year: {key: samples_run3[year][key]}}
+        source_year = year
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            source_year = mc_fallback_year
+
+        samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
         events_dict = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
-            year,
+            source_year,
             samples_to_process,
             reorder_txbb=True,
             load_systematics=True,
@@ -537,7 +618,44 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
-        )[key]
+        )
+        if key not in events_dict:
+            logger.warning(f"Skipping {key}: no events loaded for current selectors")
+            continue
+        events_dict = events_dict[key]
+
+        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
+        if mc_split_half is not None and key != hh_vars.data_key:
+            run_ = events_dict["run"].to_numpy().squeeze()
+            lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
+            evt_ = events_dict["event"].to_numpy().squeeze()
+            # Avoid overflow: (a+b+c)%2 = (a%2 + b%2 + c%2)%2
+            mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
+            events_dict = events_dict.loc[mask].copy()
+
+            # LUMI SCALING (2024): we keep half the events; scale weights by 2 so that
+            # the total weighted yield matches full 2024 MC (i.e. full 2024 lumi).
+            if year == "2024":
+                weight_cols = [
+                    col
+                    for col in events_dict.columns.get_level_values(0).unique()
+                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                    or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+                ]
+                for col in weight_cols:
+                    events_dict[col] = events_dict[col] * 2.0
+
+        # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
+        # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
+        if mc_fallback_year is not None and key != hh_vars.data_key:
+            weight_cols = []
+            for col in events_dict.columns.get_level_values(0).unique():
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
+                    col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)
+                ):
+                    weight_cols.append(col)
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * mc_lumi_scale
 
         # inference and assign score
         jshifts = [""]
@@ -549,29 +667,25 @@ def load_process_run3_samples(
 
         logger.info("Add BDT scores")
         bdt_events = {}
+        chunk_size = args.bdt_inference_chunk_size
         for jshift in jshifts:
-            _jshift = f"_{jshift}" if jshift != "" else ""
-            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict, get_var_mapping(jshift)
-            )
             if rerun_inference:
-                print("Re-run inference")
-                preds = bdt_model.predict_proba(bdt_events[jshift])
-                add_bdt_scores(
-                    bdt_events[jshift],
-                    preds,
-                    jshift,
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
+                logger.info("Re-run inference")
             else:
                 # assert bdt_disc is true
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
-                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
-                    f"bdt_score_vbf{_jshift}"
-                ]
+            bdt_events[jshift] = _build_and_score_bdt_events(
+                events_dict,
+                make_bdt_dataframe,
+                get_var_mapping(jshift),
+                rerun_inference=rerun_inference,
+                bdt_model=bdt_model if rerun_inference else None,
+                chunk_size=chunk_size,
+                weight_ttbar=args.weight_ttbar_bdt,
+                bdt_disc=args.bdt_disc,
+                jshift=jshift,
+            )
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -591,10 +705,12 @@ def load_process_run3_samples(
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2dR")] = -1
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2mass")] = -1
 
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-
-        # remove duplicates
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        if len(jshifts) == 1:
+            bdt_events = bdt_events[jshifts[0]]
+        else:
+            bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+            # remove duplicates (shared nominal columns appear in every per-shift DataFrame)
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
         nevents = len(bdt_events.index)
 
         # add more variables for control plots
@@ -646,17 +762,14 @@ def load_process_run3_samples(
         more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
         # scale, pdf weights
         if key in hh_vars.sig_keys + ["ttbar"]:
-            more_vars.update(
-                {f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy() for i in range(6)}
-            )
+            scale_np = events_dict["scale_weights"].to_numpy()
+            more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
         n_pdf_weights = 0
         if key in hh_vars.sig_keys:
             n_pdf_weights = events_dict["pdf_weights"].shape[1]
+            pdf_np = events_dict["pdf_weights"].to_numpy()
             more_vars.update(
-                {
-                    f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
-                    for i in range(n_pdf_weights)
-                }
+                {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
             )
             kl, k2v = _parse_signal_couplings(key)
             more_vars.update(
@@ -670,20 +783,16 @@ def load_process_run3_samples(
                 ("lumiwgt", "lumiwgt"),
                 ("xsecWeight", "xsecWeight"),
             ]:
-                if source in events_dict:
-                    more_vars[target] = events_dict[source].squeeze().to_numpy()
+                values = _get_column_array(events_dict, source)
+                if values is not None:
+                    more_vars[target] = values
             for column in ["Pt", "Eta", "Phi", "Mass"]:
                 source = f"GenHiggs{column}"
-                if source in events_dict:
-                    more_vars[f"{source}1"] = events_dict[source][0].to_numpy()
-                    more_vars[f"{source}2"] = events_dict[source][1].to_numpy()
-            if "GenHiggsMass" in events_dict:
-                more_vars.update(
-                    {
-                        "GenHiggsMass1": events_dict["GenHiggsMass"][0].to_numpy(),
-                        "GenHiggsMass2": events_dict["GenHiggsMass"][1].to_numpy(),
-                    }
-                )
+                first = _get_indexed_column_array(events_dict, source, 0)
+                second = _get_indexed_column_array(events_dict, source, 1)
+                if first is not None and second is not None:
+                    more_vars[f"{source}1"] = first
+                    more_vars[f"{source}2"] = second
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -711,13 +820,11 @@ def load_process_run3_samples(
             events_dict, key, year, args.txbb, trigger_region, nevents
         )
 
-        # creating new dataframe with all variables
-        # repeatedly allocating new memory for pd.DataFrame is expensive
-        # best to use a dict instead
-        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
-        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
+        # Assign more_vars columns directly to avoid creating intermediate DataFrames.
+        # Some columns (e.g. H1Pt, H2Pt) already exist from bdt_dataframe; skip them.
+        for col, vals in more_vars.items():
+            if col not in bdt_events.columns:
+                bdt_events[col] = vals
 
         # TXbbWeight
         txbb_sf_weight = calculate_txbb_weights(
@@ -741,6 +848,9 @@ def load_process_run3_samples(
             logger.info(f"Keep {fraction}% of {key} for year {year}")
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
+
+        # Release the raw parquet DataFrame; all needed data is now in bdt_events.
+        del events_dict
 
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
@@ -810,26 +920,18 @@ def load_process_run3_samples(
                 stat_up = np.ones(nevents)
                 stat_dn = np.ones(nevents)
                 for ijet in get_jets_for_txbb_sf(key):
+                    # Cache array conversions: same columns are used for nominal/up/dn.
+                    txbb_arr = bdt_events[f"H{ijet}TXbb"].to_numpy()
+                    pt_arr = bdt_events[f"H{ijet}Pt"].to_numpy()
+                    pt_range = TXbb_pt_corr_bins[wp][j : j + 2]
                     nominal *= corrections.restrict_SF(
-                        txbb_sf["nominal"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["nominal"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_up *= corrections.restrict_SF(
-                        txbb_sf["stat_up"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_up"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_dn *= corrections.restrict_SF(
-                        txbb_sf["stat_dn"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_dn"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                 variation_vars.update(
                     {
@@ -925,8 +1027,9 @@ def load_process_run3_samples(
                     "weight_ttbarSF_tau32Down": bdt_events["weight"] * tau32sf_dn / tau32sf,
                 }
             )
-        temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # Assign variation columns directly; all are new so no duplicate guard needed.
+        for col, vals in variation_vars.items():
+            bdt_events[col] = vals
         bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
@@ -936,7 +1039,7 @@ def load_process_run3_samples(
 
         if args.txbb == "pnet-legacy":
             txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "pnet-v12"]:
+        elif args.txbb in ["glopart-v2", "glopart-v3", "pnet-v12"]:
             txbb_presel = 0.3
 
         for jshift in jshifts:
@@ -949,8 +1052,6 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
-            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
@@ -1123,7 +1224,7 @@ def load_process_run3_samples(
             ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
-        columns = list(set(columns))
+        columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
             bdt_events = bdt_events.rename(
@@ -1442,6 +1543,10 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         txbb_label = "PNet 103X"
     elif txbb_version == "glopart-v2":
         txbb_label = "GloParTv2"
+    elif txbb_version == "glopart-v3":
+        txbb_label = "GloParTv3"
+    else:
+        txbb_label = txbb_version
 
     control_plot_vars = [
         ShapeVar(var="bdt_score", label=r"BDT score ggF", bins=[30, 0, 1], blind_window=[0.8, 1.0]),
@@ -1486,6 +1591,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
 
     # Find the normalization needed to reweight QCD
     qcd_norm = 1.0
+    available_keys = set(events_dict.keys())
+    control_sig_keys = [k for k in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"] if k in available_keys]
+    control_bg_keys = [k for k in bg_keys if k in available_keys]
 
     hists = {}
     for i, shape_var in enumerate(control_plot_vars):
@@ -1499,8 +1607,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm_tmp = plotting.ratioHistPlot(
                 hists[shape_var.var],
                 year,
-                ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                bg_keys,
+                control_sig_keys,
+                control_bg_keys,
                 name=f"{plot_dir}/control/{year}/{shape_var.var}",
                 show=False,
                 log=True,
@@ -1545,14 +1653,18 @@ def abcd(
     bg_keys_all,
     sig_keys,
 ):
-    bg_keys = bg_keys_all.copy()
+    available_keys = set(events_dict.keys())
+    bg_keys = [k for k in bg_keys_all if k in available_keys]
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
+    sig_keys = [k for k in sig_keys if k in available_keys]
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     s = 0
     for key in sig_keys + ["data"] + bg_keys:
+        if key not in events_dict:
+            continue
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
@@ -1583,7 +1695,7 @@ def abcd(
     # A = B * C / D
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
-    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
+    background = bqcd + bg_tots[0] if bg_keys else bqcd
     return s, background, dmt
 
 
@@ -1649,21 +1761,30 @@ def _parse_signal_couplings(sample_key: str) -> tuple[float, float]:
     raise ValueError(f"Unsupported signal key for coupling parsing: {sample_key}")
 
 
-def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
-    required = [
-        "GenHiggsPt1",
-        "GenHiggsEta1",
-        "GenHiggsPhi1",
-        "GenHiggsMass1",
-        "GenHiggsPt2",
-        "GenHiggsEta2",
-        "GenHiggsPhi2",
-        "GenHiggsMass2",
-    ]
-    if any(column not in tree_df.columns for column in required):
-        return
+def _get_column_array(events: pd.DataFrame, column: str) -> np.ndarray | None:
+    for key in (column, (column, 0)):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
 
-    higgs1_leads = tree_df["GenHiggsPt1"].to_numpy() >= tree_df["GenHiggsPt2"].to_numpy()
+
+def _get_indexed_column_array(events: pd.DataFrame, column: str, index: int) -> np.ndarray | None:
+    for key in ((column, index), f"{column}{index + 1}"):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
+    gen_higgs = {}
+    for kin in ["Pt", "Eta", "Phi", "Mass"]:
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, f"GenHiggs{kin}", idx)
+            if values is None:
+                return
+            gen_higgs[f"GenHiggs{kin}{idx + 1}"] = values
+
+    higgs1_leads = gen_higgs["GenHiggsPt1"] >= gen_higgs["GenHiggsPt2"]
     ordered_columns = {}
     for kin, first, second in [
         ("pt", "GenHiggsPt1", "GenHiggsPt2"),
@@ -1671,8 +1792,8 @@ def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFra
         ("phi", "GenHiggsPhi1", "GenHiggsPhi2"),
         ("m", "GenHiggsMass1", "GenHiggsMass2"),
     ]:
-        first_values = tree_df[first].to_numpy()
-        second_values = tree_df[second].to_numpy()
+        first_values = gen_higgs[first]
+        second_values = gen_higgs[second]
         ordered_columns[f"genp_H1_FC_{kin}"] = np.where(higgs1_leads, first_values, second_values)
         ordered_columns[f"genp_H2_FC_{kin}"] = np.where(higgs1_leads, second_values, first_values)
 
@@ -1689,10 +1810,10 @@ def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFra
         event_list[column] = ordered_columns[column]
 
 
-def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str, year: str) -> pd.DataFrame:
+def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str) -> pd.DataFrame:
     event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
     categories = tree_df["Category"].to_numpy()
-    event_list["GGF_CATEGORY"] = np.isin(categories, [1, 2, 3])
+    event_list["ggf_category"] = np.where(np.isin(categories, [1, 2, 3]), categories, 0)
     event_list["VBF_CATEGORY"] = categories == 0
 
     if key in hh_vars.sig_keys:
@@ -1700,9 +1821,10 @@ def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str, year: str) -> pd
             if column in tree_df.columns:
                 event_list[column] = tree_df[column].to_numpy()
         _add_ordered_gen_higgs_columns(event_list, tree_df)
-        for column in ["GenHiggsMass1", "GenHiggsMass2"]:
-            if column in tree_df.columns:
-                event_list[column] = tree_df[column].to_numpy()
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, "GenHiggsMass", idx)
+            if values is not None:
+                event_list[f"GenHiggsMass{idx + 1}"] = values
     return event_list
 
 
@@ -1728,6 +1850,10 @@ def postprocess_run3(args):
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
+    # for glopart-v3, reuse the glopart-v2 windows
+    elif args.txbb == "glopart-v3":
+        fom_window_by_mass["H2PNetMass"] = [110, 155]
+        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
     mass_window = np.array(fom_window_by_mass[args.mass])
 
@@ -2000,7 +2126,7 @@ def postprocess_run3(args):
         for year, year_dict in events_dict_postprocess.items():
             for key, tree_df in year_dict.items():
                 if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = _build_event_list_frame(tree_df, key=key, year=year)
+                    event_list = _build_event_list_frame(tree_df, key=key)
                     array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
 
                     # Define the ROOT file path
@@ -2015,6 +2141,12 @@ def postprocess_run3(args):
                         # File doesn't exist, create a new one
                         with uproot.recreate(file_path) as file:
                             file[key] = array_to_save  # Create the first tree
+
+        write_eventlist_manifest(
+            Path(eventlist_folder) / "eventlist_manifest.json",
+            args,
+            mass_window,
+        )
 
     if not args.templates:
         return
@@ -2162,7 +2294,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="glopart-v2",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     parser.add_argument(
@@ -2257,6 +2389,12 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
+    parser.add_argument(
+        "--bdt-inference-chunk-size",
+        type=int,
+        default=0,
+        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 0)",
+    )
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
