@@ -15,8 +15,8 @@ def parse_arguments():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/ceph/cms/store/user/cmantill/bbbb/skimmer/",
-        help="Data directory",
+        required=True,
+        help="path to skimmer output directory (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)",
     )
     parser.add_argument("--tag", type=str, default="24May24_v12_private_signal", help="Tag")
     parser.add_argument("--years", nargs="+", default=["2022"], help="Years to process")
