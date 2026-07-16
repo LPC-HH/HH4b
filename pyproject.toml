@@ -73,6 +73,11 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  # hepdata_validator uses deprecated jsonschema symbols (jsonschema >= 4.18).
+  # Upstream issue outside our control; suppress to avoid aborting test collection.
+  "ignore:jsonschema.RefResolver is deprecated.*:DeprecationWarning",
+  "ignore:jsonschema.exceptions.RefResolutionError is deprecated.*:DeprecationWarning",
+  "ignore:pkg_resources is deprecated as an API.*:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 testpaths = [
@@ -156,7 +161,15 @@ isort.required-imports = ["from __future__ import annotations"]
 # typing-modules = ["hh4b._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T20"]
+"tests/**" = [
+  "T20",
+  "PLC0415",  # deferred imports inside test functions keep heavy deps out of collection
+  "ARG001",   # mock stubs must match real signatures; unused args are unavoidable
+  "PTH109",   # os.chdir/os.getcwd still needed in tests that need cwd switching
+]
+"scripts/**" = [
+  "PLC0415",  # local imports inside helpers are intentional
+]
 "noxfile.py" = ["T20"]
 
 

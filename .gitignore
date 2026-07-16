@@ -194,3 +194,6 @@ data/nanov15/CMSSW*
 data/nanov15/*.json
 
 *.C
+
+# Integration test fixtures (real data; generate with tests/make_test_data.py)
+tests/fixtures/

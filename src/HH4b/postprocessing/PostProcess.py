@@ -527,7 +527,7 @@ def load_process_run3_samples(
 
         samples_to_process = {year: {key: samples_run3[year][key]}}
 
-        events_dict = load_run3_samples(
+        _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             year,
             samples_to_process,
@@ -537,7 +537,13 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
-        )[key]
+        )
+        if key not in _loaded:
+            logger.warning(
+                f"No directories found for sample '{key}' in {args.data_dir}/{args.tag}/{year} — skipping."
+            )
+            continue
+        events_dict = _loaded[key]
 
         # inference and assign score
         jshifts = [""]
@@ -1874,7 +1880,7 @@ def _save_event_lists(args, events_dict: dict) -> None:
 
 
 def postprocess_run3(args):
-    global bg_keys  # noqa: PLW0602
+    global bg_keys  # noqa: PLW0603
 
     # ── 1. Configure mass windows and fit variable ────────────────────────────
     fom_window_by_mass, blind_window_by_mass = _get_mass_windows(args)
@@ -1896,6 +1902,12 @@ def postprocess_run3(args):
             if "qcd" in lst:
                 lst.remove("qcd")
     print("BKG keys ", bg_keys)
+
+    # Drop any samples that weren't loaded (e.g. directories absent in data_dir).
+    loaded = set(events_dict[args.years[0]])
+    processes = [p for p in processes if p in loaded]
+    bg_keys = [k for k in bg_keys if k in loaded]
+    bg_keys_combined = [k for k in bg_keys_combined if k in loaded]
 
     events_combined, scaled_by, scaled_by_years = _combine_years(
         args, events_dict, processes, bg_keys_combined
