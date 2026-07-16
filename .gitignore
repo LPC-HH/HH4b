@@ -183,6 +183,7 @@ src/HH4b/boosted/**/*.pkl
 src/HH4b/processors/skimmer_plots
 
 running_jobs.txt
+/*.pid
 
 .bashrc
 .condor_config
