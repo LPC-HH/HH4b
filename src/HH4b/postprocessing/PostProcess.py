@@ -1828,39 +1828,27 @@ def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str) -> pd.DataFrame:
     return event_list
 
 
-def postprocess_run3(args):
-    global bg_keys  # noqa: PLW0602
-
-    fom_window_by_mass = {
-        "H2Msd": [110, 140],
+def _get_mass_windows(args) -> tuple[dict, dict]:
+    """Return FoM and blinding windows for the chosen mass variable and tagger."""
+    fom = {"H2Msd": [110, 140]}
+    blind = {"H2Msd": [110, 140]}
+    pnet_windows = {
+        "pnet-legacy": (105, 150, 110, 140),
+        "pnet-v12": (120, 150, 120, 150),
+        "glopart-v2": (110, 155, 110, 140),
+        "glopart-v3": (110, 155, 110, 140),
     }
-    blind_window_by_mass = {
-        "H2Msd": [110, 140],
-    }
+    if args.txbb in pnet_windows:
+        fl, fh, bl, bh = pnet_windows[args.txbb]
+        fom["H2PNetMass"] = [fl, fh]
+        blind["H2PNetMass"] = [bl, bh]
+    return fom, blind
 
-    # use for both pnet-legacy
-    if args.txbb == "pnet-legacy":
-        fom_window_by_mass["H2PNetMass"] = [105, 150]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
-    # different for glopart-v2
-    elif args.txbb == "glopart-v2":
-        fom_window_by_mass["H2PNetMass"] = [110, 155]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
-    # different for pnet-v12
-    elif args.txbb == "pnet-v12":
-        fom_window_by_mass["H2PNetMass"] = [120, 150]
-        blind_window_by_mass["H2PNetMass"] = [120, 150]
-    # for glopart-v3, reuse the glopart-v2 windows
-    elif args.txbb == "glopart-v3":
-        fom_window_by_mass["H2PNetMass"] = [110, 155]
-        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
-    mass_window = np.array(fom_window_by_mass[args.mass])
-
+def _setup_shape_var(args, blind_window_by_mass: dict) -> ShapeVar:
+    """Build the ShapeVar used for template fitting."""
     n_mass_bins = int((220 - 60) / args.mass_bins)
-
-    # variable to fit
-    fit_shape_var = ShapeVar(
+    return ShapeVar(
         args.mass,
         label_by_mass[args.mass],
         [n_mass_bins, 60, 220],
@@ -1868,20 +1856,17 @@ def postprocess_run3(args):
         blind_window=blind_window_by_mass[args.mass],
     )
 
-    # add weight shifts based on xbb and bdt versions
-    weight_shifts = get_weight_shifts(args.txbb, args.bdt_model)
 
-    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
-    plot_dir.mkdir(exist_ok=True, parents=True)
-
-    # load samples
+def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
+    """Load and process per-year parquet samples; return (events_dict, cutflows)."""
     try:
         bdt_training_keys = get_bdt_training_keys(args.bdt_model)
     except FileNotFoundError:
         print("File with training events is not available")
         bdt_training_keys = []
-    events_dict_postprocess = {}
-    cutflows = {}
+
+    events_dict: dict = {}
+    cutflows: dict = {}
     for year in args.years:
         print(f"\n{year}")
         events, cutflow = load_process_run3_samples(
@@ -1893,275 +1878,247 @@ def postprocess_run3(args):
             mass_window,
             args.rerun_inference,
         )
-        events_dict_postprocess[year] = events
+        events_dict[year] = events
         cutflows[year] = cutflow
-
     print("Loaded all years")
+    return events_dict, cutflows
 
-    processes = ["data"] + args.sig_keys + bg_keys
-    bg_keys_combined = bg_keys.copy()
-    if not args.control_plots and not args.bdt_roc:
-        if "qcd" in processes:
-            processes.remove("qcd")
-        if "qcd" in bg_keys:
-            bg_keys.remove("qcd")
-        if "qcd" in bg_keys_combined:
-            bg_keys_combined.remove("qcd")
 
-    print("BKG keys ", bg_keys)
+def _combine_years(
+    args, events_dict: dict, processes: list, bg_keys_combined: list
+) -> tuple[dict, dict, dict]:
+    """Combine per-year DataFrames, scaling MC to the full luminosity of all years.
 
-    if len(args.years) > 1:
-        # list of years available for a given process to scale to full lumi
-        available = [y for y in ["2022", "2022EE", "2023", "2023BPix"] if y in args.years]
-        print(f"WARNING: Using available MC from {available}")
-        scaled_by_years = {
-            "ttbar": available,
-            "novhhtobb": available,
-            "vhtobb": available,
-            "tthtobb": available,
-            "zz": available,
-            "nozzdiboson": available,
-            "vjets": available,
-            "qcd": available,
-        }
-        # add all signals to scale, assume all present in all years
-        for sig_key in args.sig_keys:
-            scaled_by_years.update({sig_key: available})
-
-        events_combined, scaled_by = combine_run3_samples(
-            events_dict_postprocess,
-            processes,
-            bg_keys=bg_keys_combined,
-            scale_processes=scaled_by_years,
-            years_run3=args.years,
-        )
-        print("Combined years")
-    else:
+    Returns (events_combined, scaled_by, scaled_by_years).  When only one year
+    is requested, scaled_by and scaled_by_years are empty dicts.
+    """
+    if len(args.years) == 1:
         # Shallow copy so per-sample deletion in the template loop does not affect
-        # events_dict_postprocess (needed by the event_list section below).
-        events_combined = dict(events_dict_postprocess[args.years[0]])
-        scaled_by = {}
-    if args.control_plots:
-        # quick fix: '2024' is only stand-in, plots all combined events
-        # uses 2022-2013 for scaled MC
-        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
+        # events_dict (needed by the event_list section below).
+        return dict(events_dict[args.years[0]]), {}, {}
 
-    if args.bdt_roc:
-        print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.txbb)
-        # to make ROC curves for JMR variations
-        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_up")
-        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_down")
+    available = [y for y in ["2022", "2022EE", "2023", "2023BPix"] if y in args.years]
+    print(f"WARNING: Using available MC from {available}")
+    scaled_by_years: dict = dict.fromkeys(
+        ["ttbar", "novhhtobb", "vhtobb", "tthtobb", "zz", "nozzdiboson", "vjets", "qcd"], available
+    )
+    for sig_key in args.sig_keys:
+        scaled_by_years[sig_key] = available
 
-    # combined cutflow
-    cutflow_combined = None
-    if len(args.years) > 0:
-        cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+    events_combined, scaled_by = combine_run3_samples(
+        events_dict,
+        processes,
+        bg_keys=bg_keys_combined,
+        scale_processes=scaled_by_years,
+        years_run3=args.years,
+    )
+    print("Combined years")
+    return events_combined, scaled_by, scaled_by_years
 
-        # get ABCD (warning!: not considering VBF region veto)
-        (
-            s_bin1,
-            b_bin1,
-            _,
-        ) = abcd(
-            events_combined,
-            get_cuts(args, "bin1"),
-            get_anti_cuts(args, "bin1"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
-            mass_window,
-            bg_keys,
-            ["hh4b"],
-        )
 
-        _s_binVBF, b_binVBF, _ = abcd(
+def _build_combined_cutflow(
+    args,
+    events_combined: dict,
+    cutflows: dict,
+    scaled_by: dict,
+    scaled_by_years: dict,
+    mass_window,
+    bg_keys: list,
+) -> pd.DataFrame | None:
+    """Compute the combined cutflow table across all years; return None if no years."""
+    if not args.years:
+        return None
+
+    cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+
+    s_bin1, b_bin1, _ = abcd(
+        events_combined,
+        get_cuts(args, "bin1"),
+        get_anti_cuts(args, "bin1"),
+        args.txbb_wps[0],
+        args.bdt_wps[0],
+        args.mass,
+        mass_window,
+        bg_keys,
+        ["hh4b"],
+    )
+    _s_binVBF, b_binVBF, _ = abcd(
+        events_combined,
+        get_cuts(args, "vbf"),
+        get_anti_cuts(args, "vbf"),
+        args.txbb_wps[0],
+        args.bdt_wps[0],
+        args.mass,
+        mass_window,
+        bg_keys,
+        ["hh4b"],
+    )
+
+    year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
+    samples = list(events_combined.keys())
+    for cut in cutflows[year_0]:
+        yield_b = 0
+        for s in samples:
+            if s in scaled_by:
+                cutflow_sample = 0.0
+                for year in args.years:
+                    if (
+                        cut in cutflows[year]
+                        and s in cutflows[year][cut].index
+                        and year in scaled_by_years.get(s, [])
+                    ):
+                        cutflow_sample += cutflows[year][cut].loc[s]
+                cutflow_sample *= scaled_by[s]
+                print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
+            else:
+                cutflow_sample = np.sum(
+                    [
+                        (
+                            cutflows[year][cut].loc[s]
+                            if cut in cutflows[year] and s in cutflows[year][cut].index
+                            else 0.0
+                        )
+                        for year in args.years
+                    ]
+                )
+            if s == "data":
+                yield_b = cutflow_sample
+            cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
+
+        if "VBF [" in cut:
+            cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
+        if "Bin 1 [" in cut and yield_b > 0:
+            cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
+            cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+
+    print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
+    print(cutflow_combined)
+    return cutflow_combined
+
+
+def _run_fom_scans(args, events_combined: dict, mass_window, plot_dir: Path, bg_keys: list) -> None:
+    """Run figure-of-merit scans if requested."""
+    if not args.fom_scan:
+        return
+
+    if args.fom_scan_vbf and args.vbf:
+        if args.vbf_priority:
+            print("Scanning VBF WPs")
+        else:
+            print("Scanning VBF WPs, vetoing Bin1")
+        print(f"Using bg keys {bg_keys}")
+        scan_fom(
+            args.method,
             events_combined,
             get_cuts(args, "vbf"),
             get_anti_cuts(args, "vbf"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
+            np.arange(0.8, 0.999, 0.0025),
+            np.arange(0.9, 0.999, 0.0025),
             mass_window,
-            bg_keys,
-            ["hh4b"],
+            plot_dir,
+            "fom_vbf",
+            bg_keys=bg_keys,
+            sig_keys=args.fom_vbf_samples,
+            mass=args.mass,
+            fom=fom_classic,
         )
 
-        # note: need to do this since not all the years have all the samples..
-        year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
-        samples = list(events_combined.keys())
-        for cut in cutflows[year_0]:
-            # yield_s = 0
-            yield_b = 0
-            for s in samples:
-                if s in scaled_by:
-                    cutflow_sample = 0.0
-                    for year in args.years:
-                        if (
-                            cut in cutflows[year]
-                            and s in cutflows[year][cut].index
-                            and year in scaled_by_years[s]
-                        ):
-                            cutflow_sample += cutflows[year][cut].loc[s]
-                    cutflow_sample *= scaled_by[s]
-                    print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
-                else:
-                    cutflow_sample = np.sum(
-                        [
-                            (
-                                cutflows[year][cut].loc[s]
-                                if cut in cutflows[year] and s in cutflows[year][cut].index
-                                else 0.0
-                            )
-                            for year in args.years
-                        ]
-                    )
-
-                # if s == "hh4b":
-                #    yield_s = cutflow_sample
-                if s == "data":
-                    yield_b = cutflow_sample
-                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
-
-            if "VBF [" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
-            if "Bin 1 [" in cut and yield_b > 0:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
-                cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
-
-        print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
-        print(cutflow_combined)
-
-    if args.fom_scan:
-        if args.fom_scan_vbf and args.vbf:
-            if args.vbf_priority:
-                print("Scanning VBF WPs")
-            else:
-                print("Scanning VBF WPs, vetoing Bin1")
-            print(f"Using bg keys {bg_keys}")
-            scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "vbf"),
-                get_anti_cuts(args, "vbf"),
-                np.arange(0.8, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_vbf",
-                bg_keys=bg_keys,
-                sig_keys=args.fom_vbf_samples,
-                mass=args.mass,
-                fom=fom_classic,
+    if args.fom_scan_bin1:
+        if args.vbf and args.vbf_priority:
+            print(
+                f"Scanning Bin 1, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
             )
+        else:
+            print("Scanning Bin 1, no VBF category")
+        scan_fom(
+            args.method,
+            events_combined,
+            get_cuts(args, "bin1"),
+            get_anti_cuts(args, "bin1"),
+            np.arange(0.9, 0.999, 0.0025),
+            np.arange(0.9, 0.999, 0.0025),
+            mass_window,
+            plot_dir,
+            "fom_bin1",
+            bg_keys=bg_keys,
+            sig_keys=args.fom_ggf_samples,
+            mass=args.mass,
+        )
 
-        if args.fom_scan_bin1:
-            if args.vbf and args.vbf_priority:
-                print(
-                    f"Scanning Bin 1, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
-                )
-            else:
-                print("Scanning Bin 1, no VBF category")
-
-            scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "bin1"),
-                get_anti_cuts(args, "bin1"),
-                np.arange(0.9, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_bin1",
-                bg_keys=bg_keys,
-                sig_keys=args.fom_ggf_samples,
-                mass=args.mass,
+    if args.fom_scan_bin2:
+        if args.vbf:
+            print(
+                f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
             )
+        else:
+            print(f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}")
+        scan_fom(
+            args.method,
+            events_combined,
+            get_cuts(args, "bin2"),
+            get_anti_cuts(args, "bin2"),
+            np.arange(0.5, 0.9, 0.0025),
+            np.arange(0.5, 0.9, 0.0025),
+            mass_window,
+            plot_dir,
+            "fom_bin2",
+            bg_keys=bg_keys,
+            sig_keys=args.fom_ggf_samples,
+            mass=args.mass,
+        )
 
-        if args.fom_scan_bin2:
-            if args.vbf:
-                print(
-                    f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-                )
-            else:
-                print(
-                    f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-                )
-            scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "bin2"),
-                get_anti_cuts(args, "bin2"),
-                np.arange(0.5, 0.9, 0.0025),
-                np.arange(0.5, 0.9, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_bin2",
-                bg_keys=bg_keys,
-                sig_keys=args.fom_ggf_samples,
-                mass=args.mass,
-            )
 
-    templ_dir = Path("templates") / args.templates_tag
+def _save_cutflows(args, templ_dir: Path, cutflows: dict, cutflow_combined) -> None:
+    """Write per-year and combined cutflow CSVs."""
     for year in args.years:
-        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-        (templ_dir / year).mkdir(parents=True, exist_ok=True)
-
-    # save args for posterity
-    with (templ_dir / "args.txt").open("w") as f:
-        pretty_printer = pprint.PrettyPrinter(stream=f, indent=4)
-        pretty_printer.pprint(vars(args))
-
-    for cyear in args.years:
-        cutflows[cyear] = cutflows[cyear].round(4)
-        cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
+        cutflows[year].round(4).to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{year}.csv")
     if cutflow_combined is not None:
-        cutflow_combined = cutflow_combined.round(4)
-        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
-
-    if args.event_list:
-        eventlist_folder = args.event_list_dir
-        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
-
-        for year, year_dict in events_dict_postprocess.items():
-            for key, tree_df in year_dict.items():
-                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = _build_event_list_frame(tree_df, key=key)
-                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
-
-                    # Define the ROOT file path
-                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
-
-                    # Check if the ROOT file already exists
-                    if Path(file_path).exists():
-                        # File exists, use update mode to append the new tree
-                        with uproot.update(file_path) as file:
-                            file[key] = array_to_save  # Append new tree
-                    else:
-                        # File doesn't exist, create a new one
-                        with uproot.recreate(file_path) as file:
-                            file[key] = array_to_save  # Create the first tree
-
-        write_eventlist_manifest(
-            Path(eventlist_folder) / "eventlist_manifest.json",
-            args,
-            mass_window,
+        cutflow_combined.round(4).to_csv(
+            templ_dir / "cutflows" / "preselection_cutflow_combined.csv"
         )
 
-    if not args.templates:
-        return
 
+def _save_event_lists(args, events_dict: dict, mass_window) -> None:
+    """Write per-year event list ROOT files and a JSON manifest."""
+    eventlist_folder = Path(args.event_list_dir)
+    eventlist_folder.mkdir(parents=True, exist_ok=True)
+
+    for year, year_dict in events_dict.items():
+        file_path = eventlist_folder / f"eventlist_boostedHH4b_{year}.root"
+        for key, tree_df in year_dict.items():
+            if not ("data" in key or "hh4b" in key or "vbfhh4b" in key):
+                continue
+            event_list = _build_event_list_frame(tree_df, key=key)
+            array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
+            open_fn = uproot.update if file_path.exists() else uproot.recreate
+            with open_fn(file_path) as f:
+                f[key] = array_to_save
+
+    write_eventlist_manifest(
+        eventlist_folder / "eventlist_manifest.json",
+        args,
+        mass_window,
+    )
+
+
+def _make_templates(
+    args,
+    events_combined: dict,
+    templ_dir: Path,
+    fit_shape_var,
+    weight_shifts,
+    bg_keys_combined: list,
+) -> None:
+    """Build and save per-year histogram templates."""
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
-    # individual templates per year, processed one sample at a time to reduce peak memory
     for year in args.years:
         all_hist_samples = _compute_all_hist_samples(
             list(events_combined.keys()), args.sig_keys, weight_shifts
         )
         templates = {}
-        sample_keys = list(events_combined.keys())
-        for sample_key in sample_keys:
+        for sample_key in list(events_combined.keys()):
             print(f"Creating templates for sample: {sample_key}")
             for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
                 events_by_year = {
@@ -2177,7 +2134,6 @@ def postprocess_run3(args):
                     selection_regions=selection_regions,
                     shape_vars=[fit_shape_var],
                     systematics={},
-                    # skip per-region cutflow CSVs during per-sample calls (partial data)
                     template_dir="",
                     bg_keys=bg_keys_combined,
                     plot_dir="",
@@ -2190,19 +2146,83 @@ def postprocess_run3(args):
                     blind=args.blind,
                     all_hist_samples=all_hist_samples,
                 )
-                # Accumulate: add per-sample histograms (axes match via all_hist_samples)
                 for key, h in ttemps.items():
-                    if key not in templates:
-                        templates[key] = h
-                    else:
-                        templates[key] = templates[key] + h
-            # Free this sample's dataframe to reduce memory usage
+                    templates[key] = templates[key] + h if key in templates else h
             del events_combined[sample_key]
 
-        # save templates per year
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
+
+
+def postprocess_run3(args):
+    global bg_keys  # noqa: PLW0603
+
+    # ── 1. Configure mass windows and fit variable ────────────────────────────
+    fom_window_by_mass, blind_window_by_mass = _get_mass_windows(args)
+    mass_window = np.array(fom_window_by_mass[args.mass])
+    fit_shape_var = _setup_shape_var(args, blind_window_by_mass)
+    weight_shifts = get_weight_shifts(args.txbb, args.bdt_model)
+
+    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
+    plot_dir.mkdir(exist_ok=True, parents=True)
+
+    # ── 2. Load per-year samples ──────────────────────────────────────────────
+    events_dict, cutflows = _load_samples(args, plot_dir, mass_window)
+
+    # ── 3. Combine years and resolve process/bg key lists ────────────────────
+    processes = ["data"] + args.sig_keys + bg_keys
+    bg_keys_combined = bg_keys.copy()
+    if not args.control_plots and not args.bdt_roc:
+        for lst in (processes, bg_keys, bg_keys_combined):
+            if "qcd" in lst:
+                lst.remove("qcd")
+    print("BKG keys ", bg_keys)
+
+    # Drop any samples that were not loaded (no matching directories in data_dir).
+    loaded = set(events_dict[args.years[0]])
+    processes = [p for p in processes if p in loaded]
+    bg_keys = [k for k in bg_keys if k in loaded]
+    bg_keys_combined = [k for k in bg_keys_combined if k in loaded]
+
+    events_combined, scaled_by, scaled_by_years = _combine_years(
+        args, events_dict, processes, bg_keys_combined
+    )
+
+    if args.control_plots:
+        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
+    if args.bdt_roc:
+        print("Making BDT ROC curve")
+        bdt_roc(events_combined, plot_dir, args.txbb)
+
+    # ── 4. Build combined cutflow ─────────────────────────────────────────────
+    cutflow_combined = _build_combined_cutflow(
+        args, events_combined, cutflows, scaled_by, scaled_by_years, mass_window, bg_keys
+    )
+
+    # ── 5. FoM scans ─────────────────────────────────────────────────────────
+    _run_fom_scans(args, events_combined, mass_window, plot_dir, bg_keys)
+
+    # ── 6. Save outputs (args, cutflows) ─────────────────────────────────────
+    templ_dir = Path("templates") / args.templates_tag
+    for year in args.years:
+        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+        (templ_dir / year).mkdir(parents=True, exist_ok=True)
+    with (templ_dir / "args.txt").open("w") as f:
+        pprint.PrettyPrinter(stream=f, indent=4).pprint(vars(args))
+    _save_cutflows(args, templ_dir, cutflows, cutflow_combined)
+
+    # ── 7. Save event lists ───────────────────────────────────────────────────
+    if args.event_list:
+        _save_event_lists(args, events_dict, mass_window)
+
+    if not args.templates:
+        return
+
+    # ── 8. Build and save templates ───────────────────────────────────────────
+    _make_templates(
+        args, events_combined, templ_dir, fit_shape_var, weight_shifts, bg_keys_combined
+    )
     # combined templates
     # skip for time
     """
