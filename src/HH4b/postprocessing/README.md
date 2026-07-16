@@ -61,3 +61,18 @@ python3 CreateDatacardRun2.py --templates-dir templates/20210712_regression --ye
 ./run_hh4b.sh --workspace --bfit --dfit --limits
 python3 PlotFitsRun2.py --fit-file cards/run2-bdt-20210712/FitShapes.root --plots-dir plots/run2-bdt-20210712/ --bin-name passbin1
 ```
+
+# Unit testing postprocessing
+
+`tests/test_postprocessing_core.py` pins the behavior of the core postprocessing helpers
+(`add_bdt_scores`, the FOM functions, TXbb-SF jet selection, event counting, and the
+template utilities) with small synthetic DataFrames — no skimmer directories or parquet
+reads involved, so it runs in a couple of minutes.
+
+From the repo root:
+
+```bash
+PYTHONPATH=src python -m pytest tests/test_postprocessing_core.py -q
+```
+
+or run the full suite with `PYTHONPATH=src python -m pytest -q`.

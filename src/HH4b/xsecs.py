@@ -209,7 +209,7 @@ vbfhh = {
     "VBFHHto4B_CV-m1p21_C2V-1p94_C3-m0p94": 0.0037987 * BR_HBB * BR_HBB,
     "VBFHHto4B_CV-m1p60_C2V-2p72_C3-m1p36": 0.0117008 * BR_HBB * BR_HBB,
     "VBFHHto4B_CV-m1p83_C2V-3p57_C3-m3p39": 0.0168528 * BR_HBB * BR_HBB,
-    # "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
+    "VBFHHto4B_CV-m2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
     "VBFHHto4B_CV-2p12_C2V-3p87_C3-m5p96": 0.6800842 * BR_HBB * BR_HBB,
 }
 for key, value in vbfhh.items():

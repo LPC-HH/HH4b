@@ -219,6 +219,29 @@ def format_columns(columns: list):
     return ret_columns
 
 
+def _resolve_xsec_key(sample: str, xsecs_dict: dict) -> str:
+    if sample in xsecs_dict:
+        return sample
+
+    aliases = [
+        sample.replace("QCD-4Jets_HT-", "QCD_HT-"),
+        sample.replace("TTHto2B_M-125", "ttHto2B_M-125"),
+    ]
+    for alias in aliases:
+        if alias in xsecs_dict:
+            return alias
+
+    # Last fallback: case-insensitive exact key match.
+    lowered = sample.lower()
+    ci_matches = [k for k in xsecs_dict if k.lower() == lowered]
+    if len(ci_matches) == 1:
+        return ci_matches[0]
+
+    raise KeyError(
+        f"No xsec entry for sample '{sample}' (tried aliases {aliases}, ci_matches={ci_matches})"
+    )
+
+
 def _normalize_weights(
     events: pd.DataFrame,
     year: str,
@@ -236,8 +259,9 @@ def _normalize_weights(
 
     # check weights are scaled
     if "weight_noxsec" in events and np.all(events["weight"] == events["weight_noxsec"]):
+        xsec_key = _resolve_xsec_key(sample, xsecs)
         warnings.warn(f"{sample} has not been scaled by its xsec and lumi!", stacklevel=0)
-        events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
+        events["weight"] = events["weight"].to_numpy() * xsecs[xsec_key] * LUMI[year]
         warnings.warn(
             f"Temporarily scaling {sample} by its xsec and lumi - remember to remove after fixing in the processor!",
             stacklevel=0,
@@ -253,6 +277,9 @@ def _normalize_weights(
         #     raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
 
     events["finalWeight"] = events["weight"] / totals["np_nominal"]
+    if sample in xsecs:
+        events["xsecWeight"] = xsecs[sample] / totals["np_nominal"]
+        events["lumiwgt"] = LUMI[year]
 
     if not variations:
         return
@@ -369,33 +396,25 @@ def load_samples(
                 continue
 
             logger.debug(f"Loading {sample}")
+
             try:
                 non_empty_passed_list = []
                 for parquet_file in parquet_path.glob("*.parquet"):
-                    if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(
-                            parquet_file, filters=filters, columns=load_columns
-                        )
+                    # Read with column projection and filters upfront; check empty afterwards.
+                    # Previously the file was read twice: once with no args to test emptiness,
+                    # then again with columns/filters — doubling I/O per file.
+                    df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
+                    if not df_sample.empty:
                         non_empty_passed_list.append(df_sample)
                 if not non_empty_passed_list:
                     warnings.warn(f"No events after filtering for {sample}!", stacklevel=1)
                     continue
                 events = pd.concat(non_empty_passed_list, ignore_index=True)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error loading {sample}: {e}")
                 warnings.warn(
                     f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
                 )
-                non_empty_passed_list = []
-                for parquet_file in parquet_path.glob("*.parquet"):
-                    if not pd.read_parquet(parquet_file).empty:
-                        df_sample = pd.read_parquet(
-                            parquet_file, filters=filters, columns=load_columns
-                        )
-                        non_empty_passed_list.append(df_sample)
-                if not non_empty_passed_list:
-                    warnings.warn(f"No events after filtering for {sample}!", stacklevel=1)
-                    continue
-                events = pd.concat(non_empty_passed_list, ignore_index=True)
                 continue
 
             # no events?
@@ -454,6 +473,80 @@ def add_to_cutflow(
 def get_key_index(h: Hist, axis_name: str):
     """Get the index of a key in a Hist's first axis"""
     return np.where(np.array(list(h.axes[0])) == axis_name)[0][0]
+
+
+def rename_sample_axis(h: Hist, suffix: str) -> Hist:
+    """Return a copy of ``h`` with ``suffix`` appended to every label of its first
+    (``Sample``) axis. All other axes, values, variances and flow bins are preserved.
+    """
+    new_labels = [f"{sample}{suffix}" for sample in h.axes[0]]
+    reth = Hist(
+        hist.axis.StrCategory(new_labels, name=h.axes[0].name),
+        *h.axes[1:],
+        storage=h.storage_type(),
+    )
+    reth.view(flow=True)[...] = h.view(flow=True)
+    return reth
+
+
+def combine_hists(*hists: Hist) -> Hist:
+    """Concatenate histograms along their first (``Sample``) StrCategory axis.
+
+    All inputs must share identical non-``Sample`` axes, and sample labels must be
+    unique across inputs (duplicates would make name-based indexing ambiguous).
+    Values, variances and flow bins are carried through unchanged.
+    """
+    if not hists:
+        raise ValueError("combine_hists requires at least one histogram")
+
+    ref_axes = hists[0].axes[1:]
+    for h in hists[1:]:
+        if h.axes[1:] != ref_axes:
+            raise ValueError("all histograms must share identical non-Sample axes")
+
+    csamples = []
+    for h in hists:
+        csamples += list(h.axes[0])
+    if len(set(csamples)) != len(csamples):
+        raise ValueError(f"duplicate sample names across inputs: {csamples}")
+
+    reth = Hist(
+        hist.axis.StrCategory(csamples, name=hists[0].axes[0].name),
+        *ref_axes,
+        storage=hists[0].storage_type(),
+    )
+    for h in hists:
+        for sample in h.axes[0]:
+            reth.view(flow=True)[get_key_index(reth, sample), ...] = h[sample, ...].view(flow=True)
+
+    return reth
+
+
+def align_sample_axis(h: Hist, order: list[str], fill_missing: bool = False) -> Hist:
+    """Return a copy of ``h`` with its first (``Sample``) axis reordered to ``order``.
+
+    Useful for making histograms whose Sample axes hold the same labels in a different
+    order (a reprocessed year), or a different set (a year missing some samples),
+    mergeable with ``+`` / :func:`sum`. If ``fill_missing`` is True, labels in
+    ``order`` absent from ``h`` are created as empty (zero) bins; otherwise a missing
+    label raises ``ValueError``.
+    """
+    labels = set(h.axes[0])
+    if not fill_missing:
+        missing = [sample for sample in order if sample not in labels]
+        if missing:
+            raise ValueError(f"cannot align: samples not present in histogram: {missing}")
+
+    reth = Hist(
+        hist.axis.StrCategory(order, name=h.axes[0].name),
+        *h.axes[1:],
+        storage=h.storage_type(),
+    )
+    for sample in order:
+        if sample in labels:
+            reth.view(flow=True)[get_key_index(reth, sample), ...] = h[sample, ...].view(flow=True)
+
+    return reth
 
 
 def getParticles(particle_list, particle_type):

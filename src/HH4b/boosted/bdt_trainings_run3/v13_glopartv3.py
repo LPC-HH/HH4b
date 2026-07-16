@@ -8,8 +8,16 @@ from HH4b.utils import PAD_VAL, discretize_var
 
 """
 This config is based on v10_glopartv2.py, but with the following changes:
-Discretized the TXbb variable into 5 integer categories
+Discretized the TXbb variable into 5 integer categories.
 
+Reads the GloParT-v3 (ParT3) branches (bbFatJetParT3TXbb / bbFatJetParT3massX2p)
+for txbb_version='glopart-v3' ntuples; select with --bdt-config v13_glopartv3.
+
+NOTE: features derived from padded (absent) VBF / AK4-away jets are masked to
+PAD_VAL, so the BDT sees a consistent "missing" sentinel instead of garbage from
+pT<0 jets. Any model trained with this config MUST run inference with it. This
+intentionally diverges from the un-masked v13_glopartv3 on main (PR #350) -- keep
+the two aligned, or retrain if switching to the un-masked version.
 """
 
 
