@@ -420,8 +420,8 @@ def get_ev_dataframe(events_dict, mass, pt_mask):
 @click.command()
 @click.option(
     "--dir-name",
-    help="directory name",
-    default="/eos/uscms/store/user/cmantill/bbbb/ttSkimmer/24Oct14_v12v2_private_signal/",
+    required=True,
+    help="path to ttSkimmer output directory (e.g. /eos/uscms/store/user/<user>/bbbb/ttSkimmer/<tag>/)",
 )
 @click.option("--year-group", default="2022All", type=click.Choice(["2022All", "2023All"]))
 @click.option("--tag", required=True)
