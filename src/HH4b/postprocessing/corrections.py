@@ -221,7 +221,17 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     # Trigger efficiencies aren't derived for 2024/2025 -> use 2023's maps AND
     # their internal correction keys (the file + the key year must match).
     eff_year = year
-    if not Path(_get_json_fname(year, "ptmsd", region)).exists():
+    # both the ptmsd and the b-tag (txbb) efficiency maps are loaded below, so fall back
+    # to 2023 if EITHER is missing for this year (checking only ptmsd could still
+    # leave a missing txbb file -> CorrectionSet.from_file would throw).
+    if not (
+        Path(_get_json_fname(year, "ptmsd", region)).exists()
+        and Path(_get_json_fname(year, txbb_str, region)).exists()
+    ):
+        print(
+            f"WARNING: trigger-efficiency maps not found for {year} "
+            f"(region {region}, {txbb_str}); falling back to 2023."
+        )
         eff_year = "2023"
 
     # load trigger efficiencies

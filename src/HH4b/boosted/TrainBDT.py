@@ -285,9 +285,8 @@ def preprocess_data(
     for key in training_keys:
         raw_weight = np.sum(weights_bdt[key])
         scaled_weight = events.loc[key, "weight"].sum()
-        logger.info(
-            f"Class scaling {key}: {raw_weight:.3f} -> {scaled_weight:.3f} (x{scaled_weight / raw_weight})"
-        )
+        ratio = scaled_weight / raw_weight if raw_weight else float("inf")
+        logger.info(f"Class scaling {key}: {raw_weight:.3f} -> {scaled_weight:.3f} (x{ratio:.3f})")
 
     # Define target
     events["target"] = 0  # Default to 0 (background)

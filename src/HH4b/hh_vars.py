@@ -447,7 +447,6 @@ jec_vars = [
 jmsr_vars = [
     "bbFatJetPNetMassLegacy",
     "bbFatJetParTmassVis",
-    "bbFatJetParTmassVis",
     "bdt_score",
     "bdt_score_vbf",
     "HHmass",
