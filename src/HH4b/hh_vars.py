@@ -45,7 +45,7 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
 common_samples_bg = {
-    "qcd": ["QCD_HT", "QCD-4Jets_HT"],
+    "qcd": ["QCD-4Jets_HT", "QCD_HT-"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "vhtobb": [
