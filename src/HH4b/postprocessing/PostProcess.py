@@ -39,9 +39,11 @@ from HH4b.postprocessing import (
     Region,
     combine_run3_samples,
     corrections,
+    fom_cache,
     get_weight_shifts,
     load_run3_samples,
 )
+from HH4b.postprocessing.bdt_inference import _add_year_features, model_feature_names
 from HH4b.utils import (
     ShapeVar,
     check_get_jec_var,
@@ -185,8 +187,14 @@ def _build_and_score_bdt_events(
     weight_ttbar: float,
     bdt_disc: bool,
     jshift: str,
+    year: str = None,
+    bdt_model_name: str = None,
 ) -> pd.DataFrame:
-    """Build BDT inputs in row chunks to reduce peak memory before inference."""
+    """Build BDT inputs in row chunks to reduce peak memory before inference.
+
+    Year-aware models need the year_* one-hots added per chunk (via _add_year_features)
+    before predict_proba; pass ``year`` + ``bdt_model_name`` for those (no-op otherwise).
+    """
     n_events = len(events)
     if chunk_size <= 0 or n_events <= chunk_size:
         chunks = [(0, n_events)]
@@ -213,7 +221,10 @@ def _build_and_score_bdt_events(
         events_chunk = events.iloc[start:end]
         bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
         if rerun_inference:
-            preds = bdt_model.predict_proba(bdt_chunk)
+            # year-aware models: add year_* one-hots before inference (no-op otherwise)
+            _feat_order = _add_year_features(bdt_chunk, model_feature_names(bdt_model_name), year)
+            _X = bdt_chunk[_feat_order] if _feat_order is not None else bdt_chunk
+            preds = bdt_model.predict_proba(_X)
             add_bdt_scores(
                 bdt_chunk,
                 preds,
@@ -483,7 +494,14 @@ def calculate_txbb_weights(
 
 
 def load_process_run3_samples(
-    args, year, bdt_training_keys, control_plots, plot_dir, mass_window, rerun_inference=False
+    args,
+    year,
+    bdt_training_keys,
+    control_plots,
+    plot_dir,
+    mass_window,
+    rerun_inference=False,
+    only_keys=None,
 ):
     plot_dir = Path(plot_dir)
     # define BDT model
@@ -561,6 +579,26 @@ def load_process_run3_samples(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
+    # QCD subsample naming differs across the v15 (glopart-v3) skimmer years:
+    #   2022/2022EE/2023/2023BPix -> 'QCD-4Jets_HT-*'
+    #   2024                       -> 'QCD_HT-*'
+    # (the module-level default 'QCD_HT-*' is the old glopart-v2 naming).
+    # check_selector is case-insensitive but these differ in structure, so set
+    # the right HT-bin list per year.  HT bins below 400 are dropped (trigger
+    # turn-on) as in the default.
+    if args.txbb == "glopart-v3":
+        _ht = [
+            "400to600",
+            "600to800",
+            "800to1000",
+            "1000to1200",
+            "1200to1500",
+            "1500to2000",
+            "2000",
+        ]
+        _pref = "QCD_HT-" if year == "2024" else "QCD-4Jets_HT-"
+        samples_run3[year]["qcd"] = [f"{_pref}{b}" for b in _ht]
+
     # define cutflows
     samples_year = list(samples_run3[year].keys())
 
@@ -589,6 +627,11 @@ def load_process_run3_samples(
 
     if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
+    # chunked cache build: restrict to the requested sample groups (e.g. just
+    # "data") so a heavy year (2024) can be built in smaller memory chunks.
+    if only_keys is not None:
+        samples_year = [k for k in samples_year if k in only_keys]
+        logger.info(f"Restricting to sample groups: {samples_year}")
     cutflow = pd.DataFrame(index=samples_year)
     cutflow_dict = {}
 
@@ -608,23 +651,30 @@ def load_process_run3_samples(
 
         samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
-        events_dict = load_run3_samples(
+        _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
             source_year,
             samples_to_process,
             reorder_txbb=True,
-            load_systematics=True,
+            # JEC/JMR systematic shift columns are only needed for templates;
+            # skip them for a nominal FOM scan (and avoids missing-column errors
+            # when a skimmer lacks them, e.g. glopart-v3 v15 signal skimmer).
+            load_systematics=args.templates,
             txbb_version=args.txbb,
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
         )
-        if key not in events_dict:
-            logger.warning(f"Skipping {key}: no events loaded for current selectors")
+        # Safety net: if a sample has no events in the skimmer for this year
+        # (e.g. a background absent in some era), skip it instead of crashing
+        # on the missing key.  Minor backgrounds dropping in a year is a small,
+        # consistent-across-models effect for a FOM comparison.
+        if key not in _loaded:
+            logger.warning(f"Sample {key} absent for {year}; skipping.")
             continue
-        events_dict = events_dict[key]
+        events_dict = _loaded[key]
 
-        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) ---
+        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) --- (from main)
         if mc_split_half is not None and key != hh_vars.data_key:
             run_ = events_dict["run"].to_numpy().squeeze()
             lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
@@ -659,10 +709,14 @@ def load_process_run3_samples(
 
         # inference and assign score
         jshifts = [""]
-        if key in hh_vars.syst_keys:
-            jshifts += hh_vars.jec_shifts
-        if key in hh_vars.jmsr_keys:
-            jshifts += hh_vars.jmsr_shifts
+        # JEC/JMR shifts only matter for templates; for a nominal FOM scan the
+        # shifted columns aren't loaded (load_systematics=args.templates), so
+        # stay nominal-only to avoid missing-column errors.
+        if args.templates:
+            if key in hh_vars.syst_keys:
+                jshifts += hh_vars.jec_shifts
+            if key in hh_vars.jmsr_keys:
+                jshifts += hh_vars.jmsr_shifts
         logger.info(f"JEC shifts {jshifts}")
 
         logger.info("Add BDT scores")
@@ -685,6 +739,8 @@ def load_process_run3_samples(
                 weight_ttbar=args.weight_ttbar_bdt,
                 bdt_disc=args.bdt_disc,
                 jshift=jshift,
+                year=year,
+                bdt_model_name=args.bdt_model,
             )
 
             # redefine VBF variables
@@ -731,7 +787,7 @@ def load_process_run3_samples(
             "H1PNetMass": events_dict[mreg_strings[args.txbb]][0],
             "H2PNetMass": events_dict[mreg_strings[args.txbb]][1],
         }
-        if key in hh_vars.jmsr_keys:
+        if args.templates and key in hh_vars.jmsr_keys:
             more_vars.update(
                 {
                     f"H{jet + 1}PNetMass_{jshift}": events_dict[
@@ -760,17 +816,23 @@ def load_process_run3_samples(
 
         # finalWeight: includes genWeight, puWeight
         more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
-        # scale, pdf weights
-        if key in hh_vars.sig_keys + ["ttbar"]:
-            scale_np = events_dict["scale_weights"].to_numpy()
-            more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
+        # scale, pdf weights (theory unc — loaded only with systematics, i.e. templates:
+        # load_systematics=args.templates, so the v15 signal skimmer omits them on FOM scans).
+        # Adopt main's memory-efficient .to_numpy()[:, i].copy() pattern.
         n_pdf_weights = 0
+        if args.templates:
+            if key in hh_vars.sig_keys + ["ttbar"]:
+                scale_np = events_dict["scale_weights"].to_numpy()
+                more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
+            if key in hh_vars.sig_keys:
+                n_pdf_weights = events_dict["pdf_weights"].shape[1]
+                pdf_np = events_dict["pdf_weights"].to_numpy()
+                more_vars.update(
+                    {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
+                )
+        # gen-level couplings + kinematics (from main; name-based / missing-safe helpers,
+        # so safe on non-template FOM runs -> kept ungated to match main's behaviour).
         if key in hh_vars.sig_keys:
-            n_pdf_weights = events_dict["pdf_weights"].shape[1]
-            pdf_np = events_dict["pdf_weights"].to_numpy()
-            more_vars.update(
-                {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
-            )
             kl, k2v = _parse_signal_couplings(key)
             more_vars.update(
                 {
@@ -1224,6 +1286,14 @@ def load_process_run3_samples(
             ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
+        if args.fom_cache:
+            # retain BDT *input features* so a cached (model-independent) frame can
+            # be re-scored by any model without reloading raw data.  Our candidate
+            # BDTs share the same feature set (glopart-v3 / v13), so one model's
+            # feature list is representative.
+            _feats = model_feature_names(args.bdt_model)
+            if _feats:
+                columns += [f for f in _feats if f in bdt_events.columns]
         columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
@@ -1241,7 +1311,11 @@ def load_process_run3_samples(
             events_dict_postprocess[key] = bdt_events
             columns_by_key[key] = columns
         else:
-            events_dict_postprocess[key] = bdt_events[columns]
+            # keep only columns actually present: systematic-weight columns
+            # (scale/pdf/pileup/PS/trigger variations) are absent for a nominal
+            # FOM run (load_systematics off) and aren't needed by the scan.
+            _present = [c for c in columns if c in bdt_events.columns]
+            events_dict_postprocess[key] = bdt_events[_present]
 
         # blind!!
         if key == "data":
@@ -1308,8 +1382,24 @@ def get_nevents_nosignal(events, cut, mass, mass_window):
     return np.sum(events["weight"][cut & cut_mass])
 
 
-def fom_classic(s, b):
+def fom_classic(
+    s, b, abcd=None  # noqa: ARG001
+):  # abcd accepted+ignored (scan_fom always passes 3)
     return 2 * np.sqrt(b) / s if s > 0 and b > 0 else np.nan
+
+
+def fom_asimov(s, b, abcd=None):  # abcd accepted+ignored (scan_fom always passes 3)  # noqa: ARG001
+    # Median expected significance (Asimov): Z_A = sqrt(2[(s+b)ln(1+s/b) - s]).
+    # Returned as 1/Z_A so scan_fom's argmin (lower=better) MAXIMIZES significance,
+    # matching fom_classic's "lower=better" convention (and staying >0 for the filter).
+    # Use only where s ~ b (e.g. ggF Bin-1, s/b ~ 0.3-0.6): there the classic
+    # 2*sqrt(b)/s assumes s << b (Poisson unc ~ sqrt(b)) and is ~5-12% optimistic.
+    # For s << b (VBF s/b~0.01, ggF Bin-2/3 s/b~0.03-0.08) Z_A -> s/sqrt(b), so 2*sqrt(b)/s
+    # is equivalent (<2% diff) and fom_classic is kept there.
+    if s > 0 and b > 0:
+        za = np.sqrt(2 * ((s + b) * np.log1p(s / b) - s))
+        return 1.0 / za if za > 0 else np.nan
+    return np.nan
 
 
 def fom_update(s, b, abcd=None):
@@ -1435,6 +1525,32 @@ def scan_fom(
     plotting.plot_fom(h_b_unc, plot_dir, name=f"{name}_bkgunc", fontsize=2.0)
     plotting.plot_fom(h_sideband, plot_dir, name=f"{name}_sideband", fontsize=2.0)
 
+    # Optimal working point = argmin(FOM).  Returned so subsequent (nested) scans
+    # can veto at this cut, not a fixed anchor.
+    #
+    # BASELINE (default): no reliability filter -- argmin over all finite, positive
+    # FOM points, matching the previous by-eye-off-the-heatmap procedure.  NOTE this
+    # can land on a near-empty ABCD bin (b->0, few sideband events) whose FOM is a
+    # statistical fluke (this is the origin of the spuriously-low "82.8" VBF value).
+    # Opt into --fom-reliability-filter to require enough sideband data + non-degenerate
+    # background (sideband>=12 & b>0.5): region-agnostic (no s cut, so VBF's tiny s is
+    # kept), rejecting those flukes.
+    finite = np.isfinite(all_fom) & (all_fom > 0)
+    if args.fom_reliability_filter:
+        valid = finite & (all_sideband_events >= 12) & (all_b > 0.5)
+        if valid.sum() == 0:
+            valid = finite & (all_b > 0)
+    else:
+        valid = finite
+    idx = np.where(valid)[0]
+    iopt = idx[np.argmin(all_fom[idx])] if len(idx) else int(np.argmin(all_fom))
+    xbb_opt, bdt_opt = float(all_xbb_cuts[iopt]), float(all_bdt_cuts[iopt])
+    print(
+        f"  [{plot_name}] optimal WP: TXbb>{xbb_opt:.4f}, BDT>{bdt_opt:.4f} "
+        f"(FOM={all_fom[iopt]:.4f}, s={all_s[iopt]:.3f}, b={all_b[iopt]:.3f})\n"
+    )
+    return xbb_opt, bdt_opt
+
 
 def get_anti_cuts(args, region: str):
 
@@ -1458,6 +1574,15 @@ def get_cuts(args, region: str):
     xbb_cut_bin1 = args.txbb_wps[0]
     bdt_cut_bin1 = args.bdt_wps[0]
 
+    def _veto_box(events, txbb_wp, bdt_wp, bdt_col):
+        """A (TXbb, BDT) box used as a veto of a higher-priority category.
+        A negative WP means 'unspecified' (not yet resolved to a prior bin's
+        optimum) -> no veto (all-False), so an un-run prior scan never vetoes
+        everything."""
+        if txbb_wp is None or bdt_wp is None or txbb_wp < 0 or bdt_wp < 0:
+            return np.zeros(len(events), dtype=bool)
+        return (events["H2TXbb"] > txbb_wp) & (events[bdt_col] > bdt_wp)
+
     # VBF region
     def get_cut_vbf(events, xbb_cut, bdt_cut):
         cut_xbb = events["H2TXbb"] > xbb_cut
@@ -1467,18 +1592,16 @@ def get_cuts(args, region: str):
     def get_cut_novbf(events, xbb_cut, bdt_cut):  # noqa: ARG001
         return np.zeros(len(events), dtype=bool)
 
-    # VBF with bin1 veto
+    # VBF with bin1 veto (bin1 box from txbb_wps[0]/bdt_wps[0], or its scan optimum)
     def get_cut_vbf_vetobin1(events, xbb_cut, bdt_cut):
-        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
+        cut_bin1 = _veto_box(events, xbb_cut_bin1, bdt_cut_bin1, "bdt_score")
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score_vbf"] > bdt_cut
         return cut_xbb & cut_bdt & (~cut_bin1)
 
     # bin 1 with VBF region veto
     def get_cut_bin1_vetovbf(events, xbb_cut, bdt_cut):
-        vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
-            events["H2TXbb"] >= args.vbf_txbb_wp
-        )
+        vbf_cut = _veto_box(events, args.vbf_txbb_wp, args.vbf_bdt_wp, "bdt_score_vbf")
         cut_xbb = events["H2TXbb"] > xbb_cut
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt & (~vbf_cut)
@@ -1489,35 +1612,34 @@ def get_cuts(args, region: str):
         cut_bdt = events["bdt_score"] > bdt_cut
         return cut_xbb & cut_bdt
 
-    # bin 2 with VBF region veto
+    def _corner(events):
+        # low-TXbb low-BDT corner below bin1 (excluded from bin2); if the bin1 WP
+        # is unspecified (-1), there is no corner to exclude.
+        if xbb_cut_bin1 is None or bdt_cut_bin1 is None or xbb_cut_bin1 < 0 or bdt_cut_bin1 < 0:
+            return np.zeros(len(events), dtype=bool)
+        return (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
+
+    # bin 2 with VBF region veto (bin1 + VBF boxes = their scan optima or pins)
     def get_cut_bin2_vetovbf(events, xbb_cut, bdt_cut):
-        vbf_cut = (events["bdt_score_vbf"] >= args.vbf_bdt_wp) & (
-            events["H2TXbb"] >= args.vbf_txbb_wp
-        )
-        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
-        cut_corner = (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
-        cut_bin2 = (
+        vbf_cut = _veto_box(events, args.vbf_txbb_wp, args.vbf_bdt_wp, "bdt_score_vbf")
+        cut_bin1 = _veto_box(events, xbb_cut_bin1, bdt_cut_bin1, "bdt_score")
+        return (
             (events["H2TXbb"] > xbb_cut)
             & (events["bdt_score"] > bdt_cut)
-            & ~(cut_bin1)
-            & ~(cut_corner)
-            & ~(vbf_cut)
+            & ~cut_bin1
+            & ~_corner(events)
+            & ~vbf_cut
         )
-
-        return cut_bin2
 
     # bin 2 without VBF region veto
     def get_cut_bin2(events, xbb_cut, bdt_cut):
-        cut_bin1 = (events["H2TXbb"] > xbb_cut_bin1) & (events["bdt_score"] > bdt_cut_bin1)
-        cut_corner = (events["H2TXbb"] < xbb_cut_bin1) & (events["bdt_score"] < bdt_cut_bin1)
-        cut_bin2 = (
+        cut_bin1 = _veto_box(events, xbb_cut_bin1, bdt_cut_bin1, "bdt_score")
+        return (
             (events["H2TXbb"] > xbb_cut)
             & (events["bdt_score"] > bdt_cut)
-            & ~(cut_bin1)
-            & ~(cut_corner)
+            & ~cut_bin1
+            & ~_corner(events)
         )
-
-        return cut_bin2
 
     if region == "vbf":
         if args.vbf and args.vbf_priority:
@@ -1850,7 +1972,7 @@ def postprocess_run3(args):
     elif args.txbb == "pnet-v12":
         fom_window_by_mass["H2PNetMass"] = [120, 150]
         blind_window_by_mass["H2PNetMass"] = [120, 150]
-    # for glopart-v3, reuse the glopart-v2 windows
+    # glopart-v3: reuse the glopart-v2 windows
     elif args.txbb == "glopart-v3":
         fom_window_by_mass["H2PNetMass"] = [110, 155]
         blind_window_by_mass["H2PNetMass"] = [110, 140]
@@ -1882,21 +2004,98 @@ def postprocess_run3(args):
         bdt_training_keys = []
     events_dict_postprocess = {}
     cutflows = {}
+    _cache_model = None  # lazily-loaded xgb model for re-scoring slim cached years
+    _cache_feats = None
     for year in args.years:
         print(f"\n{year}")
-        events, cutflow = load_process_run3_samples(
-            args,
-            year,
-            bdt_training_keys,
-            args.control_plots,
-            plot_dir,
-            mass_window,
-            args.rerun_inference,
+        # build-only: load+cache each year then FREE it (no accumulation, no
+        # combine/scan) -> a single command builds the whole shared cache with a
+        # peak of one year's memory.  Safe even for the 187 GB 2024 data.
+        if args.fom_cache_build_only:
+            _keys = args.fom_cache_keys  # None -> all sample groups for the year
+            # whole-year skip only when building the full year (no key chunking)
+            if (
+                _keys is None
+                and not args.fom_cache_rebuild
+                and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
+            ):
+                print(
+                    f"{year}: slim cache already present, skipping (--fom-cache-rebuild to force)"
+                )
+                continue
+            events, cutflow = load_process_run3_samples(
+                args,
+                year,
+                bdt_training_keys,
+                args.control_plots,
+                plot_dir,
+                mass_window,
+                args.rerun_inference,
+                only_keys=_keys,
+            )
+            # chunked builds merge into the same year dir; full builds overwrite
+            n = fom_cache.save(
+                events,
+                cutflow,
+                args.fom_cache_dir,
+                args.tag,
+                args.txbb,
+                year,
+                merge=_keys is not None,
+            )
+            _what = f"chunk {sorted(events.keys())}" if _keys is not None else "full year"
+            print(f"{year}: cached {_what} -> {n} samples total in cache (model-independent)")
+            del events, cutflow
+            continue
+        _use_cache = (
+            args.fom_cache
+            and not args.fom_cache_rebuild
+            and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
         )
+        if _use_cache:
+            print(f"{year}: loading model-independent slim FOM cache")
+            events, cutflow = fom_cache.load(args.fom_cache_dir, args.tag, args.txbb, year)
+        else:
+            events, cutflow = load_process_run3_samples(
+                args,
+                year,
+                bdt_training_keys,
+                args.control_plots,
+                plot_dir,
+                mass_window,
+                args.rerun_inference,
+            )
+            if args.fom_cache:
+                n = fom_cache.save(events, cutflow, args.fom_cache_dir, args.tag, args.txbb, year)
+                print(f"{year}: wrote slim cache ({n} samples; scores dropped, model-independent)")
+        # The slim cache stores the BDT *features* but not the model-specific score,
+        # so (re)run THIS model's inference per event when caching is on.  This is the
+        # only per-model work; loading/building each year happens once and is shared.
+        if args.fom_cache:
+            if _cache_model is None:
+                _cache_model = xgb.XGBClassifier()
+                _cache_model.load_model(
+                    fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
+                )
+                _cache_feats = model_feature_names(args.bdt_model)
+            for _df in events.values():
+                _fo = _add_year_features(_df, _cache_feats, year)
+                _X = _df[_fo] if _fo is not None else _df
+                add_bdt_scores(
+                    _df,
+                    _cache_model.predict_proba(_X),
+                    "",
+                    weight_ttbar=args.weight_ttbar_bdt,
+                    bdt_disc=args.bdt_disc,
+                )
         events_dict_postprocess[year] = events
         cutflows[year] = cutflow
 
     print("Loaded all years")
+
+    if args.fom_cache_build_only:
+        print("Cache build complete (build-only mode); exiting before combine/scan.")
+        return
 
     processes = ["data"] + args.sig_keys + bg_keys
     bg_keys_combined = bg_keys.copy()
@@ -1911,9 +2110,16 @@ def postprocess_run3(args):
     print("BKG keys ", bg_keys)
 
     if len(args.years) > 1:
-        # list of years available for a given process to scale to full lumi
-        available = [y for y in ["2022", "2022EE", "2023", "2023BPix"] if y in args.years]
-        print(f"WARNING: Using available MC from {available}")
+        # eras with their OWN native MC (2024 MC now produced; 2025 borrows 2024 MC).
+        # A requested year listed here contributes its real events; any year NOT here
+        # (e.g. 2025) has the available MC lumi-scaled up to cover it.
+        mc_eras = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+        available = [y for y in mc_eras if y in args.years]
+        missing = [y for y in args.years if y not in mc_eras]
+        if missing:
+            print(f"WARNING: no native MC for {missing}; scaling MC from {available} to full lumi")
+        else:
+            print(f"Using native MC from {available} (full requested lumi, no scale-up)")
         scaled_by_years = {
             "ttbar": available,
             "novhhtobb": available,
@@ -2033,13 +2239,71 @@ def postprocess_run3(args):
         print(cutflow_combined)
 
     if args.fom_scan:
-        if args.fom_scan_vbf and args.vbf:
+        # Nested/sequential optimisation.  Priority order (ggF Bin1 highest, i.e.
+        # --no-vbf-priority):  ggF Bin1 -> VBF -> ggF Bin2 ; Bin3 inherits Bin2.
+        # Each category vetoes the PRIOR ones at their *scan optimum*: a WP left at
+        # its default (-1) is filled with the just-scanned argmin so the next scan
+        # vetoes at the real cut, not a fixed anchor.  A pinned WP (>=0) is kept.
+        def _resolve(cur, opt):
+            return opt if (cur is None or cur < 0) else cur
+
+        # --fom-fast: vectorized nested scan (same math as the serial blocks below, but
+        # O(N_events+N_grid) and skipping pinned bins).  It mutates args.txbb_wps/bdt_wps/
+        # vbf_* in place exactly like the serial path, so the rest of postprocess is
+        # unchanged.  VALIDATE with fom_fast.validate_against_serial before trusting.
+        if args.fom_fast:
+            import fom_fast  # noqa: PLC0415
+
+            summary = fom_fast.run_nested_fom_fast(
+                args,
+                events_combined,
+                get_cuts,
+                get_anti_cuts,
+                mass_window,
+                bg_keys,
+                plot_dir=str(plot_dir),
+            )
+            print(f"[fom-fast] nested scan summary: {summary}")
+            print(
+                f"  => resolved WPs: Bin1 TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]} | "
+                f"VBF TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp} | "
+                f"Bin2 TXbb>{args.txbb_wps[1]}, BDT>{args.bdt_wps[1]}"
+            )
+
+        # 1) ggF Bin 1 — top priority, no veto (with --no-vbf-priority)
+        if args.fom_scan_bin1 and not args.fom_fast:
+            print("Scanning Bin 1 (top priority, no veto)")
+            xbb, bdt = scan_fom(
+                args.method,
+                events_combined,
+                get_cuts(args, "bin1"),
+                get_anti_cuts(args, "bin1"),
+                np.arange(0.9, 0.999, 0.0025),
+                np.arange(0.9, 0.999, 0.0025),
+                mass_window,
+                plot_dir,
+                "fom_bin1",
+                # Bin-1 is the only region where s ~ b (s/b ~ 0.3-0.6), so the classic
+                # 2*sqrt(b)/s is ~5-12% optimistic; opt into the Asimov Z_A objective here.
+                fom=fom_asimov if args.fom_bin1_asimov else fom_classic,
+                bg_keys=bg_keys,
+                sig_keys=args.fom_ggf_samples,
+                mass=args.mass,
+            )
+            args.txbb_wps[0] = _resolve(args.txbb_wps[0], xbb)
+            args.bdt_wps[0] = _resolve(args.bdt_wps[0], bdt)
+            print(f"  => Bin 1 veto WP: TXbb>{args.txbb_wps[0]:.4f}, BDT>{args.bdt_wps[0]:.4f}")
+
+        # 2) VBF — vetoes Bin 1 at its resolved WP
+        if args.fom_scan_vbf and args.vbf and not args.fom_fast:
             if args.vbf_priority:
-                print("Scanning VBF WPs")
+                print("Scanning VBF WPs (VBF priority)")
             else:
-                print("Scanning VBF WPs, vetoing Bin1")
+                print(
+                    f"Scanning VBF, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]})"
+                )
             print(f"Using bg keys {bg_keys}")
-            scan_fom(
+            xbb, bdt = scan_fom(
                 args.method,
                 events_combined,
                 get_cuts(args, "vbf"),
@@ -2054,52 +2318,36 @@ def postprocess_run3(args):
                 mass=args.mass,
                 fom=fom_classic,
             )
+            args.vbf_txbb_wp = _resolve(args.vbf_txbb_wp, xbb)
+            args.vbf_bdt_wp = _resolve(args.vbf_bdt_wp, bdt)
+            print(f"  => VBF veto WP: TXbb>{args.vbf_txbb_wp:.4f}, BDT>{args.vbf_bdt_wp:.4f}")
 
-        if args.fom_scan_bin1:
-            if args.vbf and args.vbf_priority:
-                print(
-                    f"Scanning Bin 1, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}"
-                )
-            else:
-                print("Scanning Bin 1, no VBF category")
-
-            scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "bin1"),
-                get_anti_cuts(args, "bin1"),
-                np.arange(0.9, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_bin1",
-                bg_keys=bg_keys,
-                sig_keys=args.fom_ggf_samples,
-                mass=args.mass,
+        # 3) ggF Bin 2 — vetoes Bin 1 + VBF at their resolved WPs
+        if args.fom_scan_bin2 and not args.fom_fast:
+            _v = f" + VBF (TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp})" if args.vbf else ""
+            print(
+                f"Scanning Bin 2, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]}){_v}"
             )
-
-        if args.fom_scan_bin2:
-            if args.vbf:
-                print(
-                    f"Scanning Bin 2, vetoing VBF TXbb WP: {args.vbf_txbb_wp} BDT WP: {args.vbf_bdt_wp}, bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-                )
-            else:
-                print(
-                    f"Scanning Bin 2, vetoing bin 1 WP: {args.txbb_wps[0]} BDT WP: {args.bdt_wps[0]}"
-                )
-            scan_fom(
+            xbb, bdt = scan_fom(
                 args.method,
                 events_combined,
                 get_cuts(args, "bin2"),
                 get_anti_cuts(args, "bin2"),
-                np.arange(0.5, 0.9, 0.0025),
-                np.arange(0.5, 0.9, 0.0025),
+                np.arange(0.5, 0.9, 0.005),  # coarser than bin1/vbf: 80x80 vs 25600 pts
+                np.arange(0.5, 0.9, 0.005),
                 mass_window,
                 plot_dir,
                 "fom_bin2",
+                fom=fom_classic,
                 bg_keys=bg_keys,
                 sig_keys=args.fom_ggf_samples,
                 mass=args.mass,
+            )
+            args.txbb_wps[1] = _resolve(args.txbb_wps[1], xbb)
+            args.bdt_wps[1] = _resolve(args.bdt_wps[1], bdt)
+            print(f"  => Bin 2 WP: TXbb>{args.txbb_wps[1]:.4f}, BDT>{args.bdt_wps[1]:.4f}")
+            print(
+                f"  => Bin 3 = Bin 2 TXbb>{args.txbb_wps[1]:.4f} with BDT floor {args.bdt_wps[2]}"
             )
 
     templ_dir = Path("templates") / args.templates_tag
@@ -2301,16 +2549,18 @@ if __name__ == "__main__":
         "--txbb-wps",
         type=float,
         nargs=2,
-        default=[0.945, 0.85],
-        help="TXbb Bin 1, Bin 2 WPs",
+        default=[-1, -1],
+        help="TXbb Bin 1, Bin 2 WPs. -1 (default) = auto: use that bin's FOM-scan "
+        "optimum (nested veto). Pin a value to fix it. Templates need explicit WPs.",
     )
 
     parser.add_argument(
         "--bdt-wps",
         type=float,
         nargs=3,
-        default=[0.94, 0.755, 0.03],
-        help="BDT Bin 1, Bin 2, Fail WPs",
+        default=[-1, -1, 0.03],
+        help="BDT Bin 1, Bin 2, Fail WPs. -1 = auto (use FOM-scan optimum); Fail (Bin 3) "
+        "floor kept fixed (0.03).",
     )
     parser.add_argument(
         "--method",
@@ -2320,8 +2570,12 @@ if __name__ == "__main__":
         help="method for scanning",
     )
 
-    parser.add_argument("--vbf-txbb-wp", type=float, default=0.8, help="TXbb VBF WP")
-    parser.add_argument("--vbf-bdt-wp", type=float, default=0.9825, help="BDT VBF WP")
+    parser.add_argument(
+        "--vbf-txbb-wp", type=float, default=-1, help="TXbb VBF WP (-1 = auto: FOM-scan optimum)"
+    )
+    parser.add_argument(
+        "--vbf-bdt-wp", type=float, default=-1, help="BDT VBF WP (-1 = auto: FOM-scan optimum)"
+    )
 
     parser.add_argument(
         "--weight-ttbar-bdt", type=float, default=1.0, help="Weight TTbar discriminator on VBF BDT"
@@ -2376,9 +2630,60 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-cache",
+        default=False,
+        help="use/build a model-independent per-year slim cache (scalable, slim-once)",
+    )
+    parser.add_argument(
+        "--fom-cache-dir",
+        default=f"{HH4B_DIR}/plots/PostProcess/fom_cache",
+        help="directory for the per-year slim FOM cache",
+    )
+    run_utils.add_bool_arg(
+        parser, "fom-cache-rebuild", default=False, help="rebuild the slim cache even if present"
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-cache-build-only",
+        default=False,
+        help="build the per-year slim cache then exit (one year of memory at a time; no scan)",
+    )
+    parser.add_argument(
+        "--fom-cache-keys",
+        nargs="+",
+        default=None,
+        help="restrict the cache build to these sample groups (e.g. 'data') to chunk a heavy year",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-bin1-asimov",
+        default=False,
+        help="ggF Bin-1 objective: use Asimov Z_A (1/Z_A) instead of 2*sqrt(b)/s. "
+        "Motivated because Bin-1 has s~b (s/b~0.3-0.6), where the classic FOM assumes "
+        "s<<b and is ~5-12%% optimistic. Off by default (keeps 2*sqrt(b)/s everywhere).",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-reliability-filter",
+        default=True,
+        help="restrict the FOM argmin to reliable points (sideband>=12 & b>0.5), rejecting "
+        "near-empty-bin flukes. On by default (a pure argmin runs off to empty corners; "
+        "this reproduces a sensible by-eye pick). --no-fom-reliability-filter for raw argmin.",
+    )
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-fast",
+        default=False,
+        help="use the vectorized FOM scan (fom_fast.run_nested_fom_fast): same result as the "
+        "serial scan_fom (validate first), but O(N_events+N_grid) instead of O(N_grid*N_events), "
+        "and it SKIPS any pinned bin (evaluates a single point) instead of scanning+discarding. "
+        "Off by default; --fom-fast to enable.",
+    )
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
@@ -2403,6 +2708,21 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # -1 working points mean "auto: resolve from the FOM scan optimum" (nested veto).
+    # Template category masks are built at load time, BEFORE the scan resolves them,
+    # so a --templates run needs explicit (>=0) WPs. Enforce it up-front.
+    if args.templates and (
+        min(args.txbb_wps) < 0
+        or min(args.bdt_wps) < 0
+        or args.vbf_txbb_wp < 0
+        or args.vbf_bdt_wp < 0
+    ):
+        raise ValueError(
+            "Templates require explicit working points, but some are -1 (auto). "
+            "Run the FOM scan first (--fom-scan --no-templates) to get the optima, "
+            "then pass them explicitly via --txbb-wps/--bdt-wps/--vbf-txbb-wp/--vbf-bdt-wp."
+        )
 
     print(args)
     postprocess_run3(args)
