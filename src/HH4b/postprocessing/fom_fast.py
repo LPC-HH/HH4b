@@ -1,4 +1,4 @@
-"""Vectorized FOM-scan replacement for PostProcess.scan_fom (optimizations #2 + #3).
+"""Vectorized FOM-scan replacement for PostProcess.scan_fom.
 
 Why this exists
 ---------------
@@ -7,8 +7,7 @@ Why this exists
 With grids of 1.6k-6.4k points and millions of events, each bin scan is ~20-55 min
 and uses ~1 core. That is the ~90% of a FOM-scan run's wall time.
 
-Two facts make it fully vectorizable (no multiprocessing needed -> optimization #1
-is unnecessary once #2 is in):
+Two facts make it fully vectorizable (so a single core suffices -- no multiprocessing):
 
   * The signal-region selection is  (H2TXbb > xbb_cut) & (bdt_col > bdt_cut) & V,
     where the veto/anti-cut masks V are FIXED across the grid (they depend only on
@@ -23,10 +22,10 @@ recomputes them thousands of times). A,B use the scanned cut and become the two 
 histograms. This module reproduces `abcd()` (PostProcess.py:1615) and the argmin +
 reliability filter (PostProcess.py:1391) exactly.
 
-Optimization #3 (skip pinned scans) lives in `run_nested_fom_fast`: a bin whose WP is
-already pinned (>= 0) is NOT scanned -- its FOM is read off a single-point evaluation.
-For the "anchor" config (all WPs pinned) this collapses three grid scans into three
-point evals (hours -> seconds); those scans currently run and discard their optima.
+The pinned-bin skip lives in `run_nested_fom_fast`: a bin whose WP is already pinned
+(>= 0) is NOT scanned -- its FOM is read off a single-point evaluation. For the "anchor"
+config (all WPs pinned) this collapses three grid scans into three point evals
+(hours -> seconds); those scans currently run and discard their optima.
 
 Faithfulness
 ------------
@@ -250,7 +249,7 @@ def best_wp(scan: dict, reliability: bool = True) -> tuple[float, float]:
 
 
 # --------------------------------------------------------------------------------------
-# single-point evaluation (optimization #3: a pinned bin needs no scan)
+# single-point evaluation (a pinned bin needs no scan)
 # --------------------------------------------------------------------------------------
 def evaluate_point(
     events_combined: dict,
@@ -380,7 +379,7 @@ def validate_against_serial(
 
 
 # --------------------------------------------------------------------------------------
-# nested driver with pin-skip (optimizations #2 + #3 together)
+# nested driver: vectorized scan per bin, skipping any bin whose WP is pinned
 # --------------------------------------------------------------------------------------
 def _pinned(a, b) -> bool:
     return a is not None and b is not None and a >= 0 and b >= 0
@@ -414,7 +413,7 @@ def run_nested_fom_fast(
     bg_keys: list[str],
     plot_dir: str | None = None,
 ) -> dict:
-    """Nested Bin1 -> VBF -> Bin2 optimization (mirrors PostProcess.py:1963-2043) with the
+    """Nested Bin1 -> VBF -> Bin2 scan (mirrors PostProcess.py:1963-2043) with the
     vectorized scan, SKIPPING any bin whose WP is already pinned.
 
     A pinned bin (WP >= 0) is evaluated at its single fixed point instead of scanned -- for
@@ -438,7 +437,7 @@ def run_nested_fom_fast(
             "vbf": args.fom_scan_vbf,
             "bin2": args.fom_scan_bin2,
         }[region]
-        # Not scanning this bin when it is pinned (#3: evaluate the fixed point instead
+        # Not scanning this bin when it is pinned (evaluate the fixed point instead
         # of scanning+discarding) or when its scan flag is off (the serial path skips it
         # entirely). Only evaluate a real (resolved, >=0) WP; a disabled bin still at -1 is
         # left untouched, exactly like the serial path -- never evaluate at the -1 sentinel.
