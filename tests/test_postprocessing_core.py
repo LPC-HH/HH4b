@@ -389,9 +389,7 @@ def _make_minimal_events(n=20, seed=0):
     )
 
 
-def _fake_make_selection(
-    var_cuts, events_dict, weight_key="weight", jshift="", **kwargs  # noqa: ARG001
-):
+def _fake_make_selection(var_cuts, events_dict, weight_key="weight", jshift="", **kwargs):
     """Minimal make_selection replacement that avoids the coffea PackedSelection dependency."""
     sel = {}
     for sample, events in events_dict.items():
