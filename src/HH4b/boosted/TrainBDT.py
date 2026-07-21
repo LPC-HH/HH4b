@@ -23,6 +23,7 @@ from HH4b import hh_vars, plotting
 from HH4b.hh_vars import samples_run3
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import (
+    HLTs,
     get_evt_testing,
     load_run3_samples,
 )
@@ -107,17 +108,27 @@ control_plot_vars = [
 ]
 
 # do not include small qcd bins
+# QCD_HT for 2024, QCD-4Jets_HT for 2022/2023
 for year in samples_run3:
     samples_run3[year]["qcd"] = [
         "QCD_HT-100to200",
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
         "QCD_HT-200to400",
         "QCD_HT-400to600",
         "QCD_HT-600to800",
         "QCD_HT-800to1000",
+        "QCD_HT-1000to1200",
+        "QCD_HT-1200to1500",
+        "QCD_HT-1500to2000",
+        "QCD_HT-2000",
+        "QCD-4Jets_HT-100to200",
+        "QCD-4Jets_HT-200to400",
+        "QCD-4Jets_HT-400to600",
+        "QCD-4Jets_HT-600to800",
+        "QCD-4Jets_HT-800to1000",
+        "QCD-4Jets_HT-1000to1200",
+        "QCD-4Jets_HT-1200to1500",
+        "QCD-4Jets_HT-1500to2000",
+        "QCD-4Jets_HT-2000",
     ]
     samples_run3[year]["ttbar"] = [
         "TTto2L2Nu",
@@ -202,10 +213,12 @@ def preprocess_data(
     )
 
     training_keys = train_keys.copy()
-    for key in training_keys:
-        if key not in events_dict:
-            logger.info(f"{key} not in events_dict, removing...")
-            training_keys.remove(key)
+    missing_keys = [key for key in training_keys if key not in events_dict]
+    for key in missing_keys:
+        logger.info(f"{key} not in events_dict, removing...")
+    training_keys = [key for key in training_keys if key in events_dict]
+    args.sig_keys = [key for key in args.sig_keys if key in events_dict]
+    args.bg_keys = [key for key in args.bg_keys if key in events_dict]
 
     logger.info(f"Keys in events_dict {events_dict.keys()}")
     logger.info(f"Training keys {training_keys}")
@@ -268,6 +281,12 @@ def preprocess_data(
 
         for key in training_keys:
             logger.info(f"Total {key} post-normalization: {events.loc[key, 'weight'].sum():.3f}")
+
+    for key in training_keys:
+        raw_weight = np.sum(weights_bdt[key])
+        scaled_weight = events.loc[key, "weight"].sum()
+        ratio = scaled_weight / raw_weight if raw_weight else float("inf")
+        logger.info(f"Class scaling {key}: {raw_weight:.3f} -> {scaled_weight:.3f} (x{ratio:.3f})")
 
     # Define target
     events["target"] = 0  # Default to 0 (background)
@@ -678,7 +697,8 @@ def evaluate_model(
             ax.set_ylabel("Background efficiency")
 
             if log:
-                ax.set_xlim([0.0, 0.6])
+                # ax.set_xlim([0.0, 0.6])
+                ax.set_xlim([0.0, 1.0])
                 ax.set_ylim([1e-5, 1e-1])
                 ax.set_yscale("log")
             else:
@@ -807,6 +827,8 @@ def evaluate_model(
             if key not in training_keys:
                 continue
             for hkey, h in hists.items():
+                if key not in h.axes["cat"]:
+                    continue
                 fig, ax = plt.subplots(1, 1, figsize=(12, 8))
                 for cut in bdt_cuts:
                     hep.histplot(
@@ -1146,11 +1168,12 @@ def main(args):
             year,
             samples_run3,
             reorder_txbb=True,
-            txbb_str=args.txbb_str,
+            # txbb_str=args.txbb_str,
             load_systematics=False,
             txbb_version=args.txbb,
             scale_and_smear=False,  # TODO: train with scale and smear corrections
             mass_str=args.mass_str,
+            bdt_version=args.config_name,
         )
 
         if args.apply_cuts:
@@ -1160,6 +1183,16 @@ def main(args):
                 args.txbb_str,
                 args.mass_str,
             )
+
+        # apply trigger selection (skimmer does not apply trigger for signal region MC)
+        hlt_cols = [hlt for hlt in HLTs[year]]  # noqa: C416
+        for key in list(events_dict_years[year].keys()):
+            n_before = len(events_dict_years[year][key])
+            trigger_mask = events_dict_years[year][key][
+                [col for col in events_dict_years[year][key].columns if col[0] in hlt_cols]
+            ].any(axis=1)
+            events_dict_years[year][key] = events_dict_years[year][key][trigger_mask]
+            logger.info(f"Trigger: {key}: {len(events_dict_years[year][key])} / {n_before} pass")
 
         # concatenate data
         # if doing multiclass classification, encode each process separately
@@ -1196,6 +1229,9 @@ def main(args):
         for key in training_keys:
             if key in events_dict_years[year]:
                 np.save(f"{model_dir}/inferences/{year}/evt_{key}.npy", ev_test.loc[key])
+
+    # update training_keys after preprocess_data may have filtered args.sig_keys/bg_keys
+    training_keys = args.sig_keys + args.bg_keys
 
     X_train_combined = get_combined(X_train)
     X_test_combined = get_combined(X_test)
@@ -1282,11 +1318,12 @@ def main(args):
             year,
             samples_run3,
             reorder_txbb=True,
-            txbb_str=args.txbb_str,
+            # txbb_str=args.txbb_str,
             load_systematics=False,
             txbb_version=args.txbb,
             scale_and_smear=False,
             mass_str=args.mass_str,
+            bdt_version=args.config_name,
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(
@@ -1316,7 +1353,7 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         default=["2022EE"],
-        choices=[hh_vars.years, "2022-2023"],
+        choices=hh_vars.years + ["2022-2023"],
         help="years to train on",
     )
     parser.add_argument(
@@ -1363,6 +1400,8 @@ if __name__ == "__main__":
             "bbFatJetPNetMassLegacy",
             "bbFatJetMsd",
             "bbFatJetParTmassVis",
+            "bbFatJetParT3massX2p",
+            "bbFatJetParT3massGeneric",
         ],
         help="txbb mass",
         required=True,
