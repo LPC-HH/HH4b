@@ -1543,7 +1543,16 @@ def scan_fom(
     else:
         valid = finite
     idx = np.where(valid)[0]
-    iopt = idx[np.argmin(all_fom[idx])] if len(idx) else int(np.argmin(all_fom))
+    if len(idx):
+        iopt = idx[np.argmin(all_fom[idx])]
+    else:
+        # no finite/valid FOM point (e.g. empty selection or all-NaN) -> argmin would
+        # silently return an arbitrary corner; warn so the bad WP isn't taken as real.
+        iopt = int(np.argmin(all_fom))
+        logger.warning(
+            f"[{plot_name}] no valid FOM points under the filter; "
+            f"falling back to an arbitrary WP (idx {iopt}) -- check the inputs."
+        )
     xbb_opt, bdt_opt = float(all_xbb_cuts[iopt]), float(all_bdt_cuts[iopt])
     print(
         f"  [{plot_name}] optimal WP: TXbb>{xbb_opt:.4f}, BDT>{bdt_opt:.4f} "
@@ -2252,7 +2261,7 @@ def postprocess_run3(args):
         # vbf_* in place exactly like the serial path, so the rest of postprocess is
         # unchanged.  VALIDATE with fom_fast.validate_against_serial before trusting.
         if args.fom_fast:
-            import fom_fast  # noqa: PLC0415
+            from HH4b.postprocessing import fom_fast  # noqa: PLC0415
 
             summary = fom_fast.run_nested_fom_fast(
                 args,

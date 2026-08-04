@@ -145,11 +145,12 @@ def scan_fom_fast(
     Returns a dict with the same flat arrays scan_fom saves to *_fom_arrays.npz
     (all_fom, all_b, all_b_unc, all_s, all_sideband_events, all_xbb_cuts, all_bdt_cuts,
     row-major with xbb OUTER / bdt INNER -- identical ordering to the serial loops), plus
-    'best_xbb'/'best_bdt' (argmin under the reliability filter) and the 2D grids.
+    the 2D grids (fom_grid, sideband_grid). The optimal working point is NOT included
+    here -- call ``best_wp(scan, reliability=...)`` to get (best_xbb, best_bdt) under the
+    sideband>=12 & b>0.5 reliability filter.
 
     `fom` is "classic" or "asimov"; `bdt_col` is the column the scanned BDT threshold
-    applies to ("bdt_score_vbf" for the VBF region, else "bdt_score"). `reliability`
-    toggles the sideband>=12 & b>0.5 filter (pass args.fom_reliability_filter).
+    applies to ("bdt_score_vbf" for the VBF region, else "bdt_score").
     """
     if method != "abcd":
         raise NotImplementedError("fom_fast vectorizes the abcd path only; use serial scan_fom.")
