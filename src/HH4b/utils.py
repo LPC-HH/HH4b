@@ -188,15 +188,20 @@ def check_selector(sample: str, selector: str | list[str]):
     if not isinstance(selector, (list, tuple)):
         selector = [selector]
 
+    # Case-insensitive matching: the v15 skimmer is inconsistent across years
+    # (e.g. ttHto2B_M-125 vs TTHto2B_M-125).  CMS sample names don't collide by
+    # case alone, so lowercasing both sides is safe.
+    sample_lc = sample.lower()
     for s in selector:
+        s = s.lower()  # noqa: PLW2901
         if s.endswith("?"):
-            if s[:-1] == sample:
+            if s[:-1] == sample_lc:
                 return True
         elif s.startswith("*"):
-            if s[1:] in sample:
+            if s[1:] in sample_lc:
                 return True
         else:
-            if sample.startswith(s):
+            if sample_lc.startswith(s):
                 return True
 
     return False
@@ -401,6 +406,9 @@ def load_samples(
                     df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
                     if not df_sample.empty:
                         non_empty_passed_list.append(df_sample)
+                if not non_empty_passed_list:
+                    warnings.warn(f"No events after filtering for {sample}!", stacklevel=1)
+                    continue
                 events = pd.concat(non_empty_passed_list, ignore_index=True)
             except Exception as e:
                 logger.error(f"Error loading {sample}: {e}")
@@ -443,6 +451,8 @@ def load_samples(
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
+            # Deduplicate columns that can arise when concatenating multiple sub-samples
+            events_dict[label] = events_dict[label].loc[:, ~events_dict[label].columns.duplicated()]
         else:
             del events_dict[label]
 
