@@ -633,17 +633,18 @@ def load_process_run3_samples(
             mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
             events_dict = events_dict.loc[mask].copy()
 
-            # LUMI SCALING (2024): we keep half the events; scale weights by 2 so that
-            # the total weighted yield matches full 2024 MC (i.e. full 2024 lumi).
-            if year == "2024":
-                weight_cols = [
-                    col
-                    for col in events_dict.columns.get_level_values(0).unique()
-                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
-                    or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
-                ]
-                for col in weight_cols:
-                    events_dict[col] = events_dict[col] * 2.0
+            # We keep half the events; scale weights by 2 so the total weighted yield matches
+            # the FULL source-year MC. This applies to BOTH the 2024 half and the 2025 half --
+            # for 2025 the LUMI SCALING block below then rescales 2024->2025 lumi. (Previously
+            # the x2 was applied only to 2024, leaving the 2025 templates at half normalization.)
+            weight_cols = [
+                col
+                for col in events_dict.columns.get_level_values(0).unique()
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+            ]
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * 2.0
 
         # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
         # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
