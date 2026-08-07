@@ -119,9 +119,15 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     elif "2024" in year or "2025" in year:
         print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
-    return correctionlib.CorrectionSet.from_file(
-        f"{package_path}/corrections/data/ttbar_sfs/{txbb_version}/ttbarcorr_{year_}.json"
-    )[f"ttbar_corr_{corr}_{year_}"]
+    # ttbar SFs aren't derived for glopart-v3 yet; it shares the ParT mass-
+    # regression family with glopart-v2, so fall back to the v2 SFs.
+    sf_version = txbb_version
+    sf_path = f"{package_path}/corrections/data/ttbar_sfs/{sf_version}/ttbarcorr_{year_}.json"
+    if not Path(sf_path).exists():
+        print(f"WARNING: no ttbar SFs for {txbb_version}; falling back to glopart-v2")
+        sf_version = "glopart-v2"
+        sf_path = f"{package_path}/corrections/data/ttbar_sfs/{sf_version}/ttbarcorr_{year_}.json"
+    return correctionlib.CorrectionSet.from_file(sf_path)[f"ttbar_corr_{corr}_{year_}"]
 
 
 def _load_ttbar_bdtshape_sfs(cat: str, bdt_model: str, bdt_score: str):
@@ -207,7 +213,9 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     if txbb_str == "bbFatJetPNetTXbbLegacy":
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
-    elif txbb_str == "bbFatJetParT3TXbb":
+    elif "part3" in txbb_str.lower() or txbb_str == "bbFatJetParT3TXbb":
+        # glopart-v3: use the v3 TXbb column for the events, but fall back to the
+        # glopart-v2 ('txbbGloParT') efficiency maps (v3 effs not derived yet).
         txbb_str = "txbbGloParT"
         txbb = "bbFatJetParT3TXbb"
     elif txbb_str == "bbFatJetParTTXbb":
@@ -216,27 +224,39 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     else:
         raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
-    year_ = year
-    if "2024" in year or "2025" in year:
-        year_ = "2023BPix"
+    # Trigger efficiencies aren't derived for 2024/2025 -> fall back to 2023BPix's maps.
+    # eff_year drives BOTH the file load and the correction keys, so they always match.
+    eff_year = year
+    # both the ptmsd and the b-tag (txbb) efficiency maps are loaded below, so fall back
+    # if EITHER is missing for this year (checking only ptmsd could still leave a missing
+    # txbb file -> CorrectionSet.from_file would throw).
+    if not (
+        Path(_get_json_fname(year, "ptmsd", region)).exists()
+        and Path(_get_json_fname(year, txbb_str, region)).exists()
+    ):
+        print(
+            f"WARNING: trigger-efficiency maps not found for {year} "
+            f"(region {region}, {txbb_str}); falling back to 2023BPix."
+        )
+        eff_year = "2023BPix"
 
     # load trigger efficiencies
-    triggereff_ptmsd = _load_trig_effs(year, "ptmsd", region)
-    triggereff_btag = _load_trig_effs(year, txbb_str, region)
+    triggereff_ptmsd = _load_trig_effs(eff_year, "ptmsd", region)
+    triggereff_btag = _load_trig_effs(eff_year, txbb_str, region)
 
-    eff_data = triggereff_ptmsd[f"fatjet_triggereffdata_{year_}_ptmsd"]
-    eff_mc = triggereff_ptmsd[f"fatjet_triggereffmc_{year_}_ptmsd"]
-    eff_data_btag = triggereff_btag[f"fatjet_triggereffdata_{year_}_{txbb_str}"]
-    eff_mc_btag = triggereff_btag[f"fatjet_triggereffmc_{year_}_{txbb_str}"]
+    eff_data = triggereff_ptmsd[f"fatjet_triggereffdata_{eff_year}_ptmsd"]
+    eff_mc = triggereff_ptmsd[f"fatjet_triggereffmc_{eff_year}_ptmsd"]
+    eff_data_btag = triggereff_btag[f"fatjet_triggereffdata_{eff_year}_{txbb_str}"]
+    eff_mc_btag = triggereff_btag[f"fatjet_triggereffmc_{eff_year}_{txbb_str}"]
 
     # extract bins
-    ptmsd_bins_dict = _get_bins(year, "ptmsd", region)
+    ptmsd_bins_dict = _get_bins(eff_year, "ptmsd", region)
     pt_range = ptmsd_bins_dict["pt"]
     msd_range = ptmsd_bins_dict["msd"]
     try:
-        xbb_range = _get_bins(year, txbb_str, region)["txbb"]
+        xbb_range = _get_bins(eff_year, txbb_str, region)["txbb"]
     except KeyError:
-        xbb_range = _get_bins(year, txbb_str, region)["xbb"]
+        xbb_range = _get_bins(eff_year, txbb_str, region)["xbb"]
 
     pt_axis = hist.axis.Variable(pt_range, name="pt")
     msd_axis = hist.axis.Variable(msd_range, name="msd")

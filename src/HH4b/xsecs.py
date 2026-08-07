@@ -51,17 +51,22 @@ xsecs["QCDB_HT-1500to2000"] = 4729
 xsecs["QCDB_HT-2000"] = 0.8673
 
 # got using genXsecAnalyzer
-xsecs["QCD_HT-40to70"] = 311600000.0
-xsecs["QCD_HT-70to100"] = 58520000.0
-xsecs["QCD_HT-100to200"] = 25220000.0
-xsecs["QCD_HT-200to400"] = 1963000.0
-xsecs["QCD_HT-400to600"] = 94870.0
-xsecs["QCD_HT-600to800"] = 13420.0
-xsecs["QCD_HT-800to1000"] = 2992.0
-xsecs["QCD_HT-1000to1200"] = 879.1
-xsecs["QCD_HT-1200to1500"] = 384.5
-xsecs["QCD_HT-1500to2000"] = 125.5
-xsecs["QCD_HT-2000"] = 25.78
+qcd_ht = {
+    "QCD_HT-40to70": 311600000.0,
+    "QCD_HT-70to100": 58520000.0,
+    "QCD_HT-100to200": 25220000.0,
+    "QCD_HT-200to400": 1963000.0,
+    "QCD_HT-400to600": 94870.0,
+    "QCD_HT-600to800": 13420.0,
+    "QCD_HT-800to1000": 2992.0,
+    "QCD_HT-1000to1200": 879.1,
+    "QCD_HT-1200to1500": 384.5,
+    "QCD_HT-1500to2000": 125.5,
+    "QCD_HT-2000": 25.78,
+}
+for key, value in qcd_ht.items():
+    xsecs[key] = value
+    xsecs[key.replace("QCD_HT", "QCD-4Jets_HT")] = value
 
 # xsdb
 xsecs["QCD_PT-120to170_MuEnrichedPt5"] = 22980.0
@@ -93,6 +98,14 @@ xsecs["WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8"] = 1.786
 xsecs["WWto4Q_TuneCP5_13p6TeV_powheg-pythia8"] = 78.79
 xsecs["WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 76.16
 xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
+
+xsecs["WWto4Q-1Jets-4FS"] = 24.88
+xsecs["WWtoLNu2Q-1Jets-4FS"] = 52.98
+xsecs["WZto3LNu-1Jets-4FS"] = 5.315
+xsecs["ZZto2L2Q-1Jets"] = 3.86
+xsecs["ZZto4L-1Jets"] = 3.86
+xsecs["WZto4Q-1Jets-4FS"] = 24.88
+
 
 # SingleTop
 xsecs["TbarBQ_t-channel_4FS"] = 87.2
@@ -148,6 +161,10 @@ xsecs["ggZH_Hto2C_Zto2Q_M-125"] = (
     0.1360 * BR_ZQQ * BR_HCC
 )  # 0.0027 (0.04776 from xsecdb, 0.04776*BR_HCC=0.00138)
 xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB  # 0.3319 (0.5742 from xsecdb, 0.5742*BR_HBB=0.334)
+
+xsecs["TTH_Hto2B_M-125"] = xsecs["TTHto2B_M-125"] = (
+    0.5742 * BR_HBB
+)  # 0.3319 (0.5742 from xsecdb, 0.5742*BR_HBB=0.334)
 
 # Triple-higgs
 # SM sample
@@ -264,6 +281,7 @@ xsecs["WtoLNu-2Jets_2J"] = 3532.0
 xsecs["WtoLNu-4Jets_1J"] = 9625.0
 xsecs["WtoLNu-4Jets_2J"] = 3161.0
 xsecs["WtoLNu-4Jets_3J"] = 1468.0
+xsecs["WtoLNu-4Jets_4J"] = 416.5
 
 # WtoLNu-4Jets 2024 samples
 xsecs["WtoLNu-4Jets_Bin-1J"] = 9141
@@ -301,6 +319,21 @@ xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-100to200"] = 51.68
 xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-200to400"] = 7.159
 xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-400to600"] = 0.4157
 xsecs["DYto2L-2Jets_Bin-2J-MLL-50-PTLL-600"] = 0.07019
+
+xsecs["DYto2L-2Jets_MLL-50_PTLL-40to100_1J"] = 475.3
+xsecs["DYto2L-2Jets_MLL-50_PTLL-40to100_2J"] = 179.3
+
+xsecs["DYto2L-2Jets_MLL-50_PTLL-100to200_1J"] = 45.42
+xsecs["DYto2L-2Jets_MLL-50_PTLL-100to200_2J"] = 51.68
+
+xsecs["DYto2L-2Jets_MLL-50_PTLL-200to400_1J"] = 3.382
+xsecs["DYto2L-2Jets_MLL-50_PTLL-200to400_2J"] = 7.159
+
+xsecs["DYto2L-2Jets_MLL-50_PTLL-400to600_1J"] = 0.1162
+xsecs["DYto2L-2Jets_MLL-50_PTLL-400to600_2J"] = 0.4157
+
+xsecs["DYto2L-2Jets_MLL-50_PTLL-600_1J"] = 0.01392
+xsecs["DYto2L-2Jets_MLL-50_PTLL-600_2J"] = 0.07019
 
 
 ########################################################
