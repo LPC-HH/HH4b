@@ -75,6 +75,10 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  # pandas warns when a DataFrame has >100 non-extension blocks (happens when many columns
+  # are added one-by-one to a wide DataFrame with many JEC-shift columns).  This is a
+  # performance note, not a correctness issue, and the production code path works fine.
+  "ignore::pandas.errors.PerformanceWarning",
   "ignore:pkg_resources is deprecated:DeprecationWarning",
   "ignore:jsonschema.RefResolver is deprecated:DeprecationWarning",
   "ignore:jsonschema.exceptions.RefResolutionError is deprecated:DeprecationWarning",
@@ -168,7 +172,8 @@ isort.required-imports = ["from __future__ import annotations"]
 # typing-modules = ["hh4b._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T20"]
+"tests/**" = ["T20", "PLC0415", "ARG001", "ARG005"]
+"scripts/**" = ["T20", "PLC0415"]
 "noxfile.py" = ["T20"]
 
 

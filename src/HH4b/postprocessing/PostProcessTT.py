@@ -631,8 +631,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
-        help="tag for input ntuples",
+        required=True,
+        help="path to skimmer output directory (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)",
     )
     parser.add_argument(
         "--tag",
