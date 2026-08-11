@@ -129,6 +129,7 @@ def main():
             continue
 
         with uproot.open(curr_path) as f:
+
             trees = [k.split(";")[0] for k in f]
 
         print(f"\n=== {year} ===")
