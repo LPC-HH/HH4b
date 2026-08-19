@@ -8,7 +8,7 @@ import pprint
 import sys
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable
+from typing import Callable, NamedTuple
 
 import awkward as ak
 import hist
@@ -493,6 +493,67 @@ def calculate_txbb_weights(
     return txbb_sf_weight
 
 
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+class MCSplitConfig(NamedTuple):
+    """How one year's MC is drawn from a (possibly shared) source sample."""
+
+    source_year: str  # year whose MC is read from disk
+    split_half: int | None  # parity half to keep; None keeps every event
+    weight_scale: float  # factor applied to the MC weight columns
+
+
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+def get_mc_split_config(year: str, split_shared_mc: bool = False) -> MCSplitConfig:
+    """Resolve which MC a year is built from, and how its weights must be rescaled.
+
+    2025 has no MC of its own. With ``split_shared_mc`` it is built from the 2024 sample,
+    split 50/50 by event parity so that the 2024 and 2025 templates stay statistically
+    independent when they enter the same fit. Each half is scaled by 2 to recover the full
+    2024 yield, and 2025 is then rescaled to its own luminosity.
+
+    Without ``split_shared_mc``, 2024 uses its full sample and 2025 cannot be built at all.
+    """
+    if year == "2025":
+        if not split_shared_mc:
+            raise ValueError(
+                "2025 has no MC of its own. Pass --split-shared-mc to build the 2025 "
+                "templates from half of the 2024 MC (2024 then uses the other half), "
+                "or drop 2025 from --years."
+            )
+        source_year = "2024"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # x2 recovers the full 2024 yield from the half we keep; the luminosity ratio then
+        # rescales those 2024-normalized weights to 2025.
+        return MCSplitConfig(source_year, 1, 2.0 * target_lumi / hh_vars.LUMI[source_year])
+
+    if year == "2024" and split_shared_mc:
+        # half the events are reserved for 2025, so x2 recovers the full 2024 yield
+        return MCSplitConfig(year, 0, 2.0)
+
+    return MCSplitConfig(year, None, 1.0)
+
+
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+def mc_split_mask(run, luminosity_block, event, split_half: int) -> np.ndarray:
+    """Deterministic 50/50 partition of MC events by (run + lumi + event) parity.
+
+    Each field is reduced mod 2 before summing, so the arithmetic stays in range for the
+    skimmer's dtypes (run/lumi uint32, event uint64) with no cast at all. Non-integer ids
+    are rejected rather than coerced: event numbers run past 2**53, so a float column has
+    already lost exactly the low bit this depends on, and splitting on it would silently
+    produce a wrong -- but entirely plausible-looking -- partition.
+    """
+    parity = 0
+    for name, raw in (("run", run), ("luminosityBlock", luminosity_block), ("event", event)):
+        ids = np.asarray(raw)
+        if not np.issubdtype(ids.dtype, np.integer):
+            raise TypeError(f"{name} must have an integer dtype for the MC split, got {ids.dtype}")
+        parity = parity + (ids % 2)
+    return parity % 2 == split_half
+
+
 def load_process_run3_samples(
     args,
     year,
@@ -602,28 +663,17 @@ def load_process_run3_samples(
     # define cutflows
     samples_year = list(samples_run3[year].keys())
 
-    # MC fallback and luminosity scaling for years without dedicated MC (e.g. 2025).
-    # We split 2024 MC 50/50: half for 2024 templates, half for 2025 templates.
-    # Split is deterministic via (run + luminosityBlock + event) % 2.
-    mc_fallback_year = None
-    mc_lumi_scale = 1.0
-    mc_split_half = None  # 0 = use for 2024, 1 = use for 2025
-    if year == "2025":
-        # 2025 has no MC: use 2024 MC (other half), scale yields to 2025 lumi.
-        mc_fallback_year = "2024"
-        target_lumi = hh_vars.LUMI.get(year)
-        if target_lumi is None:
-            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
-        # LUMI SCALING: MC weights are norm'd to source-year lumi; multiply by target/source
-        # to get yields appropriate for 2025.
-        mc_lumi_scale = target_lumi / hh_vars.LUMI[mc_fallback_year]
-        mc_split_half = 1  # use events with (run+lumi+evt)%2 == 1
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    # 2025 has no dedicated MC; under --split-shared-mc it is built from half of the 2024
+    # sample, with 2024 taking the other half. Data always comes from the year itself.
+    # getattr: overlap/eventlist.py and Scaling_Toys.py build their own args without
+    # this flag. They never build 2025, so defaulting to no sharing preserves their
+    # behaviour exactly (full 2024 MC, weights untouched).
+    mc_split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+    if mc_split.source_year != year:
         samples_year = [hh_vars.data_key] + [
-            k for k in samples_run3[mc_fallback_year] if k != hh_vars.data_key
+            k for k in samples_run3[mc_split.source_year] if k != hh_vars.data_key
         ]
-    elif year == "2024":
-        # Use half of 2024 MC for 2024 templates; the other half is reserved for 2025.
-        mc_split_half = 0  # use events with (run+lumi+evt)%2 == 0
 
     if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
@@ -646,8 +696,8 @@ def load_process_run3_samples(
         logger.info(f"Load samples {key}")
 
         source_year = year
-        if mc_fallback_year is not None and key != hh_vars.data_key:
-            source_year = mc_fallback_year
+        if mc_split.source_year != year and key != hh_vars.data_key:
+            source_year = mc_split.source_year
 
         samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
@@ -674,19 +724,20 @@ def load_process_run3_samples(
             continue
         events_dict = _loaded[key]
 
-        # --- 2024 MC split: use half for 2024, half for 2025 (deterministic) --- (from main)
-        if mc_split_half is not None and key != hh_vars.data_key:
-            run_ = events_dict["run"].to_numpy().squeeze()
-            lumi_ = events_dict["luminosityBlock"].to_numpy().squeeze()
-            evt_ = events_dict["event"].to_numpy().squeeze()
-            # Avoid overflow: (a+b+c)%2 = (a%2 + b%2 + c%2)%2
-            mask = ((run_ % 2) + (lumi_ % 2) + (evt_ % 2)) % 2 == mc_split_half
-            events_dict = events_dict.loc[mask].copy()
+        # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+        # Keep this year's half of the shared 2024 sample, then rescale its weights: x2 to
+        # recover the full 2024 yield from the half we kept, and for 2025 the 2024->2025
+        # luminosity ratio on top. Both factors are folded into weight_scale.
+        if mc_split.split_half is not None and key != hh_vars.data_key:
+            events_dict = events_dict.loc[
+                mc_split_mask(
+                    events_dict["run"].to_numpy().squeeze(),
+                    events_dict["luminosityBlock"].to_numpy().squeeze(),
+                    events_dict["event"].to_numpy().squeeze(),
+                    mc_split.split_half,
+                )
+            ].copy()
 
-            # We keep half the events; scale weights by 2 so the total weighted yield matches
-            # the FULL source-year MC. This applies to BOTH the 2024 half and the 2025 half --
-            # for 2025 the LUMI SCALING block below then rescales 2024->2025 lumi. (Previously
-            # the x2 was applied only to 2024, leaving the 2025 templates at half normalization.)
             weight_cols = [
                 col
                 for col in events_dict.columns.get_level_values(0).unique()
@@ -694,19 +745,7 @@ def load_process_run3_samples(
                 or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
             ]
             for col in weight_cols:
-                events_dict[col] = events_dict[col] * 2.0
-
-        # --- LUMI SCALING (2025): MC from fallback year (2024) is norm'd to 2024 lumi;
-        # scale weights by LUMI_2025/LUMI_2024 so yields match 2025 lumi. ---
-        if mc_fallback_year is not None and key != hh_vars.data_key:
-            weight_cols = []
-            for col in events_dict.columns.get_level_values(0).unique():
-                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
-                    col.startswith("weight_") and ("noxsec" not in col and "nonorm" not in col)
-                ):
-                    weight_cols.append(col)
-            for col in weight_cols:
-                events_dict[col] = events_dict[col] * mc_lumi_scale
+                events_dict[col] = events_dict[col] * mc_split.weight_scale
 
         # inference and assign score
         jshifts = [""]
@@ -2636,6 +2675,17 @@ if __name__ == "__main__":
         type=str,
         default="event_lists",
         help="folder to save the event list for each year",
+    )
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    run_utils.add_bool_arg(
+        parser,
+        "split-shared-mc",
+        default=False,
+        help=(
+            "split the 2024 MC 50/50 between the 2024 and 2025 templates. Required to "
+            "build 2025, which has no MC of its own. Needed whenever 2024 and 2025 will "
+            "be combined in the same fit, so that their MC statistics stay independent"
+        ),
     )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
