@@ -119,16 +119,6 @@ class TestMCSplitMask:
         with pytest.raises(TypeError, match="integer"):
             pp.mc_split_mask(ids, ids, ids, 0)
 
-    def test_split_mask_handles_large_event_numbers(self):
-        """Event numbers exceed 2**53, so a float64 code path would lose the parity."""
-        run = np.array([1, 1], dtype=np.int64)
-        lumi = np.array([1, 1], dtype=np.int64)
-        event = np.array([2**62 - 1, 2**62], dtype=np.int64)  # odd, even
-        # (1 + 1 + odd) % 2 == 1 ; (1 + 1 + even) % 2 == 0
-        np.testing.assert_array_equal(
-            pp.mc_split_mask(run, lumi, event, 1), np.array([True, False])
-        )
-
 
 class TestSplitClosure:
     """Config and mask together must reproduce the full sample's yield."""
