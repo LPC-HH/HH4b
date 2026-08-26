@@ -153,24 +153,39 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     # need to combine all the files from these processors before transferring to EOS
     # otherwise it will complain about too many small files
     if save_parquet or save_root:
-        pddf = pd.read_parquet(local_parquet_dir)
+        # dump_table skips chunks with 0 selected events, so a job where nothing passes
+        # leaves outparquet empty; and a low-yield chunk can write an all-null column that
+        # pd.read_parquet(dir) cannot unify with another chunk's typed column
+        # (ArrowNotImplementedError: Unsupported cast from bool to null). So read the chunk
+        # files individually and concat in pandas (which upcasts mismatched dtypes); if
+        # there are none, warn and skip the merged output. The pickle with the cutflow is
+        # already written above, so the job exits cleanly either way.
+        parquet_files = sorted(Path(local_parquet_dir).glob("*.parquet"))
 
-        if save_parquet:
-            # need to write with pyarrow as pd.to_parquet doesn't support different types in
-            # multi-index column names
-            table = pa.Table.from_pandas(pddf)
-            pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
+        if not parquet_files:
+            print(
+                f"WARNING: no parquet chunks in {local_parquet_dir} "
+                "(0 events passed selection); skipping parquet/root output."
+            )
+        else:
+            pddf = pd.concat([pd.read_parquet(f) for f in parquet_files], ignore_index=True)
 
-        if save_root and args.save_root:
-            with uproot.recreate(
-                f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
-            ) as rfile:
-                rfile["Events"] = ak.Array(
-                    # take only top-level column names in multiindex df
-                    run_utils.flatten_dict(
-                        {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+            if save_parquet:
+                # need to write with pyarrow as pd.to_parquet doesn't support different types in
+                # multi-index column names
+                table = pa.Table.from_pandas(pddf)
+                pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
+
+            if save_root and args.save_root:
+                with uproot.recreate(
+                    f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
+                ) as rfile:
+                    rfile["Events"] = ak.Array(
+                        # take only top-level column names in multiindex df
+                        run_utils.flatten_dict(
+                            {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
+                        )
                     )
-                )
 
 
 def main(args):

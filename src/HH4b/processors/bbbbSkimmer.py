@@ -973,7 +973,24 @@ class bbbbSkimmer(SkimmerABC):
                     "JER_down",
                 ]
             for jshift in jshifts:
-                bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                try:
+                    bdtVars = self.getBDT(
+                        bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift
+                    )
+                except KeyError as e:
+                    # A chunk with no fat jets never has its JEC/JMSR-shifted fat-jet
+                    # branches built (those live inside the `if shift != ""` blocks above),
+                    # so getBDT KeyErrors on e.g. "bbFatJetPt_JES_up". Such a chunk also
+                    # fails the >=2-fat-jet selection (0 events pass -> dump_table writes
+                    # nothing), so warn and skip the shifted BDT instead of crashing.
+                    # The nominal shift must always be buildable; re-raise if it is not.
+                    if jshift == "":
+                        raise
+                    logger.warning(
+                        f"{dataset}: shifted fat-jet var {e} absent for '{jshift}' "
+                        f"({len(events)} events, no fat jets in this chunk); skipping its BDT."
+                    )
+                    continue
                 skimmed_events = {
                     **skimmed_events,
                     **bdtVars,
