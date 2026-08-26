@@ -229,6 +229,11 @@ def get_scale_weights(events):
 
     See also https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L93 for an example.
     """
+    # Some files (e.g. certain PFNano skims) don't store the LHEScaleWeight branch at all;
+    # treat that the same as "no scale weights" (return None, handled by the caller) so the
+    # job doesn't crash with AttributeError.
+    if "LHEScaleWeight" not in events.fields:
+        return None
     if len(events[0].LHEScaleWeight) > 0:
         if len(events[0].LHEScaleWeight) == 9:
             variations = events.LHEScaleWeight[:, [0, 1, 3, 5, 7, 8]].to_numpy()
