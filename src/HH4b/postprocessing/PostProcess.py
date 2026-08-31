@@ -488,7 +488,32 @@ def load_process_run3_samples(
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
-    if args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
+    if args.an184_txbb_sfs and args.txbb == "glopart-v3":
+        # Real glopart-v3 calibration: AN-23-184's measured GloParT-v3 Zbb SFs. Our glopart-v2 WP
+        # bands (defaulted above for v3) coincide with AN-184's purity edges, so WP1<->VHP(>0.99),
+        # WP2<->HP([0.975,0.99]), WP3<->MP([0.95,0.975]); WP4([0.3,0.95]) has no AN-184 measurement
+        # (SF=1, 2x-MP uncertainty). Reads corrections/data/txbb_sfs/glopart-v3/{2022,2023}/
+        # sf_an184_zbb.json. Replaces the dummy/borrow stopgaps with real v3 numbers.
+        txbb_sf = corrections._load_txbb_sfs(
+            year,
+            "sf_an184_zbb",
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            "glopart-v3",
+        )
+    elif args.borrow_txbb_sfs and args.txbb == "glopart-v3":
+        # Proxy calibration for glopart-v3 (no v3 TXbb SFs measured yet): borrow the measured
+        # glopart-v2 Zbb SFs. TXbb_wps / TXbb_pt_corr_bins already default to the glopart-v2
+        # definitions above, so the SF-file keys match; the v2 WP bands are applied to the
+        # ParT3TXbb score. Stopgap (mirrors the v2-borrowed ttbar SFs), NOT a real v3 calibration.
+        txbb_sf = corrections._load_txbb_sfs(
+            year,
+            "sf_glopart-v2_zbb",
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            "glopart-v2",
+        )
+    elif args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
         txbb_sf = corrections._load_dummy_txbb_sfs(
             TXbb_wps,
             TXbb_pt_corr_bins,
@@ -569,7 +594,8 @@ def load_process_run3_samples(
             # JEC/JMR systematic shift columns are only needed for templates;
             # skip them for a nominal FOM scan (and avoids missing-column errors
             # when a skimmer lacks them, e.g. glopart-v3 v15 signal skimmer).
-            load_systematics=args.templates,
+            # --no-systematics also skips them (nominal-only templates).
+            load_systematics=args.templates and args.systematics,
             txbb_version=args.txbb,
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
@@ -587,9 +613,9 @@ def load_process_run3_samples(
         # inference and assign score
         jshifts = [""]
         # JEC/JMR shifts only matter for templates; for a nominal FOM scan the
-        # shifted columns aren't loaded (load_systematics=args.templates), so
-        # stay nominal-only to avoid missing-column errors.
-        if args.templates:
+        # shifted columns aren't loaded (load_systematics above), so stay
+        # nominal-only to avoid missing-column errors.  --no-systematics same.
+        if args.templates and args.systematics:
             if key in hh_vars.syst_keys:
                 jshifts += hh_vars.jec_shifts
             if key in hh_vars.jmsr_keys:
@@ -611,11 +637,16 @@ def load_process_run3_samples(
                 _feat_order = _add_year_features(
                     bdt_events[jshift], model_feature_names(args.bdt_model), year
                 )
-                _X = (
-                    bdt_events[jshift][_feat_order]
-                    if _feat_order is not None
-                    else bdt_events[jshift]
-                )
+                if _feat_order is not None:
+                    # bdt_dataframe applies key_map to its OUTPUT column names too, so a
+                    # shifted frame names JEC/JMSR-affected features with the jshift suffix
+                    # (e.g. HHPt_JES_up).  Select those shifted names -> the model sees the
+                    # shifted kinematics; XGBoost applies by column position, so only the
+                    # order must match.  For jshift="" key_map is identity (no-op).
+                    _kmap = get_var_mapping(jshift)
+                    _X = bdt_events[jshift][[_kmap(f) for f in _feat_order]]
+                else:
+                    _X = bdt_events[jshift]
                 preds = bdt_model.predict_proba(_X)
                 add_bdt_scores(
                     bdt_events[jshift],
@@ -674,7 +705,7 @@ def load_process_run3_samples(
             "H1PNetMass": events_dict[mreg_strings[args.txbb]][0],
             "H2PNetMass": events_dict[mreg_strings[args.txbb]][1],
         }
-        if args.templates and key in hh_vars.jmsr_keys:
+        if args.templates and args.systematics and key in hh_vars.jmsr_keys:
             more_vars.update(
                 {
                     f"H{jet + 1}PNetMass_{jshift}": events_dict[
@@ -706,7 +737,7 @@ def load_process_run3_samples(
         # scale, pdf weights (theory uncertainties — only needed for templates;
         # the v15 signal skimmer may not carry them)
         n_pdf_weights = 0
-        if args.templates:
+        if args.templates and args.systematics:
             if key in hh_vars.sig_keys + ["ttbar"]:
                 more_vars.update(
                     {
@@ -2096,9 +2127,14 @@ def postprocess_run3(args):
         selection_regions.pop("pass_vbf")
 
     # individual templates per year
+    # --no-systematics -> nominal-only: no JEC/JMSR jshifts, no weight variations.
+    jshifts_templates = (
+        [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts if args.systematics else [""]
+    )
+    templates_weight_shifts = weight_shifts if args.systematics else {}
     for year in args.years:
         templates = {}
-        for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
+        for jshift in jshifts_templates:
             events_by_year = {}
             for sample, events in events_combined.items():
                 events_by_year[sample] = events[events["year"] == year]
@@ -2114,7 +2150,7 @@ def postprocess_run3(args):
                 bg_keys=bg_keys_combined,
                 plot_dir=Path(f"{templ_dir}/{year}"),
                 weight_key="weight",
-                weight_shifts=weight_shifts,
+                weight_shifts=templates_weight_shifts,
                 plot_shifts=False,  # skip for time
                 show=False,
                 energy=13.6,
@@ -2397,6 +2433,14 @@ if __name__ == "__main__":
         "Off by default; --fom-fast to enable.",
     )
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
+    run_utils.add_bool_arg(
+        parser,
+        "systematics",
+        default=True,
+        help="load JEC/JMSR + weight systematics for templates. --no-systematics makes nominal-only "
+        "templates (stat + normalization); use it for taggers whose shifted-inference path isn't "
+        "ported yet (e.g. glopart-v3: jec_vars/jmsr_vars still carry glopart-v2 names).",
+    )
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
@@ -2411,6 +2455,18 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(
         parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "borrow-txbb-sfs",
+        default=False,
+        help="borrow measured glopart-v2 Zbb TXbb SFs for glopart-v3 (proxy calibration; overrides dummy)",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "an184-txbb-sfs",
+        default=False,
+        help="use AN-23-184's measured GloParT-v3 Zbb TXbb SFs (real v3 calibration; WP1/2/3<->VHP/HP/MP; glopart-v3 only; overrides borrow/dummy)",
     )
 
     args = parser.parse_args()
