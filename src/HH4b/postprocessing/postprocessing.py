@@ -343,6 +343,16 @@ def load_run3_samples(
     if extra_columns:
         load_columns += extra_columns
     load_columns_systematics = load_columns_syst.copy()
+    # `load_columns_syst` hardcodes the glopart-v2 visible-mass name for the JMSR-shifted
+    # mass columns (bbFatJetParTmassVis_{JMS,JMR}_{up,down}, _raw).  Other taggers name the
+    # shifted mass after their regressed-mass string (glopart-v3 -> bbFatJetParT3massX2p), so
+    # swap in the correct name -- otherwise a --templates load errors on the missing v2 column.
+    if mass_str != "bbFatJetParTmassVis":
+        load_columns_systematics = [
+            c for c in load_columns_systematics if not str(c[0]).startswith("bbFatJetParTmassVis")
+        ]
+        load_columns_systematics += [(f"{mass_str}_{jshift}", 2) for jshift in jmsr_shifts]
+        load_columns_systematics += [(f"{mass_str}_raw", 2)]
     if load_bdt_scores:
         load_columns += [
             ("bdt_score", 1),
@@ -729,6 +739,14 @@ def get_templates(
         Dict[str, Hist]: dictionary of templates, saved as hist.Hist objects.
 
     """
+    # older skims (e.g. v12) may lack some signal benchmarks or use a different
+    # naming (e.g. VBF CV-m2p12 vs CV-2p12) -> drop signals not actually loaded,
+    # so downstream (sig_events, hist_samples) stays consistent.
+    missing_sig = [k for k in sig_keys if k not in events_dict]
+    if missing_sig:
+        print(f"WARNING get_templates: signals not in events_dict, skipping: {missing_sig}")
+        sig_keys = [k for k in sig_keys if k in events_dict]
+
     do_jshift = jshift != ""
     jlabel = "" if not do_jshift else "_" + jshift
     templates = {}
