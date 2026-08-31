@@ -210,7 +210,16 @@ class bbbbSkimmer(SkimmerABC):
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         if "v15" in nano_version and txbb == "glopart-v2":
-            logger.warning("Using glopart-v3 for v15 nanoAOD since glopart-v2 is not available")
+            # glopart-v2 IS available in v15 nanoAOD (FatJet_globalParT2_* branches present) and its
+            # tagger/mass columns are now saved via the v15 extra_vars block below. We still use
+            # glopart-v3 as the *primary* preselection tagger (the loose TXbb>0.3 presel is common to
+            # both, so this keeps the v15 event selection identical); postprocessing selects the
+            # tagger itself and can read the saved glopart-v2 columns. Remove this line to preselect
+            # on glopart-v2 instead.
+            logger.warning(
+                "v15 nanoAOD: using glopart-v3 for the (loose, common) preselection; "
+                "glopart-v2 columns are still saved for downstream v2 selection"
+            )
             txbb = "glopart-v3"
         self.txbb = txbb
 
@@ -421,17 +430,11 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         elif self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-        elif "v14" in self._nano_version:
+        elif "v14" in self._nano_version or "v15" in self._nano_version:
             self.jmsr_vars += [
                 "particleNet_mass_legacy",
                 "ParTmassVis",
                 "ParTmassRes",
-                "ParT3massGeneric",
-                "ParT3massX2p",
-            ]
-        elif "v15" in self._nano_version:
-            self.jmsr_vars += [
-                "particleNet_mass_legacy",
                 "ParT3massGeneric",
                 "ParT3massX2p",
             ]
@@ -538,6 +541,20 @@ class bbbbSkimmer(SkimmerABC):
             }
         elif "v15" in self._nano_version:
             extra_vars = [
+                # ParT 2 (GloParT-v2) — the v15 NanoAOD carries FatJet_globalParT2_* branches
+                # (verified), get_ak8jets derives these fields; save them so the v13_glopartv2 BDT
+                # / AN-23-151 selection can run on the v15 skim (same-skim v2-vs-v3 control).
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+                # ParT 3 (GloParT-v3)
                 "ParT3PQCD",
                 "ParT3PTopbWev",
                 "ParT3PTopbWmv",
@@ -974,9 +991,7 @@ class bbbbSkimmer(SkimmerABC):
                 ]
             for jshift in jshifts:
                 try:
-                    bdtVars = self.getBDT(
-                        bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift
-                    )
+                    bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
                 except KeyError as e:
                     # A chunk with no fat jets never has its JEC/JMSR-shifted fat-jet
                     # branches built (those live inside the `if shift != ""` blocks above),
