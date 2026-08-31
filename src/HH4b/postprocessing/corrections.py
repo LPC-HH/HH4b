@@ -218,11 +218,12 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     else:
         raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
-    # Trigger efficiencies aren't derived for 2024/2025 -> use 2023's maps AND
-    # their internal correction keys (the file + the key year must match).
+    # Trigger efficiencies aren't derived for 2024/2025 yet. Trigger effs are ERA-based
+    # (2022/2022EE/2023/2023BPix), so borrow the LATEST era 2023BPix (closest to 2024).
+    # The file + the internal correction keys must both use the same year string.
     eff_year = year
     if not Path(_get_json_fname(year, "ptmsd", region)).exists():
-        eff_year = "2023"
+        eff_year = "2023BPix"
 
     # load trigger efficiencies
     triggereff_ptmsd = _load_trig_effs(eff_year, "ptmsd", region)
