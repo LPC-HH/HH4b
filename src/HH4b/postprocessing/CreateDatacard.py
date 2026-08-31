@@ -115,14 +115,14 @@ parser.add_argument(
     "--year",
     type=str,
     default="2022-2023",
-    choices=hh_years + ["2022-2023"],
+    choices=hh_years + ["2022-2023", "2022-2024"],
     help="years to make datacards for",
 )
 parser.add_argument(
     "--txbb",
     type=str,
     default="",
-    choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+    choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
     help="version of TXbb tagger/mass regression to use",
 )
 parser.add_argument(
@@ -194,7 +194,7 @@ mc_samples_sig = OrderedDict(
         ("vbfhh4b-kvm1p21-k2v1p94-klm0p94", "qqHH_CV_m1p21_C2V_1p94_kl_m0p94_13p6TeV_hbbhbb"),
         ("vbfhh4b-kvm1p6-k2v2p72-klm1p36", "qqHH_CV_m1p6_C2V_2p72_kl_m1p36_13p6TeV_hbbhbb"),
         ("vbfhh4b-kvm1p83-k2v3p57-klm3p39", "qqHH_CV_m1p83_C2V_3p57_kl_m3p39_13p6TeV_hbbhbb"),
-        ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
+        ("vbfhh4b-kv2p12-k2v3p87-klm5p96", "qqHH_CV_2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
     ]
 )
 
@@ -219,7 +219,15 @@ for key in all_sig_keys:
 all_mc = list(mc_samples.keys())
 
 
-years = hh_years if args.year == "2022-2023" else [args.year]
+if args.year == "2022-2024":
+    # Run-3 2022-2024: the five real data-taking eras (hh_years also carries a 2025
+    # placeholder, so list the eras explicitly instead of iterating hh_years).
+    years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+elif args.year == "2022-2023":
+    # explicit eras (hh_years carries 2024 + a 2025 placeholder -> would load missing pkls)
+    years = ["2022", "2022EE", "2023", "2023BPix"]
+else:
+    years = [args.year]
 full_lumi = LUMI[args.year]
 
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
@@ -301,22 +309,16 @@ corr_year_shape_systs = {
         convert_shape_to_lnN=True,
     ),
     "trigger": Syst(name=f"{CMS_PARAMS_LABEL}_trigger", prior="shape", samples=all_mc),
-    "FSRPartonShower": Syst(name="ps_fsr", prior="shape", samples=sig_keys, samples_corr=True),
-    "ISRPartonShower": Syst(name="ps_isr", prior="shape", samples=sig_keys, samples_corr=True),
-    "scale": Syst(
-        name=f"{CMS_PARAMS_LABEL}_QCDScaleacc",
-        prior="shape",
-        samples=sig_keys,
-        samples_corr=True,
-        separate_prod_modes=True,
-    ),
-    "pdf": Syst(
-        name=f"{CMS_PARAMS_LABEL}_PDFacc",
-        prior="shape",
-        samples=sig_keys,
-        samples_corr=True,
-        separate_prod_modes=True,
-    ),
+    # NOTE: the theory-ACCEPTANCE shape systematics (ps_fsr, ps_isr, QCDScaleacc, PDFacc) are intentionally
+    # NOT built from templates here. On the v15 signal skim their per-category variation templates are broken
+    # (PDFacc integrates to nan in the sparse Bin1/VBF/Bin3 cats; QCDScaleacc/ps_isr/ps_fsr give both-sided
+    # ~0.6x from a missing weight-normalization in the processor). As pure shape they inflate muHH via
+    # MC-stat-noise wiggles combine exploits (degeneracy); converting to lnN bakes the garbage in -> NaN fit.
+    # The published AN-23-151 card carries these four as shape with value 1.0000 (flat, no effect) and covers
+    # theory via the INCLUSIVE lnN params below (pdf_Higgs_ggHH/qqHH, QCDscale_qqHH) which we already apply in
+    # `nuisance_params`. Dropping the broken shape versions reproduces AN's effective treatment and removes the
+    # degeneracy. See claude-notes/v3_glopartv3_2223_results.md sec 4. (Re-enable once the v15 theory-variation
+    # templates are fixed at the processor level.)
 }
 
 ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
@@ -359,6 +361,7 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
         },
     ),
     "JMS": Syst(
@@ -370,6 +373,7 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
         },
     ),
     "JMR": Syst(
@@ -381,6 +385,7 @@ uncorr_year_shape_systs = {
             "2022EE": ["2022EE"],
             "2023": ["2023"],
             "2023BPix": ["2023BPix"],
+            "2024": ["2024"],
         },
     ),
 }
@@ -710,13 +715,21 @@ def fill_regions(
 
                 for uncorr_label, years_to_shift in syst.uncorr_years.items():
 
+                    # Syst.uncorr_years defaults to {y: [y] for y in hh_vars.years}, which now
+                    # carries a 2025 placeholder (no data/templates).  Keep only years actually
+                    # in this datacard so a 2022-2024 card doesn't KeyError on 2025 (or drop to a
+                    # null nuisance).  Explicit-uncorr_years systs are unaffected (subset of years).
+                    years_shift = [y for y in years_to_shift if y in years]
+                    if not years_shift:
+                        continue
+
                     values_up, values_down = get_year_updown(
                         templates_dict,
                         sample_name,
                         region,
                         region_noblinded,
                         blind_str,
-                        years_to_shift,
+                        years_shift,
                         skey,
                     )
                     logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
