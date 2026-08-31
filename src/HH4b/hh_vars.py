@@ -19,6 +19,7 @@ LUMI = {
     "2023BPix": 9692.1,
     "2023All": 27776.5,
     "2022-2023": 62428.6,
+    "2022-2024": 171388.6,  # 2022 + 2022EE + 2023 + 2023BPix + 2024
     "2024": 108960.0,
     "2024C": 7240.0,
     "2024D": 7960.0,
@@ -394,7 +395,9 @@ sig_keys_vbf = [
     "vbfhh4b-kvm1p21-k2v1p94-klm0p94",
     "vbfhh4b-kvm1p6-k2v2p72-klm1p36",
     "vbfhh4b-kvm1p83-k2v3p57-klm3p39",
-    "vbfhh4b-kvm2p12-k2v3p87-klm5p96",
+    # sample dict carries CV=+2.12 (VBFHHto4B_CV-2p12); the old kvm2p12 (CV=-2.12)
+    # was the wrong-sign point and is commented out in samples_run3, so match kv2p12.
+    "vbfhh4b-kv2p12-k2v3p87-klm5p96",
 ]
 sig_keys = sig_keys_ggf + sig_keys_vbf
 
@@ -446,8 +449,8 @@ jec_vars = [
 # variables affected by JMS/JMR
 jmsr_vars = [
     "bbFatJetPNetMassLegacy",
-    "bbFatJetParTmassVis",
-    "bbFatJetParTmassVis",
+    "bbFatJetParTmassVis",  # glopart-v2 regressed mass
+    "bbFatJetParT3massX2p",  # glopart-v3 regressed mass (v15 skimmer)
     "bdt_score",
     "bdt_score_vbf",
     "HHmass",
