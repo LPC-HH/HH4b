@@ -139,7 +139,7 @@ def get_toy_from_3d_hist(h_hist, n_samples, rng):
 
 args = Namespace(
     templates_tag="25June2ReRunBDTZbbSFs384Check",
-    data_dir="/ceph/cms/store/user/dprimosc/bbbb/skimmer/",
+    data_dir=None,  # set to your local skimmer output path (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)
     mass_bins=10,
     tag="25May9_v12v2_private_signal",
     years=["2022", "2022EE", "2023", "2023BPix"],
@@ -201,8 +201,8 @@ for year in samples_run3:
         if "hh4b" in key and key not in ["hh4b", "vbfhh4b"]:
             del samples_run3[year][key]
 
-# get top-level HH4b directory
-HH4B_DIR = "/home/users/woodson/HH4b/"
+# get top-level HH4b directory (two levels up from postprocessing/, then the repo root)
+HH4B_DIR = Path(__file__).resolve().parents[3]
 plot_dir = Path(f"{HH4B_DIR}/plots/Scaling_Toys/")
 plot_dir.mkdir(exist_ok=True, parents=True)
 
