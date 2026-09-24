@@ -186,6 +186,12 @@ hh = {
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV": 2.900686 * BR_HBB * BR_HBB,
     "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV": 1.985733 * BR_HBB * BR_HBB,
 }
+# 2024 TrimmedSyst kl-0p00/2p45/5p00 productions: BUGGY, generated with kl = 1 (gridpacks copied
+# from kl-1p00), so they are SM HH -> SM cross section. Validation only (make_filelists_v15.py).
+for _kl in ["0p00", "2p45", "5p00"]:
+    hh[f"TrimmedSyst-GluGlutoHHto4B_kl-{_kl}_kt-1p00_c2-0p00_TuneCP5_13p6TeV"] = hh[
+        "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV"
+    ]
 for key, value in hh.items():
     xsecs[key] = value
     xsecs[f"{key}_TSG"] = value

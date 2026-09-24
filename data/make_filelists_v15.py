@@ -319,10 +319,10 @@ MC_SAMPLES_DICT = {
             # TrimmedSyst = larger productions with only the NNPDF3.1 PDF weights kept. Only the kl-1p00
             # one is usable: the kl-0p00/2p45/5p00 TrimmedSyst gridpacks are copies of the kl-1p00 one
             # (powheg.input chhh = 1.0; SM genWeight and m(HH)), so those samples are SM HH, not the
-            # labelled kl, and must not be merged with the PowhegBugFix ones.
+            # labelled kl, and must not be merged with the PowhegBugFix ones (they are listed separately
+            # in "HHTrimmedSyst" below, for validation only).
             "GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": [
                 "/GluGluHHto4B_Par-c2-0p00-kl-0p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-PowhegBugFix_150X_mcRun3_2024_realistic_v2-v1/NANOAODSIM",
-                # "/GluGluHHto4B_Par-c2-0p00-kl-0p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             ],
             "GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": [
                 "/GluGluHHto4B_Par-c2-0p00-kl-1p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-PowhegBugFix_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
@@ -330,12 +330,20 @@ MC_SAMPLES_DICT = {
             ],
             "GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": [
                 "/GluGluHHto4B_Par-c2-0p00-kl-2p45-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-PowhegBugFix_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
-                # "/GluGluHHto4B_Par-c2-0p00-kl-2p45-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             ],
             "GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": [
                 "/GluGluHHto4B_Par-c2-0p00-kl-5p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-PowhegBugFix_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
-                # "/GluGluHHto4B_Par-c2-0p00-kl-5p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             ],
+        },
+        # BUGGY, for validation only: the kl-0p00/2p45/5p00 TrimmedSyst productions were generated with
+        # kl = 1 (their gridpacks are copies of the kl-1p00 one, powheg.input chhh = 1.0), so they are
+        # SM HH. Skimmed only to show the bug (e.g. m(HH)); never use them as kappa_lambda points. The
+        # keys start with "TrimmedSyst-" so that no analysis selector (prefix match on
+        # "GluGlutoHHto4B_kl-...") picks them up, and they are a separate category from "HH".
+        "HHTrimmedSyst": {
+            "TrimmedSyst-GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/GluGluHHto4B_Par-c2-0p00-kl-0p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "TrimmedSyst-GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/GluGluHHto4B_Par-c2-0p00-kl-2p45-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            "TrimmedSyst-GluGlutoHHto4B_kl-5p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV": "/GluGluHHto4B_Par-c2-0p00-kl-5p00-kt-1p00_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-TrimmedSyst_150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
         "Hbb": {
             "GluGluHto2B_M-125": "/GluGluH-Hto2B_Par-M-125_TuneCP5_13p6TeV_powhegMINLO-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",

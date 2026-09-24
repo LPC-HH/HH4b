@@ -1,0 +1,9 @@
+{
+    # BUGGY 2024 ggHH TrimmedSyst kl-0p00/2p45/5p00 productions (generated with kl = 1), skimmed only
+    # to show the bug; see data/make_filelists_v15.py ("HHTrimmedSyst"). 2047 files -> 206 jobs.
+    # Submit with its own tag (e.g. --tag 20260820_glopartv3_trimmedsyst), kept apart from the analysis skims.
+    "2024":
+        {
+            "HHTrimmedSyst": { "files_per_job": 10 },
+        },
+}
