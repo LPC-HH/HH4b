@@ -96,6 +96,45 @@ logger.setLevel(logging.INFO)
 
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
+# Bin edges (GeV) of the LHE-V-pT-binned totals saved for the V+jets samples (``lhevpt_totals``):
+# 10 GeV bins on [0, 2000), so the Bin-PTQQ thresholds (100, 200, 400, 600) and the 2022-2023
+# PTQQ-XtoY edges are bin edges. Each totals array has len(LHEVPT_EDGES) + 1 entries: [0] underflow
+# (< 0, i.e. events without a status-2 LHE W/Z, padded with PAD_VAL), [k] the bin
+# [LHEVPT_EDGES[k - 1], LHEVPT_EDGES[k]) for k = 1..200, [-1] overflow (>= 2000 GeV).
+LHEVPT_EDGES = np.arange(0.0, 2001.0, 10.0)
+
+
+def lhevpt_totals(
+    lhe_v_pt: np.ndarray, weight_np: np.ndarray, gen_weights: np.ndarray, gen_selected: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Totals per LHE V pT bin over the gen-selected events, before any analysis selection.
+
+    Binned versions of ``np_nominal`` (sum of the norm-preserving weights) and ``nevents`` (sum of
+    genWeight), plus the sum of squared norm-preserving weights and the raw event count, in the
+    bins of ``LHEVPT_EDGES``. They let the open-ended Bin-PTQQ V+jets samples be stitched per LHE
+    V pT bin, and their thresholds and cross sections be checked on all generated events. Numpy
+    arrays, so coffea's ``accumulate`` sums them element-wise across chunks and jobs.
+    """
+    idx = lhevpt_bin_index(lhe_v_pt, gen_selected)
+    w = weight_np[gen_selected]
+    return {
+        "np_nominal_lhevpt": lhevpt_sum(idx, w),
+        "np_nominal_lhevpt_sumw2": lhevpt_sum(idx, w**2),
+        "genweight_lhevpt": lhevpt_sum(idx, gen_weights[gen_selected]),
+        "nevents_lhevpt": np.bincount(idx, minlength=len(LHEVPT_EDGES) + 1),
+    }
+
+
+def lhevpt_bin_index(lhe_v_pt: np.ndarray, gen_selected: np.ndarray) -> np.ndarray:
+    """Index of each gen-selected event in the ``lhevpt_totals`` arrays (0 = underflow)."""
+    return np.searchsorted(LHEVPT_EDGES, lhe_v_pt[gen_selected], side="right")
+
+
+def lhevpt_sum(idx: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """Weighted sum per LHE V pT bin; float64 even for an empty chunk (bincount would give int64,
+    which coffea's in-place accumulate cannot add float sums to)."""
+    return np.bincount(idx, weights=w, minlength=len(LHEVPT_EDGES) + 1).astype(np.float64)
+
 
 class bbbbSkimmer(SkimmerABC):
     """
@@ -1189,12 +1228,15 @@ class bbbbSkimmer(SkimmerABC):
         if isData:
             skimmed_events["weight"] = np.ones(n_events)
         else:
+            # LHE V pT of every event, set by gen_selection_V only (Wto2Q-/Zto2Q- with LHEPart)
+            lhe_v_pt = genVars.get("GenVLHEPt")
             weights_dict, totals_temp = self.add_weights(
                 events,
                 year,
                 dataset,
                 gen_weights,
                 gen_selected,
+                lhe_v_pt=None if lhe_v_pt is None else lhe_v_pt[:, 0],
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
@@ -1226,8 +1268,13 @@ class bbbbSkimmer(SkimmerABC):
         dataset,
         gen_weights,
         gen_selected,
+        lhe_v_pt: np.ndarray | None = None,
     ) -> tuple[dict, dict]:
-        """Adds weights and variations, saves totals for all norm preserving weights and variations"""
+        """Adds weights and variations, saves totals for all norm preserving weights and variations.
+
+        If ``lhe_v_pt`` (per-event LHE V pT) is given, also saves the per-LHE-V-pT-bin totals of
+        ``lhevpt_totals`` and, for every norm-preserving variation, ``np_<syst>_lhevpt``.
+        """
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
@@ -1252,6 +1299,8 @@ class bbbbSkimmer(SkimmerABC):
         # norm preserving weights, used to do normalization in post-processing
         weight_np = weights.partial_weight(include=norm_preserving_weights)
         totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
+        if lhe_v_pt is not None:
+            totals_dict.update(lhevpt_totals(lhe_v_pt, weight_np, gen_weights, gen_selected))
 
         if self._systematics:
             for systematic in list(weights.variations):
@@ -1269,6 +1318,11 @@ class bbbbSkimmer(SkimmerABC):
 
                     # need to save total # events for each variation for normalization in post-processing
                     totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
+                    if lhe_v_pt is not None:
+                        # per LHE V pT bin, to normalise this variation per bin in a stitch
+                        totals_dict[f"np_{systematic}_lhevpt"] = lhevpt_sum(
+                            lhevpt_bin_index(lhe_v_pt, gen_selected), var_weight[gen_selected]
+                        )
 
         # TEMP: save each individual weight TODO: remove
         for key in weights._weights:
