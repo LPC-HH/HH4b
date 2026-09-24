@@ -318,6 +318,16 @@ def gen_selection_V(
     ]
     GenVVars = {f"GenV{key}": pad_val(vs[var], 1, axis=1) for (var, key) in skim_vars.items()}
 
+    # LHE-level V pT (status-2 intermediate W/Z), i.e. the variable the Bin-PTQQ generator filter
+    # cuts on; needed to stitch the open-ended 2024 PTQQ-X samples (the last-copy GenVPt is shifted
+    # by the parton shower). NanoAOD's LHE_Vpt is built from leptons only and is 0 for V->qq.
+    if "LHEPart" in events.fields:
+        lhe = events.LHEPart
+        lhe_vs = lhe[
+            ((abs(lhe.pdgId) == W_PDGID) | (abs(lhe.pdgId) == Z_PDGID)) & (lhe.status == 2)
+        ]
+        GenVVars["GenVLHEPt"] = pad_val(lhe_vs.pt, 1, axis=1)
+
     # get V daughters
     daughters = vs.children
     daughter0_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 0]))
