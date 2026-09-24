@@ -716,6 +716,10 @@ class bbbbSkimmer(SkimmerABC):
         # fatjets ordered by txbb
         fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
+        # GloParT-v2 fields (ParTP*, ParTTXbb, ParTmass*) only exist if the NanoAOD has
+        # globalParT(2)_* branches (e.g. not in the central 2024 Summer24 v15 samples): skip them
+        jmsr_vars = [var for var in self.jmsr_vars if var in fatjets.fields]
+
         # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
         if self._region == "signal" and isJECs:
@@ -761,7 +765,7 @@ class bbbbSkimmer(SkimmerABC):
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
-                jmsr_vars=self.jmsr_vars,
+                jmsr_vars=jmsr_vars,
                 jms_values=self.jms_values[year],
                 jmr_values=self.jmr_values[year],
                 isData=isData,
@@ -826,7 +830,9 @@ class bbbbSkimmer(SkimmerABC):
             }
 
         # AK8 Jet variables
-        fatjet_skimvars = self.skim_vars["FatJet"]
+        fatjet_skimvars = {
+            var: key for (var, key) in self.skim_vars["FatJet"].items() if var in fatjets.fields
+        }
         if not isData:
             fatjet_skimvars = {
                 **fatjet_skimvars,
@@ -859,7 +865,7 @@ class bbbbSkimmer(SkimmerABC):
                         bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, 2, axis=1)
 
             # FatJet JMSR
-            for var in self.jmsr_vars:
+            for var in jmsr_vars:
                 key = fatjet_skimvars[var]
                 bbFatJetVars[f"bbFatJet{key}_raw"] = bbFatJetVars[f"bbFatJet{key}"]
                 for shift, vals in bb_jmsr_shifted_vars[var].items():
