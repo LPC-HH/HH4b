@@ -207,9 +207,10 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
     elif "part3" in txbb_str.lower():
-        # glopart-v3: use the v3 TXbb column for the events, but trigger
-        # efficiencies aren't derived for v3 yet -> fall back to the glopart-v2
-        # ('txbbGloParT') eff maps (same ParT family, [0,1] tagger).
+        # glopart-v3: use the v3 TXbb column for the events and the 'txbbGloParT' eff maps.
+        # For 2024/2025 those maps are Armen's globalParT3 (real v3) effs; for 2022/2023 they
+        # remain the glopart-v2 maps (v3 effs not derived there) applied to v3 scores as a proxy
+        # (same ParT family, [0,1] tagger).
         txbb = txbb_str  # 'bbFatJetParT3TXbb'
         txbb_str = "txbbGloParT"
     elif "part" in txbb_str.lower():
@@ -218,9 +219,10 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     else:
         raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
-    # Trigger efficiencies aren't derived for 2024/2025 yet. Trigger effs are ERA-based
-    # (2022/2022EE/2023/2023BPix), so borrow the LATEST era 2023BPix (closest to 2024).
-    # The file + the internal correction keys must both use the same year string.
+    # 2024/2025 trigger effs are now derived (Armen; converted via
+    # corrections/convert_armen_2024_2025.py) and present as fatjet_triggereff_{2024,2025}_*.
+    # The check below is kept as a safety net: any year still missing its own file borrows the
+    # LATEST available era (2023BPix). The file + the internal correction keys use eff_year.
     eff_year = year
     if not Path(_get_json_fname(year, "ptmsd", region)).exists():
         eff_year = "2023BPix"
