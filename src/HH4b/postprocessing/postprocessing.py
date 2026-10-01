@@ -329,7 +329,17 @@ def load_run3_samples(
     bdt_version: str,
     load_bdt_scores: bool = True,
     extra_columns: list[tuple[str, int]] | None = None,
+    ptqq_stitch: utils.PtqqStitch | None = None,
+    override_dir: str | None = None,
 ):
+    """Load the Run-3 samples of one year with the analysis columns and filters.
+
+    ``ptqq_stitch`` (opt-in, PostProcess --vjets-stitch) is passed on to ``utils.load_samples``,
+    which then stitches the open-ended 2024 V+jets Bin-PTQQ samples; None loads them as they are.
+
+    ``override_dir`` (opt-in, PostProcess --override-tag) is passed on to ``utils.load_samples``:
+    the sample directories of that skim tag replace the same-named ones of ``input_dir``.
+    """
     assert txbb_version in [
         "pnet-v12",
         "pnet-legacy",
@@ -406,6 +416,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -425,6 +437,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -448,6 +462,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -467,6 +483,8 @@ def load_run3_samples(
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -482,6 +500,8 @@ def load_run3_samples(
             columns=utils.format_columns(load_columns_year),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
             variations=False,
         ),
     }
