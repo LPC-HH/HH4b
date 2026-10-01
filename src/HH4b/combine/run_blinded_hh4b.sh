@@ -20,7 +20,7 @@
 # Usage ./run_blinded_hh4b.sh [-wblsdgt] [--numtoys 100] [--seed 42] [--passbin 1]
 # --passbin X will do the fit only for bin X, or if X = 0 (default), will do for all
 #
-# Author: Raghav Kansal
+# Author: Raghav Kansal, Zichun Hao
 ####################################################################################################
 
 
@@ -172,7 +172,9 @@ freezeparamsblinded="${freezeparamsblinded%,}"
 # so countering this inside --freezeParameters which takes priority.
 # Although, practically even if those are set to "float", I didn't see them ever being fitted,
 # so this is just to be extra safe.
-unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*} --setParameters $maskblindedargs"
+# EXTRA_FREEZE (env var, default empty): extra nuisances to freeze, appended to the freeze list.
+# e.g. EXTRA_FREEZE=allConstrainedNuisances (stat-only) or a theory-nuisance list. Backward-compatible.
+unblindedparams="--freezeParameters var{.*_In},var{.*__norm},var{n_exp_.*}${EXTRA_FREEZE:+,${EXTRA_FREEZE}} --setParameters $maskblindedargs"
 
 # excludeimpactparams='rgx{.*tf_dataResidual_Bin.*}'
 
@@ -221,7 +223,7 @@ if [ $bfit = 1 ]; then
     combine -D $dataset -M MultiDimFit --saveWorkspace -m 125 -d ${wsm}.root -v 9 \
     --cminDefaultMinimizerStrategy 0 \
     --setParameters ${maskunblindedargs},${setparamsblinded},r=0  \
-    --freezeParameters r,${freezeparamsblinded} \
+    --freezeParameters r,${freezeparamsblinded}${EXTRA_FREEZE:+,${EXTRA_FREEZE}} \
     -n Snapshot 2>&1 | tee $outsdir/MultiDimFit.txt
 else
     if [ ! -f "higgsCombineSnapshot.MultiDimFit.mH125.root" ]; then
@@ -254,7 +256,7 @@ if [ $dfit = 1 ]; then
     combine -M FitDiagnostics -m 125 -d ${wsm}.root \
     --setParameters ${maskunblindedargs},${setparamsblinded} \
     --freezeParameters ${freezeparamsblinded} \
-    --cminDefaultMinimizerStrategy 0 \
+    --cminDefaultMinimizerStrategy 1 --robustFit 1 \
     -n Blinded --ignoreCovWarning -v 9 2>&1 | tee $outsdir/FitDiagnostics.txt
     # --saveShapes --saveNormalizations --saveWithUncertainties --saveOverallShapes \
 

@@ -8,7 +8,16 @@
 # 4) Generates toys and gets test statistics for each (-t|--goftoys)
 # 5) Fits +1 order models to all 100 toys and gets test statistics (-f|--ffits)
 #
-# Author: Raghav Kansal
+# Run from src/HH4b. Environment variables:
+#   BDT_MODEL         BDT of the templates (required to make the datacards)
+#   TEMPLATES_DIR     default postprocessing/templates/<templatestag>
+#   TXBB              default glopart-v3
+#   SIG_ARGS          signal arguments of CreateDatacard.py, default --only-sm
+#   FT_MAXORD         highest transfer-factor order of the datacards, default 3
+#   CMS_PARAMS_LABEL  default CMS_bbbb_hadronic (prefix of the frozen tf_dataResidual_Bin5..7)
+# Toys and GoF fits of the toys write one log per seed: outs/{gentoys,GoF_toys}<order>_s<seed>.txt.gz
+#
+# Author: Raghav Kansal, Zichun Hao
 ####################################################################################################
 
 
@@ -90,7 +99,8 @@ goftoys=$goftoys ffits=$ffits order=$order seed=$seed numtoys=$numtoys year=$yea
 # Set up fit args
 ####################################################################################################
 
-templates_dir="/home/users/woodson/HH4b/src/HH4b/postprocessing/templates/${templates_tag}"
+templates_dir="${TEMPLATES_DIR:-$(pwd)/postprocessing/templates/${templates_tag}}"
+CMS_PARAMS_LABEL="${CMS_PARAMS_LABEL:-CMS_bbbb_hadronic}"
 cards_dir="cards/f_tests/${cards_tag}/"
 mkdir -p "${cards_dir}"
 echo "Saving datacards to ${cards_dir}"
@@ -115,7 +125,7 @@ maskunblindedargs="mask_${region}=1,mask_fail=1,mask_${region}MCBlinded=0,mask_f
 # freeze qcd params in blinded bins
 setparamsblinded=""
 freezeparamsblinded=""
-for bin in {4..8}
+for bin in {5..7}
 do
     setparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin}=0,"
     freezeparamsblinded+="${CMS_PARAMS_LABEL}_tf_dataResidual_Bin${bin},"
@@ -130,7 +140,7 @@ freezeparamsblinded=${freezeparamsblinded%,}
 # Making cards and workspaces for each order polynomial
 ####################################################################################################
 
-for ord in {0..3}
+for ord in $(seq 0 "${FT_MAXORD:-3}")
 do
     model_name="${region}_nTF_${ord}"
 
@@ -139,8 +149,8 @@ do
         echo "Making Datacard for $model_name"
         python3 -u postprocessing/CreateDatacard.py --templates-dir "${templates_dir}" \
         --model-name "${model_name}" --nTF "${ord}" --cards-dir "${cards_dir}" --year "${year}" \
-        --regions ${region_} --no-jesr --bdt-model 25Feb5_v13_glopartv2_rawmass \
-        --sig-samples hh4b vbfhh4b --txbb glopart-v2
+        --regions ${region_} --no-jesr --bdt-model "${BDT_MODEL:?set BDT_MODEL to the BDT of the templates}" \
+        ${SIG_ARGS:---only-sm} --txbb "${TXBB:-glopart-v3}"
     fi
 
     cd "${cards_dir}/${model_name}/" || exit
@@ -184,7 +194,8 @@ if [ $goftoys = 1 ]; then
     --snapshotName MultiDimFit --bypassFrequentistFit \
     --setParameters ${maskunblindedargs},${setparamsblinded},r=0 \
     --freezeParameters ${freezeparamsblinded},r \
-    -n "Toys${toys_name}" -t "$numtoys" --saveToys -s "$seed" -v 9 2>&1 | tee "$outsdir/gentoys.txt"
+    -n "Toys${toys_name}" -t "$numtoys" --saveToys -s "$seed" -v 9 > "$outsdir/gentoys${toys_name}_s${seed}.txt" 2>&1
+    gzip -f "$outsdir/gentoys${toys_name}_s${seed}.txt"
 
     cd - || exit
 fi
@@ -207,7 +218,8 @@ if [ $ffits = 1 ]; then
         combine -M GoodnessOfFit -d ${wsm_snapshot}.root --algo saturated -m 125 \
         --setParameters "${maskunblindedargs},${setparamsblinded},r=0" \
         --freezeParameters "${freezeparamsblinded},r" \
-        -n "Toys${toys_name}" -v 9 -s "$seed" -t "$numtoys" --toysFile "${toys_file}" 2>&1 | tee "$outsdir/GoF_toys${toys_name}.txt"
+        -n "Toys${toys_name}" -v 9 -s "$seed" -t "$numtoys" --toysFile "${toys_file}" > "$outsdir/GoF_toys${toys_name}_s${seed}.txt" 2>&1
+        gzip -f "$outsdir/GoF_toys${toys_name}_s${seed}.txt"
 
         cd - || exit
     done

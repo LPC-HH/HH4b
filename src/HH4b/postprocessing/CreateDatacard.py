@@ -14,6 +14,7 @@ from __future__ import annotations
 
 # from utils import add_bool_arg
 import argparse
+import json
 import logging
 import pickle
 import re
@@ -146,6 +147,21 @@ add_bool_arg(parser, "jmsr", "Do JMS/JMR uncertainties", default=True)
 add_bool_arg(parser, "jesr", "Do JES/JER uncertainties", default=True)
 add_bool_arg(
     parser, "thu-hh", "Add THU_HH uncertainty; remove for HH inference framework", default=True
+)
+parser.add_argument(
+    "--shape-empty-bin-floor",
+    default=1e-10,
+    type=float,
+    help="floor (events) on a process's nominal in the bins where it is 0 but one of its shape "
+    "variations in that region is > 0, so that shifts INTO empty bins are kept; 0 = old behaviour "
+    "(shape effect 1 wherever the nominal is 0, i.e. such shifts are dropped)",
+)
+add_bool_arg(
+    parser,
+    "jmsr-2425-fullmc",
+    "build the 2024 and 2025 JMS/JMR shifts from the full 2024 MC (both --split-shared-mc halves, "
+    "lumi-scaled and averaged; separate 2024 and 2025 nuisances kept)",
+    default=True,
 )
 args = parser.parse_args()
 
@@ -448,6 +464,16 @@ def templates_have_glopartv3_jmsr(templates_dir: str) -> bool:
     )
 
 
+def templates_have_split_shared_mc(templates_dir: str) -> bool:
+    """Whether PostProcess made these templates with --split-shared-mc (args.txt), i.e. the 2024
+    and 2025 MC templates are the two event-parity halves of the 2024 MC, each renormalised by 1/f
+    and scaled to its own era luminosity."""
+    args_file = Path(templates_dir) / "args.txt"
+    return args_file.is_file() and bool(
+        re.search(r"'split_shared_mc':\s*True", args_file.read_text())
+    )
+
+
 # 2025 gets its own JMS/JMR nuisance only for templates made with the glopart-v3 JMS/JMR
 # correction, whose 2025 JMS/JMR templates are real variations. Older templates (JMS/JMR equal to
 # nominal) keep exactly the cards they had.
@@ -456,6 +482,28 @@ if "2025" in years and templates_have_glopartv3_jmsr(args.templates_dir):
         uncorr_year_shape_systs[skey].uncorr_years["2025"] = ["2025"]
     logging.info("glopart-v3 JMS/JMR templates: separate JMS/JMR nuisances for 2025 as well")
 
+# 2025 JER: PLACEHOLDER borrowed from 2024. 2025 has no MC of its own (PostProcess
+# --split-shared-mc builds it from half of the 2024 MC) and no JER measurement, so its JER
+# templates carry the 2024 MC JER variation (the 2024 MC JER SFs, which are the 2023BPix
+# Summer23BPixPrompt23 RunD JRV1 SFs, see corrections/build_jec.py). It gets its own nuisance,
+# CMS_res_j_2025, uncorrelated with the other eras like every JER nuisance; replace the values
+# once 2025 MC and 2025 JER SFs exist. Cards without 2025 are unchanged.
+if "2025" in years:
+    uncorr_year_shape_systs["JER"].uncorr_years["2025"] = ["2025"]
+    logging.info("2025: separate JER nuisance (placeholder: 2024 JER variation of the 2024 MC)")
+
+# TXbb SF and ttbar Xbb SF uncertainties for 2024 and 2025: PLACEHOLDERS. Their era lists above only
+# have the 2022 and 2023 groups, so the 2024/2025 variations the templates carry (glopart-v3: the
+# dummy TXbb SF 1.00 +- 0.15 per jet of every era; ttbar Xbb: the 2023 SFs borrowed for 2024/2025)
+# had no nuisance. Each gets its own uncorrelated 2024 and 2025 nuisance from that era's templates;
+# replace them once measured 2024/2025 SFs exist. Cards without 2024/2025 are unchanged.
+for skey, syst in uncorr_year_shape_systs.items():
+    if skey.startswith(("TXbbSF_uncorrelated", "ttbarSF_Xbb")):
+        for sf_year in ["2024", "2025"]:
+            if sf_year in years:
+                syst.uncorr_years[sf_year] = [sf_year]
+logging.info("2024/2025: separate TXbb SF and ttbar Xbb SF nuisances (placeholders)")
+
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
     del uncorr_year_shape_systs["JMS"]
@@ -463,6 +511,35 @@ if not args.jmsr:
 if not args.jesr:
     del corr_year_shape_systs["JES"]
     del uncorr_year_shape_systs["JER"]
+
+# 2024/2025 JMS/JMR shifts from the full 2024 MC (fix of 2026-09-29, default on). With
+# --split-shared-mc each era's shift is an independent estimate from half of the 2024 MC;
+# `jmsr_2425_fullmc` averages the two (lumi-scaled) estimates. 2024 and 2025 keep their
+# separate nuisances.
+jmsr_fullmc_on = False
+if not args.jmsr_2425_fullmc:
+    logging.info("--no-jmsr-2425-fullmc: 2024/2025 JMS/JMR shifts from each era's own MC half")
+elif not args.jmsr:
+    logging.info("jmsr-2425-fullmc: not applied (no JMS/JMR nuisances, --no-jmsr)")
+elif not ("2024" in years and "2025" in years):
+    logging.info("jmsr-2425-fullmc: not applied (needs both 2024 and 2025 in --year)")
+elif not templates_have_split_shared_mc(args.templates_dir):
+    logging.info("jmsr-2425-fullmc: not applied (templates not made with --split-shared-mc)")
+else:
+    jmsr_fullmc_on = True
+    logging.info(
+        "jmsr-2425-fullmc: 2024 and 2025 JMS/JMR shifts built from the full 2024 MC (both "
+        "split halves, lumi-scaled and averaged); separate 2024/2025 nuisances kept"
+    )
+
+# Empty-bin floor (fix of 2026-09-29, default on): see `floor_empty_bins` in fill_regions.
+if args.shape_empty_bin_floor > 0:
+    logging.info(
+        f"shape-empty-bin-floor {args.shape_empty_bin_floor:g}: a process's nominal is floored "
+        "in bins where it is 0 but a shape variation is > 0, so shifts into empty bins are kept"
+    )
+else:
+    logging.info("shape-empty-bin-floor 0: old behaviour, shifts into empty bins are dropped")
 
 if args.ttbar_rate_param:
     # remove all ttbarSF systematics
@@ -511,8 +588,10 @@ def get_templates(
     years: list[str],
     sig_separate: bool,
     scale: float | None = None,
+    jmsr_fullmc: bool = False,
 ):
-    """Loads templates, combines bg and sig templates if separate, sums across all years"""
+    """Loads templates, combines bg and sig templates if separate, sums across all years.
+    ``jmsr_fullmc``: 2024/2025 JMS/JMR shifts from the full 2024 MC (`jmsr_2425_fullmc`)."""
     templates_dict: dict[str, dict[str, Hist]] = {}
 
     if not sig_separate:
@@ -541,8 +620,63 @@ def get_templates(
             for key in templates_dict[year]:
                 templates_dict[year][key] = templates_dict[year][key] * scale
 
+    if jmsr_fullmc:
+        jmsr_2425_fullmc(templates_dict, jmsr_keys, years)
+
     templates_summed: dict[str, Hist] = sum_templates(templates_dict, years)  # sum across years
     return templates_dict, templates_summed
+
+
+def jmsr_2425_fullmc(
+    templates_dict: dict[str, dict[str, Hist]], samples: list[str], years: list[str]
+):
+    """Replace the 2024 and 2025 JMS/JMR variations by full-2024-MC estimates, in place.
+
+    With --split-shared-mc, 2024 and 2025 are the two event-parity halves of the 2024 MC (each
+    renormalised by 1/f and scaled to its era's luminosity), so their shifts
+    Delta_y = var_y - nom_y are independent estimates from half the MC each. Per sample, JMS/JMR
+    region (incl. the MCBlinded ones) and up/down:
+        Delta_2024' = (Delta_2024 + Delta_2025 * L2024 / L2025) / 2
+        Delta_2025' = (Delta_2025 + Delta_2024 * L2025 / L2024) / 2
+        var_y' = nom_y + Delta_y'; nominals unchanged.
+    var_y' is NOT clipped at 0 per era: the full-MC shift moves events that may sit only in the
+    other half (e.g. a 2025 ZZ cluster), so nom_y + Delta_y' < 0 in such bins, and clipping it
+    would turn the migration into a spurious yield gain. The card only uses the all-era sum with
+    era y varied, sum_e nom_e + Delta_y', which contains those events; only that sum is bounded
+    at 0 here (var_y' >= nom_y - sum_e nom_e; logged, 0 bins for the 26Sep27_rerun templates).
+    Only the bin values are changed (the variances of variation templates are not used).
+    """
+    r = LUMI["2024"] / LUMI["2025"]
+    t24, t25 = templates_dict["2024"], templates_dict["2025"]
+    n_hists, n_neg_era, n_bound, bound = 0, 0, 0, 0.0
+    for key in t24:
+        m = re.fullmatch(r"(.+)_(JMS|JMR)_(up|down)(MCBlinded)?", key)
+        if m is None:
+            continue
+        nom_key = m.group(1) + (m.group(4) or "")
+        for sample in samples:
+            if sample not in list(t24[key].axes[0]):
+                continue
+            nom = {y: templates_dict[y][nom_key][sample, :].values() for y in years}
+            nom_all = sum(nom.values())
+            d24 = t24[key][sample, :].values() - nom["2024"]
+            d25 = t25[key][sample, :].values() - nom["2025"]
+            for t, y, delta in (
+                (t24, "2024", (d24 + d25 * r) / 2),
+                (t25, "2025", (d25 + d24 / r) / 2),
+            ):
+                var = nom[y] + delta
+                n_neg_era += int((var < 0).sum())
+                low = nom[y] - nom_all  # all-era sum with era y varied >= 0
+                n_bound += int((var < low).sum())
+                bound += float((low - var)[var < low].sum())
+                t[key].values()[t[key].axes[0].index(sample)] = np.maximum(var, low)
+            n_hists += 1
+    logging.info(
+        f"jmsr-2425-fullmc: {n_hists} (region, sample) JMS/JMR variations updated in 2024 and "
+        f"2025; {n_neg_era} per-era bins < 0 kept (their all-era sums are what the card uses); "
+        f"{n_bound} bins bounded so that the all-era sum is >= 0 (total {bound:.3g} events)"
+    )
 
 
 def get_year_updown(
@@ -609,7 +743,10 @@ def fill_regions(
           NuisanceParameter object
         pass_only (List[str]): list of systematics which are only applied in the pass region(s)
         bblite (bool): use Barlow-Beeston-lite method or not (single mcstats param across MC samples)
+
+    Returns the bookkeeping of the empty-bin floor (see `floor_empty_bins`).
     """
+    floor_stats = {"kept": {}, "negative_weight_bin": {}, "empty_process": {}, "floored": {}}
 
     for region in regions:
         region_templates = templates_summed[region]
@@ -632,6 +769,109 @@ def fill_regions(
 
             sample_template = region_templates[sample_name, :]
 
+            # Up/Down yields of every shape systematic of this sample, collected before the
+            # TemplateSample is built (the empty-bin floor below needs them), as
+            # (key in shape_systs_dict, key in templates, Syst, values_up, values_down); the
+            # effects are set below in this same order (correlated, then uncorrelated systs).
+            variations = []
+
+            # correlated shape systematics
+            for skey, syst in corr_year_shape_systs.items():
+                if sample_name not in syst.samples or (not pass_region and syst.pass_only):
+                    continue
+
+                logging.info(f"Getting {skey} shapes")
+
+                if skey in jecs or skey in jmsr:
+                    # JEC/JMCs saved as different "region" in dict
+                    up_hist = templates_summed[f"{region_noblinded}_{skey}_up{blind_str}"][
+                        sample_name, :
+                    ]
+                    down_hist = templates_summed[f"{region_noblinded}_{skey}_down{blind_str}"][
+                        sample_name, :
+                    ]
+
+                    values_up = up_hist.values()
+                    values_down = down_hist.values()
+                else:
+                    # weight uncertainties saved as different "sample" in dict
+                    values_up = region_templates[f"{sample_name}_{skey}_up", :].values()
+                    values_down = region_templates[f"{sample_name}_{skey}_down", :].values()
+
+                if not syst.samples_corr:
+                    # separate syst if not correlated across samples
+                    sdkey = f"{skey}_{sample_name}"
+                elif syst.decorrelate_regions:
+                    # separate syst if not correlated across regions
+                    sdkey = f"{skey}_{region_noblinded}"
+                elif syst.separate_prod_modes:
+                    # separate syst if not correlated across production modes
+                    if sample_name in sig_keys_ggf:
+                        prod_mode = "ggHH"
+                    elif sample_name in sig_keys_vbf:
+                        prod_mode = "qqHH"
+                    else:
+                        raise NotImplementedError(
+                            f"Splitting Syst by production mode for Sample {sample_name} not yet implemented"
+                        )
+                    sdkey = f"{skey}_{prod_mode}"
+                else:
+                    sdkey = skey
+                variations.append((sdkey, skey, syst, values_up, values_down))
+
+            # uncorrelated shape systematics
+            for skey, syst in uncorr_year_shape_systs.items():
+                if sample_name not in syst.samples or (not pass_region and syst.pass_only):
+                    continue
+
+                logging.info(f"Getting {skey} shapes")
+
+                for uncorr_label, years_to_shift in syst.uncorr_years.items():
+
+                    # Syst.uncorr_years defaults to {y: [y] for y in hh_vars.years}, which now
+                    # carries a 2025 placeholder (no data/templates).  Keep only years actually
+                    # in this datacard so a 2022-2024 card doesn't KeyError on 2025 (or drop to a
+                    # null nuisance).  Explicit-uncorr_years systs are unaffected (subset of years).
+                    years_shift = [y for y in years_to_shift if y in years]
+                    if not years_shift:
+                        continue
+
+                    values_up, values_down = get_year_updown(
+                        templates_dict,
+                        sample_name,
+                        region,
+                        region_noblinded,
+                        blind_str,
+                        years_shift,
+                        skey,
+                    )
+                    variations.append(
+                        (f"{skey}_{uncorr_label}", skey, syst, values_up, values_down)
+                    )
+
+            # nominal values, errors
+            values_nominal = np.maximum(sample_template.values(), 0.0)
+
+            # Empty-bin floor (--shape-empty-bin-floor, fix of 2026-09-29): floor the nominal in
+            # the bins where it is 0 but a shape variation is > 0, so that the TemplateSample and
+            # the effects both use the floored nominal and the Up/Down templates carry the shift
+            # into those bins (instead of effect 1 there, which dropped it).
+            floor_bins = None
+            if args.shape_empty_bin_floor > 0:
+                floor_bins = floor_empty_bins(
+                    values_nominal,
+                    sample_template.variances(),
+                    variations,
+                    shape_systs_dict,
+                    ch.name,
+                    card_name,
+                    floor_stats,
+                )
+                if floor_bins.any():
+                    sample_template = sample_template.copy()
+                    sample_template.values()[floor_bins] = args.shape_empty_bin_floor
+                    values_nominal = np.maximum(sample_template.values(), 0.0)
+
             stype = rl.Sample.SIGNAL if sample_name in sig_keys else rl.Sample.BACKGROUND
             sample = rl.TemplateSample(ch.name + "_" + card_name, stype, sample_template)
 
@@ -644,9 +884,6 @@ def fill_regions(
             # if stype == rl.Sample.SIGNAL and len(sig_keys) > 1:
             #     srate = rate_params[sample_name]
             #     sample.setParamEffect(srate, 1 * srate)
-
-            # nominal values, errors
-            values_nominal = np.maximum(sample_template.values(), 0.0)
 
             mask = values_nominal > 0
             errors_nominal = np.ones_like(values_nominal)
@@ -689,29 +926,8 @@ def fill_regions(
 
                 sample.setParamEffect(param, val, effect_down=val_down)
 
-            # correlated shape systematics
-            for skey, syst in corr_year_shape_systs.items():
-                if sample_name not in syst.samples or (not pass_region and syst.pass_only):
-                    continue
-
-                logging.info(f"Getting {skey} shapes")
-
-                if skey in jecs or skey in jmsr:
-                    # JEC/JMCs saved as different "region" in dict
-                    up_hist = templates_summed[f"{region_noblinded}_{skey}_up{blind_str}"][
-                        sample_name, :
-                    ]
-                    down_hist = templates_summed[f"{region_noblinded}_{skey}_down{blind_str}"][
-                        sample_name, :
-                    ]
-
-                    values_up = up_hist.values()
-                    values_down = down_hist.values()
-                else:
-                    # weight uncertainties saved as different "sample" in dict
-                    values_up = region_templates[f"{sample_name}_{skey}_up", :].values()
-                    values_down = region_templates[f"{sample_name}_{skey}_down", :].values()
-
+            # shape systematics (correlated, then uncorrelated across years)
+            for sdkey, skey, syst, values_up, values_down in variations:
                 logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
 
                 effect_up, effect_down = get_effect_updown(
@@ -722,68 +938,9 @@ def fill_regions(
                     logger,
                     args.epsilon,
                     syst.convert_shape_to_lnN,
+                    floor_bins=floor_bins,
                 )
-                if not syst.samples_corr:
-                    # separate syst if not correlated across samples
-                    sdkey = f"{skey}_{sample_name}"
-                elif syst.decorrelate_regions:
-                    # separate syst if not correlated across regions
-                    sdkey = f"{skey}_{region_noblinded}"
-                elif syst.separate_prod_modes:
-                    # separate syst if not correlated across production modes
-                    if sample_name in sig_keys_ggf:
-                        prod_mode = "ggHH"
-                    elif sample_name in sig_keys_vbf:
-                        prod_mode = "qqHH"
-                    else:
-                        raise NotImplementedError(
-                            f"Splitting Syst by production mode for Sample {sample_name} not yet implemented"
-                        )
-                    sdkey = f"{skey}_{prod_mode}"
-                else:
-                    sdkey = skey
                 sample.setParamEffect(shape_systs_dict[sdkey], effect_up, effect_down)
-
-            # uncorrelated shape systematics
-            for skey, syst in uncorr_year_shape_systs.items():
-                if sample_name not in syst.samples or (not pass_region and syst.pass_only):
-                    continue
-
-                logging.info(f"Getting {skey} shapes")
-
-                for uncorr_label, years_to_shift in syst.uncorr_years.items():
-
-                    # Syst.uncorr_years defaults to {y: [y] for y in hh_vars.years}, which now
-                    # carries a 2025 placeholder (no data/templates).  Keep only years actually
-                    # in this datacard so a 2022-2024 card doesn't KeyError on 2025 (or drop to a
-                    # null nuisance).  Explicit-uncorr_years systs are unaffected (subset of years).
-                    years_shift = [y for y in years_to_shift if y in years]
-                    if not years_shift:
-                        continue
-
-                    values_up, values_down = get_year_updown(
-                        templates_dict,
-                        sample_name,
-                        region,
-                        region_noblinded,
-                        blind_str,
-                        years_shift,
-                        skey,
-                    )
-                    logger = logging.getLogger(f"validate_shapes_{region}_{sample_name}_{skey}")
-
-                    effect_up, effect_down = get_effect_updown(
-                        values_nominal,
-                        values_up,
-                        values_down,
-                        mask,
-                        logger,
-                        args.epsilon,
-                        syst.convert_shape_to_lnN,
-                    )
-                    sample.setParamEffect(
-                        shape_systs_dict[f"{skey}_{uncorr_label}"], effect_up, effect_down
-                    )
 
             ch.addSample(sample)
 
@@ -802,6 +959,90 @@ def fill_regions(
             ch.setObservation(all_bg)
         else:
             ch.setObservation(region_templates[data_key, :])
+
+    return floor_stats
+
+
+def floor_empty_bins(
+    values_nominal: np.ndarray,
+    variances_nominal: np.ndarray,
+    variations: list,
+    shape_systs_dict: dict[str, rl.NuisanceParameter],
+    channel: str,
+    process: str,
+    floor_stats: dict,
+) -> np.ndarray:
+    """Bins of one (channel, process) whose nominal gets the --shape-empty-bin-floor.
+
+    `get_effect_updown` sets a shape effect to 1 wherever the (all-era summed) nominal is 0, so a
+    shape variation INTO such a bin was dropped and a migration became a pure loss (e.g. the 2025
+    ZZ JMS/JMR migrations in Bin 1).
+    Returns the bins where the nominal is 0 and a shape (not lnN-converted: those only use sums,
+    which already contain such shifts) variation is > 0. Books, per nuisance, the
+    (channel, process, bin) cells whose shift is now kept. Not floored (only counted):
+    - bins with MC entries (sumw2 > 0) whose nominal is 0 because negative-weight content was
+      clipped: a floor would switch on rhalphalib's per-process MC-stat nuisance for the bin (a
+      change of the MC-stat model, not of the shape systematic), and the "shift" into such a bin
+      is a weight variation of negative-weight events rather than a migration;
+    - processes empty in the whole channel: their card rate is 0.000, which combine drops anyway,
+      and every lnN ratio to a floor-only nominal would be huge.
+    """
+    empty = values_nominal <= 0
+    negw = empty & (variances_nominal > 0)  # nominal 0 only after clipping negative weights
+    floor_bins = np.zeros(len(values_nominal), dtype=bool)
+    kept, kept_negw = {}, {}
+    for sdkey, _skey, syst, values_up, values_down in variations:
+        if syst.convert_shape_to_lnN:
+            continue
+        shifted = (values_up > 0) | (values_down > 0)
+        name = shape_systs_dict[sdkey].name
+        if (empty & ~negw & shifted).any():
+            kept[name] = int((empty & ~negw & shifted).sum())
+            floor_bins |= empty & ~negw & shifted
+        if (negw & shifted).any():
+            kept_negw[name] = int((negw & shifted).sum())
+
+    for name, n in kept_negw.items():
+        floor_stats["negative_weight_bin"][name] = (
+            floor_stats["negative_weight_bin"].get(name, 0) + n
+        )
+    if not kept:
+        return floor_bins
+
+    book = "kept" if values_nominal.sum() > 0 else "empty_process"
+    for name, n in kept.items():
+        floor_stats[book][name] = floor_stats[book].get(name, 0) + n
+    if book == "empty_process":
+        return np.zeros(len(values_nominal), dtype=bool)
+
+    floor_stats["floored"][f"{channel}/{process}"] = {
+        "bins": np.flatnonzero(floor_bins).tolist(),
+        "added_yield": float(floor_bins.sum() * args.shape_empty_bin_floor),
+        "relative": float(floor_bins.sum() * args.shape_empty_bin_floor / values_nominal.sum()),
+    }
+    return floor_bins
+
+
+def log_floor_stats(floor_stats: dict, out_dir: Path):
+    """Log the empty-bin-floor bookkeeping and save it as shape_empty_bin_floor.json."""
+    floored = floor_stats["floored"]
+    n_bins = sum(len(v["bins"]) for v in floored.values())
+    added = sum(v["added_yield"] for v in floored.values())
+    max_rel = max((v["relative"] for v in floored.values()), default=0.0)
+    logging.info(
+        f"shape-empty-bin-floor: {n_bins} bins floored in {len(floored)} (channel, process); "
+        f"total added nominal yield {added:.3g} events, max relative {max_rel:.3g}"
+    )
+    for name, n in sorted(floor_stats["kept"].items()):
+        logging.info(f"shape-empty-bin-floor: {name}: {n} (channel, process, bin) cells kept")
+    for book, why in (
+        ("negative_weight_bin", "in bins emptied by clipping negative weights"),
+        ("empty_process", "in processes empty in the whole channel"),
+    ):
+        for name, n in sorted(floor_stats[book].items()):
+            logging.info(f"shape-empty-bin-floor: {name}: {n} cells {why} (not floored, dropped)")
+    with (out_dir / "shape_empty_bin_floor.json").open("w") as f:
+        json.dump({"floor": args.shape_empty_bin_floor, **floor_stats}, f, indent=1)
 
 
 def alphabet_fit(
@@ -892,6 +1133,31 @@ def alphabet_fit(
         # )
         logging.info(f"qcd eff {qcd_eff:.5f}")
 
+        # Guard: TF = qcd_eff * par0^2 (square_params, |par0| <= 20), so a non-positive seed pins the
+        # pass QCD to min_qcd_val in every bin (zero gradient, QCD silently ~0) and a tiny one caps it
+        # near the floor. Blinded, the numerator above is data(sidebands) - MC(full range), biased low.
+        # If it is below one event, redo it on the same m(H2) range for data and MC (MCBlinded
+        # templates); if still below one event, seed with the data stat. unc. (the fit rescales it).
+        n_qcd_pass = qcd_eff * (
+            templates_summed["fail"][data_key, :].sum().value
+            - np.sum([templates_summed["fail"][bg_key, :].sum().value for bg_key in bg_keys])
+        )
+        if n_qcd_pass < 1.0:
+            bstr = "" if unblinded else MCB_LABEL
+            pass_t, fail_t = templates_summed[f"{sr}{bstr}"], templates_summed[f"fail{bstr}"]
+            n_data_pass = pass_t[data_key, :].sum().value
+            qcd_pass = n_data_pass - np.sum([pass_t[bg_key, :].sum().value for bg_key in bg_keys])
+            qcd_fail = fail_t[data_key, :].sum().value - np.sum(
+                [fail_t[bg_key, :].sum().value for bg_key in bg_keys]
+            )
+            if qcd_pass < 1.0:
+                qcd_pass = np.sqrt(max(n_data_pass, 1.0))
+            logging.warning(
+                f"{sr}: data - bkg = {n_qcd_pass:.3f} < 1 event would pin the pass QCD at "
+                f"min_qcd_val; seeding qcd eff with {qcd_pass / qcd_fail:.4e} instead of {qcd_eff:.4e}"
+            )
+            qcd_eff = qcd_pass / qcd_fail
+
         # transfer factor
         tf_dataResidual = rl.BasisPoly(
             f"{CMS_PARAMS_LABEL}_tf_dataResidual_{sr}",
@@ -953,7 +1219,7 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
         args.unblinded,
     ]
 
-    fill_regions(*fill_args)
+    floor_stats = fill_regions(*fill_args)
     alphabet_fit(*fit_args)
 
     ##############################################
@@ -970,11 +1236,14 @@ def createDatacardAlphabet(args, templates_dict, templates_summed, shape_vars):
     with Path(f"{out_dir}/model.pkl").open("wb") as fout:
         pickle.dump(model, fout, 2)  # use python 2 compatible protocol
 
+    if args.shape_empty_bin_floor > 0:
+        log_floor_stats(floor_stats, Path(out_dir))
+
 
 def main(args):
     # templates per region per year, templates per region summed across years
     templates_dict, templates_summed = get_templates(
-        args.templates_dir, years, args.sig_separate, args.scale_templates
+        args.templates_dir, years, args.sig_separate, args.scale_templates, jmsr_fullmc_on
     )
 
     # # TODO: check if / how to include signal trig eff uncs. (rn only using bg uncs.)

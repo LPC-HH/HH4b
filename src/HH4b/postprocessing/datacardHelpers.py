@@ -195,11 +195,37 @@ def _shape_checks(values_up, values_down, values_nominal, effect_up, effect_down
 
 
 def get_effect_updown(
-    values_nominal, values_up, values_down, mask, logger, epsilon, convert_shape_to_lnN=False
+    values_nominal,
+    values_up,
+    values_down,
+    mask,
+    logger,
+    epsilon,
+    convert_shape_to_lnN=False,
+    floor_bins=None,
 ):
+    """Relative Up/Down effects of a systematic on a process (arrays for shape, floats for lnN).
+
+    ``floor_bins``: bins where the process nominal was 0 and CreateDatacard put a tiny floor on it
+    (``--shape-empty-bin-floor``). There the shape effect is the variation over the floor, so the
+    Up/Down template (floor x effect) is the varied yield itself, including a shift INTO the bin.
+    Without it (old behaviour) the effect is 1 wherever the nominal is 0 and such a shift is lost.
+    """
     if convert_shape_to_lnN:
-        effect_up = np.sum(values_up) / np.sum(values_nominal)
-        effect_down = np.sum(values_down) / np.sum(values_nominal)
+        norm_nominal = np.sum(values_nominal)
+        if norm_nominal <= 0:
+            # zero-yield process in this region -> no systematic effect. Without this guard
+            # the 0/0 below is nan, which corrupts the combined datacard (e.g. other_diboson
+            # is empty in the sparse 62 fb Bin1 with tight AN-FOM WPs).
+            return 1.0, 1.0
+        effect_up = np.sum(values_up) / norm_nominal
+        effect_down = np.sum(values_down) / norm_nominal
+        # Floor at epsilon (mirrors the shape-path floor `values_nominal * epsilon` below): a
+        # systematic that empties/negates a sparse process gives effect<=0, which combineCards
+        # rejects ("0.0000" would NAN in the log) -- e.g. other_diboson shifted out of the sparse
+        # 62 fb Bin2. Bounded effect on a negligible process => no fit impact.
+        effect_up = max(float(effect_up), epsilon)
+        effect_down = max(float(effect_down), epsilon)
         logging.debug(f"effect_up  : {effect_up}")
         logging.debug(f"effect_down: {effect_down}")
         return effect_up, effect_down
@@ -218,6 +244,13 @@ def get_effect_updown(
 
     effect_up[mask_up & zero_up] = values_nominal[mask_up & zero_up] * epsilon
     effect_down[mask_down & zero_down] = values_nominal[mask_down & zero_down] * epsilon
+
+    if floor_bins is not None and np.any(floor_bins):
+        # floored empty bins: effect x floor = the variation (0 where it is 0 or not finite, i.e.
+        # the same template as without the floor; the epsilon clamp above is not applied here)
+        for effect, values in ((effect_up, values_up), (effect_down, values_down)):
+            var = values[floor_bins]
+            effect[floor_bins] = np.where(var > 0, var, 0.0) / values_nominal[floor_bins]
 
     _shape_checks(values_up, values_down, values_nominal, effect_up, effect_down, logger)
 
