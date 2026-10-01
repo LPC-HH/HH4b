@@ -183,12 +183,32 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--abcdnn-weight-col",
         default="w_QCD_A",
-        choices=["w_QCD_A", "w_QCD_A_raw", "TF"],
+        choices=[
+            "w_QCD_A",
+            "w_QCD_A_raw",
+            "TF",
+            "w_QCD_A_fixclip",
+            "w_QCD_A_oof",
+            "w_QCD_A_oof_fixclip",
+            "w_QCD_A_ins_fixclip",
+            "w_QCD_A_dec_fixclip",
+        ],
         help="Column from apply/per_event_weights.parquet to use as the "
         "B-data weight for --version abcd.  'w_QCD_A' = TF · purity, clamped "
         "to [0,100] (default); 'w_QCD_A_raw' = the same, UN-clamped (signed, "
         "for the TrainBDT-style |w| convention — train_bdt applies np.abs); "
-        "'TF' = TF only, no purity correction.",
+        "'TF' = TF only, no purity correction; 'w_QCD_A_fixclip' = "
+        "clip(clip(TF,0)·clip(purity,0), 0, 100) (zeroes TF<0 & purity<0 "
+        "events; only in a post-processed parquet that adds this column); "
+        "'w_QCD_A_oof' / 'w_QCD_A_oof_fixclip' = the same two weights from a 2-fold "
+        "cross-fit, each Region-B event weighted by the ABCDnn fold that did not train on it "
+        "(only in the parquet of a cross-fit ABCDnn run, not written by apply.py); "
+        "'w_QCD_A_ins_fixclip' = the same two cross-fit models applied in-sample (each event "
+        "weighted by the fold that DID train on it; the control for 'w_QCD_A_oof_fixclip'); "
+        "'w_QCD_A_dec_fixclip' = clip(clip(TF_dec,0)·clip(purity_dec,0), 0, 100) from "
+        "decoupled models (TF from a 4-class C/D-only ABCDnn, purity from a cross-fitted "
+        "Region-B data-vs-ttbar classifier; only in the parquet of a decoupled run, not written "
+        "by apply.py).",
     )
     parser.add_argument(
         "--signal-keys",

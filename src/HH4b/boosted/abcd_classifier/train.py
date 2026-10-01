@@ -165,6 +165,14 @@ def parse_args() -> argparse.Namespace:
         default=2,
         help="DataLoader worker count (0 = synchronous).",
     )
+    add_bool_arg(
+        parser,
+        "fast-loader",
+        "Fetch each mini-batch with one tensor index (same RandomSampler/BatchSampler, so the "
+        "same batches in the same order) instead of per-event __getitem__ + collate; much faster "
+        "on CPU; ignores --num-workers",
+        default=False,
+    )
 
     # Model architecture
     parser.add_argument(
@@ -401,6 +409,24 @@ def train_classifier(run_dir: Path, args) -> None:
             torch.from_numpy(y_all[idx]),
             torch.from_numpy(w_all[idx]),
         )
+        if getattr(args, "fast_loader", False):
+            # Same samplers as DataLoader(batch_size=args.batch, shuffle=shuffle) builds
+            # internally, so the batches and the global-RNG draws are identical; the batch
+            # is fetched as ds[list_of_indices] (TensorDataset supports it) with no collate.
+            from torch.utils.data import (  # noqa: PLC0415
+                BatchSampler,
+                RandomSampler,
+                SequentialSampler,
+            )
+
+            base = RandomSampler(ds) if shuffle else SequentialSampler(ds)
+            return DataLoader(
+                ds,
+                batch_size=None,
+                sampler=BatchSampler(base, batch_size=args.batch, drop_last=False),
+                num_workers=0,
+                pin_memory=(device.type == "cuda"),
+            )
         return DataLoader(
             ds,
             batch_size=args.batch,

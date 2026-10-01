@@ -230,14 +230,19 @@ def scan_fom_fast(
     return out
 
 
-def best_wp(scan: dict, reliability: bool = True) -> tuple[float, float]:
-    """argmin(FOM) WP with the reliability filter (PostProcess.py:1391-1397)."""
+def best_wp(scan: dict, reliability: bool = True, b_floor: float = 0.5) -> tuple[float, float]:
+    """argmin(FOM) WP with the reliability filter (PostProcess.py:1391-1397).
+
+    b_floor: minimum data-driven background in the mass window a WP must have to be eligible
+    (default 0.5 = the AN convention). Raise it (e.g. 2.0) to keep the scan out of the
+    ultra-tight <b> regime at high luminosity.
+    """
     fom = scan["all_fom"]
     b = scan["all_b"]
     sb = scan["all_sideband_events"]
     finite = np.isfinite(fom) & (fom > 0)
     if reliability:
-        valid = finite & (sb >= 12) & (b > 0.5)
+        valid = finite & (sb >= 12) & (b > b_floor)
         if valid.sum() == 0:
             valid = finite & (b > 0)
     else:
@@ -472,7 +477,7 @@ def run_nested_fom_fast(
             bdt_col,
             args.mass,
         )
-        bx, bb = best_wp(scan, reliability=reliability)
+        bx, bb = best_wp(scan, reliability=reliability, b_floor=getattr(args, "fom_b_floor", 0.5))
         if plot_dir is not None:
             _save_npz(plot_dir, plot_name, args.method, mass_window, scan)
         # flat index of the chosen (bx, bb) grid point (values come straight from the
@@ -503,14 +508,18 @@ def run_nested_fom_fast(
     args.txbb_wps[0] = _resolve(args.txbb_wps[0], bx)
     args.bdt_wps[0] = _resolve(args.bdt_wps[0], bb)
 
-    # 2) VBF -- vetoes Bin 1 at its resolved WP
+    # 2) VBF -- vetoes Bin 1 at its resolved WP. The VBF TXbb grid starts at 0.8 (original AN
+    # behaviour; at band 0.85 the data-driven QCD optimum is 0.8125). Opt-in --fom-vbf-floor-at-band
+    # floors it at the fail/pass band txbb_wps[1] instead, so the qqHH SR cannot dip below the fail
+    # region (used for the band-0.81 study of 2026-09-22).
+    vbf_lo = max(0.8, args.txbb_wps[1]) if getattr(args, "fom_vbf_floor_at_band", False) else 0.8
     if args.vbf:
         vx, vb = _do(
             "vbf",
             "bdt_score_vbf",
             "classic",
             args.fom_vbf_samples,
-            x(0.8, 0.999, 0.0025),
+            x(vbf_lo, 0.999, 0.0025),
             x(0.9, 0.999, 0.0025),
             args.vbf_txbb_wp,
             args.vbf_bdt_wp,
@@ -533,5 +542,28 @@ def run_nested_fom_fast(
     )
     args.txbb_wps[1] = _resolve(args.txbb_wps[1], b2x)
     args.bdt_wps[1] = _resolve(args.bdt_wps[1], b2b)
+
+    # 4) ggF Bin 3 -- pinned catch-all, NEVER scanned. Opt-in point-eval (--fom-scan-bin3)
+    #    so the FOM summary can report its s/b/FOM at the resolved band/floor. Uses the
+    #    now-resolved Bin1/VBF/Bin2 WPs for its veto; leaves all resolved WPs untouched.
+    if getattr(args, "fom_scan_bin3", False):
+        get_cut_b3 = get_cuts(args, "bin3")
+        anti_b3 = get_anti_cuts(args, "bin3")
+        summary["bin3"] = {
+            **evaluate_point(
+                events_combined,
+                get_cut_b3,
+                anti_b3,
+                args.txbb_wps[1],
+                args.bdt_wps[2],
+                mass_window,
+                bg_keys,
+                args.fom_ggf_samples,
+                "classic",
+                "bdt_score",
+                args.mass,
+            ),
+            "scanned": False,
+        }
 
     return summary
