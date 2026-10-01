@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
+import json
 import logging
 import logging.config
 import pprint
@@ -63,6 +65,9 @@ HH4B_DIR = Path(__file__).resolve().parents[3]
 # slim FOM cache key suffix of the years whose MC carries the 2022-2023 W cross-section correction
 # (xsecs.py "/ 2", utils._apply_w_xsec_correction; fom_cache_tag); caches without it are never read
 FOM_CACHE_XSEC_SUFFIX = "__wxshalf"
+# ... and of the years whose ttH(bb) and VBF H(bb) load one production, not two
+# (hh_vars.tthtobb_era_selectors, hh_vars.novhhtobb_era_selectors)
+FOM_CACHE_TTH_SUFFIX = "__hbb1prod"
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -538,12 +543,26 @@ def get_override_dir(args) -> str | None:
     return f"{args.data_dir}/{override_tag}" if override_tag else None
 
 
+def glopartv3_jmsr_on(args) -> bool:
+    """Whether MC gets the load-time JMS/JMR of the glopart-v3 mass (``--glopartv3-jmsr``).
+
+    The v15 skimmer applies JMS/JMR only to the glopart-v2 mass, so for glopart-v3 PostProcess
+    applies the ``hh_vars.jmsr_values`` numbers itself (``postprocessing.jmsr_correct_mass``).
+    getattr: callers that build their own args without the flag keep the uncorrected mass.
+    """
+    return args.txbb == "glopart-v3" and getattr(args, "glopartv3_jmsr", False)
+
+
 def fom_cache_tag(args, year: str) -> str:
     """Key of a year in the slim FOM cache (``fom_cache``).
 
     ``args.tag``, plus "__vjstitch..." if --vjets-stitch changes that year's V+jets, i.e. if its MC
     source year holds open-ended Bin-PTQQ samples (2024, and 2025, which borrows the 2024 MC). All
     other years load identically with and without the flag, so they share the plain cache.
+
+    Plus "__jmsr<hash of the JMS/JMR values>" when the glopart-v3 JMS/JMR correction is on
+    (``glopartv3_jmsr_on``): the cache stores the MC mass and the BDT features built from it, so
+    corrected, uncorrected and differently corrected frames never share a key.
 
     ``--vjets-stitch-mode range`` gives "__vjrange" instead of "__vjstitch...", and
     ``--override-tag T`` adds "__ovr-T" to every year whose MC source year T has a directory for.
@@ -554,17 +573,32 @@ def fom_cache_tag(args, year: str) -> str:
     ``utils._apply_w_xsec_correction`` rescaling the skims made with the 2x XSDB values), so a
     cache built without it (doubled W, key without the suffix) is never read again. 2024 and 2025
     (2024 MC) keep their keys: their frames are unchanged.
+
+    Plus "__hbb1prod" (after "__wxshalf") for every year whose MC source year has its own ttH(bb) or
+    VBF H(bb) selector (``hh_vars.tthtobb_era_selectors``, ``hh_vars.novhhtobb_era_selectors``:
+    2022, 2022EE): each loads one production instead of the two the common selectors summed (since
+    2026-09-27), so a cache with the doubled ttH/VBF H (key without the suffix) is never read again.
+    The other years' frames are unchanged.
     """
+    jmsr_suffix = ""
+    if glopartv3_jmsr_on(args):
+        vals = json.dumps(hh_vars.jmsr_values[mreg_strings[args.txbb]], sort_keys=True)
+        jmsr_suffix = "__jmsr" + hashlib.sha1(vals.encode()).hexdigest()[:8]
     try:
         split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
         source_year = split.source_year
     except ValueError:
         source_year = year
     xsec_suffix = FOM_CACHE_XSEC_SUFFIX if source_year in W_XSEC_CORRECTION_ERAS else ""
+    if (
+        source_year in hh_vars.tthtobb_era_selectors
+        or source_year in hh_vars.novhhtobb_era_selectors
+    ):
+        xsec_suffix += FOM_CACHE_TTH_SUFFIX
     stitch = get_vjets_stitch(args)
     override_tag = getattr(args, "override_tag", None)
     if stitch is None and not override_tag:
-        return args.tag + xsec_suffix
+        return args.tag + xsec_suffix + jmsr_suffix
     skim_dirs = [Path(args.data_dir) / args.tag / source_year]
     override_suffix = ""
     if override_tag and (Path(args.data_dir) / override_tag / source_year).is_dir():
@@ -576,11 +610,11 @@ def fom_cache_tag(args, year: str) -> str:
         if skim_dir.is_dir()
         for p in skim_dir.iterdir()
     ):
-        return args.tag + override_suffix + xsec_suffix
+        return args.tag + override_suffix + xsec_suffix + jmsr_suffix
     suffix = "__vjrange" if stitch.mode == "range" else "__vjstitch"
     if stitch.txbb_min is not None:
         suffix += f"-txbbmin{stitch.txbb_min:g}".replace(".", "p")
-    return args.tag + suffix + override_suffix + xsec_suffix
+    return args.tag + suffix + override_suffix + xsec_suffix + jmsr_suffix
 
 
 def load_process_run3_samples(
@@ -777,6 +811,11 @@ def load_process_run3_samples(
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
             ptqq_stitch=ptqq_stitch,
+            # glopart-v3: JMS/JMR of the MC mass at load time (before the MC split, so a shared
+            # year's two halves come from one set of draws), with the values of `year` (2025 MC is
+            # read from the 2024 skim)
+            jmsr_correct=glopartv3_jmsr_on(args),
+            jmsr_year=year,
             # --override-tag (opt-in): that skim's sample directories replace --tag's
             override_dir=get_override_dir(args),
         )
@@ -2723,8 +2762,7 @@ if __name__ == "__main__":
         "systematics",
         default=True,
         help="load JEC/JMSR + weight systematics for templates. --no-systematics makes nominal-only "
-        "templates (stat + normalization); use it for taggers whose shifted-inference path isn't "
-        "ported yet (e.g. glopart-v3: jec_vars/jmsr_vars still carry glopart-v2 names).",
+        "templates (stat + normalization).",
     )
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
@@ -2737,6 +2775,15 @@ if __name__ == "__main__":
     run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "glopartv3-jmsr",
+        default=True,
+        help="glopart-v3 only: apply JMS/JMR (hh_vars.jmsr_values, GloParT-v2 numbers) to the MC "
+        "regressed mass at load time, with real JMS/JMR up/down variations and the BDT re-run on "
+        "them; the v15 skim leaves this mass uncorrected. --no-glopartv3-jmsr reproduces the "
+        "earlier uncorrected results. Changes the slim FOM cache key.",
     )
     run_utils.add_bool_arg(
         parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
@@ -2778,6 +2825,13 @@ if __name__ == "__main__":
         raise ValueError("--vjets-stitch-txbb-min is for --vjets-stitch-mode effective-lumi only")
     if args.override_tag and not (Path(args.data_dir) / args.override_tag).is_dir():
         raise ValueError(f"--override-tag: {Path(args.data_dir) / args.override_tag} not found")
+    if args.scale_smear and glopartv3_jmsr_on(args):
+        raise ValueError("--scale-smear re-derives the mass too: add --no-glopartv3-jmsr")
+    if glopartv3_jmsr_on(args):
+        logger.info(
+            f"glopart-v3 JMS/JMR on for the MC {mreg_strings[args.txbb]} "
+            "(--no-glopartv3-jmsr to turn off)"
+        )
 
     print(args)
     postprocess_run3(args)

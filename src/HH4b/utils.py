@@ -191,10 +191,15 @@ def check_selector(sample: str, selector: str | list[str]):
         selector = [selector]
 
     # Case-insensitive matching: the v15 skimmer is inconsistent across years
-    # (e.g. ttHto2B_M-125 vs TTHto2B_M-125).  CMS sample names don't collide by
-    # case alone, so lowercasing both sides is safe.
+    # (e.g. ttHto2B_M-125 vs TTHto2B_M-125).  But names can collide by case alone:
+    # 2022/2022EE hold both ttHto2B_M-125 and TTHto2B_M-125 (two productions of the
+    # same sample), so a selector starting with "=" is an exact, case-sensitive match.
     sample_lc = sample.lower()
     for s in selector:
+        if s.startswith("="):
+            if s[1:] == sample:
+                return True
+            continue
         s = s.lower()  # noqa: PLW2901
         if s.endswith("?"):
             if s[:-1] == sample_lc:
