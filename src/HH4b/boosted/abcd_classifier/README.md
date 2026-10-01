@@ -27,7 +27,7 @@ w_QCD_A(x) = TF(x) · purity(x)          # the QCD-in-A per-event weight
 **Current (v2) setup:** regions are keyed on **H2Xbb** (the *subleading* fatjet TXbb,
 `--txbb-jet-index 1`, bins `0.0 0.65 1.0`). Because the split no longer uses H1's TXbb, **`H1Xbb`
 is kept** as a BDT input (it no longer trivially separates the regions). Default BDT config:
-`v13_glopartv3` (the retired `_noxbb` variant was the old jet0-TXbb "v1" setup).
+`v13_glopartv3` (the older jet0-TXbb "v1" setup dropped `H1Xbb` instead).
 
 ## Pipeline (run order)
 
@@ -67,7 +67,7 @@ skimmer parquet
 | `_argparse_utils.py` | Local `add_bool_arg` (`--flag`/`--no-flag`), kept local to avoid the xgboost import chain. | library |
 | `__init__.py` | Package docstring. | library |
 
-## How to run (concrete)
+## How to run (single-era example, 2022)
 
 ```bash
 # 0) build the per-year inference-pickle caches (combine eras)
@@ -118,7 +118,7 @@ MC; they differ only in the **QCD source**:
 | `full` | all-MC, no region cut (canonical `TrainBDT` baseline) | |
 | `fullqcd` | full-region MC QCD + Region-A ttbar | pair with `--balance-bg` |
 | `hybrid` | ABCDnn B-data→A + MC QCD for B/C/D | |
-| `base_regionA`, `base_full` | "stream library" bases composed at train time via `train_bdt.py --version-config versions/*.yaml` | |
+| `base_regionA`, `base_full` | "stream library" bases composed at train time via `train_bdt.py --version-config <yaml>` (e.g. `versions/abcd_smvbf.yaml`) | |
 
 ## Outputs
 
@@ -128,12 +128,6 @@ MC; they differ only in the **QCD source**:
 - `prepare_bdt_data` → `<out>/<version>/{train,val,test}.parquet` (BDT features + `label`, `sample`, `weight`, `region`, `year`).
 - `train_bdt` → `<out>/<model-name>/{trained_bdt.model, metrics.json, test_predictions[_<label>].parquet, train_test_plots/}`.
 
-## Orchestration
+## Composition configs
 
-Multi-year runs are chained by convenience wrapper scripts in this dir (`run_multiyear_prep.sh`,
-`run_multiyear_pipeline.sh`, `run_compose_yr.sh`, `train_bdt.sh`, `run_grid_compare.sh`, …) plus
-`nrp/` for the GPU (Kubernetes) training of the MLP, and `versions/*.yaml` composition configs.
-The diagnostic/comparison plotting scripts (`plot*.py`, `eval_3year_compare.py`) are also here.
-These are workflow helpers around the committed CLIs above.
-
-See `notes/ABCDnn.md` for the full method, conventions, and the original Task-0–7 plan.
+`train_bdt.py --version-config` takes a YAML that maps each BDT class to a `{base, sample}` stream of the `base_*` datasets. `versions/abcd_smvbf.yaml` is the class composition of the production data-driven QCD BDT: `hh4b`, the VBF node (keyed `vbfhh4b-k2v0`) trained on SM VBF (`vbfhh4b`), `ttbar` and the ABCDnn-weighted QCD (`qcd_dd`), all from Region A. Multi-year runs chain the same CLIs (e.g. with `--year 2022-2025`).
