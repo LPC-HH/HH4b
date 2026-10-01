@@ -1,0 +1,13 @@
+# Data-driven QCD (B-data x w_QCD_A, stream qcd_dd) + Region-A MC signal/ttbar,
+# but the VBF node is trained on SM VBF (vbfhh4b) instead of the BSM
+# kappa_2V=0 sample.  Requires base_regionA to carry a 'vbfhh4b' stream
+# (rebuild with --signal-keys ... vbfhh4b).  Class is still keyed
+# 'vbfhh4b-k2v0' (label 1 = VBF score node); only its TRAINING events change
+# to SM VBF.  Background balancing (ttbar = qcd) comes from train_bdt
+# --balance-bg, not from this file.
+name: abcd_smvbf
+classes:
+  hh4b:         {base: regionA, sample: hh4b}
+  vbfhh4b-k2v0: {base: regionA, sample: vbfhh4b}
+  ttbar:        {base: regionA, sample: ttbar}
+  qcd:          {base: regionA, sample: qcd_dd}

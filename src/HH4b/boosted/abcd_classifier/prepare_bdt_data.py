@@ -117,7 +117,7 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         type=str,
         default=["2022"],
-        choices=hh_vars.years + ["2022-2023", "2022-2023-2024"],
+        choices=hh_vars.years + ["2022-2023", "2022-2023-2024", "2022-2025"],
     )
     parser.add_argument(
         "--version",

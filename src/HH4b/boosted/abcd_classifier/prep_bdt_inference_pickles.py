@@ -56,6 +56,9 @@ from HH4b.log_utils import log_config
 from HH4b.postprocessing import HLTs as PP_HLTS
 from HH4b.postprocessing import load_run3_samples
 
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own. Shared with PostProcess.
+from HH4b.postprocessing.PostProcess import get_mc_split_config, mc_split_mask
+
 log_config["root"]["level"] = "INFO"
 logging.config.dictConfig(log_config)
 logger = logging.getLogger("ABCDnn.prep_bdt_inference_pickles")
@@ -110,6 +113,13 @@ SKIMMER_HLTS = {
     # bbbbSkimmer 'signal' menu for 2024 (verbatim from bbbbSkimmer.py).
     # AK8PFJet420_MassSD30 / AK8PFJet425_SoftDropMass40 are not in 2024.
     "2024": [
+        "AK8PFJet500",
+        "AK8PFJet400_SoftDropMass30",
+        "AK8PFJet425_SoftDropMass30",
+        "AK8PFJet230_SoftDropMass40_PNetBB0p06",
+    ],
+    # 2025 shares 2024's skimmer 'signal' menu (identical trigger set).
+    "2025": [
         "AK8PFJet500",
         "AK8PFJet400_SoftDropMass30",
         "AK8PFJet425_SoftDropMass30",
@@ -176,6 +186,14 @@ def parse_args() -> argparse.Namespace:
         "--force",
         action="store_true",
         help="Overwrite existing per-sample pickles.",
+    )
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    p.add_argument(
+        "--split-shared-mc",
+        action="store_true",
+        help="For MC samples: build the 2025 era from half of the 2024 MC (2024 keeps the "
+        "other half), parity-split by run+lumi+event and lumi-reweighted. Required to "
+        "include the 2025 era, which has no MC of its own. Data is always its own era.",
     )
     return p.parse_args()
 
@@ -302,9 +320,66 @@ def main() -> None:
         logger.info(f"=== {sample} ===")
         per_era = []
         for era in args.eras:
-            df = _load_one_era_sample(skimmer_dir, era, sample, args.txbb, args.mass, model_tag)
-            if df is not None:
-                per_era.append(df)
+            # TEMPORARY(mc-sharing): data always its own era; MC 2024/2025 are drawn from the
+            # 2024 sample (2024 keeps parity-half 0 x2, 2025 takes half 1 x2xLUMI25/LUMI24).
+            if sample == "data" or not args.split_shared_mc:
+                source_era, split_half, wscale = era, None, 1.0
+            else:
+                mc_split = get_mc_split_config(era, args.split_shared_mc)
+                source_era, split_half, wscale = (
+                    mc_split.source_year,
+                    mc_split.split_half,
+                    mc_split.weight_scale,
+                )
+            df = _load_one_era_sample(
+                skimmer_dir, source_era, sample, args.txbb, args.mass, model_tag
+            )
+            if df is None:
+                continue
+            if split_half is not None:
+                keep = mc_split_mask(
+                    df[("run", 0)].to_numpy().squeeze(),
+                    df[("luminosityBlock", 0)].to_numpy().squeeze(),
+                    df[("event", 0)].to_numpy().squeeze(),
+                    split_half,
+                )
+                # Exact per-half ΣW renorm (mirrors PostProcess): the split-recovery factor is
+                # DATA-DRIVEN -- divide by the actual generator-weight fraction f in the kept half
+                # (f = sum finalWeight[keep]/sum finalWeight[all]; xsec/lumi/full-ΣW cancel), not
+                # the assumed 1/2.  weight_scale/2 is the pure lumi factor (1.0 for 2024, L25/L24
+                # for 2025), so total scale = (1/f) x (weight_scale/2).
+                _fwcols = [
+                    c
+                    for c in df.columns
+                    if (str(c[0]) if isinstance(c, tuple) else str(c)) == "finalWeight"
+                ]
+                _wcol = (
+                    _fwcols[0]
+                    if _fwcols
+                    else next(
+                        c
+                        for c in df.columns
+                        if (str(c[0]) if isinstance(c, tuple) else str(c)) == "weight"
+                    )
+                )
+                _w = df[_wcol].to_numpy().astype(float).squeeze()
+                _f = _w[keep].sum() / _w.sum()
+                lumi_factor = wscale / 2.0
+                wscale = (1.0 / _f if _f > 0 else 2.0) * lumi_factor
+                df = df.loc[keep].copy()
+                for col in df.columns:
+                    c0 = str(col[0]) if isinstance(col, tuple) else str(col)
+                    if c0 in {"weight", "finalWeight", "scale_weights", "pdf_weights"} or (
+                        c0.startswith("weight_") and "noxsec" not in c0 and "nonorm" not in c0
+                    ):
+                        df[col] = df[col] * wscale
+                # relabel borrowed 2024 MC to the target era (e.g. 2025)
+                if ("era", "") in df.columns:
+                    df[("era", "")] = era
+                logger.info(
+                    f"  {era}/{sample}: split half {split_half} f={_f:.4f} -> exact scale x{wscale:.4f} (lumi-part {lumi_factor:.4f}) -> {len(df)} events (source {source_era})"
+                )
+            per_era.append(df)
 
         if not per_era:
             logger.warning(f"{sample}: no events in any era; not writing")

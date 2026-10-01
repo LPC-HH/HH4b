@@ -115,7 +115,7 @@ parser.add_argument(
     "--year",
     type=str,
     default="2022-2023",
-    choices=hh_years + ["2022-2023", "2022-2024"],
+    choices=hh_years + ["2022-2023", "2022-2024", "2022-2025"],
     help="years to make datacards for",
 )
 parser.add_argument(
@@ -220,15 +220,15 @@ all_mc = list(mc_samples.keys())
 
 
 if args.year == "2022-2024":
-    # Run-3 2022-2024: the five real data-taking eras (hh_years also carries a 2025
-    # placeholder, so list the eras explicitly instead of iterating hh_years).
     years = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+elif args.year == "2022-2025":
+    # all six eras; 2025 has no native MC (built from half of 2024 via --split-shared-mc)
+    years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
 elif args.year == "2022-2023":
-    # explicit eras (hh_years carries 2024 + a 2025 placeholder -> would load missing pkls)
     years = ["2022", "2022EE", "2023", "2023BPix"]
 else:
     years = [args.year]
-full_lumi = LUMI[args.year]
+full_lumi = sum(LUMI[y] for y in years)
 
 jmsr_keys = sig_keys + ["vhtobb", "zz", "nozzdiboson"]
 
@@ -269,14 +269,26 @@ nuisance_params = {
         value_down={"hh4b": 0.77, "hh4b-kl0": 0.82, "hh4b-kl2p45": 0.75, "hh4b-kl5": 0.87},
         diff_samples=True,
     ),
-    # weight lumi uncertainties by corresponding integrated lumi
-    "lumi_2022": Syst(
-        prior="lnN", samples=all_mc, value=1 + 0.014 * LUMI["2022All"] / LUMI["2022-2023"]
-    ),
-    "lumi_2023": Syst(
-        prior="lnN", samples=all_mc, value=1 + 0.013 * LUMI["2023All"] / LUMI["2022-2023"]
-    ),
 }
+# Lumi uncertainties, weighted by fraction of data in each era (only for eras in this fit)
+if any(y in years for y in ["2022", "2022EE"]):
+    _lumi_2022 = sum(LUMI[y] for y in ["2022", "2022EE"] if y in years)
+    nuisance_params["lumi_2022"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.014 * _lumi_2022 / full_lumi
+    )
+if any(y in years for y in ["2023", "2023BPix"]):
+    _lumi_2023 = sum(LUMI[y] for y in ["2023", "2023BPix"] if y in years)
+    nuisance_params["lumi_2023"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.013 * _lumi_2023 / full_lumi
+    )
+if "2024" in years:
+    nuisance_params["lumi_2024"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.012 * LUMI["2024"] / full_lumi
+    )
+if "2025" in years:
+    nuisance_params["lumi_2025"] = Syst(
+        prior="lnN", samples=all_mc, value=1 + 0.012 * LUMI["2025"] / full_lumi
+    )
 if not args.thu_hh:
     del nuisance_params["THU_HH"]
 

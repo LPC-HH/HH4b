@@ -27,6 +27,9 @@ from HH4b.postprocessing import (
     get_evt_testing,
     load_run3_samples,
 )
+
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own. Shared with PostProcess.
+from HH4b.postprocessing.PostProcess import get_mc_split_config, mc_split_mask
 from HH4b.run_utils import add_bool_arg
 from HH4b.utils import ShapeVar
 
@@ -1163,10 +1166,15 @@ def main(args):
 
     logger.info(f"Samples to load {samples_run3}")
     for year in years:
-        logger.info(f"Loading {year}, with txbb {args.txbb_str}")
+        # TEMPORARY(mc-sharing): 2025 has no MC of its own; under --split-shared-mc it is
+        # trained on half of the 2024 MC (2024 keeps the other half). MC is read from the
+        # source year's disk; the parity half is kept and its weights rescaled below.
+        mc_split = get_mc_split_config(year, split_shared_mc=args.split_shared_mc)
+        source_year = mc_split.source_year
+        logger.info(f"Loading {year} (MC source {source_year}), with txbb {args.txbb_str}")
         events_dict_years[year] = load_run3_samples(
             args.data_path,
-            year,
+            source_year,
             samples_run3,
             reorder_txbb=True,
             # txbb_str=args.txbb_str,
@@ -1176,6 +1184,30 @@ def main(args):
             mass_str=args.mass_str,
             bdt_version=args.config_name,
         )
+
+        # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+        if mc_split.split_half is not None:
+            for key in list(events_dict_years[year].keys()):
+                if key == hh_vars.data_key:
+                    continue
+                ed = events_dict_years[year][key]
+                ed = ed.loc[
+                    mc_split_mask(
+                        ed["run"].to_numpy().squeeze(),
+                        ed["luminosityBlock"].to_numpy().squeeze(),
+                        ed["event"].to_numpy().squeeze(),
+                        mc_split.split_half,
+                    )
+                ].copy()
+                weight_cols = [
+                    col
+                    for col in ed.columns.get_level_values(0).unique()
+                    if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                    or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+                ]
+                for col in weight_cols:
+                    ed[col] = ed[col] * mc_split.weight_scale
+                events_dict_years[year][key] = ed
 
         if args.apply_cuts:
             # apply cuts
@@ -1428,6 +1460,13 @@ if __name__ == "__main__":
     add_bool_arg(parser, "run2-wapproach", "Run2 weight approach", default=False)
     add_bool_arg(parser, "txbb-plots", "Make TXbb plots", default=True)
     add_bool_arg(parser, "apply-cuts", "Apply cuts", default=True)
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    add_bool_arg(
+        parser,
+        "split-shared-mc",
+        "borrow half the 2024 MC for 2025 (parity-split, reweighted) so 2025 can be a training year",
+        default=False,
+    )
     add_bool_arg(parser, "plot-allyears", "Plot histograms for all years", default=False)
 
     args = parser.parse_args()

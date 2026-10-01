@@ -42,7 +42,8 @@ def _load_txbb_sfs(
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    elif "2024" in year:
+    elif "2024" in year or "2025" in year:
+        # TODO: replace with measured 2024/2025 TXbb SFs; the 2023 ones are used until then.
         print(f"WARNING: Using 2023 txbb correction for {year}")
         year_ = "2023"
     else:
@@ -116,7 +117,8 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
         year_ = "2022"
     elif "2023" in year:
         year_ = "2023"
-    elif "2024" in year:
+    elif "2024" in year or "2025" in year:
+        # TODO: replace with measured 2024/2025 ttbar SFs; the 2023 ones are used until then.
         print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
     # ttbar SFs aren't derived for glopart-v3 yet; it shares the ParT mass-

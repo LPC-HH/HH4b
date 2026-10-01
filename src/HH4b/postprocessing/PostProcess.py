@@ -7,7 +7,7 @@ import logging.config
 import pprint
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable
+from typing import Callable, NamedTuple
 
 import awkward as ak
 import hist
@@ -431,6 +431,67 @@ def calculate_txbb_weights(
     return txbb_sf_weight
 
 
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+class MCSplitConfig(NamedTuple):
+    """How one year's MC is drawn from a (possibly shared) source sample."""
+
+    source_year: str  # year whose MC is read from disk
+    split_half: int | None  # parity half to keep; None keeps every event
+    weight_scale: float  # factor applied to the MC weight columns
+
+
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+def get_mc_split_config(year: str, split_shared_mc: bool = False) -> MCSplitConfig:
+    """Resolve which MC a year is built from, and how its weights must be rescaled.
+
+    2025 has no MC of its own. With ``split_shared_mc`` it is built from the 2024 sample,
+    split 50/50 by event parity so that the 2024 and 2025 templates stay statistically
+    independent when they enter the same fit. Each half is scaled by 2 to recover the full
+    2024 yield, and 2025 is then rescaled to its own luminosity.
+
+    Without ``split_shared_mc``, 2024 uses its full sample and 2025 cannot be built at all.
+    """
+    if year == "2025":
+        if not split_shared_mc:
+            raise ValueError(
+                "2025 has no MC of its own. Pass --split-shared-mc to build the 2025 "
+                "templates from half of the 2024 MC (2024 then uses the other half), "
+                "or drop 2025 from --years."
+            )
+        source_year = "2024"
+        target_lumi = hh_vars.LUMI.get(year)
+        if target_lumi is None:
+            target_lumi = sum(v for k, v in hh_vars.LUMI.items() if k.startswith("2025"))
+        # x2 recovers the full 2024 yield from the half we keep; the luminosity ratio then
+        # rescales those 2024-normalized weights to 2025.
+        return MCSplitConfig(source_year, 1, 2.0 * target_lumi / hh_vars.LUMI[source_year])
+
+    if year == "2024" and split_shared_mc:
+        # half the events are reserved for 2025, so x2 recovers the full 2024 yield
+        return MCSplitConfig(year, 0, 2.0)
+
+    return MCSplitConfig(year, None, 1.0)
+
+
+# TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+def mc_split_mask(run, luminosity_block, event, split_half: int) -> np.ndarray:
+    """Deterministic 50/50 partition of MC events by (run + lumi + event) parity.
+
+    Each field is reduced mod 2 before summing, so the arithmetic stays in range for the
+    skimmer's dtypes (run/lumi uint32, event uint64) with no cast at all. Non-integer ids
+    are rejected rather than coerced: event numbers run past 2**53, so a float column has
+    already lost exactly the low bit this depends on, and splitting on it would silently
+    produce a wrong -- but entirely plausible-looking -- partition.
+    """
+    parity = 0
+    for name, raw in (("run", run), ("luminosityBlock", luminosity_block), ("event", event)):
+        ids = np.asarray(raw)
+        if not np.issubdtype(ids.dtype, np.integer):
+            raise TypeError(f"{name} must have an integer dtype for the MC split, got {ids.dtype}")
+        parity = parity + (ids % 2)
+    return parity % 2 == split_half
+
+
 def load_process_run3_samples(
     args,
     year,
@@ -564,7 +625,19 @@ def load_process_run3_samples(
 
     # define cutflows
     samples_year = list(samples_run3[year].keys())
-    if not control_plots and not args.bdt_roc:
+
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    # 2025 has no dedicated MC; under --split-shared-mc it is built from half of the 2024
+    # sample, with 2024 taking the other half. Data always comes from the year itself.
+    # getattr: callers that build their own args without this flag never build 2025, so
+    # defaulting to no sharing preserves their behaviour exactly (full 2024 MC, weights untouched).
+    mc_split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+    if mc_split.source_year != year:
+        samples_year = [hh_vars.data_key] + [
+            k for k in samples_run3[mc_split.source_year] if k != hh_vars.data_key
+        ]
+
+    if not control_plots and not args.bdt_roc and "qcd" in samples_year:
         samples_year.remove("qcd")
     # chunked cache build: restrict to the requested sample groups (e.g. just
     # "data") so a heavy year (2024) can be built in smaller memory chunks.
@@ -584,11 +657,17 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
-        samples_to_process = {year: {key: samples_run3[year][key]}}
+        # TEMPORARY(mc-sharing): MC keys for a shared year read from the source year's
+        # sample (e.g. 2025 MC <- 2024 disk); data always comes from the year itself.
+        source_year = year
+        if mc_split.source_year != year and key != hh_vars.data_key:
+            source_year = mc_split.source_year
+
+        samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
 
         _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
-            year,
+            source_year,
             samples_to_process,
             reorder_txbb=True,
             # JEC/JMR systematic shift columns are only needed for templates;
@@ -606,9 +685,47 @@ def load_process_run3_samples(
         # on the missing key.  Minor backgrounds dropping in a year is a small,
         # consistent-across-models effect for a FOM comparison.
         if key not in _loaded:
-            logger.warning(f"Sample {key} absent for {year}; skipping.")
+            logger.warning(f"Sample {key} absent for {source_year}; skipping.")
             continue
         events_dict = _loaded[key]
+
+        # TODO: remove once 2025 has its own MC.
+        # Keep this year's parity half of the shared 2024 MC and divide by the half's actual
+        # generator-weight fraction f (exact for any split imbalance); weight_scale / 2 is the
+        # 2024->2025 lumi factor (1 for 2024).
+        if mc_split.split_half is not None and key != hh_vars.data_key:
+            _mask = mc_split_mask(
+                events_dict["run"].to_numpy().squeeze(),
+                events_dict["luminosityBlock"].to_numpy().squeeze(),
+                events_dict["event"].to_numpy().squeeze(),
+                mc_split.split_half,
+            )
+            _wcol = (
+                "finalWeight"
+                if "finalWeight" in events_dict.columns.get_level_values(0)
+                else "weight"
+            )
+            _w = np.asarray(events_dict[_wcol]).astype(float).squeeze()
+            _f = _w[_mask].sum() / _w.sum()
+            lumi_factor = mc_split.weight_scale / 2.0
+            # exact recovery 1/f; fall back to the assumed x2 only if f is degenerate
+            recover = (1.0 / _f) if _f > 0 else 2.0
+            split_scale = recover * lumi_factor
+            logger.info(
+                f"{key} {year}: split half {mc_split.split_half} genweight fraction f={_f:.4f} "
+                f"-> recover 1/f={recover:.4f} (assumed 2.0), lumi_factor={lumi_factor:.4f}, "
+                f"scale={split_scale:.4f}"
+            )
+            events_dict = events_dict.loc[_mask].copy()
+
+            weight_cols = [
+                col
+                for col in events_dict.columns.get_level_values(0).unique()
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+            ]
+            for col in weight_cols:
+                events_dict[col] = events_dict[col] * split_scale
 
         # inference and assign score
         jshifts = [""]
@@ -1867,8 +1984,17 @@ def postprocess_run3(args):
     if len(args.years) > 1:
         # eras with their OWN native MC (2024 MC now produced; 2025 borrows 2024 MC).
         # A requested year listed here contributes its real events; any year NOT here
-        # (e.g. 2025) has the available MC lumi-scaled up to cover it.
+        # (e.g. 2025 without --split-shared-mc) has the available MC lumi-scaled up to cover it.
         mc_eras = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+        # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+        # With --split-shared-mc, 2025 carries the ORTHOGONAL half of the 2024 MC (parity
+        # half-1, already lumi-normalized to 2025 in the year loop; 2024 keeps half-0).  That
+        # makes 2025 a native-like year, so list it here: combine then concatenates it at
+        # scale 1.0 -- keeping the 2024/2025 MC-stat decorrelated -- instead of lumi-inflating
+        # 2022-2024 to cover 2025 (which would non-orthogonally reuse 2024's own half and
+        # over-credit the signal).  Harmless if 2025 isn't requested (filtered by args.years).
+        if getattr(args, "split_shared_mc", False):
+            mc_eras = mc_eras + ["2025"]
         available = [y for y in mc_eras if y in args.years]
         missing = [y for y in args.years if y not in mc_eras]
         if missing:
@@ -2374,6 +2500,17 @@ if __name__ == "__main__":
         type=str,
         default="event_lists",
         help="folder to save the event list for each year",
+    )
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    run_utils.add_bool_arg(
+        parser,
+        "split-shared-mc",
+        default=False,
+        help=(
+            "split the 2024 MC 50/50 between the 2024 and 2025 templates. Required to "
+            "build 2025, which has no MC of its own. Needed whenever 2024 and 2025 will "
+            "be combined in the same fit, so that their MC statistics stay independent"
+        ),
     )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
