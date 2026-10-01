@@ -13,6 +13,33 @@ Discretized the TXbb variable into 5 integer categories
 """
 
 
+# Training feature order = the column order of the DataFrame built by bdt_dataframe below. Used to
+# select the inputs when re-scoring cached features for models that do not record their feature
+# names (e.g. TrainBDT models without metrics.json).
+FEATURES = [
+    "HHPt",
+    "HHeta",
+    "HHmass",
+    "MET",
+    "H1T32",
+    "H2T32",
+    "H1Mass",
+    "H1Pt",
+    "H2Pt",
+    "H1eta",
+    "H1Xbb",
+    "H1Pt_HHmass",
+    "H2Pt_HHmass",
+    "H1Pt_H2Pt",
+    "VBFjjMass",
+    "VBFjjDeltaEta",
+    "H1AK4JetAway1dR",
+    "H2AK4JetAway2dR",
+    "H1AK4JetAway1mass",
+    "H2AK4JetAway2mass",
+]
+
+
 def bdt_dataframe(events, key_map=lambda x: x):
     """
     Make dataframe with BDT inputs

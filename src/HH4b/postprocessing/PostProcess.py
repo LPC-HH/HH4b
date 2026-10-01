@@ -68,6 +68,10 @@ FOM_CACHE_XSEC_SUFFIX = "__wxshalf"
 # ... and of the years whose ttH(bb) and VBF H(bb) load one production, not two
 # (hh_vars.tthtobb_era_selectors, hh_vars.novhhtobb_era_selectors)
 FOM_CACHE_TTH_SUFFIX = "__hbb1prod"
+# ... and of every year: its ttbar frame stores the ttbar BDT-shape SF of its weights
+# (TTBAR_BDTSF_COL), which the --fom-cache path re-evaluates with the scanned model
+FOM_CACHE_TTSF_SUFFIX = "__ttbdtsf"
+TTBAR_BDTSF_COL = "ttbar_bdtsf_nom"
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -579,11 +583,16 @@ def fom_cache_tag(args, year: str) -> str:
     2022, 2022EE): each loads one production instead of the two the common selectors summed (since
     2026-09-27), so a cache with the doubled ttH/VBF H (key without the suffix) is never read again.
     The other years' frames are unchanged.
+
+    Plus "__ttbdtsf" at the end of every key (since 2026-09-29): the ttbar frame stores the ttbar
+    BDT-shape SF of its weights (``TTBAR_BDTSF_COL``), which ``fom_cache_rescore`` re-evaluates
+    with the scanned model. Caches without it (ttbar weights with the SF of the model that built
+    them, key without the suffix) are never read again.
     """
-    jmsr_suffix = ""
+    tail = FOM_CACHE_TTSF_SUFFIX
     if glopartv3_jmsr_on(args):
         vals = json.dumps(hh_vars.jmsr_values[mreg_strings[args.txbb]], sort_keys=True)
-        jmsr_suffix = "__jmsr" + hashlib.sha1(vals.encode()).hexdigest()[:8]
+        tail = "__jmsr" + hashlib.sha1(vals.encode()).hexdigest()[:8] + tail
     try:
         split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
         source_year = split.source_year
@@ -598,7 +607,7 @@ def fom_cache_tag(args, year: str) -> str:
     stitch = get_vjets_stitch(args)
     override_tag = getattr(args, "override_tag", None)
     if stitch is None and not override_tag:
-        return args.tag + xsec_suffix + jmsr_suffix
+        return args.tag + xsec_suffix + tail
     skim_dirs = [Path(args.data_dir) / args.tag / source_year]
     override_suffix = ""
     if override_tag and (Path(args.data_dir) / override_tag / source_year).is_dir():
@@ -610,11 +619,134 @@ def fom_cache_tag(args, year: str) -> str:
         if skim_dir.is_dir()
         for p in skim_dir.iterdir()
     ):
-        return args.tag + override_suffix + xsec_suffix + jmsr_suffix
+        return args.tag + override_suffix + xsec_suffix + tail
     suffix = "__vjrange" if stitch.mode == "range" else "__vjstitch"
     if stitch.txbb_min is not None:
         suffix += f"-txbbmin{stitch.txbb_min:g}".replace(".", "p")
-    return args.tag + suffix + override_suffix + xsec_suffix + jmsr_suffix
+    return args.tag + suffix + override_suffix + xsec_suffix + tail
+
+
+class TtbarBDTShapeSFs(NamedTuple):
+    """ttbar BDT-shape SF tables of a BDT model and their decorrelation bins."""
+
+    ggf: object  # correctionlib correction of bdt_score
+    vbf: object  # ... of bdt_score_vbf, used in the VBF category (--correct-vbf-bdt-shape)
+    ggf_bins: list
+    vbf_bins: list | None  # None without --correct-vbf-bdt-shape
+
+
+def load_ttbar_bdtshape_sfs(args) -> TtbarBDTShapeSFs:
+    """ttbar BDT-shape SFs of ``args.bdt_model``, or of 25Feb5_v13_glopartv2_rawmass if it has none."""
+    default = "25Feb5_v13_glopartv2_rawmass"
+    return TtbarBDTShapeSFs(
+        ggf=corrections._load_ttbar_bdtshape_sfs(
+            "cat5",
+            args.bdt_model if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins else default,
+            "bdt_score",
+        ),
+        vbf=corrections._load_ttbar_bdtshape_sfs(
+            "cat5",
+            args.bdt_model if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins else default,
+            "bdt_score_vbf",
+        ),
+        ggf_bins=ttbarsfs_decorr_ggfbdt_bins.get(
+            args.bdt_model, ttbarsfs_decorr_ggfbdt_bins[default]
+        ),
+        vbf_bins=(
+            ttbarsfs_decorr_vbfbdt_bins.get(args.bdt_model, ttbarsfs_decorr_vbfbdt_bins[default])
+            if args.correct_vbf_bdt_shape
+            else None
+        ),
+    )
+
+
+def ttbar_sf_vbf_mask(args, events: pd.DataFrame):
+    """Events whose ttbar BDT-shape SF is the VBF one: the VBF category at args' working points."""
+    if not args.vbf:
+        # if no VBF region, set all events to "fail VBF"
+        return np.zeros(len(events), dtype=bool)
+    mask_vbf = (events["bdt_score_vbf"] > args.vbf_bdt_wp) & (events["H2TXbb"] > args.vbf_txbb_wp)
+    if not args.vbf_priority:
+        mask_bin1 = (events["H2TXbb"] > args.txbb_wps[0]) & (events["bdt_score"] > args.bdt_wps[0])
+        # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+        mask_vbf = mask_vbf & ~(mask_bin1)
+    return mask_vbf
+
+
+def ttbar_bdtshape_sf(args, events: pd.DataFrame, mask_vbf, sfs: TtbarBDTShapeSFs) -> np.ndarray:
+    """Nominal ttbar BDT-shape SF per event: the ggF SF of bdt_score, with
+    --correct-vbf-bdt-shape the VBF SF of bdt_score_vbf in ``mask_vbf`` (``ttbar_sf_vbf_mask``)."""
+    # inclusive bdt shape correction
+    bdtsf, _, _ = corrections.ttbar_SF(sfs.ggf, events, "bdt_score")
+    # use bdt_vbf correction for vbf category if it exists
+    if args.correct_vbf_bdt_shape:
+        vbfbdtsf, _, _ = corrections.ttbar_SF(sfs.vbf, events, "bdt_score_vbf")
+        bdtsf[mask_vbf] = vbfbdtsf[mask_vbf]
+    return bdtsf
+
+
+def ttbar_bdtshape_sf_shifts(
+    args, events: pd.DataFrame, mask_vbf, sfs: TtbarBDTShapeSFs
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """Per-bin up/down variations of the ttbar BDT-shape SF, {weight column: (shifted SF, SF)}.
+
+    Each column is the corrected weight x shifted SF / SF. The ggF bins act outside ``mask_vbf``
+    and the VBF bins inside it; both exist only with --correct-vbf-bdt-shape.
+    """
+    shifts = {}
+    if not args.correct_vbf_bdt_shape:
+        return shifts
+    for label, table, score, bins, unused in (
+        ("ggF", sfs.ggf, "bdt_score", sfs.ggf_bins, mask_vbf),
+        ("VBF", sfs.vbf, "bdt_score_vbf", sfs.vbf_bins, ~mask_vbf),
+    ):
+        for i in range(len(bins) - 1):
+            sf, sf_up, sf_dn = corrections.ttbar_SF(table, events, score, bins[i : i + 2])
+            # only use this correction/uncertainty where it applies
+            for arr in (sf, sf_up, sf_dn):
+                arr[unused] = np.ones(np.sum(unused))
+            name = f"weight_ttbarSF_{label}_BDT_bin_{bins[i]}_{bins[i+1]}"
+            shifts[f"{name}Up"] = (sf_up, sf)
+            shifts[f"{name}Down"] = (sf_dn, sf)
+    return shifts
+
+
+def fom_cache_rescore(args, events: dict[str, pd.DataFrame], year: str, model, feats) -> None:
+    """Score the slim FOM cache frames of ``year`` with ``model`` (``args.bdt_model``), in place.
+
+    The cached ttbar weights carry the ttbar BDT-shape SF of the model and working points that built
+    the cache (``TTBAR_BDTSF_COL``). It is re-evaluated with the new scores and args' working points
+    as in ``load_process_run3_samples``, every ttbar weight column is rescaled by new / old SF and
+    the per-bin BDT-shape variations are rebuilt, so the weights equal those of a direct load.
+    """
+    for df in events.values():
+        feat_order = _add_year_features(df, feats, year)
+        add_bdt_scores(
+            df,
+            model.predict_proba(df[feat_order] if feat_order is not None else df),
+            "",
+            weight_ttbar=args.weight_ttbar_bdt,
+            bdt_disc=args.bdt_disc,
+        )
+    tt = events.get("ttbar")
+    if tt is None:
+        return
+    if TTBAR_BDTSF_COL not in tt:
+        raise ValueError(f"{year} slim-cache ttbar frame has no {TTBAR_BDTSF_COL}: rebuild it")
+    sfs = load_ttbar_bdtshape_sfs(args)
+    mask_vbf = ttbar_sf_vbf_mask(args, tt)
+    bdtsf = ttbar_bdtshape_sf(args, tt, mask_vbf, sfs)
+    ratio = bdtsf / tt[TTBAR_BDTSF_COL].to_numpy()
+    weight_cols = [
+        col
+        for col in tt.columns
+        if col == "weight" or col.startswith(("weight_", "scale_weights_", "pdf_weights_"))
+    ]
+    for col in weight_cols:
+        tt[col] = tt[col].to_numpy() * ratio
+    for col, (sf_shift, sf) in ttbar_bdtshape_sf_shifts(args, tt, mask_vbf, sfs).items():
+        tt[col] = tt["weight"] * sf_shift / sf
+    tt[TTBAR_BDTSF_COL] = bdtsf
 
 
 def load_process_run3_samples(
@@ -639,37 +771,13 @@ def load_process_run3_samples(
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5",
-        (
-            args.bdt_model
-            if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins
-            else "25Feb5_v13_glopartv2_rawmass"
-        ),
-        "bdt_score",
-    )
-    tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5",
-        (
-            args.bdt_model
-            if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins
-            else "25Feb5_v13_glopartv2_rawmass"
-        ),
-        "bdt_score_vbf",
-    )
+    tt_bdtshape_sfs = load_ttbar_bdtshape_sfs(args)
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
         args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
     )
-    ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
-    )
-    if args.correct_vbf_bdt_shape:
-        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-            args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
-        )
     TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
@@ -1073,19 +1181,7 @@ def load_process_run3_samples(
 
         # tt corrections
         ttbar_weight = np.ones(nevents)
-        if args.vbf:
-            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
-                bdt_events["H2TXbb"] > args.vbf_txbb_wp
-            )
-            if not args.vbf_priority:
-                mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
-                    bdt_events["bdt_score"] > args.bdt_wps[0]
-                )
-                # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
-                mask_vbf = mask_vbf & ~(mask_bin1)
-        else:
-            # if no VBF region, set all events to "fail VBF"
-            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+        mask_vbf = ttbar_sf_vbf_mask(args, bdt_events)
 
         if key == "ttbar":
             ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
@@ -1104,18 +1200,14 @@ def load_process_run3_samples(
             tempw2, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H2TXbb")
             txbbsf = tempw1 * tempw2
 
-            # inclusive bdt shape correction
-            ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
-            bdtsf = ggfbdtsf
-            # use bdt_vbf correction for vbf category if it exists
-            if args.correct_vbf_bdt_shape:
-                vbfbdtsf, _, _ = corrections.ttbar_SF(
-                    tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
-                )
-                bdtsf[mask_vbf] = vbfbdtsf[mask_vbf]
+            # inclusive bdt shape correction (ggF, or VBF in the VBF category)
+            bdtsf = ttbar_bdtshape_sf(args, bdt_events, mask_vbf, tt_bdtshape_sfs)
 
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
+            if args.fom_cache:
+                # the slim FOM cache keeps it: fom_cache_rescore re-evaluates it per model
+                bdt_events[TTBAR_BDTSF_COL] = bdtsf
 
         # save corrected weights
         weights_to_correct = (
@@ -1190,50 +1282,14 @@ def load_process_run3_samples(
                 )
 
             # bdt up/dn variations in bins
-            for i in range(len(ttsf_ggfbdtshape_bins) - 1):
-                ggfbdtsf, ggfbdtsf_up, ggfbdtsf_dn = corrections.ttbar_SF(
-                    tt_ggfbdtshape_sf,
-                    bdt_events,
-                    "bdt_score",
-                    ttsf_ggfbdtshape_bins[i : i + 2],
-                )
-                if args.correct_vbf_bdt_shape:
-                    # only use ggf correction/uncertainty outside of vbf category
-                    ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    ggfbdtsf_dn[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    variation_vars.update(
-                        {
-                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Up": (
-                                bdt_events["weight"] * ggfbdtsf_up / ggfbdtsf
-                            ),
-                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down": (
-                                bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf
-                            ),
-                        }
-                    )
-            if args.correct_vbf_bdt_shape:
-                for i in range(len(ttsf_vbfbdtshape_bins) - 1):
-                    vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
-                        tt_vbfbdtshape_sf,
-                        bdt_events,
-                        "bdt_score_vbf",
-                        ttsf_vbfbdtshape_bins[i : i + 2],
-                    )
-                    # only use vbf correction/uncertainty inside of vbf category
-                    vbfbdtsf[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    vbfbdtsf_up[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    vbfbdtsf_dn[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    variation_vars.update(
-                        {
-                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Up": (
-                                bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf
-                            ),
-                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Down": (
-                                bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf
-                            ),
-                        }
-                    )
+            variation_vars.update(
+                {
+                    col: bdt_events["weight"] * sf_shift / sf
+                    for col, (sf_shift, sf) in ttbar_bdtshape_sf_shifts(
+                        args, bdt_events, mask_vbf, tt_bdtshape_sfs
+                    ).items()
+                }
+            )
 
         if key != "data":
             variation_vars.update(
@@ -1296,8 +1352,13 @@ def load_process_run3_samples(
             # define category
             bdt_events[category] = 5  # all events
 
-            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
-                bdt_events[bdt_score] > args.bdt_wps[2]
+            # QCD CR (fail): txbb below the band. A lower TXbb floor (--fail-txbb-floor,
+            # default 0.0 = no floor) restricts it to a narrow [floor, band) sideband so the
+            # data-driven QCD sits kinematically close to the pass regions.
+            mask_fail = (
+                (bdt_events["H2TXbb"] < args.txbb_wps[1])
+                & (bdt_events["H2TXbb"] >= args.fail_txbb_floor)
+                & (bdt_events[bdt_score] > args.bdt_wps[2])
             )
             bdt_events.loc[mask_fail, category] = 4
 
@@ -1328,8 +1389,14 @@ def load_process_run3_samples(
             mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
                 bdt_events[bdt_score] < args.bdt_wps[0]
             )
+            # Bin2/Bin3 TXbb can be decoupled from the fail edge (txbb_wps[1]) via
+            # --txbb-wp-bin2/--txbb-wp-bin3 (beyond-AN "scan above 0.85"); default (-1)
+            # keeps the AN behavior (Bin2/Bin3 TXbb = txbb_wps[1] = fail edge). `fail`
+            # (mask_fail above) always uses txbb_wps[1], so its control region is frozen.
+            txbb_bin2 = args.txbb_wp_bin2 if args.txbb_wp_bin2 >= 0 else args.txbb_wps[1]
+            txbb_bin3 = args.txbb_wp_bin3 if args.txbb_wp_bin3 >= 0 else args.txbb_wps[1]
             mask_bin2 = (
-                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                (bdt_events["H2TXbb"] > txbb_bin2)
                 & (bdt_events[bdt_score] > args.bdt_wps[1])
                 & ~(mask_bin1)
                 & ~(mask_corner)
@@ -1338,7 +1405,7 @@ def load_process_run3_samples(
             bdt_events.loc[mask_bin2, category] = 2
 
             mask_bin3 = (
-                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                (bdt_events["H2TXbb"] > txbb_bin3)
                 & (bdt_events[bdt_score] > args.bdt_wps[2])
                 & ~(mask_bin1)
                 & ~(mask_bin2)
@@ -1440,6 +1507,8 @@ def load_process_run3_samples(
             _feats = model_feature_names(args.bdt_model)
             if _feats:
                 columns += [f for f in _feats if f in bdt_events.columns]
+            if key == "ttbar":
+                columns += [TTBAR_BDTSF_COL]
         columns = list(set(columns))
 
         if control_plots:
@@ -1699,16 +1768,22 @@ def scan_fom(
 
 
 def get_anti_cuts(args, region: str):
+    # Default FOM anti (ABCD "C/D") region: low TXbb, low BDT — QCD-pure, well-separated
+    # from the SR. With --fom-fail-match the TXbb part instead MATCHES the datacard QCD CR
+    # band [fail_txbb_floor, txbb_wps[1]) so the FOM b-estimate sees the same fail band as
+    # the fit. The BDT anti-cut stays low (ABCD orthogonality requirement, not matched).
+    def _anti_xbb(events):
+        if getattr(args, "fom_fail_match", False):
+            return (events["H2TXbb"] >= args.fail_txbb_floor) & (
+                events["H2TXbb"] < args.txbb_wps[1]
+            )
+        return events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
 
     def anti_cut_vbf(events):
-        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
-        cut_bdt = events["bdt_score_vbf"] < 0.6
-        return cut_xbb & cut_bdt
+        return _anti_xbb(events) & (events["bdt_score_vbf"] < 0.6)
 
     def anti_cut_ggf(events):
-        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
-        cut_bdt = events["bdt_score"] < 0.6
-        return cut_xbb & cut_bdt
+        return _anti_xbb(events) & (events["bdt_score"] < 0.6)
 
     if region == "vbf":
         return anti_cut_vbf
@@ -1787,6 +1862,26 @@ def get_cuts(args, region: str):
             & ~_corner(events)
         )
 
+    # bin 3 (pinned catch-all): TXbb>band & bdt>floor, minus bin1, bin2, VBF -- mirrors the
+    # sequential category assignment in postprocess_run3 (bin3 has NO corner veto). Used only
+    # for the opt-in --fom-scan-bin3 point-eval; never scanned, never alters resolved WPs.
+    def get_cut_bin3(events, xbb_cut, bdt_cut):
+        cut_bin1 = _veto_box(events, xbb_cut_bin1, bdt_cut_bin1, "bdt_score")
+        bin2_fn = get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
+        cut_bin2 = bin2_fn(events, args.txbb_wps[1], args.bdt_wps[1])
+        vbf_cut = (
+            _veto_box(events, args.vbf_txbb_wp, args.vbf_bdt_wp, "bdt_score_vbf")
+            if args.vbf
+            else np.zeros(len(events), dtype=bool)
+        )
+        return (
+            (events["H2TXbb"] > xbb_cut)
+            & (events["bdt_score"] > bdt_cut)
+            & ~cut_bin1
+            & ~cut_bin2
+            & ~vbf_cut
+        )
+
     if region == "vbf":
         if args.vbf and args.vbf_priority:
             return get_cut_vbf
@@ -1799,6 +1894,8 @@ def get_cuts(args, region: str):
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
         return get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
+    elif region == "bin3":
+        return get_cut_bin3
     else:
         raise ValueError("Invalid region")
 
@@ -2079,8 +2176,9 @@ def postprocess_run3(args):
                 n = fom_cache.save(events, cutflow, args.fom_cache_dir, _cache_tag, args.txbb, year)
                 print(f"{year}: wrote slim cache ({n} samples; scores dropped, model-independent)")
         # The slim cache stores the BDT *features* but not the model-specific score,
-        # so (re)run THIS model's inference per event when caching is on.  This is the
-        # only per-model work; loading/building each year happens once and is shared.
+        # so (re)run THIS model's inference per event when caching is on (and re-evaluate the
+        # ttbar BDT-shape SF with it).  This is the only per-model work; loading/building
+        # each year happens once and is shared.
         if args.fom_cache:
             if _cache_model is None:
                 _cache_model = xgb.XGBClassifier()
@@ -2088,18 +2186,36 @@ def postprocess_run3(args):
                     fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
                 )
                 _cache_feats = model_feature_names(args.bdt_model)
-            for _df in events.values():
-                _fo = _add_year_features(_df, _cache_feats, year)
-                _X = _df[_fo] if _fo is not None else _df
-                add_bdt_scores(
-                    _df,
-                    _cache_model.predict_proba(_X),
-                    "",
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
+                if _cache_feats is None:
+                    # no metrics.json (e.g. TrainBDT models): take the training feature order from
+                    # the BDT config, otherwise the whole cached frame (incl. non-feature columns
+                    # such as the string `year`) would be passed to xgboost
+                    _cache_feats = getattr(
+                        importlib.import_module(
+                            f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
+                        ),
+                        "FEATURES",
+                        None,
+                    )
+                _nf = _cache_model.get_booster().num_features()
+                if _cache_feats is None or len(_cache_feats) != _nf:
+                    raise ValueError(
+                        f"cannot determine the {_nf} input features of {args.bdt_model} for the "
+                        f"FOM cache path (got {_cache_feats})"
+                    )
+            fom_cache_rescore(args, events, year, _cache_model, _cache_feats)
         events_dict_postprocess[year] = events
         cutflows[year] = cutflow
+        if getattr(args, "save_ntuples", False):
+            # per-event inference ntuples (post reorder/presel/inference/categorization) so any
+            # downstream ROC / mass / category plot reuses them without re-loading + re-inferring.
+            ntup_dir = (
+                Path(HH4B_DIR) / "src/HH4b/postprocessing/ntuples" / args.templates_tag / year
+            )
+            ntup_dir.mkdir(parents=True, exist_ok=True)
+            for _k, _df in events.items():
+                _df.to_parquet(ntup_dir / f"{_k}.parquet")
+            print(f"{year}: saved {len(events)} inference ntuples -> {ntup_dir}")
 
     print("Loaded all years")
 
@@ -2325,7 +2441,9 @@ def postprocess_run3(args):
                 events_combined,
                 get_cuts(args, "vbf"),
                 get_anti_cuts(args, "vbf"),
-                np.arange(0.8, 0.999, 0.0025),
+                np.arange(
+                    max(0.8, args.txbb_wps[1]) if args.fom_vbf_floor_at_band else 0.8, 0.999, 0.0025
+                ),  # opt-in: floor VBF TXbb at the band
                 np.arange(0.9, 0.999, 0.0025),
                 mass_window,
                 plot_dir,
@@ -2575,6 +2693,14 @@ if __name__ == "__main__":
         "floor kept fixed (0.03).",
     )
     parser.add_argument(
+        "--fail-txbb-floor",
+        type=float,
+        default=0.0,
+        help="Lower TXbb bound of the QCD CR (fail) region; the fail region becomes "
+        "[floor, txbb_wps[1]). Default 0.0 = no floor (fail = TXbb < band). Set 0.75 for a "
+        "narrow sideband kinematically close to the pass regions.",
+    )
+    parser.add_argument(
         "--method",
         type=str,
         default="abcd",
@@ -2587,6 +2713,21 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--vbf-bdt-wp", type=float, default=-1, help="BDT VBF WP (-1 = auto: FOM-scan optimum)"
+    )
+    parser.add_argument(
+        "--txbb-wp-bin2",
+        type=float,
+        default=-1,
+        help="ggF Bin2 TXbb WP, decoupled from the fail edge (-1 = use txbb_wps[1], i.e. AN band). "
+        "Set >=0.85 to scan Bin2's TXbb above the frozen fail region (beyond-AN); fail stays TXbb<txbb_wps[1].",
+    )
+    parser.add_argument(
+        "--txbb-wp-bin3",
+        type=float,
+        default=-1,
+        help="ggF Bin3 TXbb WP, decoupled from the fail edge (-1 = use txbb_wps[1], i.e. AN band). "
+        "Set >=0.85 to scan Bin3's TXbb above the frozen fail region; events in txbb_wps[1]<TXbb<this "
+        "(buffer) are dropped from both pass and fail.",
     )
 
     parser.add_argument(
@@ -2620,6 +2761,14 @@ if __name__ == "__main__":
         default=["hh4b"],
         help="Samples to use for FOM scan for ggF categories",
         choices=["hh4b", "vbfhh4b"],
+    )
+    parser.add_argument(
+        "--fom-b-floor",
+        type=float,
+        default=0.5,
+        help="Minimum data-driven background per bin a FOM WP must have to be eligible "
+        "(default 0.5 = AN convention). Raise (e.g. 2.0) to keep the scan out of the "
+        "ultra-tight <b> regime at high luminosity.",
     )
     run_utils.add_bool_arg(
         parser,
@@ -2746,7 +2895,35 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-scan-bin3",
+        default=False,
+        help="opt-in: point-evaluate Bin 3 (pinned catch-all) so the FOM summary reports its "
+        "s/b/FOM. Never scanned; does not change resolved WPs. fom-fast path only.",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "save-ntuples",
+        default=False,
+        help="opt-in: dump per-event inference ntuples (parquet per sample/year) to "
+        "postprocessing/ntuples/<templates-tag>/ for reuse in downstream plots without re-inference.",
+    )
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-vbf-floor-at-band",
+        default=False,
+        help="Start the VBF TXbb FOM grid at the fail/pass band txbb_wps[1] instead of 0.8 "
+        "(keeps the qqHH SR above the fail region). Default off = original AN behaviour.",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-fail-match",
+        default=False,
+        help="Match the FOM b-estimate's anti (C/D) region TXbb to the datacard QCD CR band "
+        "[fail_txbb_floor, txbb_wps[1]) instead of the default TXbb<0.3 low corner (BDT still low).",
+    )
     run_utils.add_bool_arg(
         parser,
         "fom-fast",
