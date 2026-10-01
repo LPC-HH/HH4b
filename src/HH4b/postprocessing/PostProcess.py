@@ -43,10 +43,13 @@ from HH4b.postprocessing import (
 )
 from HH4b.postprocessing.bdt_inference import _add_year_features, model_feature_names
 from HH4b.utils import (
+    W_XSEC_CORRECTION_ERAS,
+    PtqqStitch,
     ShapeVar,
     check_get_jec_var,
     discretize_var,
     get_var_mapping,
+    ptqq_open_threshold,
     singleVarHist,
 )
 
@@ -56,6 +59,10 @@ logger = logging.getLogger(__name__)
 
 # get top-level HH4b directory
 HH4B_DIR = Path(__file__).resolve().parents[3]
+
+# slim FOM cache key suffix of the years whose MC carries the 2022-2023 W cross-section correction
+# (xsecs.py "/ 2", utils._apply_w_xsec_correction; fom_cache_tag); caches without it are never read
+FOM_CACHE_XSEC_SUFFIX = "__wxshalf"
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -492,6 +499,90 @@ def mc_split_mask(run, luminosity_block, event, split_half: int) -> np.ndarray:
     return parity % 2 == split_half
 
 
+def get_txbb_presel(txbb: str) -> float:
+    """TXbb preselection on the higher-TXbb jet, ``H1TXbb >= get_txbb_presel(txbb)``."""
+    if txbb == "pnet-legacy":
+        return 0.8
+    if txbb in ["glopart-v2", "pnet-v12", "glopart-v3"]:
+        return 0.3
+    raise ValueError(f"no TXbb preselection defined for {txbb}")
+
+
+def get_vjets_stitch(args) -> PtqqStitch | None:
+    """``--vjets-stitch`` settings for ``utils.load_samples``; None without the flag.
+
+    The TXbb load filter on the Bin-PTQQ samples is max(TXbb_0, TXbb_1) >= the H1 TXbb
+    preselection. Every region used downstream (pass bins, fail, FOM ABCD regions incl. the
+    low-TXbb anti-region) is built after ``mask_presel``, which requires exactly that (H1 is the
+    higher-TXbb jet after ``reorder_txbb``, and TXbb has no JEC/JMSR variation), so the filter
+    removes no event any region can use. There is no H2 TXbb preselection: the fail region has no
+    floor by default and the FOM anti-region is H2TXbb < 0.3, so a min(TXbb) filter would cut into
+    them; ``--vjets-stitch-txbb-min`` adds one only as a region-restricted stitch (see PtqqStitch).
+
+    ``--vjets-stitch-mode range``: LHE-V-pT range stitch instead (``utils.ptqq_range_norm``; needs
+    the LHE-pT re-skim, e.g. via ``--override-tag``), with the same TXbb load filter.
+    """
+    if not getattr(args, "vjets_stitch", False):
+        return None
+    txbb_min = getattr(args, "vjets_stitch_txbb_min", -1.0)
+    return PtqqStitch(
+        txbb_presel=get_txbb_presel(args.txbb),
+        txbb_min=txbb_min if txbb_min >= 0 else None,
+        mode=getattr(args, "vjets_stitch_mode", "effective-lumi"),
+    )
+
+
+def get_override_dir(args) -> str | None:
+    """``--override-tag`` skim directory for ``utils.load_samples(override_dir=...)``, or None."""
+    override_tag = getattr(args, "override_tag", None)
+    return f"{args.data_dir}/{override_tag}" if override_tag else None
+
+
+def fom_cache_tag(args, year: str) -> str:
+    """Key of a year in the slim FOM cache (``fom_cache``).
+
+    ``args.tag``, plus "__vjstitch..." if --vjets-stitch changes that year's V+jets, i.e. if its MC
+    source year holds open-ended Bin-PTQQ samples (2024, and 2025, which borrows the 2024 MC). All
+    other years load identically with and without the flag, so they share the plain cache.
+
+    ``--vjets-stitch-mode range`` gives "__vjrange" instead of "__vjstitch...", and
+    ``--override-tag T`` adds "__ovr-T" to every year whose MC source year T has a directory for.
+
+    Plus "__wxshalf" (before any "__jmsr...") for every year whose MC source year is 2022-2023BPix
+    (``utils.W_XSEC_CORRECTION_ERAS``): their V+jets holds the 2022-2023 W samples whose cross
+    sections are halved (x0.5 since 2026-09-25; xsecs.py "/ 2" since 2026-09-28, with
+    ``utils._apply_w_xsec_correction`` rescaling the skims made with the 2x XSDB values), so a
+    cache built without it (doubled W, key without the suffix) is never read again. 2024 and 2025
+    (2024 MC) keep their keys: their frames are unchanged.
+    """
+    try:
+        split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+        source_year = split.source_year
+    except ValueError:
+        source_year = year
+    xsec_suffix = FOM_CACHE_XSEC_SUFFIX if source_year in W_XSEC_CORRECTION_ERAS else ""
+    stitch = get_vjets_stitch(args)
+    override_tag = getattr(args, "override_tag", None)
+    if stitch is None and not override_tag:
+        return args.tag + xsec_suffix
+    skim_dirs = [Path(args.data_dir) / args.tag / source_year]
+    override_suffix = ""
+    if override_tag and (Path(args.data_dir) / override_tag / source_year).is_dir():
+        override_suffix = f"__ovr-{override_tag}"
+        skim_dirs.append(Path(args.data_dir) / override_tag / source_year)
+    if stitch is None or not any(
+        ptqq_open_threshold(p.name) is not None
+        for skim_dir in skim_dirs
+        if skim_dir.is_dir()
+        for p in skim_dir.iterdir()
+    ):
+        return args.tag + override_suffix + xsec_suffix
+    suffix = "__vjrange" if stitch.mode == "range" else "__vjstitch"
+    if stitch.txbb_min is not None:
+        suffix += f"-txbbmin{stitch.txbb_min:g}".replace(".", "p")
+    return args.tag + suffix + override_suffix + xsec_suffix
+
+
 def load_process_run3_samples(
     args,
     year,
@@ -664,6 +755,12 @@ def load_process_run3_samples(
             source_year = mc_split.source_year
 
         samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
+        # --vjets-stitch (opt-in): all four open-ended 2024 Bin-PTQQ samples, stitched in
+        # utils.load_samples; without it (default) only Bin-PTQQ-100 is read for 2024.
+        ptqq_stitch = get_vjets_stitch(args) if key == "vjets" else None
+        if ptqq_stitch is not None:
+            samples_to_process = {source_year: {key: hh_vars.vjets_stitch_selectors}}
+            logger.info(f"vjets: stitching the open-ended Bin-PTQQ samples with {ptqq_stitch}")
 
         _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
@@ -679,6 +776,9 @@ def load_process_run3_samples(
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
+            ptqq_stitch=ptqq_stitch,
+            # --override-tag (opt-in): that skim's sample directories replace --tag's
+            override_dir=get_override_dir(args),
         )
         # Safety net: if a sample has no events in the skimmer for this year
         # (e.g. a background absent in some era), skip it instead of crashing
@@ -1122,10 +1222,7 @@ def load_process_run3_samples(
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        if args.txbb == "pnet-legacy":
-            txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "pnet-v12", "glopart-v3"]:
-            txbb_presel = 0.3
+        txbb_presel = get_txbb_presel(args.txbb)
 
         for jshift in jshifts:
             logger.info(f"Inference and selection for jshift {jshift}")
@@ -1880,6 +1977,8 @@ def postprocess_run3(args):
     _cache_feats = None
     for year in args.years:
         print(f"\n{year}")
+        # slim-cache key of this year (args.tag, or its own key when --vjets-stitch changes it)
+        _cache_tag = fom_cache_tag(args, year)
         # build-only: load+cache each year then FREE it (no accumulation, no
         # combine/scan) -> a single command builds the whole shared cache with a
         # peak of one year's memory.  Safe even for the 187 GB 2024 data.
@@ -1889,7 +1988,7 @@ def postprocess_run3(args):
             if (
                 _keys is None
                 and not args.fom_cache_rebuild
-                and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
+                and fom_cache.exists(args.fom_cache_dir, _cache_tag, args.txbb, year)
             ):
                 print(
                     f"{year}: slim cache already present, skipping (--fom-cache-rebuild to force)"
@@ -1910,7 +2009,7 @@ def postprocess_run3(args):
                 events,
                 cutflow,
                 args.fom_cache_dir,
-                args.tag,
+                _cache_tag,
                 args.txbb,
                 year,
                 merge=_keys is not None,
@@ -1922,11 +2021,11 @@ def postprocess_run3(args):
         _use_cache = (
             args.fom_cache
             and not args.fom_cache_rebuild
-            and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
+            and fom_cache.exists(args.fom_cache_dir, _cache_tag, args.txbb, year)
         )
         if _use_cache:
             print(f"{year}: loading model-independent slim FOM cache")
-            events, cutflow = fom_cache.load(args.fom_cache_dir, args.tag, args.txbb, year)
+            events, cutflow = fom_cache.load(args.fom_cache_dir, _cache_tag, args.txbb, year)
         else:
             events, cutflow = load_process_run3_samples(
                 args,
@@ -1938,7 +2037,7 @@ def postprocess_run3(args):
                 args.rerun_inference,
             )
             if args.fom_cache:
-                n = fom_cache.save(events, cutflow, args.fom_cache_dir, args.tag, args.txbb, year)
+                n = fom_cache.save(events, cutflow, args.fom_cache_dir, _cache_tag, args.txbb, year)
                 print(f"{year}: wrote slim cache ({n} samples; scores dropped, model-independent)")
         # The slim cache stores the BDT *features* but not the model-specific score,
         # so (re)run THIS model's inference per event when caching is on.  This is the
@@ -2512,6 +2611,55 @@ if __name__ == "__main__":
             "be combined in the same fit, so that their MC statistics stay independent"
         ),
     )
+    run_utils.add_bool_arg(
+        parser,
+        "vjets-stitch",
+        default=False,
+        help=(
+            "stitch the four open-ended 2024 V+jets samples "
+            "{W,Z}to2Q-2Jets_Bin-PTQQ-{100,200,400,600} in GenVPt (also for 2025, which borrows "
+            "the 2024 MC): effective-luminosity weights, a sample trusted from its threshold + 50 "
+            "GeV (utils._stitch_open_ptqq), load filter max(TXbb_0, TXbb_1) >= the H1 TXbb "
+            "preselection, which drops no event any region can use. Off (default): Bin-PTQQ-100 "
+            "only. Years with stitched V+jets get their own FOM slim-cache key (<tag>__vjstitch)"
+        ),
+    )
+    parser.add_argument(
+        "--vjets-stitch-txbb-min",
+        type=float,
+        default=-1.0,
+        help=(
+            "with --vjets-stitch: read the Bin-PTQQ-200/400/600 samples only where "
+            "min(TXbb_0, TXbb_1) >= this (saves memory) and stitch only there; below it the "
+            "V+jets is Bin-PTQQ-100 alone, as without the flag (unbiased). -1 (default): off"
+        ),
+    )
+    parser.add_argument(
+        "--vjets-stitch-mode",
+        type=str,
+        default="effective-lumi",
+        choices=["effective-lumi", "range"],
+        help=(
+            "with --vjets-stitch: 'effective-lumi' (default) = the GenVPt stitch above; 'range' = "
+            "each Bin-PTQQ-X sample keeps only LHE V pT in [X, next threshold) (the highest "
+            "sample: >= X) and is normalised to sigma_X x its generator-weight fraction there "
+            "(Z: 100/200/400/600, W: 100/200/400; utils.ptqq_range_norm). Needs a skim with "
+            "GenVLHEPt and the per-LHE-V-pT-bin totals (e.g. --override-tag "
+            "20260820_glopartv3_reskim_v15_signal). FOM cache key <tag>__vjrange"
+        ),
+    )
+    parser.add_argument(
+        "--override-tag",
+        type=str,
+        default=None,
+        help=(
+            "optional second skim tag under --data-dir: its sample directories replace the "
+            "same-named ones of --tag, per year (e.g. 20260820_glopartv3_reskim_v15_signal: the "
+            "2024 V+jets with GenVLHEPt and the per-LHE-V-pT-bin totals, and the 2024 SM ggHH); "
+            "everything else still comes from --tag. Years whose MC comes from it get the FOM "
+            "cache key suffix __ovr-<tag>. Default: none"
+        ),
+    )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")
     run_utils.add_bool_arg(parser, "fom-scan", default=False, help="run figure of merit scans")
@@ -2622,6 +2770,14 @@ if __name__ == "__main__":
             "Run the FOM scan first (--fom-scan --no-templates) to get the optima, "
             "then pass them explicitly via --txbb-wps/--bdt-wps/--vbf-txbb-wp/--vbf-bdt-wp."
         )
+    if args.vjets_stitch_txbb_min >= 0 and not args.vjets_stitch:
+        raise ValueError("--vjets-stitch-txbb-min needs --vjets-stitch")
+    if args.vjets_stitch_mode != "effective-lumi" and not args.vjets_stitch:
+        raise ValueError("--vjets-stitch-mode needs --vjets-stitch")
+    if args.vjets_stitch_mode == "range" and args.vjets_stitch_txbb_min >= 0:
+        raise ValueError("--vjets-stitch-txbb-min is for --vjets-stitch-mode effective-lumi only")
+    if args.override_tag and not (Path(args.data_dir) / args.override_tag).is_dir():
+        raise ValueError(f"--override-tag: {Path(args.data_dir) / args.override_tag} not found")
 
     print(args)
     postprocess_run3(args)

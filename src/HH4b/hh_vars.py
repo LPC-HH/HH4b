@@ -64,13 +64,31 @@ common_samples_bg = {
     "tthtobb": ["ttHto2B_M-125"],
     "zz": ["ZZ"],
     "nozzdiboson": ["WW", "WZ"],
+    # 2022-2023: *_PTQQ-XtoY_{1J,2J} are exclusive bins -> sum them all.
+    # 2024 (Summer24): *_Bin-PTQQ-X means PTQQ > X with no upper edge, so the four samples overlap
+    # (summing them over-counts V pT > 200 GeV 2-4x). Default: only the inclusive PTQQ-100 sample
+    # (exact match, trailing "?"). PostProcess --vjets-stitch uses vjets_stitch_selectors below.
     "vjets": [
         "Wto2Q-2Jets_PTQQ",
-        "Wto2Q-2Jets_Bin-PTQQ",
+        "Wto2Q-2Jets_Bin-PTQQ-100?",
         "Zto2Q-2Jets_PTQQ",
-        "Zto2Q-2Jets_Bin-PTQQ",
+        "Zto2Q-2Jets_Bin-PTQQ-100?",
     ],
 }
+
+# Opt-in (PostProcess --vjets-stitch): the default vjets selectors plus the three higher-threshold
+# open-ended 2024 samples, loaded with utils.load_samples(ptqq_stitch=...) so that the four
+# Bin-PTQQ samples are stitched in GenVPt (utils._stitch_open_ptqq), or with --vjets-stitch-mode
+# range in LHE V pT ranges (utils.ptqq_range_norm). No 2022-2023 name matches them.
+# Wto2Q-2Jets_Bin-PTQQ-600 (2024, v2-v2) is left out: the dataset is INVALID in DAS (generated with
+# an LHE filter at 400 GeV instead of 600); W above 600 GeV comes from W-100/200/400 (range mode:
+# W-400 alone, whole sample).
+vjets_stitch_selectors = common_samples_bg["vjets"] + [
+    f"{v}to2Q-2Jets_Bin-PTQQ-{x}?"
+    for v in ["W", "Z"]
+    for x in [200, 400, 600]
+    if not (v == "W" and x == 600)
+]
 
 common_samples_sig = {}
 

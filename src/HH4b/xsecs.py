@@ -251,14 +251,21 @@ xsecs["Zto2Q-4Jets_Bin-HT-800to1500"] = 12.93
 xsecs["Zto2Q-4Jets_Bin-HT-1500to2500"] = 0.8496
 xsecs["Zto2Q-4Jets_Bin-HT-2500"] = 0.05672
 
-xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0
-xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0
-xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6
-xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1
-xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496
-xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75
-xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221
-xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128
+# 2022-2023 W->qq+jets (all four eras use the PdmV/Run3Summer22 gridpacks): "/ 2" because the XSDB
+# (= GenXSecAnalyzer) values, the numbers before it, are 2x the physical cross sections. The MadGraph
+# process cards list each W charge twice (p p > w+ j @0, w- j @1, w+ j @2, w- j @3; the 2J cards the
+# same with j j), and MadGraph sums the two identical copies. The Z cards below (one process line)
+# and the 2024 Bin-PTQQ W cards (each charge once) are fine. Skims made before this change carry the
+# XSDB value in their weights; utils._apply_w_xsec_correction rescales them to these values at load
+# time.
+xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0 / 2
+xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0 / 2
+xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6 / 2
+xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1 / 2
+xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496 / 2
+xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75 / 2
+xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221 / 2
+xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128 / 2
 xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"] = 302.0
 xsecs["Zto2Q-2Jets_PTQQ-100to200_2J"] = 343.9
 xsecs["Zto2Q-2Jets_PTQQ-200to400_1J"] = 21.64
@@ -268,8 +275,12 @@ xsecs["Zto2Q-2Jets_PTQQ-400to600_2J"] = 2.683
 xsecs["Zto2Q-2Jets_PTQQ-600_1J"] = 0.08717
 xsecs["Zto2Q-2Jets_PTQQ-600_2J"] = 0.4459
 
-# LO samples in 2024
-# from xsec analyzer: https://cms-generators.docs.cern.ch/useful-tools-and-links/HowToGenXSecAnalyzer
+# NLO (amcatnloFXFX) samples in 2024. Bin-PTQQ-X means PTQQ > X with NO upper edge (each xsec is
+# the cumulative sigma(PTQQ > X)), so the four samples overlap and must not be summed; hh_vars
+# loads only PTQQ-100 by default, and PostProcess --vjets-stitch loads all four and stitches them
+# (utils._stitch_open_ptqq).
+# from xsec analyzer (one MiniAOD file per dataset -> few-% precision):
+# https://cms-generators.docs.cern.ch/useful-tools-and-links/HowToGenXSecAnalyzer
 xsecs["Wto2Q-2Jets_Bin-PTQQ-100"] = 1751.0
 xsecs["Wto2Q-2Jets_Bin-PTQQ-200"] = 164.3
 xsecs["Wto2Q-2Jets_Bin-PTQQ-400"] = 9.205
