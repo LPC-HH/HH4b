@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import logging
 import pickle
+import re
 from collections import OrderedDict
 from pathlib import Path
 
@@ -429,6 +430,31 @@ for wp in TXbb_wps:
                 "2023": ["2023", "2023BPix"],
             },
         )
+
+
+def templates_have_glopartv3_jmsr(templates_dir: str) -> bool:
+    """Whether PostProcess made these templates with the glopart-v3 JMS/JMR correction on.
+
+    Read from the templates' args.txt (``'glopartv3_jmsr': True`` with ``'txbb': 'glopart-v3'``).
+    Templates made before the flag existed have no such entry, and their JMS/JMR templates equal
+    the nominal ones (the v15 skim leaves the glopart-v3 mass uncorrected).
+    """
+    args_file = Path(templates_dir) / "args.txt"
+    if not args_file.is_file():
+        return False
+    text = args_file.read_text()
+    return bool(
+        re.search(r"'glopartv3_jmsr':\s*True", text) and re.search(r"'txbb':\s*'glopart-v3'", text)
+    )
+
+
+# 2025 gets its own JMS/JMR nuisance only for templates made with the glopart-v3 JMS/JMR
+# correction, whose 2025 JMS/JMR templates are real variations. Older templates (JMS/JMR equal to
+# nominal) keep exactly the cards they had.
+if "2025" in years and templates_have_glopartv3_jmsr(args.templates_dir):
+    for skey in ["JMS", "JMR"]:
+        uncorr_year_shape_systs[skey].uncorr_years["2025"] = ["2025"]
+    logging.info("glopart-v3 JMS/JMR templates: separate JMS/JMR nuisances for 2025 as well")
 
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
