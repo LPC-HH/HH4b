@@ -78,6 +78,12 @@ DEFAULT_LABEL_MAP = {
     "qcd": 3,
 }
 
+# Per-event k-fold ensemble weights written by apply.py --ensemble-dir (the std column is a
+# spread, not a weight, so it is not offered).
+ENSEMBLE_WEIGHT_COLS = tuple(
+    f"{w}_{st}" for w in ("w_QCD_A", "w_QCD_A_fixclip") for st in ("median", "mean", "q16", "q84")
+)
+
 # Matches the preselection in HH4b.boosted.TrainBDT.apply_cuts for glopart-v3.
 TXBB_PRESEL = 0.3
 MSD1_PRESEL = 40
@@ -192,6 +198,7 @@ def parse_args() -> argparse.Namespace:
             "w_QCD_A_oof_fixclip",
             "w_QCD_A_ins_fixclip",
             "w_QCD_A_dec_fixclip",
+            *ENSEMBLE_WEIGHT_COLS,
         ],
         help="Column from apply/per_event_weights.parquet to use as the "
         "B-data weight for --version abcd.  'w_QCD_A' = TF · purity, clamped "
@@ -199,7 +206,7 @@ def parse_args() -> argparse.Namespace:
         "for the TrainBDT-style |w| convention — train_bdt applies np.abs); "
         "'TF' = TF only, no purity correction; 'w_QCD_A_fixclip' = "
         "clip(clip(TF,0)·clip(purity,0), 0, 100) (zeroes TF<0 & purity<0 "
-        "events; only in a post-processed parquet that adds this column); "
+        "events; in the parquet of apply.py --ensemble-dir or of a post-processed run); "
         "'w_QCD_A_oof' / 'w_QCD_A_oof_fixclip' = the same two weights from a 2-fold "
         "cross-fit, each Region-B event weighted by the ABCDnn fold that did not train on it "
         "(only in the parquet of a cross-fit ABCDnn run, not written by apply.py); "
@@ -208,7 +215,9 @@ def parse_args() -> argparse.Namespace:
         "'w_QCD_A_dec_fixclip' = clip(clip(TF_dec,0)·clip(purity_dec,0), 0, 100) from "
         "decoupled models (TF from a 4-class C/D-only ABCDnn, purity from a cross-fitted "
         "Region-B data-vs-ttbar classifier; only in the parquet of a decoupled run, not written "
-        "by apply.py).",
+        "by apply.py); 'w_QCD_A[_fixclip]_{median,mean,q16,q84}' = per-event statistic of the "
+        "weight over the members of a k-fold ensemble (median = the HIG-24-010 central value; "
+        "written by apply.py --ensemble-dir, so pass --run-dir <run>/kfold<K>_s<S>).",
     )
     parser.add_argument(
         "--signal-keys",

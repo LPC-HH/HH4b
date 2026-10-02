@@ -23,15 +23,23 @@ Pipeline (called from train.py via :func:`prepare_dataset`):
         compute (μ, σ) on train split only
         write processed_data.npz + feature_stats.json
 
+k-fold ensemble (``train.py --n-folds K --fold i``): :func:`kfold_partition`
+keeps the NPZ test split and deals the train+val rows into K stratified folds;
+member i trains on the other K-1 folds and early-stops on fold i.
+:func:`kfold_fingerprint` hashes the partition so every member (and
+``apply.py --ensemble-dir``) can prove that it used the same test set and folds.
+
 See notes/ABCDnn.md Task 2.
 """  # noqa: RUF002
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import logging.config
 import pickle
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -347,6 +355,14 @@ def build_dataset(
 # Standardize + persist ------------------------------------------------------
 
 
+def train_standardization(X: np.ndarray, idx_train: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Per-feature (μ, σ) of the training rows ``X[idx_train]`` (σ = 0 → 1)."""  # noqa: RUF002
+    mu = X[idx_train].mean(axis=0).astype(np.float32)
+    sigma = X[idx_train].std(axis=0).astype(np.float32)
+    sigma = np.where(sigma == 0, 1.0, sigma).astype(np.float32)  # avoid /0
+    return mu, sigma
+
+
 def standardize_and_save(
     dataset: dict[str, np.ndarray],
     out_dir: str | Path,
@@ -362,12 +378,7 @@ def standardize_and_save(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    X = dataset["X"]
-    idx_train = dataset["idx_train"]
-
-    mu = X[idx_train].mean(axis=0).astype(np.float32)
-    sigma = X[idx_train].std(axis=0).astype(np.float32)
-    sigma = np.where(sigma == 0, 1.0, sigma).astype(np.float32)  # avoid /0
+    mu, sigma = train_standardization(dataset["X"], dataset["idx_train"])
 
     feature_names = features.feature_columns(feature_set)
 
@@ -404,6 +415,154 @@ def standardize_and_save(
     )
     logger.info(f"saved {npz_path}")
     return npz_path
+
+
+# k-fold ensemble partition -------------------------------------------------
+#
+# Layout of an ensemble of K members inside a run dir (which holds the shared
+# processed_data.npz + feature_stats.json and is never written to by members):
+#
+#   <run-dir>/kfold<K>_s<S>/kfold_assignment.{npz,json}   fold per NPZ row (-1 = test)
+#   <run-dir>/kfold<K>_s<S>/fold<ii>/                     member ii: best_model.pt,
+#       feature_stats.json (its own mu/sigma), kfold_member.json (partition hashes, training
+#       settings, provenance), train_log.csv, plots, and metrics.json (written last: the
+#       completion marker, with the best_model.pt sha256 and the common-test-split metrics)
+#   <run-dir>/kfold<K>_s<S>/apply/                        apply.py --ensemble-dir output
+
+KFOLD_ASSIGNMENT = "kfold_assignment"
+KFOLD_MEMBER_JSON = "kfold_member.json"
+# A member's metrics.json is its completion marker: train.py deletes it when the member starts
+# and writes it last (atomically), with the sha256 of best_model.pt; apply.py --ensemble-dir
+# refuses members without it (a preempted or still-running pod).
+KFOLD_MEMBER_DONE = "metrics.json"
+# Training settings recorded per member (kfold_member.json "train_config"); apply.py requires
+# them to be identical for all members of an ensemble.
+KFOLD_TRAIN_CONFIG_KEYS = (
+    "hidden",
+    "num_hidden_layers",
+    "dropout",
+    "lr",
+    "batch",
+    "epochs",
+    "patience",
+    "base_seed",
+    "fast_loader",
+)
+
+
+def kfold_dirname(n_folds: int, fold_seed: int) -> str:
+    return f"kfold{n_folds}_s{fold_seed}"
+
+
+def member_dirname(fold: int) -> str:
+    return f"fold{fold:02d}"
+
+
+def kfold_partition(
+    y: np.ndarray,
+    idx_train: np.ndarray,
+    idx_val: np.ndarray,
+    idx_test: np.ndarray,
+    n_folds: int,
+    fold_seed: int,
+) -> np.ndarray:
+    """Fold index per NPZ row: -1 for the (kept) test split, 0..K-1 otherwise.
+
+    The non-test rows (``idx_train`` ∪ ``idx_val``) are partitioned into
+    ``n_folds`` disjoint folds, stratified by the 6-way label: per class (in
+    label order) the rows, in ascending NPZ order, are shuffled with
+    ``np.random.RandomState(fold_seed)`` and dealt round-robin, the starting
+    fold carrying over between classes so that the fold sizes differ by at most
+    one.  The legacy ``RandomState`` stream is frozen across numpy versions, and
+    a private instance leaves the global numpy/torch RNGs (the init seed)
+    untouched, so the partition depends only on (y, the split, K, fold_seed).
+    """  # noqa: RUF002
+    if not 2 <= n_folds <= np.iinfo(np.int8).max:
+        raise ValueError(f"n_folds must be in [2, 127], got {n_folds}")
+    n = len(y)
+    counts = np.bincount(np.concatenate([idx_train, idx_val, idx_test]), minlength=n)
+    if len(counts) != n or not np.all(counts == 1):
+        raise ValueError("idx_train, idx_val and idx_test must partition the NPZ rows exactly")
+
+    fold = np.full(n, -1, dtype=np.int8)
+    nontest = np.sort(np.concatenate([idx_train, idx_val]))
+    y_nt = y[nontest]
+    rs = np.random.RandomState(fold_seed)
+    offset = 0
+    for c in np.unique(y_nt):
+        rows = nontest[y_nt == c]
+        perm = rs.permutation(len(rows))
+        fold[rows[perm]] = (np.arange(len(rows)) + offset) % n_folds
+        offset += len(rows)
+    return fold
+
+
+def _sha256(a: np.ndarray) -> str:
+    return hashlib.sha256(np.ascontiguousarray(a).tobytes()).hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def write_json_atomic(path: Path, obj) -> None:
+    """Write ``obj`` as JSON through a unique temporary file + rename, so a
+    reader never sees a partial file."""
+    path = Path(path)
+    tmp = path.parent / f".{path.name}.{uuid.uuid4().hex}"
+    tmp.write_text(json.dumps(obj, indent=2))
+    tmp.replace(path)
+
+
+def kfold_fingerprint(
+    y: np.ndarray, idx_test: np.ndarray, fold: np.ndarray, n_folds: int, fold_seed: int
+) -> dict:
+    """Hashes + sizes that identify a partition: the dataset labels (``y``),
+    the test rows (sorted, int64) and the fold-per-row array (int8)."""
+    return {
+        "n_folds": int(n_folds),
+        "fold_seed": int(fold_seed),
+        "n_rows": len(y),
+        "n_test": len(idx_test),
+        "fold_sizes": np.bincount(fold[fold >= 0], minlength=n_folds).tolist(),
+        "sha256_y": _sha256(y.astype(np.int64)),
+        "sha256_idx_test": _sha256(np.sort(idx_test).astype(np.int64)),
+        "sha256_fold": _sha256(fold.astype(np.int8)),
+    }
+
+
+def member_split(fold: np.ndarray, i: int) -> tuple[np.ndarray, np.ndarray]:
+    """(train, val) NPZ row indices of member ``i``: train = the other folds,
+    val = fold ``i``; test rows (fold -1) are in neither."""
+    return np.where((fold >= 0) & (fold != i))[0], np.where(fold == i)[0]
+
+
+def write_or_check_assignment(ens_dir: Path, fold: np.ndarray, fingerprint: dict) -> None:
+    """Persist ``<ens_dir>/kfold_assignment.{npz,json}``, or, if another member
+    already wrote them, require an identical fingerprint.  Writes go through a
+    unique temporary file + rename, so concurrent members cannot leave a
+    partial file (they would write identical content)."""
+    ens_dir.mkdir(parents=True, exist_ok=True)
+    json_path = ens_dir / f"{KFOLD_ASSIGNMENT}.json"
+    if json_path.exists():
+        prev = json.loads(json_path.read_text())
+        diff = {k: (prev.get(k), v) for k, v in fingerprint.items() if prev.get(k) != v}
+        if diff:
+            raise RuntimeError(f"k-fold partition differs from {json_path}: {diff}")
+        logger.info(f"k-fold partition matches {json_path}")
+        return
+    tag = uuid.uuid4().hex
+    tmp_npz = ens_dir / f".{KFOLD_ASSIGNMENT}.{tag}.npz"
+    np.savez_compressed(tmp_npz, fold=fold)
+    tmp_npz.replace(ens_dir / f"{KFOLD_ASSIGNMENT}.npz")
+    tmp_json = ens_dir / f".{KFOLD_ASSIGNMENT}.{tag}.json"
+    tmp_json.write_text(json.dumps(fingerprint, indent=2))
+    tmp_json.replace(json_path)
+    logger.info(f"saved {json_path} (+ .npz)")
 
 
 # Orchestrator (called from train.py) ---------------------------------------
