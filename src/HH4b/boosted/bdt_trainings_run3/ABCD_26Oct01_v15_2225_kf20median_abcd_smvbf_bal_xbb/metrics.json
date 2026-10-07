@@ -1,0 +1,44 @@
+{
+  "train_dataset": "abcd_smvbf",
+  "test_OvR_AUCs_weighted_by_dataset": {
+    "abcd_smvbf": {
+      "hh4b": 0.9392766890874578,
+      "vbfhh4b-k2v0": 0.9694351947332672
+    }
+  },
+  "features": [
+    "HHPt",
+    "HHeta",
+    "HHmass",
+    "MET",
+    "H1T32",
+    "H2T32",
+    "H1Mass",
+    "H1Pt",
+    "H2Pt",
+    "H1eta",
+    "H1Xbb",
+    "H1Pt_HHmass",
+    "H2Pt_HHmass",
+    "H1Pt_H2Pt",
+    "VBFjjMass",
+    "VBFjjDeltaEta",
+    "H1AK4JetAway1dR",
+    "H2AK4JetAway2dR",
+    "H1AK4JetAway1mass",
+    "H2AK4JetAway2mass"
+  ],
+  "training_keys": [
+    "hh4b",
+    "vbfhh4b-k2v0",
+    "ttbar",
+    "qcd"
+  ],
+  "classifier_params": {
+    "max_depth": 3,
+    "learning_rate": 0.1,
+    "n_estimators": 5000,
+    "verbosity": 2,
+    "reg_lambda": 1.0
+  }
+}
