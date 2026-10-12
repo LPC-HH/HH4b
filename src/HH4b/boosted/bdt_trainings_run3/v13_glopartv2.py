@@ -39,19 +39,19 @@ def bdt_dataframe(events, key_map=lambda x: x):
 
     vbf1 = vector.array(
         {
-            "pt": events[(key_map("VBFJetPt"), 0)],
-            "phi": events[(key_map("VBFJetPhi"), 0)],
-            "eta": events[(key_map("VBFJetEta"), 0)],
-            "M": events[(key_map("VBFJetMass"), 0)],
+            "pt": events[key_map("VBFJetPt")].to_numpy()[:, 0],
+            "phi": events[key_map("VBFJetPhi")].to_numpy()[:, 0],
+            "eta": events[key_map("VBFJetEta")].to_numpy()[:, 0],
+            "M": events[key_map("VBFJetMass")].to_numpy()[:, 0],
         }
     )
 
     vbf2 = vector.array(
         {
-            "pt": events[(key_map("VBFJetPt"), 1)],
-            "phi": events[(key_map("VBFJetPhi"), 1)],
-            "eta": events[(key_map("VBFJetEta"), 1)],
-            "M": events[(key_map("VBFJetMass"), 1)],
+            "pt": events[key_map("VBFJetPt")].to_numpy()[:, 1],
+            "phi": events[key_map("VBFJetPhi")].to_numpy()[:, 1],
+            "eta": events[key_map("VBFJetEta")].to_numpy()[:, 1],
+            "M": events[key_map("VBFJetMass")].to_numpy()[:, 1],
         }
     )
 
@@ -60,19 +60,19 @@ def bdt_dataframe(events, key_map=lambda x: x):
     # AK4JetAway
     ak4away1 = vector.array(
         {
-            "pt": events[(key_map("AK4JetAwayPt"), 0)],
-            "phi": events[(key_map("AK4JetAwayPhi"), 0)],
-            "eta": events[(key_map("AK4JetAwayEta"), 0)],
-            "M": events[(key_map("AK4JetAwayMass"), 0)],
+            "pt": events[key_map("AK4JetAwayPt")].to_numpy()[:, 0],
+            "phi": events[key_map("AK4JetAwayPhi")].to_numpy()[:, 0],
+            "eta": events[key_map("AK4JetAwayEta")].to_numpy()[:, 0],
+            "M": events[key_map("AK4JetAwayMass")].to_numpy()[:, 0],
         }
     )
 
     ak4away2 = vector.array(
         {
-            "pt": events[(key_map("AK4JetAwayPt"), 1)],
-            "phi": events[(key_map("AK4JetAwayPhi"), 1)],
-            "eta": events[(key_map("AK4JetAwayEta"), 1)],
-            "M": events[(key_map("AK4JetAwayMass"), 1)],
+            "pt": events[key_map("AK4JetAwayPt")].to_numpy()[:, 1],
+            "phi": events[key_map("AK4JetAwayPhi")].to_numpy()[:, 1],
+            "eta": events[key_map("AK4JetAwayEta")].to_numpy()[:, 1],
+            "M": events[key_map("AK4JetAwayMass")].to_numpy()[:, 1],
         }
     )
 
@@ -106,8 +106,8 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("H2Pt_HHmass"): h2.pt / hh.mass,
             key_map("H1Pt/H2Pt"): h1.pt / h2.pt,
             # vbf mjj and eta_jj
-            key_map("VBFjjMass"): jj.mass,
-            key_map("VBFjjDeltaEta"): np.abs(vbf1.eta - vbf2.eta),
+            key_map("VBFjjMass"): np.array(jj.mass),
+            key_map("VBFjjDeltaEta"): np.array(np.abs(vbf1.eta - vbf2.eta)),
             # AK4JetAway
             key_map("H1AK4JetAway1dR"): h1.deltaR(ak4away1),
             key_map("H2AK4JetAway2dR"): h2.deltaR(ak4away2),

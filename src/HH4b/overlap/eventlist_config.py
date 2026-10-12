@@ -7,7 +7,7 @@ def eventlist_args(data_folder, year):
     folder = data_folder
     args = Namespace(
         templates_tag="24June27",
-        data_dir="/ceph/cms/store/user/cmantill/bbbb/skimmer/",
+        data_dir=None,  # set to your local skimmer output path (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)
         tag=folder,
         years=[year],
         training_years=None,

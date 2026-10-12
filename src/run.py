@@ -178,7 +178,8 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
 
             if save_root and args.save_root:
                 with uproot.recreate(
-                    f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
+                    f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root",
+                    compression=uproot.LZ4(4),
                 ) as rfile:
                     rfile["Events"] = ak.Array(
                         # take only top-level column names in multiindex df

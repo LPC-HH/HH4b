@@ -205,17 +205,17 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     """
     Evaluate trigger Scale Factors
     """
-    if "legacy" in txbb_str.lower():
+    if txbb_str == "bbFatJetPNetTXbbLegacy":
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
-    elif "part3" in txbb_str.lower():
+    elif "part3" in txbb_str.lower() or txbb_str == "bbFatJetParT3TXbb":
         # glopart-v3: use the v3 TXbb column for the events and the 'txbbGloParT' eff maps.
         # For 2024/2025 those maps are Armen's globalParT3 (real v3) effs; for 2022/2023 they
         # remain the glopart-v2 maps (v3 effs not derived there) applied to v3 scores as a proxy
         # (same ParT family, [0,1] tagger).
-        txbb = txbb_str  # 'bbFatJetParT3TXbb'
         txbb_str = "txbbGloParT"
-    elif "part" in txbb_str.lower():
+        txbb = "bbFatJetParT3TXbb"
+    elif txbb_str == "bbFatJetParTTXbb":
         txbb_str = "txbbGloParT"
         txbb = "bbFatJetParTTXbb"
     else:
@@ -226,7 +226,17 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     # The check below is kept as a safety net: any year still missing its own file borrows the
     # LATEST available era (2023BPix). The file + the internal correction keys use eff_year.
     eff_year = year
-    if not Path(_get_json_fname(year, "ptmsd", region)).exists():
+    # both the ptmsd and the b-tag (txbb) efficiency maps are loaded below, so fall back
+    # if EITHER is missing for this year (checking only ptmsd could still leave a missing
+    # txbb file -> CorrectionSet.from_file would throw).
+    if not (
+        Path(_get_json_fname(year, "ptmsd", region)).exists()
+        and Path(_get_json_fname(year, txbb_str, region)).exists()
+    ):
+        print(
+            f"WARNING: trigger-efficiency maps not found for {year} "
+            f"(region {region}, {txbb_str}); falling back to 2023BPix."
+        )
         eff_year = "2023BPix"
 
     # load trigger efficiencies

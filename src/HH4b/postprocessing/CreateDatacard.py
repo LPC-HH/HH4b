@@ -346,8 +346,7 @@ corr_year_shape_systs = {
     # The published AN-23-151 card carries these four as shape with value 1.0000 (flat, no effect) and covers
     # theory via the INCLUSIVE lnN params below (pdf_Higgs_ggHH/qqHH, QCDscale_qqHH) which we already apply in
     # `nuisance_params`. Dropping the broken shape versions reproduces AN's effective treatment and removes the
-    # degeneracy. See claude-notes/v3_glopartv3_2223_results.md sec 4. (Re-enable once the v15 theory-variation
-    # templates are fixed at the processor level.)
+    # degeneracy. (Re-enable once the v15 theory-variation templates are fixed at the processor level.)
 }
 
 ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
@@ -427,7 +426,12 @@ for i in range(len(ttsf_xbb_bins) - 1):
         prior="shape",
         samples=["ttbar"],
         convert_shape_to_lnN=True,
-        uncorr_years={"2022": ["2022", "2022EE"], "2023": ["2023", "2023BPix"]},
+        uncorr_years={
+            "2022": ["2022", "2022EE"],
+            "2023": ["2023", "2023BPix"],
+            "2024": ["2024"],
+            "2025": ["2025"],
+        },
     )
 TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
 TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
@@ -444,6 +448,8 @@ for wp in TXbb_wps:
             uncorr_years={
                 "2022": ["2022", "2022EE"],
                 "2023": ["2023", "2023BPix"],
+                "2024": ["2024"],
+                "2025": ["2025"],
             },
         )
 
@@ -492,18 +498,6 @@ if "2025" in years:
     uncorr_year_shape_systs["JER"].uncorr_years["2025"] = ["2025"]
     logging.info("2025: separate JER nuisance (placeholder: 2024 JER variation of the 2024 MC)")
 
-# TXbb SF and ttbar Xbb SF uncertainties for 2024 and 2025: PLACEHOLDERS. Their era lists above only
-# have the 2022 and 2023 groups, so the 2024/2025 variations the templates carry (glopart-v3: the
-# dummy TXbb SF 1.00 +- 0.15 per jet of every era; ttbar Xbb: the 2023 SFs borrowed for 2024/2025)
-# had no nuisance. Each gets its own uncorrelated 2024 and 2025 nuisance from that era's templates;
-# replace them once measured 2024/2025 SFs exist. Cards without 2024/2025 are unchanged.
-for skey, syst in uncorr_year_shape_systs.items():
-    if skey.startswith(("TXbbSF_uncorrelated", "ttbarSF_Xbb")):
-        for sf_year in ["2024", "2025"]:
-            if sf_year in years:
-                syst.uncorr_years[sf_year] = [sf_year]
-logging.info("2024/2025: separate TXbb SF and ttbar Xbb SF nuisances (placeholders)")
-
 if not args.jmsr:
     del uncorr_year_shape_systs["JMR"]
     del uncorr_year_shape_systs["JMS"]
@@ -549,6 +543,12 @@ if args.ttbar_rate_param:
     for key in list(uncorr_year_shape_systs.keys()):
         if "ttbarSF" in key:
             del uncorr_year_shape_systs[key]
+
+# Filter uncorr_years to only include eras being processed in this run
+for syst in uncorr_year_shape_systs.values():
+    syst.uncorr_years = {
+        label: yrs for label, yrs in syst.uncorr_years.items() if any(y in years for y in yrs)
+    }
 
 shape_systs_dict = {}
 for skey, syst in corr_year_shape_systs.items():

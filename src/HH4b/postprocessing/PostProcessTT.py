@@ -631,8 +631,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/eos/uscms/store/user/cmantill/bbbb/skimmer/",
-        help="tag for input ntuples",
+        required=True,
+        help="path to skimmer output directory (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)",
     )
     parser.add_argument(
         "--tag",
@@ -671,7 +671,7 @@ if __name__ == "__main__":
         "--txbb",
         type=str,
         default="",
-        choices=["pnet-legacy", "pnet-v12", "glopart-v2"],
+        choices=["pnet-legacy", "pnet-v12", "glopart-v2", "glopart-v3"],
         help="version of TXbb tagger/mass regression to use",
     )
     run_utils.add_bool_arg(parser, "control-plots", default=False, help="make control plots")

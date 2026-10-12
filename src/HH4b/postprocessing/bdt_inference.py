@@ -15,6 +15,7 @@ import logging.config
 import multiprocessing as mp
 import pickle
 import shutil
+import sys
 import traceback
 from pathlib import Path
 
@@ -176,7 +177,9 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
             load_year,
             {load_year: {sample: samples_run3[load_year][sample]}},
             reorder_txbb=True,
-            load_systematics=args.load_systematics,
+            # include-systematics needs the shifted columns loaded, else get_var_mapping
+            # points at columns never read -> KeyError
+            load_systematics=args.load_systematics or args.include_systematics,
             txbb_version=args.txbb,
             scale_and_smear=False,
             mass_str=mreg_strings[args.txbb],
@@ -268,7 +271,9 @@ def process_sample(year: str, sample: str, args_dict: dict, cache_dir: str) -> b
         logger.error(f"Error processing {sample}: {e}")
 
         traceback.print_exc()
-        return False
+        # exit non-zero so run_in_subprocess (which checks p.exitcode) sees the failure;
+        # a plain `return False` is ignored by multiprocessing.Process (exitcode stays 0)
+        sys.exit(1)
 
 
 def run_in_subprocess(year: str, sample: str, args: argparse.Namespace, cache_dir: Path) -> bool:
@@ -369,7 +374,7 @@ def main():
     )
     parser.add_argument(
         "--bdt-disc",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,  # --bdt-disc / --no-bdt-disc
         default=True,
         help="Use BDT discriminant P_sig/(P_sig+P_bkg)",
     )

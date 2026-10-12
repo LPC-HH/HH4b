@@ -232,6 +232,16 @@ I also add the combine folder to my PATH in my .bashrc for convenience:
 export PATH="$PATH:/uscms_data/d1/rkansal/hh4b/HH4b/src/HH4b/combine"
 ```
 
+### Non-interactive entry to the EL7 environment
+
+For scripting, CI, or running combine commands without spawning an interactive
+container, `src/HH4b/combine/run_in_el7.sh` enters EL7, sets up CMSSW + DHI +
+PATH in one shot, and runs an arbitrary command:
+
+```bash
+src/HH4b/combine/run_in_el7.sh "cd cards/<TAG> && run_blinded_hh4b.sh -wbl --passbin 0"
+```
+
 ### Create Datacards
 
 After activating the CMSSW environment from above, need to install rhalphalib

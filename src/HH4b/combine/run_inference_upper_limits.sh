@@ -84,6 +84,7 @@ law run PlotUpperLimitsAtPoint \
     --multi-datacards "$datacards" \
     --datacard-order "$datacard_order" \
     --pois "$param" \
+    --show-parameters "kl,kt,CV,C2V" \
     --parameter-values "$parameters" \
     --parameter-ranges "r_gghh=-10,10" \
     --h-lines 1 \

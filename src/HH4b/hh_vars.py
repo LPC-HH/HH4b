@@ -47,7 +47,7 @@ DATA_SAMPLES = ["JetMET", "Muon", "EGamma"]
 
 # sample key -> list of samples or selectors
 common_samples_bg = {
-    "qcd": ["QCD_HT", "QCD-4Jets_HT"],
+    "qcd": ["QCD-4Jets_HT", "QCD_HT-"],
     "data": [f"{key}_Run" for key in DATA_SAMPLES],
     "ttbar": ["TTto4Q", "TTto2L2Nu", "TTtoLNu2Q"],
     "vhtobb": [
@@ -62,8 +62,9 @@ common_samples_bg = {
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn", "VBFHto2B_M-125"],
     "tthtobb": ["ttHto2B_M-125"],
-    "zz": ["ZZ"],
-    "nozzdiboson": ["WW", "WZ"],
+    # Use exact-match selectors to avoid pulling in ZZto*/WWto*/WZto* sub-samples.
+    "zz": ["ZZ?"],
+    "nozzdiboson": ["WW?", "WZ?"],
     # 2022-2023: *_PTQQ-XtoY_{1J,2J} are exclusive bins -> sum them all.
     # 2024 (Summer24): *_Bin-PTQQ-X means PTQQ > X with no upper edge, so the four samples overlap
     # (summing them over-counts V pT > 200 GeV 2-4x). Default: only the inclusive PTQQ-100 sample
@@ -112,6 +113,7 @@ common_samples_sig = {}
 
 samples_run3_sig = {
     "2022": {
+        # Use prefix selectors so both short and fully qualified dataset names match.
         "hh4b": ["GluGlutoHHto4B_kl-1p00_kt-1p00_c2-0p00"],
         "hh4b-kl0": ["GluGlutoHHto4B_kl-0p00_kt-1p00_c2-0p00"],
         "hh4b-kl2p45": ["GluGlutoHHto4B_kl-2p45_kt-1p00_c2-0p00"],
@@ -356,13 +358,13 @@ samples_2018 = {
         "GluGlutoHHto4B_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8",
     ],
     "qcd": [
-        "QCD_HT-1000to1500-13TeV",
-        "QCD_HT-1500to2000-13TeV",
-        "QCD_HT-2000toInf-13TeV",
-        "QCD_HT-200to300-13TeV",
-        "QCD_HT-300to500-13TeV",
-        "QCD_HT-500to700-13TeV",
-        "QCD_HT-700to1000-13TeV",
+        "QCD-4Jets_HT-1000to1500-13TeV",
+        "QCD-4Jets_HT-1500to2000-13TeV",
+        "QCD-4Jets_HT-2000toInf-13TeV",
+        "QCD-4Jets_HT-200to300-13TeV",
+        "QCD-4Jets_HT-300to500-13TeV",
+        "QCD-4Jets_HT-500to700-13TeV",
+        "QCD-4Jets_HT-700to1000-13TeV",
     ],
     "data": [
         "Run2018A",
@@ -597,6 +599,7 @@ jmsr_res["bbFatJetParT3massX2p"].update(
 ttbarsfs_decorr_txbb_bins = {}
 ttbarsfs_decorr_txbb_bins["pnet-legacy"] = [0, 0.8, 0.94, 0.99, 1]
 ttbarsfs_decorr_txbb_bins["glopart-v2"] = [0, 0.31, 0.7, 0.8, 0.87, 0.92, 0.96, 1]
+ttbarsfs_decorr_txbb_bins["glopart-v3"] = ttbarsfs_decorr_txbb_bins["glopart-v2"]
 ttbarsfs_decorr_ggfbdt_bins = {}
 ttbarsfs_decorr_ggfbdt_bins["24May31_lr_0p02_md_8_AK4Away"] = [0.03, 0.3, 0.5, 0.7, 0.93, 1.0]
 ttbarsfs_decorr_ggfbdt_bins["24Nov7_v5_glopartv2_rawmass"] = [0.03, 0.6375, 0.9075, 1.0]
@@ -625,6 +628,7 @@ txbbsfs_decorr_txbb_wps["glopart-v2"] = OrderedDict(
         ("WP1", [0.99, 1]),
     ]
 )
+txbbsfs_decorr_txbb_wps["glopart-v3"] = txbbsfs_decorr_txbb_wps["glopart-v2"]
 
 txbbsfs_decorr_pt_bins = {}
 txbbsfs_decorr_pt_bins["pnet-legacy"] = OrderedDict(
@@ -645,11 +649,13 @@ txbbsfs_decorr_pt_bins["glopart-v2"] = OrderedDict(
         ("WP1", [250, 450, 100000]),
     ]
 )
+txbbsfs_decorr_pt_bins["glopart-v3"] = txbbsfs_decorr_pt_bins["glopart-v2"]
 
 txbb_strings = {
     "pnet-legacy": "bbFatJetPNetTXbbLegacy",
     "pnet-v12": "bbFatJetPNetTXbb",
     "glopart-v2": "bbFatJetParTTXbb",
+    # ParT v3 ntuples (new): use ParT3 TXbb branch
     "glopart-v3": "bbFatJetParT3TXbb",
 }
 
@@ -657,6 +663,6 @@ mreg_strings = {
     "pnet-legacy": "bbFatJetPNetMassLegacy",
     "pnet-v12": "bbFatJetPNetMass",
     "glopart-v2": "bbFatJetParTmassVis",
-    # "glopart-v3": "bbFatJetParT3massGeneric",
+    # ParT v3 ntuples: use X2p ParT3 mass
     "glopart-v3": "bbFatJetParT3massX2p",
 }

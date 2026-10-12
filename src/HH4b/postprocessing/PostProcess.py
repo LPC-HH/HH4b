@@ -7,6 +7,7 @@ import json
 import logging
 import logging.config
 import pprint
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable, NamedTuple
@@ -23,6 +24,7 @@ import uproot
 import xgboost as xgb
 
 from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b.eventlist_manifest import write_eventlist_manifest
 from HH4b.hh_vars import (
     bg_keys,
     mreg_strings,
@@ -68,6 +70,11 @@ FOM_CACHE_XSEC_SUFFIX = "__wxshalf"
 # ... and of the years whose ttH(bb) and VBF H(bb) load one production, not two
 # (hh_vars.tthtobb_era_selectors, hh_vars.novhhtobb_era_selectors)
 FOM_CACHE_TTH_SUFFIX = "__hbb1prod"
+# ... and of the years whose MC skims hold the decay-specific diboson samples (ZZto2L2Q, ZZto4L,
+# WWto4Q, WWtoLNu2Q, WZto3LNu, WZto4Q) next to the inclusive ZZ/WW/WZ: the exact selectors
+# (hh_vars "ZZ?", "WW?", "WZ?") load only the inclusive samples, where the prefix selectors summed both
+FOM_CACHE_DIBOSON_SUFFIX = "__dibosonexact"
+DIBOSON_EXACT_ERAS = ("2022", "2022EE", "2023", "2023BPix")
 # ... and of every year: its ttbar frame stores the ttbar BDT-shape SF of its weights
 # (TTBAR_BDTSF_COL), which the --fom-cache path re-evaluates with the scanned model
 FOM_CACHE_TTSF_SUFFIX = "__ttbdtsf"
@@ -85,19 +92,6 @@ mpl.rcParams["grid.color"] = "#CCCCCC"
 mpl.rcParams["grid.linewidth"] = 0.5
 mpl.rcParams["figure.dpi"] = 400
 mpl.rcParams["figure.edgecolor"] = "none"
-
-# modify samples run3
-for year in samples_run3:
-    samples_run3[year]["qcd"] = [
-        "QCD_HT-1000to1200",
-        "QCD_HT-1200to1500",
-        "QCD_HT-1500to2000",
-        "QCD_HT-2000",
-        # "QCD_HT-200to400",
-        "QCD_HT-400to600",
-        "QCD_HT-600to800",
-        "QCD_HT-800to1000",
-    ]
 
 selection_regions = {
     "pass_vbf": Region(
@@ -202,6 +196,87 @@ def add_bdt_scores(
             if bdt_disc
             else preds[:, 1] + preds[:, 2]
         )
+
+
+def _build_and_score_bdt_events(
+    events: pd.DataFrame,
+    make_bdt_dataframe,
+    key_map: Callable,
+    rerun_inference: bool,
+    bdt_model,
+    chunk_size: int,
+    weight_ttbar: float,
+    bdt_disc: bool,
+    jshift: str,
+    year: str = None,
+    bdt_model_name: str = None,
+) -> pd.DataFrame:
+    """Build BDT inputs in row chunks to reduce peak memory before inference.
+
+    Year-aware models need the year_* one-hots added per chunk (via _add_year_features)
+    before predict_proba; pass ``year`` + ``bdt_model_name`` for those (no-op otherwise).
+    """
+    n_events = len(events)
+    if chunk_size <= 0 or n_events <= chunk_size:
+        chunks = [(0, n_events)]
+    else:
+        chunks = [
+            (start, min(start + chunk_size, n_events)) for start in range(0, n_events, chunk_size)
+        ]
+
+    built_chunks: list[pd.DataFrame] = []
+    jlabel = f"_{jshift}" if jshift != "" else ""
+
+    total_chunks = len(chunks)
+    for i, (start, end) in enumerate(chunks, start=1):
+        progress_msg = f"BDT chunk {i}/{total_chunks} for jshift {jshift or 'nominal'}"
+        if sys.stderr.isatty():
+            print(
+                f"\r{progress_msg}",
+                end="" if i < total_chunks else "\n",
+                file=sys.stderr,
+                flush=True,
+            )
+        elif _should_log_chunk_progress(i, total_chunks):
+            logger.info(progress_msg)
+        events_chunk = events.iloc[start:end]
+        bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        if rerun_inference:
+            # year-aware models: add year_* one-hots before inference (no-op otherwise)
+            _feat_order = _add_year_features(bdt_chunk, model_feature_names(bdt_model_name), year)
+            # bdt_dataframe applies key_map to its OUTPUT column names too, so a shifted frame
+            # names JEC/JMSR-affected features with the jshift suffix (e.g. HHPt_JES_up). Select
+            # those shifted names -> the model sees the shifted kinematics; XGBoost applies by
+            # column position, so only the order must match. For jshift="" key_map is identity.
+            _X = (
+                bdt_chunk[[key_map(f) for f in _feat_order]]
+                if _feat_order is not None
+                else bdt_chunk
+            )
+            preds = bdt_model.predict_proba(_X)
+            add_bdt_scores(
+                bdt_chunk,
+                preds,
+                jshift,
+                weight_ttbar=weight_ttbar,
+                bdt_disc=bdt_disc,
+            )
+        else:
+            bdt_chunk[f"bdt_score{jlabel}"] = events_chunk[f"bdt_score{jlabel}"]
+            bdt_chunk[f"bdt_score_vbf{jlabel}"] = events_chunk[f"bdt_score_vbf{jlabel}"]
+        built_chunks.append(bdt_chunk)
+
+    if len(built_chunks) == 1:
+        return built_chunks[0]
+    return pd.concat(built_chunks, ignore_index=True)
+
+
+def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
+    """Limit progress logs for redirected output files."""
+    if total_chunks <= 10:
+        return True
+    interval = max(1, total_chunks // 10)
+    return chunk_num == 1 or chunk_num == total_chunks or chunk_num % interval == 0
 
 
 def bdt_roc(events_combined: dict[str, pd.DataFrame], plot_dir: str, txbb_version: str, jshift=""):
@@ -584,6 +659,13 @@ def fom_cache_tag(args, year: str) -> str:
     2026-09-27), so a cache with the doubled ttH/VBF H (key without the suffix) is never read again.
     The other years' frames are unchanged.
 
+    Plus "__dibosonexact" (after "__hbb1prod") for every year whose MC source year is in
+    ``DIBOSON_EXACT_ERAS`` (2022-2023BPix): their skims hold the decay-specific ZZ/WW/WZ samples next
+    to the inclusive ones, and the exact diboson selectors (``hh_vars.common_samples_bg``, since the
+    origin/main merge) load only the inclusive ones instead of the sum, so a cache with the summed
+    diboson (key without the suffix) is never read again. 2024 and 2025 (2024 MC) have only the
+    inclusive samples and keep their keys.
+
     Plus "__ttbdtsf" at the end of every key (since 2026-09-29): the ttbar frame stores the ttbar
     BDT-shape SF of its weights (``TTBAR_BDTSF_COL``), which ``fom_cache_rescore`` re-evaluates
     with the scanned model. Caches without it (ttbar weights with the SF of the model that built
@@ -604,6 +686,8 @@ def fom_cache_tag(args, year: str) -> str:
         or source_year in hh_vars.novhhtobb_era_selectors
     ):
         xsec_suffix += FOM_CACHE_TTH_SUFFIX
+    if source_year in DIBOSON_EXACT_ERAS:
+        xsec_suffix += FOM_CACHE_DIBOSON_SUFFIX
     stitch = get_vjets_stitch(args)
     override_tag = getattr(args, "override_tag", None)
     if stitch is None and not override_tag:
@@ -836,15 +920,27 @@ def load_process_run3_samples(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    # QCD subsample naming differs across the v15 (glopart-v3) skimmer years:
-    #   2022/2022EE/2023/2023BPix -> 'QCD-4Jets_HT-*'
-    #   2024                       -> 'QCD_HT-*'
-    # (the module-level default 'QCD_HT-*' is the old glopart-v2 naming).
-    # check_selector is case-insensitive but these differ in structure, so set
-    # the right HT-bin list per year.  HT bins below 400 are dropped (trigger
-    # turn-on) as in the default.
-    if args.txbb == "glopart-v3":
-        _ht = [
+    # define cutflows
+    samples_year = list(samples_run3[year].keys())
+
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    # 2025 has no dedicated MC; under --split-shared-mc it is built from half of the 2024
+    # sample, with 2024 taking the other half. Data always comes from the year itself.
+    # getattr: overlap/eventlist.py and Scaling_Toys.py build their own args without
+    # this flag. They never build 2025, so defaulting to no sharing preserves their
+    # behaviour exactly (full 2024 MC, weights untouched).
+    mc_split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+
+    # QCD MC (control plots, ROC): only the HT bins >= 400, for every tagger; the bins below are
+    # in the trigger turn-on (few events with huge weights). The QCD subsample naming differs
+    # between skims and eras ('QCD-4Jets_HT-*' in the v15 2022-2023BPix skims, 'QCD_HT-*' in the
+    # v15 2024 and the older skims), so both spellings are listed, as in
+    # hh_vars.common_samples_bg["qcd"]; each era's skim has only one of them. Also set for the MC
+    # source year (2025 reads the 2024 MC under --split-shared-mc).
+    qcd_ht400 = [
+        f"{prefix}{ht}"
+        for prefix in ["QCD-4Jets_HT-", "QCD_HT-"]
+        for ht in [
             "400to600",
             "600to800",
             "800to1000",
@@ -853,18 +949,10 @@ def load_process_run3_samples(
             "1500to2000",
             "2000",
         ]
-        _pref = "QCD_HT-" if year == "2024" else "QCD-4Jets_HT-"
-        samples_run3[year]["qcd"] = [f"{_pref}{b}" for b in _ht]
+    ]
+    for _year in dict.fromkeys([year, mc_split.source_year]):
+        samples_run3[_year]["qcd"] = qcd_ht400
 
-    # define cutflows
-    samples_year = list(samples_run3[year].keys())
-
-    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
-    # 2025 has no dedicated MC; under --split-shared-mc it is built from half of the 2024
-    # sample, with 2024 taking the other half. Data always comes from the year itself.
-    # getattr: callers that build their own args without this flag never build 2025, so
-    # defaulting to no sharing preserves their behaviour exactly (full 2024 MC, weights untouched).
-    mc_split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
     if mc_split.source_year != year:
         samples_year = [hh_vars.data_key] + [
             k for k in samples_run3[mc_split.source_year] if k != hh_vars.data_key
@@ -936,7 +1024,7 @@ def load_process_run3_samples(
             continue
         events_dict = _loaded[key]
 
-        # TODO: remove once 2025 has its own MC.
+        # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
         # Keep this year's parity half of the shared 2024 MC and divide by the half's actual
         # generator-weight fraction f (exact for any split imbalance); weight_scale / 2 is the
         # 2024->2025 lumi factor (1 for 2024).
@@ -988,45 +1076,27 @@ def load_process_run3_samples(
 
         logger.info("Add BDT scores")
         bdt_events = {}
+        chunk_size = args.bdt_inference_chunk_size
         for jshift in jshifts:
-            _jshift = f"_{jshift}" if jshift != "" else ""
-            bdt_events[jshift] = make_bdt_dataframe.bdt_dataframe(
-                events_dict, get_var_mapping(jshift)
-            )
             if rerun_inference:
-                print("Re-run inference")
-                # Year-aware models need the year_* one-hots (from the per-event
-                # year); model_feature_names reads them from metrics.json.  No-op
-                # for non-year-aware models.
-                _feat_order = _add_year_features(
-                    bdt_events[jshift], model_feature_names(args.bdt_model), year
-                )
-                if _feat_order is not None:
-                    # bdt_dataframe applies key_map to its OUTPUT column names too, so a
-                    # shifted frame names JEC/JMSR-affected features with the jshift suffix
-                    # (e.g. HHPt_JES_up).  Select those shifted names -> the model sees the
-                    # shifted kinematics; XGBoost applies by column position, so only the
-                    # order must match.  For jshift="" key_map is identity (no-op).
-                    _kmap = get_var_mapping(jshift)
-                    _X = bdt_events[jshift][[_kmap(f) for f in _feat_order]]
-                else:
-                    _X = bdt_events[jshift]
-                preds = bdt_model.predict_proba(_X)
-                add_bdt_scores(
-                    bdt_events[jshift],
-                    preds,
-                    jshift,
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
+                logger.info("Re-run inference")
             else:
                 # assert bdt_disc is true
                 if not args.bdt_disc:
                     raise ValueError("only BDT discriminant available from skimmer")
-                bdt_events[jshift][f"bdt_score{_jshift}"] = events_dict[f"bdt_score{_jshift}"]
-                bdt_events[jshift][f"bdt_score_vbf{_jshift}"] = events_dict[
-                    f"bdt_score_vbf{_jshift}"
-                ]
+            bdt_events[jshift] = _build_and_score_bdt_events(
+                events_dict,
+                make_bdt_dataframe,
+                get_var_mapping(jshift),
+                rerun_inference=rerun_inference,
+                bdt_model=bdt_model if rerun_inference else None,
+                chunk_size=chunk_size,
+                weight_ttbar=args.weight_ttbar_bdt,
+                bdt_disc=args.bdt_disc,
+                jshift=jshift,
+                year=year,
+                bdt_model_name=args.bdt_model,
+            )
 
             # redefine VBF variables
             key_map = get_var_mapping(jshift)
@@ -1046,10 +1116,13 @@ def load_process_run3_samples(
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2dR")] = -1
             bdt_events[jshift].loc[mask_negative_ak4away2, key_map("H2AK4JetAway2mass")] = -1
 
-        bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
-
-        # remove duplicates
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        if len(jshifts) == 1:
+            bdt_events = bdt_events[jshifts[0]]
+        else:
+            bdt_events = pd.concat([bdt_events[jshift] for jshift in jshifts], axis=1)
+            # remove duplicates (shared nominal columns appear in every per-shift DataFrame)
+            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated()].copy()
+        nevents = len(bdt_events.index)
 
         # add more variables for control plots
         # using dictionary batching to avoid repeated memory allocation with pd.DataFrame
@@ -1098,25 +1171,45 @@ def load_process_run3_samples(
 
         # finalWeight: includes genWeight, puWeight
         more_vars.update({"weight": events_dict["finalWeight"].to_numpy()})
-        # scale, pdf weights (theory uncertainties — only needed for templates;
-        # the v15 signal skimmer may not carry them)
+        # scale, pdf weights (theory unc — loaded only with systematics, i.e. templates:
+        # load_systematics=args.templates, so the v15 signal skimmer omits them on FOM scans).
+        # Adopt main's memory-efficient .to_numpy()[:, i].copy() pattern.
         n_pdf_weights = 0
         if args.templates and args.systematics:
             if key in hh_vars.sig_keys + ["ttbar"]:
-                more_vars.update(
-                    {
-                        f"scale_weights_{i}": events_dict["scale_weights"][i].to_numpy()
-                        for i in range(6)
-                    }
-                )
+                scale_np = events_dict["scale_weights"].to_numpy()
+                more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
             if key in hh_vars.sig_keys:
                 n_pdf_weights = events_dict["pdf_weights"].shape[1]
+                pdf_np = events_dict["pdf_weights"].to_numpy()
                 more_vars.update(
-                    {
-                        f"pdf_weights_{i}": events_dict["pdf_weights"][i].to_numpy()
-                        for i in range(n_pdf_weights)
-                    }
+                    {f"pdf_weights_{i}": pdf_np[:, i].copy() for i in range(n_pdf_weights)}
                 )
+        # gen-level couplings + kinematics (from main; name-based / missing-safe helpers,
+        # so safe on non-template FOM runs -> kept ungated to match main's behaviour).
+        if key in hh_vars.sig_keys:
+            kl, k2v = _parse_signal_couplings(key)
+            more_vars.update(
+                {
+                    "kl": np.full(nevents, kl),
+                    "k2v": np.full(nevents, k2v),
+                }
+            )
+            for source, target in [
+                ("single_weight_genweight", "genWeight"),
+                ("lumiwgt", "lumiwgt"),
+                ("xsecWeight", "xsecWeight"),
+            ]:
+                values = _get_column_array(events_dict, source)
+                if values is not None:
+                    more_vars[target] = values
+            for column in ["Pt", "Eta", "Phi", "Mass"]:
+                source = f"GenHiggs{column}"
+                first = _get_indexed_column_array(events_dict, source, 0)
+                second = _get_indexed_column_array(events_dict, source, 1)
+                if first is not None and second is not None:
+                    more_vars[f"{source}1"] = first
+                    more_vars[f"{source}2"] = second
         pileup_ps_weights = [
             "weight_pileupUp",
             "weight_pileupDown",
@@ -1139,20 +1232,16 @@ def load_process_run3_samples(
             }
         )
 
-        nevents = len(bdt_events["H1Pt"])
-
         # triggerWeights
         trigger_weight, trigger_weight_up, trigger_weight_dn = calculate_trigger_weights(
             events_dict, key, year, args.txbb, trigger_region, nevents
         )
 
-        # creating new dataframe with all variables
-        # repeatedly allocating new memory for pd.DataFrame is expensive
-        # best to use a dict instead
-        temp_df = pd.DataFrame(more_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
-        # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-        bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
+        # Assign more_vars columns directly to avoid creating intermediate DataFrames.
+        # Some columns (e.g. H1Pt, H2Pt) already exist from bdt_dataframe; skip them.
+        for col, vals in more_vars.items():
+            if col not in bdt_events.columns:
+                bdt_events[col] = vals
 
         # TXbbWeight
         txbb_sf_weight = calculate_txbb_weights(
@@ -1176,6 +1265,9 @@ def load_process_run3_samples(
             logger.info(f"Keep {fraction}% of {key} for year {year}")
             bdt_events = bdt_events[events_to_keep]
             bdt_events["weight"] *= 1 / fraction  # divide by BDT test / train ratio
+
+        # Release the raw parquet DataFrame; all needed data is now in bdt_events.
+        del events_dict
 
         cutflow_dict[key] = OrderedDict([("Skimmer Preselection", np.sum(bdt_events["weight"]))])
 
@@ -1229,26 +1321,18 @@ def load_process_run3_samples(
                 stat_up = np.ones(nevents)
                 stat_dn = np.ones(nevents)
                 for ijet in get_jets_for_txbb_sf(key):
+                    # Cache array conversions: same columns are used for nominal/up/dn.
+                    txbb_arr = bdt_events[f"H{ijet}TXbb"].to_numpy()
+                    pt_arr = bdt_events[f"H{ijet}Pt"].to_numpy()
+                    pt_range = TXbb_pt_corr_bins[wp][j : j + 2]
                     nominal *= corrections.restrict_SF(
-                        txbb_sf["nominal"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["nominal"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_up *= corrections.restrict_SF(
-                        txbb_sf["stat_up"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_up"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                     stat_dn *= corrections.restrict_SF(
-                        txbb_sf["stat_dn"],
-                        bdt_events[f"H{ijet}TXbb"].to_numpy(),
-                        bdt_events[f"H{ijet}Pt"].to_numpy(),
-                        TXbb_wps[wp],
-                        TXbb_pt_corr_bins[wp][j : j + 2],
+                        txbb_sf["stat_dn"], txbb_arr, pt_arr, TXbb_wps[wp], pt_range
                     )
                 variation_vars.update(
                     {
@@ -1308,8 +1392,9 @@ def load_process_run3_samples(
                     "weight_ttbarSF_tau32Down": bdt_events["weight"] * tau32sf_dn / tau32sf,
                 }
             )
-        temp_df = pd.DataFrame(variation_vars, index=bdt_events.index)
-        bdt_events = pd.concat([bdt_events, temp_df], axis=1)
+        # Assign variation columns directly; all are new so no duplicate guard needed.
+        for col, vals in variation_vars.items():
+            bdt_events[col] = vals
         bdt_events = bdt_events.reset_index(drop=True)
 
         # HLT selection
@@ -1329,8 +1414,6 @@ def load_process_run3_samples(
             category = check_get_jec_var("Category", jshift)
             bdt_score = check_get_jec_var("bdt_score", jshift)
 
-            # TODO: code below removes duplicates, why are H1Pt and H2Pt duplicated?
-            bdt_events = bdt_events.loc[:, ~bdt_events.columns.duplicated(keep="first")]
             mask_presel = (
                 (bdt_events[h1msd] >= 40)  # FIXME: replace by jet matched to trigger object
                 & (bdt_events[h1pt] >= args.pt_first)
@@ -1497,6 +1580,21 @@ def load_process_run3_samples(
         if key in hh_vars.sig_keys:
             for i in range(n_pdf_weights):
                 columns += [f"pdf_weights_{i}"]
+            columns += [
+                "lumiwgt",
+                "xsecWeight",
+                "genWeight",
+                "kl",
+                "k2v",
+                "GenHiggsPt1",
+                "GenHiggsEta1",
+                "GenHiggsPhi1",
+                "GenHiggsMass1",
+                "GenHiggsPt2",
+                "GenHiggsEta2",
+                "GenHiggsPhi2",
+                "GenHiggsMass2",
+            ]
         if key != "data":
             columns += ["weight_triggerUp", "weight_triggerDown"] + pileup_ps_weights
         if args.fom_cache:
@@ -1509,7 +1607,7 @@ def load_process_run3_samples(
                 columns += [f for f in _feats if f in bdt_events.columns]
             if key == "ttbar":
                 columns += [TTBAR_BDTSF_COL]
-        columns = list(set(columns))
+        columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
             bdt_events = bdt_events.rename(
@@ -1758,7 +1856,16 @@ def scan_fom(
     else:
         valid = finite
     idx = np.where(valid)[0]
-    iopt = idx[np.argmin(all_fom[idx])] if len(idx) else int(np.argmin(all_fom))
+    if len(idx):
+        iopt = idx[np.argmin(all_fom[idx])]
+    else:
+        # no finite/valid FOM point (e.g. empty selection or all-NaN) -> argmin would
+        # silently return an arbitrary corner; warn so the bad WP isn't taken as real.
+        iopt = int(np.argmin(all_fom))
+        logger.warning(
+            f"[{plot_name}] no valid FOM points under the filter; "
+            f"falling back to an arbitrary WP (idx {iopt}) -- check the inputs."
+        )
     xbb_opt, bdt_opt = float(all_xbb_cuts[iopt]), float(all_bdt_cuts[iopt])
     print(
         f"  [{plot_name}] optimal WP: TXbb>{xbb_opt:.4f}, BDT>{bdt_opt:.4f} "
@@ -1910,6 +2017,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
         txbb_label = "GloParTv2"
     elif txbb_version == "glopart-v3":
         txbb_label = "GloParTv3"
+    else:
+        txbb_label = txbb_version
 
     control_plot_vars = [
         ShapeVar(var="bdt_score", label=r"BDT score ggF", bins=[30, 0, 1], blind_window=[0.8, 1.0]),
@@ -1954,6 +2063,9 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
 
     # Find the normalization needed to reweight QCD
     qcd_norm = 1.0
+    available_keys = set(events_dict.keys())
+    control_sig_keys = [k for k in ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"] if k in available_keys]
+    control_bg_keys = [k for k in bg_keys if k in available_keys]
 
     hists = {}
     for i, shape_var in enumerate(control_plot_vars):
@@ -1967,8 +2079,8 @@ def make_control_plots(events_dict, plot_dir, year, txbb_version):
             qcd_norm_tmp = plotting.ratioHistPlot(
                 hists[shape_var.var],
                 year,
-                ["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                bg_keys,
+                control_sig_keys,
+                control_bg_keys,
                 name=f"{plot_dir}/control/{year}/{shape_var.var}",
                 show=False,
                 log=True,
@@ -2013,14 +2125,18 @@ def abcd(
     bg_keys_all,
     sig_keys,
 ):
-    bg_keys = bg_keys_all.copy()
+    available_keys = set(events_dict.keys())
+    bg_keys = [k for k in bg_keys_all if k in available_keys]
     if "qcd" in bg_keys:
         bg_keys.remove("qcd")
+    sig_keys = [k for k in sig_keys if k in available_keys]
 
     dicts = {"data": [], **{key: [] for key in bg_keys}}
 
     s = 0
     for key in sig_keys + ["data"] + bg_keys:
+        if key not in events_dict:
+            continue
         events = events_dict[key]
         cut = get_cut(events, txbb_cut, bdt_cut)
 
@@ -2051,43 +2167,160 @@ def abcd(
     # A = B * C / D
     bqcd = dmt[1] * dmt[2] / dmt[3]
 
-    background = bqcd + bg_tots[0] if len(bg_keys) else bqcd
+    background = bqcd + bg_tots[0] if bg_keys else bqcd
     return s, background, dmt
 
 
-def postprocess_run3(args):
-    global bg_keys  # noqa: PLW0602
+def _compute_all_hist_samples(
+    sample_keys: list[str],
+    sig_keys: list[str],
+    weight_shifts: dict,
+) -> list[str]:
+    """Pre-compute all histogram sample names including weight-shift variations.
 
-    fom_window_by_mass = {
-        "H2Msd": [110, 140],
+    Used for per-sample template generation so all calls share the same StrCategory
+    axis, enabling histogram accumulation via addition.
+    """
+    hist_samples = list(sample_keys)
+    for shift in ["down", "up"]:
+        for sig_key in sig_keys:
+            hist_samples.append(f"{sig_key}_txbb_{shift}")
+        for wshift, wsyst in weight_shifts.items():
+            for wsample in wsyst.samples:
+                if wsample in sample_keys:
+                    hist_samples.append(f"{wsample}_{wshift}_{shift}")
+    return hist_samples
+
+
+EVENTLIST_BASE_COLUMNS = [
+    "event",
+    "bdt_score",
+    "bdt_score_vbf",
+    "H2TXbb",
+    "H2Msd",
+    "run",
+    "Category",
+    "H2PNetMass",
+    "luminosityBlock",
+]
+
+
+def _decode_coupling_value(value: str) -> float:
+    if value.startswith("m"):
+        sign = -1.0
+        value = value[1:]
+    else:
+        sign = 1.0
+    return sign * float(value.replace("p", "."))
+
+
+def _parse_signal_couplings(sample_key: str) -> tuple[float, float]:
+    if sample_key.startswith("hh4b"):
+        if "-kl" in sample_key:
+            return _decode_coupling_value(sample_key.split("-kl", 1)[1]), 1.0
+        return 1.0, 1.0
+
+    if sample_key.startswith("vbfhh4b"):
+        kl = 1.0
+        k2v = 1.0
+        for token in sample_key.split("-")[1:]:
+            if token.startswith("k2v"):
+                k2v = _decode_coupling_value(token.removeprefix("k2v"))
+            elif token.startswith("kl"):
+                kl = _decode_coupling_value(token.removeprefix("kl"))
+        return kl, k2v
+
+    raise ValueError(f"Unsupported signal key for coupling parsing: {sample_key}")
+
+
+def _get_column_array(events: pd.DataFrame, column: str) -> np.ndarray | None:
+    for key in (column, (column, 0)):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _get_indexed_column_array(events: pd.DataFrame, column: str, index: int) -> np.ndarray | None:
+    for key in ((column, index), f"{column}{index + 1}"):
+        if key in events.columns:
+            return np.asarray(events[key]).reshape(-1)
+    return None
+
+
+def _add_ordered_gen_higgs_columns(event_list: pd.DataFrame, tree_df: pd.DataFrame) -> None:
+    gen_higgs = {}
+    for kin in ["Pt", "Eta", "Phi", "Mass"]:
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, f"GenHiggs{kin}", idx)
+            if values is None:
+                return
+            gen_higgs[f"GenHiggs{kin}{idx + 1}"] = values
+
+    higgs1_leads = gen_higgs["GenHiggsPt1"] >= gen_higgs["GenHiggsPt2"]
+    ordered_columns = {}
+    for kin, first, second in [
+        ("pt", "GenHiggsPt1", "GenHiggsPt2"),
+        ("eta", "GenHiggsEta1", "GenHiggsEta2"),
+        ("phi", "GenHiggsPhi1", "GenHiggsPhi2"),
+        ("m", "GenHiggsMass1", "GenHiggsMass2"),
+    ]:
+        first_values = gen_higgs[first]
+        second_values = gen_higgs[second]
+        ordered_columns[f"genp_H1_FC_{kin}"] = np.where(higgs1_leads, first_values, second_values)
+        ordered_columns[f"genp_H2_FC_{kin}"] = np.where(higgs1_leads, second_values, first_values)
+
+    for column in [
+        "genp_H1_FC_pt",
+        "genp_H1_FC_eta",
+        "genp_H1_FC_phi",
+        "genp_H1_FC_m",
+        "genp_H2_FC_pt",
+        "genp_H2_FC_eta",
+        "genp_H2_FC_phi",
+        "genp_H2_FC_m",
+    ]:
+        event_list[column] = ordered_columns[column]
+
+
+def _build_event_list_frame(tree_df: pd.DataFrame, *, key: str) -> pd.DataFrame:
+    event_list = tree_df[EVENTLIST_BASE_COLUMNS].copy()
+    categories = tree_df["Category"].to_numpy()
+    event_list["ggf_category"] = np.where(np.isin(categories, [1, 2, 3]), categories, 0)
+    event_list["VBF_CATEGORY"] = categories == 0
+
+    if key in hh_vars.sig_keys:
+        for column in ["lumiwgt", "xsecWeight", "genWeight", "kl", "k2v"]:
+            if column in tree_df.columns:
+                event_list[column] = tree_df[column].to_numpy()
+        _add_ordered_gen_higgs_columns(event_list, tree_df)
+        for idx in [0, 1]:
+            values = _get_indexed_column_array(tree_df, "GenHiggsMass", idx)
+            if values is not None:
+                event_list[f"GenHiggsMass{idx + 1}"] = values
+    return event_list
+
+
+def _get_mass_windows(args) -> tuple[dict, dict]:
+    """Return FoM and blinding windows for the chosen mass variable and tagger."""
+    fom = {"H2Msd": [110, 140]}
+    blind = {"H2Msd": [110, 140]}
+    pnet_windows = {
+        "pnet-legacy": (105, 150, 110, 140),
+        "pnet-v12": (120, 150, 120, 150),
+        "glopart-v2": (110, 155, 110, 140),
+        "glopart-v3": (110, 155, 110, 140),
     }
-    blind_window_by_mass = {
-        "H2Msd": [110, 140],
-    }
+    if args.txbb in pnet_windows:
+        fl, fh, bl, bh = pnet_windows[args.txbb]
+        fom["H2PNetMass"] = [fl, fh]
+        blind["H2PNetMass"] = [bl, bh]
+    return fom, blind
 
-    # use for both pnet-legacy
-    if args.txbb == "pnet-legacy":
-        fom_window_by_mass["H2PNetMass"] = [105, 150]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
-    # different for glopart-v2
-    elif args.txbb == "glopart-v2":
-        fom_window_by_mass["H2PNetMass"] = [110, 155]  # use wider range for FoM scan
-        blind_window_by_mass["H2PNetMass"] = [110, 140]  # only blind 3 bins
-    # different for pnet-v12
-    elif args.txbb == "pnet-v12":
-        fom_window_by_mass["H2PNetMass"] = [120, 150]
-        blind_window_by_mass["H2PNetMass"] = [120, 150]
-    # glopart-v3: same ParT mass regression family as glopart-v2
-    elif args.txbb == "glopart-v3":
-        fom_window_by_mass["H2PNetMass"] = [110, 155]
-        blind_window_by_mass["H2PNetMass"] = [110, 140]
 
-    mass_window = np.array(fom_window_by_mass[args.mass])
-
+def _setup_shape_var(args, blind_window_by_mass: dict) -> ShapeVar:
+    """Build the ShapeVar used for template fitting."""
     n_mass_bins = int((220 - 60) / args.mass_bins)
-
-    # variable to fit
-    fit_shape_var = ShapeVar(
+    return ShapeVar(
         args.mass,
         label_by_mass[args.mass],
         [n_mass_bins, 60, 220],
@@ -2095,20 +2328,17 @@ def postprocess_run3(args):
         blind_window=blind_window_by_mass[args.mass],
     )
 
-    # add weight shifts based on xbb and bdt versions
-    weight_shifts = get_weight_shifts(args.txbb, args.bdt_model)
 
-    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
-    plot_dir.mkdir(exist_ok=True, parents=True)
-
-    # load samples
+def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
+    """Load and process per-year parquet samples; return (events_dict, cutflows)."""
     try:
         bdt_training_keys = get_bdt_training_keys(args.bdt_model)
     except FileNotFoundError:
         print("File with training events is not available")
         bdt_training_keys = []
-    events_dict_postprocess = {}
-    cutflows = {}
+
+    events_dict: dict = {}
+    cutflows: dict = {}
     _cache_model = None  # lazily-loaded xgb model for re-scoring slim cached years
     _cache_feats = None
     for year in args.years:
@@ -2204,7 +2434,7 @@ def postprocess_run3(args):
                         f"FOM cache path (got {_cache_feats})"
                     )
             fom_cache_rescore(args, events, year, _cache_model, _cache_feats)
-        events_dict_postprocess[year] = events
+        events_dict[year] = events
         cutflows[year] = cutflow
         if getattr(args, "save_ntuples", False):
             # per-event inference ntuples (post reorder/presel/inference/categorization) so any
@@ -2218,293 +2448,293 @@ def postprocess_run3(args):
             print(f"{year}: saved {len(events)} inference ntuples -> {ntup_dir}")
 
     print("Loaded all years")
+    return events_dict, cutflows
 
-    if args.fom_cache_build_only:
-        print("Cache build complete (build-only mode); exiting before combine/scan.")
+
+def _combine_years(
+    args, events_dict: dict, processes: list, bg_keys_combined: list
+) -> tuple[dict, dict, dict]:
+    """Combine per-year DataFrames, scaling MC to the full luminosity of all years.
+
+    Returns (events_combined, scaled_by, scaled_by_years).  When only one year
+    is requested, scaled_by and scaled_by_years are empty dicts.
+    """
+    if len(args.years) == 1:
+        # Shallow copy so per-sample deletion in the template loop does not affect
+        # events_dict (needed by the event_list section below).
+        return dict(events_dict[args.years[0]]), {}, {}
+
+    # eras with their OWN native MC (2024 MC now produced; 2025 borrows 2024 MC).
+    # A requested year listed here contributes its real events; any year NOT here
+    # (e.g. 2025 without --split-shared-mc) has the available MC lumi-scaled up to cover it.
+    mc_eras = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    # With --split-shared-mc, 2025 carries the ORTHOGONAL half of the 2024 MC (parity
+    # half-1, already lumi-normalized to 2025 in the year loop; 2024 keeps half-0).  That
+    # makes 2025 a native-like year, so list it here: combine then concatenates it at
+    # scale 1.0 -- keeping the 2024/2025 MC-stat decorrelated -- instead of lumi-inflating
+    # 2022-2024 to cover 2025 (which would non-orthogonally reuse 2024's own half and
+    # over-credit the signal).  Harmless if 2025 isn't requested (filtered by args.years).
+    if getattr(args, "split_shared_mc", False):
+        mc_eras = mc_eras + ["2025"]
+    available = [y for y in mc_eras if y in args.years]
+    missing = [y for y in args.years if y not in mc_eras]
+    if missing:
+        print(f"WARNING: no native MC for {missing}; scaling MC from {available} to full lumi")
+    else:
+        print(f"Using native MC from {available} (full requested lumi, no scale-up)")
+    scaled_by_years: dict = dict.fromkeys(
+        ["ttbar", "novhhtobb", "vhtobb", "tthtobb", "zz", "nozzdiboson", "vjets", "qcd"], available
+    )
+    for sig_key in args.sig_keys:
+        scaled_by_years[sig_key] = available
+
+    events_combined, scaled_by = combine_run3_samples(
+        events_dict,
+        processes,
+        bg_keys=bg_keys_combined,
+        scale_processes=scaled_by_years,
+        years_run3=args.years,
+    )
+    print("Combined years")
+    return events_combined, scaled_by, scaled_by_years
+
+
+def _build_combined_cutflow(
+    args,
+    events_combined: dict,
+    cutflows: dict,
+    scaled_by: dict,
+    scaled_by_years: dict,
+    mass_window,
+    bg_keys: list,
+) -> pd.DataFrame | None:
+    """Compute the combined cutflow table across all years; return None if no years."""
+    if not args.years:
+        return None
+
+    cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
+
+    s_bin1, b_bin1, _ = abcd(
+        events_combined,
+        get_cuts(args, "bin1"),
+        get_anti_cuts(args, "bin1"),
+        args.txbb_wps[0],
+        args.bdt_wps[0],
+        args.mass,
+        mass_window,
+        bg_keys,
+        ["hh4b"],
+    )
+    _s_binVBF, b_binVBF, _ = abcd(
+        events_combined,
+        get_cuts(args, "vbf"),
+        get_anti_cuts(args, "vbf"),
+        args.txbb_wps[0],
+        args.bdt_wps[0],
+        args.mass,
+        mass_window,
+        bg_keys,
+        ["hh4b"],
+    )
+
+    year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
+    samples = list(events_combined.keys())
+    for cut in cutflows[year_0]:
+        yield_b = 0
+        for s in samples:
+            if s in scaled_by:
+                cutflow_sample = 0.0
+                for year in args.years:
+                    if (
+                        cut in cutflows[year]
+                        and s in cutflows[year][cut].index
+                        and year in scaled_by_years.get(s, [])
+                    ):
+                        cutflow_sample += cutflows[year][cut].loc[s]
+                cutflow_sample *= scaled_by[s]
+                print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
+            else:
+                cutflow_sample = np.sum(
+                    [
+                        (
+                            cutflows[year][cut].loc[s]
+                            if cut in cutflows[year] and s in cutflows[year][cut].index
+                            else 0.0
+                        )
+                        for year in args.years
+                    ]
+                )
+            if s == "data":
+                yield_b = cutflow_sample
+            cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
+
+        if "VBF [" in cut:
+            cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
+        if "Bin 1 [" in cut and yield_b > 0:
+            cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
+            cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+
+    print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
+    print(cutflow_combined)
+    return cutflow_combined
+
+
+def _run_fom_scans(args, events_combined: dict, mass_window, plot_dir: Path, bg_keys: list) -> None:
+    """Run figure-of-merit scans if requested."""
+    if not args.fom_scan:
         return
 
-    processes = ["data"] + args.sig_keys + bg_keys
-    bg_keys_combined = bg_keys.copy()
-    if not args.control_plots and not args.bdt_roc:
-        if "qcd" in processes:
-            processes.remove("qcd")
-        if "qcd" in bg_keys:
-            bg_keys.remove("qcd")
-        if "qcd" in bg_keys_combined:
-            bg_keys_combined.remove("qcd")
+    # Nested/sequential optimisation.  Priority order (ggF Bin1 highest, i.e.
+    # --no-vbf-priority):  ggF Bin1 -> VBF -> ggF Bin2 ; Bin3 inherits Bin2.
+    # Each category vetoes the PRIOR ones at their *scan optimum*: a WP left at
+    # its default (-1) is filled with the just-scanned argmin so the next scan
+    # vetoes at the real cut, not a fixed anchor.  A pinned WP (>=0) is kept.
+    def _resolve(cur, opt):
+        return opt if (cur is None or cur < 0) else cur
 
-    print("BKG keys ", bg_keys)
+    # --fom-fast: vectorized nested scan (same math as the serial blocks below, but
+    # O(N_events+N_grid) and skipping pinned bins).  It mutates args.txbb_wps/bdt_wps/
+    # vbf_* in place exactly like the serial path, so the rest of postprocess is
+    # unchanged.  VALIDATE with fom_fast.validate_against_serial before trusting.
+    if args.fom_fast:
+        from HH4b.postprocessing import fom_fast  # noqa: PLC0415
 
-    if len(args.years) > 1:
-        # eras with their OWN native MC (2024 MC now produced; 2025 borrows 2024 MC).
-        # A requested year listed here contributes its real events; any year NOT here
-        # (e.g. 2025 without --split-shared-mc) has the available MC lumi-scaled up to cover it.
-        mc_eras = ["2022", "2022EE", "2023", "2023BPix", "2024"]
-        # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
-        # With --split-shared-mc, 2025 carries the ORTHOGONAL half of the 2024 MC (parity
-        # half-1, already lumi-normalized to 2025 in the year loop; 2024 keeps half-0).  That
-        # makes 2025 a native-like year, so list it here: combine then concatenates it at
-        # scale 1.0 -- keeping the 2024/2025 MC-stat decorrelated -- instead of lumi-inflating
-        # 2022-2024 to cover 2025 (which would non-orthogonally reuse 2024's own half and
-        # over-credit the signal).  Harmless if 2025 isn't requested (filtered by args.years).
-        if getattr(args, "split_shared_mc", False):
-            mc_eras = mc_eras + ["2025"]
-        available = [y for y in mc_eras if y in args.years]
-        missing = [y for y in args.years if y not in mc_eras]
-        if missing:
-            print(f"WARNING: no native MC for {missing}; scaling MC from {available} to full lumi")
-        else:
-            print(f"Using native MC from {available} (full requested lumi, no scale-up)")
-        scaled_by_years = {
-            "ttbar": available,
-            "novhhtobb": available,
-            "vhtobb": available,
-            "tthtobb": available,
-            "zz": available,
-            "nozzdiboson": available,
-            "vjets": available,
-            "qcd": available,
-        }
-        # add all signals to scale, assume all present in all years
-        for sig_key in args.sig_keys:
-            scaled_by_years.update({sig_key: available})
-
-        events_combined, scaled_by = combine_run3_samples(
-            events_dict_postprocess,
-            processes,
-            bg_keys=bg_keys_combined,
-            scale_processes=scaled_by_years,
-            years_run3=args.years,
+        summary = fom_fast.run_nested_fom_fast(
+            args,
+            events_combined,
+            get_cuts,
+            get_anti_cuts,
+            mass_window,
+            bg_keys,
+            plot_dir=str(plot_dir),
         )
-        print("Combined years")
-    else:
-        events_combined = events_dict_postprocess[args.years[0]]
-        scaled_by = {}
-    if args.control_plots:
-        # quick fix: '2024' is only stand-in, plots all combined events
-        # uses 2022-2013 for scaled MC
-        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
+        print(f"[fom-fast] nested scan summary: {summary}")
+        print(
+            f"  => resolved WPs: Bin1 TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]} | "
+            f"VBF TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp} | "
+            f"Bin2 TXbb>{args.txbb_wps[1]}, BDT>{args.bdt_wps[1]}"
+        )
 
-    if args.bdt_roc:
-        print("Making BDT ROC curve")
-        bdt_roc(events_combined, plot_dir, args.txbb)
-        # to make ROC curves for JMR variations
-        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_up")
-        # bdt_roc(events_combined, plot_dir, args.txbb, jshift="JMR_down")
-
-    # combined cutflow
-    cutflow_combined = None
-    if len(args.years) > 0:
-        cutflow_combined = pd.DataFrame(index=list(events_combined.keys()))
-
-        # get ABCD (warning!: not considering VBF region veto)
-        (
-            s_bin1,
-            b_bin1,
-            _,
-        ) = abcd(
+    # 1) ggF Bin 1 — top priority, no veto (with --no-vbf-priority)
+    if args.fom_scan_bin1 and not args.fom_fast:
+        print("Scanning Bin 1 (top priority, no veto)")
+        xbb, bdt = scan_fom(
+            args.method,
             events_combined,
             get_cuts(args, "bin1"),
             get_anti_cuts(args, "bin1"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
+            np.arange(0.9, 0.999, 0.0025),
+            np.arange(0.9, 0.999, 0.0025),
             mass_window,
-            bg_keys,
-            ["hh4b"],
+            plot_dir,
+            "fom_bin1",
+            # Bin-1 is the only region where s ~ b (s/b ~ 0.3-0.6), so the classic
+            # 2*sqrt(b)/s is ~5-12% optimistic; opt into the Asimov Z_A objective here.
+            fom=fom_asimov if args.fom_bin1_asimov else fom_classic,
+            bg_keys=bg_keys,
+            sig_keys=args.fom_ggf_samples,
+            mass=args.mass,
         )
+        args.txbb_wps[0] = _resolve(args.txbb_wps[0], xbb)
+        args.bdt_wps[0] = _resolve(args.bdt_wps[0], bdt)
+        print(f"  => Bin 1 veto WP: TXbb>{args.txbb_wps[0]:.4f}, BDT>{args.bdt_wps[0]:.4f}")
 
-        _s_binVBF, b_binVBF, _ = abcd(
+    # 2) VBF — vetoes Bin 1 at its resolved WP
+    if args.fom_scan_vbf and args.vbf and not args.fom_fast:
+        if args.vbf_priority:
+            print("Scanning VBF WPs (VBF priority)")
+        else:
+            print(f"Scanning VBF, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]})")
+        print(f"Using bg keys {bg_keys}")
+        xbb, bdt = scan_fom(
+            args.method,
             events_combined,
             get_cuts(args, "vbf"),
             get_anti_cuts(args, "vbf"),
-            args.txbb_wps[0],
-            args.bdt_wps[0],
-            args.mass,
+            np.arange(
+                max(0.8, args.txbb_wps[1]) if args.fom_vbf_floor_at_band else 0.8, 0.999, 0.0025
+            ),  # opt-in: floor VBF TXbb at the band
+            np.arange(0.9, 0.999, 0.0025),
             mass_window,
-            bg_keys,
-            ["hh4b"],
+            plot_dir,
+            "fom_vbf",
+            bg_keys=bg_keys,
+            sig_keys=args.fom_vbf_samples,
+            mass=args.mass,
+            fom=fom_classic,
+        )
+        args.vbf_txbb_wp = _resolve(args.vbf_txbb_wp, xbb)
+        args.vbf_bdt_wp = _resolve(args.vbf_bdt_wp, bdt)
+        print(f"  => VBF veto WP: TXbb>{args.vbf_txbb_wp:.4f}, BDT>{args.vbf_bdt_wp:.4f}")
+
+    # 3) ggF Bin 2 — vetoes Bin 1 + VBF at their resolved WPs
+    if args.fom_scan_bin2 and not args.fom_fast:
+        _v = f" + VBF (TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp})" if args.vbf else ""
+        print(f"Scanning Bin 2, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]}){_v}")
+        xbb, bdt = scan_fom(
+            args.method,
+            events_combined,
+            get_cuts(args, "bin2"),
+            get_anti_cuts(args, "bin2"),
+            np.arange(0.5, 0.9, 0.005),  # coarser than bin1/vbf: 80x80 vs 25600 pts
+            np.arange(0.5, 0.9, 0.005),
+            mass_window,
+            plot_dir,
+            "fom_bin2",
+            fom=fom_classic,
+            bg_keys=bg_keys,
+            sig_keys=args.fom_ggf_samples,
+            mass=args.mass,
+        )
+        args.txbb_wps[1] = _resolve(args.txbb_wps[1], xbb)
+        args.bdt_wps[1] = _resolve(args.bdt_wps[1], bdt)
+        print(f"  => Bin 2 WP: TXbb>{args.txbb_wps[1]:.4f}, BDT>{args.bdt_wps[1]:.4f}")
+        print(f"  => Bin 3 = Bin 2 TXbb>{args.txbb_wps[1]:.4f} with BDT floor {args.bdt_wps[2]}")
+
+
+def _save_cutflows(args, templ_dir: Path, cutflows: dict, cutflow_combined) -> None:
+    """Write per-year and combined cutflow CSVs."""
+    for year in args.years:
+        cutflows[year].round(4).to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{year}.csv")
+    if cutflow_combined is not None:
+        cutflow_combined.round(4).to_csv(
+            templ_dir / "cutflows" / "preselection_cutflow_combined.csv"
         )
 
-        # note: need to do this since not all the years have all the samples..
-        year_0 = "2022EE" if "2022EE" in args.years else args.years[0]
-        samples = list(events_combined.keys())
-        for cut in cutflows[year_0]:
-            # yield_s = 0
-            yield_b = 0
-            for s in samples:
-                if s in scaled_by:
-                    cutflow_sample = 0.0
-                    for year in args.years:
-                        if (
-                            cut in cutflows[year]
-                            and s in cutflows[year][cut].index
-                            and year in scaled_by_years[s]
-                        ):
-                            cutflow_sample += cutflows[year][cut].loc[s]
-                    cutflow_sample *= scaled_by[s]
-                    print(f"Scaling combined cutflow for {s} by {scaled_by[s]}")
-                else:
-                    cutflow_sample = np.sum(
-                        [
-                            (
-                                cutflows[year][cut].loc[s]
-                                if cut in cutflows[year] and s in cutflows[year][cut].index
-                                else 0.0
-                            )
-                            for year in args.years
-                        ]
-                    )
 
-                # if s == "hh4b":
-                #    yield_s = cutflow_sample
-                if s == "data":
-                    yield_b = cutflow_sample
-                cutflow_combined.loc[s, cut] = f"{cutflow_sample:.4f}"
+def _save_event_lists(args, events_dict: dict, mass_window) -> None:
+    """Write per-year event list ROOT files and a JSON manifest."""
+    eventlist_folder = Path(args.event_list_dir)
+    eventlist_folder.mkdir(parents=True, exist_ok=True)
 
-            if "VBF [" in cut:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_binVBF:.4f}"
-            if "Bin 1 [" in cut and yield_b > 0:
-                cutflow_combined.loc["B ABCD", cut] = f"{b_bin1:.3f}"
-                cutflow_combined.loc["S/B ABCD", cut] = f"{s_bin1/b_bin1:.3f}"
+    for year, year_dict in events_dict.items():
+        file_path = eventlist_folder / f"eventlist_boostedHH4b_{year}.root"
+        for key, tree_df in year_dict.items():
+            if not ("data" in key or "hh4b" in key or "vbfhh4b" in key):
+                continue
+            event_list = _build_event_list_frame(tree_df, key=key)
+            array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
+            open_fn = uproot.update if file_path.exists() else uproot.recreate
+            with open_fn(file_path) as f:
+                f[key] = array_to_save
 
-        print(f"\n Combined cutflow TXbb:{args.txbb_wps} BDT: {args.bdt_wps}")
-        print(cutflow_combined)
+    write_eventlist_manifest(
+        eventlist_folder / "eventlist_manifest.json",
+        args,
+        mass_window,
+    )
 
-    if args.fom_scan:
-        # Nested/sequential optimisation.  Priority order (ggF Bin1 highest, i.e.
-        # --no-vbf-priority):  ggF Bin1 -> VBF -> ggF Bin2 ; Bin3 inherits Bin2.
-        # Each category vetoes the PRIOR ones at their *scan optimum*: a WP left at
-        # its default (-1) is filled with the just-scanned argmin so the next scan
-        # vetoes at the real cut, not a fixed anchor.  A pinned WP (>=0) is kept.
-        def _resolve(cur, opt):
-            return opt if (cur is None or cur < 0) else cur
 
-        # --fom-fast: vectorized nested scan (same math as the serial blocks below, but
-        # O(N_events+N_grid) and skipping pinned bins).  It mutates args.txbb_wps/bdt_wps/
-        # vbf_* in place exactly like the serial path, so the rest of postprocess is
-        # unchanged.  VALIDATE with fom_fast.validate_against_serial before trusting.
-        if args.fom_fast:
-            import fom_fast  # noqa: PLC0415
-
-            summary = fom_fast.run_nested_fom_fast(
-                args,
-                events_combined,
-                get_cuts,
-                get_anti_cuts,
-                mass_window,
-                bg_keys,
-                plot_dir=str(plot_dir),
-            )
-            print(f"[fom-fast] nested scan summary: {summary}")
-            print(
-                f"  => resolved WPs: Bin1 TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]} | "
-                f"VBF TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp} | "
-                f"Bin2 TXbb>{args.txbb_wps[1]}, BDT>{args.bdt_wps[1]}"
-            )
-
-        # 1) ggF Bin 1 — top priority, no veto (with --no-vbf-priority)
-        if args.fom_scan_bin1 and not args.fom_fast:
-            print("Scanning Bin 1 (top priority, no veto)")
-            xbb, bdt = scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "bin1"),
-                get_anti_cuts(args, "bin1"),
-                np.arange(0.9, 0.999, 0.0025),
-                np.arange(0.9, 0.999, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_bin1",
-                # Bin-1 is the only region where s ~ b (s/b ~ 0.3-0.6), so the classic
-                # 2*sqrt(b)/s is ~5-12% optimistic; opt into the Asimov Z_A objective here.
-                fom=fom_asimov if args.fom_bin1_asimov else fom_classic,
-                bg_keys=bg_keys,
-                sig_keys=args.fom_ggf_samples,
-                mass=args.mass,
-            )
-            args.txbb_wps[0] = _resolve(args.txbb_wps[0], xbb)
-            args.bdt_wps[0] = _resolve(args.bdt_wps[0], bdt)
-            print(f"  => Bin 1 veto WP: TXbb>{args.txbb_wps[0]:.4f}, BDT>{args.bdt_wps[0]:.4f}")
-
-        # 2) VBF — vetoes Bin 1 at its resolved WP
-        if args.fom_scan_vbf and args.vbf and not args.fom_fast:
-            if args.vbf_priority:
-                print("Scanning VBF WPs (VBF priority)")
-            else:
-                print(
-                    f"Scanning VBF, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]})"
-                )
-            print(f"Using bg keys {bg_keys}")
-            xbb, bdt = scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "vbf"),
-                get_anti_cuts(args, "vbf"),
-                np.arange(
-                    max(0.8, args.txbb_wps[1]) if args.fom_vbf_floor_at_band else 0.8, 0.999, 0.0025
-                ),  # opt-in: floor VBF TXbb at the band
-                np.arange(0.9, 0.999, 0.0025),
-                mass_window,
-                plot_dir,
-                "fom_vbf",
-                bg_keys=bg_keys,
-                sig_keys=args.fom_vbf_samples,
-                mass=args.mass,
-                fom=fom_classic,
-            )
-            args.vbf_txbb_wp = _resolve(args.vbf_txbb_wp, xbb)
-            args.vbf_bdt_wp = _resolve(args.vbf_bdt_wp, bdt)
-            print(f"  => VBF veto WP: TXbb>{args.vbf_txbb_wp:.4f}, BDT>{args.vbf_bdt_wp:.4f}")
-
-        # 3) ggF Bin 2 — vetoes Bin 1 + VBF at their resolved WPs
-        if args.fom_scan_bin2 and not args.fom_fast:
-            _v = f" + VBF (TXbb>{args.vbf_txbb_wp}, BDT>{args.vbf_bdt_wp})" if args.vbf else ""
-            print(
-                f"Scanning Bin 2, vetoing Bin1 (TXbb>{args.txbb_wps[0]}, BDT>{args.bdt_wps[0]}){_v}"
-            )
-            xbb, bdt = scan_fom(
-                args.method,
-                events_combined,
-                get_cuts(args, "bin2"),
-                get_anti_cuts(args, "bin2"),
-                np.arange(0.5, 0.9, 0.005),  # coarser than bin1/vbf: 80x80 vs 25600 pts
-                np.arange(0.5, 0.9, 0.005),
-                mass_window,
-                plot_dir,
-                "fom_bin2",
-                fom=fom_classic,
-                bg_keys=bg_keys,
-                sig_keys=args.fom_ggf_samples,
-                mass=args.mass,
-            )
-            args.txbb_wps[1] = _resolve(args.txbb_wps[1], xbb)
-            args.bdt_wps[1] = _resolve(args.bdt_wps[1], bdt)
-            print(f"  => Bin 2 WP: TXbb>{args.txbb_wps[1]:.4f}, BDT>{args.bdt_wps[1]:.4f}")
-            print(
-                f"  => Bin 3 = Bin 2 TXbb>{args.txbb_wps[1]:.4f} with BDT floor {args.bdt_wps[2]}"
-            )
-
-    templ_dir = Path("templates") / args.templates_tag
-    for year in args.years:
-        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
-        (templ_dir / year).mkdir(parents=True, exist_ok=True)
-
-    # save args for posterity
-    with (templ_dir / "args.txt").open("w") as f:
-        pretty_printer = pprint.PrettyPrinter(stream=f, indent=4)
-        pretty_printer.pprint(vars(args))
-
-    for cyear in args.years:
-        cutflows[cyear] = cutflows[cyear].round(4)
-        cutflows[cyear].to_csv(templ_dir / "cutflows" / f"preselection_cutflow_{cyear}.csv")
-    if cutflow_combined is not None:
-        cutflow_combined = cutflow_combined.round(4)
-        cutflow_combined.to_csv(templ_dir / "cutflows" / "preselection_cutflow_combined.csv")
-
-    if not args.templates:
-        return
-
+def _make_templates(
+    args,
+    events_combined: dict,
+    templ_dir: Path,
+    fit_shape_var,
+    weight_shifts,
+    bg_keys_combined: list,
+) -> None:
+    """Build and save per-year histogram templates."""
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
@@ -2515,72 +2745,122 @@ def postprocess_run3(args):
     )
     templates_weight_shifts = weight_shifts if args.systematics else {}
     for year in args.years:
+        all_hist_samples = _compute_all_hist_samples(
+            list(events_combined.keys()), args.sig_keys, templates_weight_shifts
+        )
         templates = {}
-        for jshift in jshifts_templates:
-            events_by_year = {}
-            for sample, events in events_combined.items():
-                events_by_year[sample] = events[events["year"] == year]
-            ttemps = postprocessing.get_templates(
-                events_by_year,
-                year=year,
-                sig_keys=args.sig_keys,
-                plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
-                selection_regions=selection_regions,
-                shape_vars=[fit_shape_var],
-                systematics={},
-                template_dir=templ_dir,
-                bg_keys=bg_keys_combined,
-                plot_dir=Path(f"{templ_dir}/{year}"),
-                weight_key="weight",
-                weight_shifts=templates_weight_shifts,
-                plot_shifts=False,  # skip for time
-                show=False,
-                energy=13.6,
-                jshift=jshift,
-                blind=args.blind,
-            )
-            templates = {**templates, **ttemps}
+        for sample_key in list(events_combined.keys()):
+            print(f"Creating templates for sample: {sample_key}")
+            for jshift in jshifts_templates:
+                events_by_year = {
+                    sample_key: events_combined[sample_key][
+                        events_combined[sample_key]["year"] == year
+                    ]
+                }
+                ttemps = postprocessing.get_templates(
+                    events_by_year,
+                    year=year,
+                    sig_keys=args.sig_keys,
+                    plot_sig_keys=["hh4b", "vbfhh4b", "vbfhh4b-k2v0"],
+                    selection_regions=selection_regions,
+                    shape_vars=[fit_shape_var],
+                    systematics={},
+                    template_dir="",
+                    bg_keys=bg_keys_combined,
+                    plot_dir="",
+                    weight_key="weight",
+                    weight_shifts=templates_weight_shifts,
+                    plot_shifts=False,
+                    show=False,
+                    energy=13.6,
+                    jshift=jshift,
+                    blind=args.blind,
+                    all_hist_samples=all_hist_samples,
+                )
+                for key, h in ttemps.items():
+                    templates[key] = templates[key] + h if key in templates else h
+            # free each sample after the LAST year only: deleting it inside an earlier year
+            # leaves every later year of a multi-year run with empty templates
+            if year == args.years[-1]:
+                del events_combined[sample_key]
 
-        # save templates per year
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
         )
+
+
+def postprocess_run3(args):
+    global bg_keys  # noqa: PLW0603
+
+    # ── 1. Configure mass windows and fit variable ────────────────────────────
+    fom_window_by_mass, blind_window_by_mass = _get_mass_windows(args)
+    mass_window = np.array(fom_window_by_mass[args.mass])
+    fit_shape_var = _setup_shape_var(args, blind_window_by_mass)
+    weight_shifts = get_weight_shifts(args.txbb, args.bdt_model)
+
+    plot_dir = Path(f"{HH4B_DIR}/plots/PostProcess/{args.templates_tag}")
+    plot_dir.mkdir(exist_ok=True, parents=True)
+
+    # ── 2. Load per-year samples ──────────────────────────────────────────────
+    events_dict, cutflows = _load_samples(args, plot_dir, mass_window)
+
+    if args.fom_cache_build_only:
+        print("Cache build complete (build-only mode); exiting before combine/scan.")
+        return
+
+    # ── 3. Combine years and resolve process/bg key lists ────────────────────
+    processes = ["data"] + args.sig_keys + bg_keys
+    bg_keys_combined = bg_keys.copy()
+    if not args.control_plots and not args.bdt_roc:
+        for lst in (processes, bg_keys, bg_keys_combined):
+            if "qcd" in lst:
+                lst.remove("qcd")
+    print("BKG keys ", bg_keys)
+
+    # Drop any samples that were not loaded (no matching directories in data_dir).
+    loaded = set(events_dict[args.years[0]])
+    processes = [p for p in processes if p in loaded]
+    bg_keys = [k for k in bg_keys if k in loaded]
+    bg_keys_combined = [k for k in bg_keys_combined if k in loaded]
+
+    events_combined, scaled_by, scaled_by_years = _combine_years(
+        args, events_dict, processes, bg_keys_combined
+    )
+
+    if args.control_plots:
+        make_control_plots(events_combined, plot_dir, "2024", args.txbb)
+    if args.bdt_roc:
+        print("Making BDT ROC curve")
+        bdt_roc(events_combined, plot_dir, args.txbb)
+
+    # ── 4. Build combined cutflow ─────────────────────────────────────────────
+    cutflow_combined = _build_combined_cutflow(
+        args, events_combined, cutflows, scaled_by, scaled_by_years, mass_window, bg_keys
+    )
+
+    # ── 5. FoM scans ─────────────────────────────────────────────────────────
+    _run_fom_scans(args, events_combined, mass_window, plot_dir, bg_keys)
+
+    # ── 6. Save outputs (args, cutflows) ─────────────────────────────────────
+    templ_dir = Path("templates") / args.templates_tag
+    for year in args.years:
+        (templ_dir / "cutflows" / year).mkdir(parents=True, exist_ok=True)
+        (templ_dir / year).mkdir(parents=True, exist_ok=True)
+    with (templ_dir / "args.txt").open("w") as f:
+        pprint.PrettyPrinter(stream=f, indent=4).pprint(vars(args))
+    _save_cutflows(args, templ_dir, cutflows, cutflow_combined)
+
+    # ── 7. Save event lists ───────────────────────────────────────────────────
     if args.event_list:
+        _save_event_lists(args, events_dict, mass_window)
 
-        eventlist_dict = [
-            "event",
-            "bdt_score",
-            "bdt_score_vbf",
-            "H2TXbb",
-            "H2Msd",
-            "run",
-            "Category",
-            "H2PNetMass",
-            "luminosityBlock",
-        ]
+    if not args.templates:
+        return
 
-        eventlist_folder = args.event_list_dir
-        Path(eventlist_folder).mkdir(parents=True, exist_ok=True)
-
-        for year, year_dict in events_dict_postprocess.items():
-            for key, tree_df in year_dict.items():
-                if "data" in key or "hh4b" in key or "vbfhh4b" in key:
-                    event_list = tree_df[eventlist_dict]
-                    array_to_save = {col: event_list[col].to_numpy() for col in event_list.columns}
-
-                    # Define the ROOT file path
-                    file_path = f"{eventlist_folder}/eventlist_boostedHH4b_{year}.root"
-
-                    # Check if the ROOT file already exists
-                    if Path(file_path).exists():
-                        # File exists, use update mode to append the new tree
-                        with uproot.update(file_path) as file:
-                            file[key] = array_to_save  # Append new tree
-                    else:
-                        # File doesn't exist, create a new one
-                        with uproot.recreate(file_path) as file:
-                            file[key] = array_to_save  # Create the first tree
-
+    # ── 8. Build and save templates ───────────────────────────────────────────
+    _make_templates(
+        args, events_combined, templ_dir, fit_shape_var, weight_shifts, bg_keys_combined
+    )
     # combined templates
     # skip for time
     """
@@ -2619,8 +2899,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="/ceph/cms/store/user/dprimosc/bbbb/skimmer/",
-        help="tag for input ntuples",
+        required=True,
+        help="path to skimmer output directory (e.g. /ceph/cms/store/user/<user>/bbbb/skimmer/)",
     )
     parser.add_argument(
         "--mass-bins",
@@ -2950,6 +3230,12 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "blind", default=True, help="Blind the analysis")
     run_utils.add_bool_arg(parser, "rerun-inference", default=True, help="Rerun BDT inference")
+    parser.add_argument(
+        "--bdt-inference-chunk-size",
+        type=int,
+        default=0,
+        help="Chunk size for BDT predict_proba to reduce memory; 0 = no chunking (default: 0)",
+    )
     run_utils.add_bool_arg(
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )

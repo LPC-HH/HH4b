@@ -9,6 +9,7 @@ import numpy as np
 import uproot
 
 from HH4b import plotting, run_utils
+from HH4b.hh_vars import LUMI
 from HH4b.utils import ShapeVar
 
 
@@ -95,11 +96,11 @@ def plot_fits(args):
         "fail": "QCD CR",
     }
     ylims = {
-        "passvbf": 12,
-        "passbin1": 10,
-        "passbin2": 40,
-        "passbin3": 300,
-        "fail": 300000,
+        "passvbf": 36,
+        "passbin1": 30,
+        "passbin2": 120,
+        "passbin3": 900,
+        "fail": 1500000,
     }
 
     if args.regions == "all":
@@ -172,7 +173,8 @@ def plot_fits(args):
             )
             bgerrs[shape][region] = templates["TotalBkg"].errors()
 
-    year = "2022-2023"
+    # data-taking period of the fit (--year): sets the luminosity label
+    year = args.year
     pass_ratio_ylims = [0, 2]
     fail_ratio_ylims = [0, 2]
 
@@ -198,6 +200,7 @@ def plot_fits(args):
                     "xlim": 220,
                     "xlim_low": 60,
                     "ratio_ylims": pass_ratio_ylims if pass_region else fail_ratio_ylims,
+                    # "title": f"Approach-2, {region_label}",
                     "title": region_label,
                     "name": f"{plot_dir}/{shape}_{region}_{shape_var.var}",
                     "bg_order": bkg_order,
@@ -211,7 +214,9 @@ def plot_fits(args):
                     "cms_label": args.cms_label,
                 }
 
-                plotting.ratioHistPlot(**plot_params, data_err=True)
+                plotting.ratioHistPlot(
+                    **plot_params, data_err=True, hepdata=args.hepdata, figure=args.figure
+                )
 
 
 if __name__ == "__main__":
@@ -252,9 +257,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cms-label", type=str, default=None, choices=["Preliminary", "Supplementary", None]
     )
+    parser.add_argument(
+        "--figure", type=str, default=None, help="figure number to put in hepdata tables"
+    )
+    parser.add_argument(
+        "--year",
+        type=str,
+        default="2022-2025",
+        choices=list(LUMI),
+        help="data-taking period of the fit (hh_vars.LUMI key); sets the luminosity label",
+    )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")
     run_utils.add_bool_arg(parser, "unblinded", "unblinded so skip blinded parts", default=False)
+    run_utils.add_bool_arg(parser, "hepdata", "make hepdata files", default=False)
 
     args = parser.parse_args()
 
