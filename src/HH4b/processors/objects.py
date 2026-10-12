@@ -434,7 +434,7 @@ def good_ak8jets(
     msd: float,
     mreg: float,
     nano_version: str,
-    mreg_str="particleNet_mass_legacy",
+    mreg_str="ParT3massX2p",
 ):
     # if nano_version.startswith("v12"):
     #     jetidtight, jetidtightlepveto = jetid_v12(fatjets)  # v12 jetid fix
@@ -459,6 +459,10 @@ def good_ak8jets(
             jetidtight, _ = jetid_v15(fatjets)
     else:
         jetidtight = fatjets.isTight
+
+    # GloParT-v3 regressed mass; fall back to the PNet legacy mass if the NanoAOD has no globalParT3
+    if mreg_str not in fatjets.fields:
+        mreg_str = "particleNet_mass_legacy"
 
     fatjet_sel = (
         jetidtight
