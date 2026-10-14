@@ -64,11 +64,13 @@ cat_corrections = {
         "jme": f"{cat_correction_path}/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16",
         "jec": "Summer24Prompt24_V5",
         "jer": "Summer24Prompt24_JRV2",
+        "jetveto": "Summer24Prompt24_RunBCDEFGHI_V1",
     },
     "2025": {
         "jme": f"{cat_correction_path}/JME/Run3-25Prompt-Summer24-NanoAODv15/2026-07-16",
         "jec": "Summer24Prompt25_V3",
         "jer": "Summer24Prompt25_JRV2",
+        "jetveto": "Summer24Prompt25_RunCDEFG_V1",
     },
 }
 
@@ -460,13 +462,13 @@ def get_jetveto_event(jets: JetArray, year: str):
     """
     Get event selection that rejects events with jets in the veto map
     """
-    if year == "2025":
-        # no veto map for 2025 yet
-        # TODO: update when available
-        return np.ones(len(jets), dtype=bool)
-
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    if year in cat_corrections:
+        cset = correctionlib.CorrectionSet.from_file(
+            f"{cat_corrections[year]['jme']}/jetvetomaps.json.gz"
+        )
+    else:
+        cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):
@@ -480,10 +482,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
-        # "2024": "Winter24Prompt2024BCDEFGHI_V1",
-        "2024": "Summer24Prompt24_RunBCDEFGHI_V1",
-        # https://github.com/cms-jet/JECDatabase/tree/master/jet_veto_maps/Winter25Prompt25
-        # "2025": "Winter25Prompt25_RunCDE_V1",
+        **{y: cat["jetveto"] for y, cat in cat_corrections.items()},
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
