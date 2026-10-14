@@ -1182,6 +1182,7 @@ def main(args):
             scale_and_smear=False,  # TODO: train with scale and smear corrections
             mass_str=args.mass_str,
             bdt_version=args.config_name,
+            ak4away_assignment=args.ak4away_assignment,
         )
 
         # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
@@ -1356,6 +1357,7 @@ def main(args):
             scale_and_smear=False,
             mass_str=args.mass_str,
             bdt_version=args.config_name,
+            ak4away_assignment=args.ak4away_assignment,
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(
@@ -1408,6 +1410,18 @@ if __name__ == "__main__":
     )
     parser.add_argument("--test-size", default=0.4, help="testing/training split", type=float)
     parser.add_argument("--seed", default=42, help="seed for testing/training split", type=int)
+    parser.add_argument(
+        "--ak4away-assignment",
+        type=str,
+        default="exclusive",
+        choices=["exclusive", "shared"],
+        help=(
+            '"exclusive" (default): the skim\'s AK4 jets away from the bb jets, one per bb jet; '
+            '"shared": the second bb jet gets the AK4 jet the skimmer chose before it stopped '
+            "sharing one between the two bb jets (rebuilt from the skim, "
+            "utils.ak4away_shared_assignment)"
+        ),
+    )
 
     parser.add_argument(
         "--sig-keys", default=["hh4b"], help="which signals to train on", type=str, nargs="+"
