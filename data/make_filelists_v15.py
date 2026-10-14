@@ -314,8 +314,8 @@ MC_SAMPLES_DICT = {
             "WW": "/WW_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WZ": "/WZ_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "ZZ": "/ZZ_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
-            # ZZ->bbbb only (MadSpin); not in the default "zz" selectors: loaded and stitched
-            # with the inclusive ZZ only by PostProcess --zz4b-tag (hh_vars.zz4b_stitch_selectors)
+            # ZZ->bbbb only (MadSpin); not in the default "zz" selectors: loaded only by
+            # PostProcess --zz4b-tag, in place of the inclusive ZZ->bbbb (hh_vars.zz4b_replace_selectors)
             "ZZto4B-1Jets": "/ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
         "HH": {

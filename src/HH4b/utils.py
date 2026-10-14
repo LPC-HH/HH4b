@@ -33,6 +33,9 @@ from HH4b.xsecs import xsecs
 
 from .hh_vars import (
     LUMI,
+    ZZ4B_MZ_WINDOW,
+    ZZ4B_SAMPLE,
+    ZZ_INCLUSIVE_SAMPLE,
     data_key,
     jec_shifts,
     jec_vars,
@@ -813,6 +816,100 @@ def _stitch_open_ptqq(
             )
 
 
+# ZZ -> bbbb: the dedicated ZZto4B-1Jets sample (amcatnloFXFX, MadSpin "decay z > b b~", bwcutoff
+# 15) covers exactly the inclusive pythia8 ZZ events with Z->bb, Z->bb and both Z masses in its
+# MadSpin window, with about 6x the effective statistics of the inclusive sample there (2024,
+# both Z with pT > 250 GeV).
+# skim generator columns (GenSelection.gen_selection_VV, every dataset name containing "ZZ")
+ZZ4B_GEN_COLUMNS = [("GenV1BB", 1), ("GenV2BB", 1), ("GenVMass", 2)]
+
+
+@dataclass
+class ZZ4bReplace:
+    """Settings for replacing the ZZ -> bbbb part of the inclusive ZZ by ZZto4B-1Jets in
+    ``load_samples``.
+
+    The replaced phase space O is ZZ -> (Z -> bb)(Z -> bb) with both Z masses in ``mz_window`` (the
+    ZZto4B MadSpin window, ``hh_vars.ZZ4B_MZ_WINDOW``). The inclusive events in O (the skim's
+    ``GenV1BB & GenV2BB`` and both ``GenVMass`` in the window) are dropped and ZZto4B is taken whole
+    at its cross section, so O comes from ZZto4B alone; every other inclusive ZZ event (other
+    decays, ZZ -> bbbb outside the window) is kept. Every ZZto4B event is in O by construction; its
+    generator flags are only checked (some FxFx gen records hold fewer than two hard V, so the flags
+    are not used to select ZZto4B events).
+
+    Args:
+        inclusive, zz4b: sample directory names.
+        mz_window: (low, high) Z mass window in GeV.
+
+    Applied only in a year in which both directories are selected; elsewhere (e.g. 2022-2023,
+    which have no GloParT-v3 ZZto4B) the label is loaded as it is.
+    """
+
+    inclusive: str = ZZ_INCLUSIVE_SAMPLE
+    zz4b: str = ZZ4B_SAMPLE
+    mz_window: tuple[float, float] = ZZ4B_MZ_WINDOW
+
+
+def _col1d(events: pd.DataFrame, name: str, i: int = 0) -> np.ndarray:
+    x = events[name].to_numpy()
+    return x[:, i] if x.ndim == 2 else x
+
+
+def zz4b_overlap_mask(events: pd.DataFrame, mz_window: tuple[float, float]) -> np.ndarray:
+    """Events with Z->bb, Z->bb and both generator Z masses in ``mz_window`` (``ZZ4bReplace``)."""
+    lo, hi = mz_window
+    m0, m1 = _col1d(events, "GenVMass", 0), _col1d(events, "GenVMass", 1)
+    return (
+        _col1d(events, "GenV1BB").astype(bool)
+        & _col1d(events, "GenV2BB").astype(bool)
+        & (m0 >= lo)
+        & (m0 <= hi)
+        & (m1 >= lo)
+        & (m1 <= hi)
+    )
+
+
+def _replace_zz4b(
+    loaded: list[tuple[str, pd.DataFrame]], replace: ZZ4bReplace
+) -> list[pd.DataFrame]:
+    """Drop the inclusive ZZ events that ZZto4B replaces (``ZZ4bReplace``); returns the frames in
+    input order.
+
+    Called after ``_normalize_weights`` (finalWeight = sigma x L x w / sum w) and before the
+    concatenation, the 2024/2025 parity split and the load-time JMS/JMR, so both halves of the
+    shared 2024 MC get the same treatment.
+    """
+    names = [sample for sample, _ in loaded]
+    for sample in (replace.inclusive, replace.zz4b):
+        if sample not in names:
+            raise ValueError(
+                f"ZZto4B replacement: {sample} selected but has no events after the filters"
+            )
+    frames = [events for _, events in loaded]
+    i_inc, i_4b = names.index(replace.inclusive), names.index(replace.zz4b)
+    inc, zz4b = frames[i_inc], frames[i_4b]
+    overlap = zz4b_overlap_mask(inc, replace.mz_window)
+    w_inc = _col1d(inc, "finalWeight")
+    w_4b = _col1d(zz4b, "finalWeight")
+    # every ZZto4B event is in the overlap by construction; a large failing fraction means a wrong
+    # sample or window (a few FxFx gen records hold fewer than two hard V)
+    off = ~zz4b_overlap_mask(zz4b, replace.mz_window)
+    if off.mean() > 0.05:
+        warnings.warn(
+            f"ZZto4B replacement: {off.sum()} of {len(zz4b)} {replace.zz4b} events "
+            f"({off.mean():.1%}) fail the overlap definition (window {replace.mz_window})",
+            stacklevel=2,
+        )
+    frames[i_inc] = inc.loc[~overlap].reset_index(drop=True)
+    logger.info(
+        f"ZZto4B replacement: dropped {overlap.sum()} of {len(inc)} {replace.inclusive} events "
+        f"(sum finalWeight {w_inc[overlap].sum():.6g} of {w_inc.sum():.6g}); {replace.zz4b} "
+        f"{len(zz4b)} events, sum finalWeight {w_4b.sum():.6g}, negative-weight fraction "
+        f"{np.mean(w_4b < 0):.3f}, {off.sum()} outside the overlap definition"
+    )
+    return frames
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
@@ -825,7 +922,8 @@ def load_samples(
     txbb_str: str = "bbFatJetPNetTXbbLegacy",
     load_weight_noxsec: bool = True,
     ptqq_stitch: PtqqStitch | None = None,
-    override_dir: Path | str | None = None,
+    override_dir: Path | str | list | None = None,
+    zz4b_replace: ZZ4bReplace | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -843,10 +941,14 @@ def load_samples(
             ``{W,Z}to2Q-2Jets_Bin-PTQQ-X`` samples selected under one label (see ``PtqqStitch``,
             ``_stitch_open_ptqq`` and, for mode "range", ``ptqq_range_norm``). None (default):
             every sample is loaded as it is.
-        override_dir (Path): optional second skim directory (a skimmer tag, like ``data_dir``):
-            every sample directory in ``override_dir / year`` replaces the same-named one of
-            ``data_dir / year`` (e.g. the LHE-pT re-skim of the 2024 V+jets and SM ggHH). None
-            (default), or no ``year`` directory there: everything is read from ``data_dir``.
+        override_dir (Path or list of Path): optional further skim directories (skimmer tags, like
+            ``data_dir``): every sample directory in ``override_dir / year`` replaces the
+            same-named one of ``data_dir / year`` (e.g. the LHE-pT re-skim of the 2024 V+jets and
+            SM ggHH), and a directory found only there is added; with a list, a later entry wins.
+            None (default), or no ``year`` directory there: everything is read from ``data_dir``.
+        zz4b_replace (ZZ4bReplace): opt-in replacement of the ZZ -> bbbb part of the inclusive
+            ZZ by ZZto4B-1Jets under one label (see ``ZZ4bReplace``), applied when both are
+            selected for ``year``. None (default): every sample is loaded as it is.
 
     Returns:
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
@@ -856,13 +958,23 @@ def load_samples(
 
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
-    sample_dirs = {}  # samples read from override_dir instead of data_dir
-    if override_dir is not None and (Path(override_dir) / year).is_dir():
-        for sample in sorted(listdir(Path(override_dir) / year)):
-            sample_dirs[sample] = Path(override_dir) / year / sample
+    sample_dirs = {}  # samples read from an override_dir instead of data_dir
+    if override_dir is None:
+        override_dirs = []
+    elif isinstance(override_dir, (str, Path)):
+        override_dirs = [override_dir]
+    else:
+        override_dirs = list(override_dir)
+    for odir in override_dirs:
+        if not (Path(odir) / year).is_dir():
+            continue
+        odir_samples = sorted(listdir(Path(odir) / year))
+        for sample in odir_samples:
+            sample_dirs[sample] = Path(odir) / year / sample
             if sample not in full_samples_list:
                 full_samples_list.append(sample)
-        logger.info(f"Samples read from {Path(override_dir) / year}: {sorted(sample_dirs)}")
+        logger.info(f"Samples read from {Path(odir) / year}: {odir_samples}")
+    zz4b_columns = format_columns(ZZ4B_GEN_COLUMNS)
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
@@ -890,6 +1002,22 @@ def load_samples(
             [("GenVLHEPt" if range_mode else "GenVPt", 1), (txbb_str, 2)]
         )
 
+        # ZZto4B replacement: on for this label and year only if both ZZ directories are selected
+        zz4b_on = False
+        if zz4b_replace is not None:
+            selected = [s for s in full_samples_list if check_selector(s, selector)]
+            has_inc, has_4b = zz4b_replace.inclusive in selected, zz4b_replace.zz4b in selected
+            if has_4b and not has_inc:
+                raise ValueError(
+                    f"ZZto4B replacement: {zz4b_replace.zz4b} selected for {label} ({year}) "
+                    f"without the inclusive {zz4b_replace.inclusive}; ZZto4B covers ZZ->bbbb only"
+                )
+            zz4b_on = has_inc and has_4b
+            if has_inc and not has_4b:
+                logger.info(
+                    f"ZZto4B replacement: no {zz4b_replace.zz4b} for {year}; {label} as it is"
+                )
+
         events_dict[label] = []  # list of directories we load in for this sample
         loaded_names = []  # sample (directory) name of each entry in events_dict[label]
         for sample in full_samples_list:
@@ -911,6 +1039,15 @@ def load_samples(
                 )
                 if range_mode:
                     sample_filters = _ptqq_range_filters(sample_filters, *ranges[sample])
+            # ZZto4B replacement: the generator flags and Z masses of both ZZ samples
+            if (
+                zz4b_on
+                and sample in (zz4b_replace.inclusive, zz4b_replace.zz4b)
+                and sample_columns is not None
+            ):
+                sample_columns = sample_columns + [
+                    col for col in zz4b_columns if col not in sample_columns
+                ]
 
             sample_path = sample_dirs.get(sample, data_dir / sample)
             parquet_path, pickles_path = sample_path / "parquet", sample_path / "pickles"
@@ -1006,6 +1143,13 @@ def load_samples(
                 )
             if load_columns is not None:
                 stitch_only_columns = {col for col in stitch_columns if col not in load_columns}
+        if zz4b_on and len(events_dict[label]):
+            # ZZ->bbbb in the ZZto4B window from ZZto4B-1Jets alone, before the concat
+            events_dict[label] = _replace_zz4b(
+                list(zip(loaded_names, events_dict[label])), zz4b_replace
+            )
+            if load_columns is not None:
+                stitch_only_columns |= {col for col in zz4b_columns if col not in load_columns}
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
