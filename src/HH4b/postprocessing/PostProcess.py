@@ -241,6 +241,9 @@ def _build_and_score_bdt_events(
             logger.info(progress_msg)
         events_chunk = events.iloc[start:end]
         bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        # same index as ``events``: the caller aligns masks built from ``events`` with .loc, and
+        # the 2024/2025 split halves are not indexed 0..n-1
+        bdt_chunk.index = events_chunk.index
         if rerun_inference:
             # year-aware models: add year_* one-hots before inference (no-op otherwise)
             _feat_order = _add_year_features(bdt_chunk, model_feature_names(bdt_model_name), year)
@@ -268,7 +271,7 @@ def _build_and_score_bdt_events(
 
     if len(built_chunks) == 1:
         return built_chunks[0]
-    return pd.concat(built_chunks, ignore_index=True)
+    return pd.concat(built_chunks)
 
 
 def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
