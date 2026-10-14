@@ -34,6 +34,8 @@ def jet_factory_factory(files):
     return CorrectedJetsFactory(jec_name_map, jec_stack)
 
 
+# 2024 and 2025: the processors take the official correctionlib JECs/JER instead
+# (processors/corrections.py cat_corrections, processors/jec_clib.py); these entries are unused
 jet_factory = {
     "2022mc": jet_factory_factory(
         files=[
