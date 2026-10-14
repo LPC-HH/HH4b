@@ -434,7 +434,7 @@ def good_ak8jets(
     msd: float,
     mreg: float,
     nano_version: str,
-    mreg_str="particleNet_mass_legacy",
+    mreg_str="ParT3massX2p",
 ):
     # if nano_version.startswith("v12"):
     #     jetidtight, jetidtightlepveto = jetid_v12(fatjets)  # v12 jetid fix
@@ -459,6 +459,14 @@ def good_ak8jets(
             jetidtight, _ = jetid_v15(fatjets)
     else:
         jetidtight = fatjets.isTight
+
+    # GloParT-v3 regressed mass (get_ak8jets builds it from the globalParT3 branches); no fallback
+    # to another tagger's mass
+    if mreg_str not in fatjets.fields:
+        raise ValueError(
+            f"{mreg_str} is not available: this NanoAOD has no globalParT3 branches. Pass the "
+            "mass of another tagger explicitly with mreg_str."
+        )
 
     fatjet_sel = (
         jetidtight
