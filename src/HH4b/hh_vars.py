@@ -62,7 +62,8 @@ common_samples_bg = {
     ],
     "novhhtobb": ["GluGluHto2B_PT-200_M-125", "VBFHto2B_M-125_dipoleRecoilOn", "VBFHto2B_M-125"],
     "tthtobb": ["ttHto2B_M-125"],
-    # Use exact-match selectors to avoid pulling in ZZto*/WWto*/WZto* sub-samples.
+    # Use exact-match selectors to avoid pulling in ZZto*/WWto*/WZto* sub-samples (ZZto4B-1Jets
+    # is loaded only with PostProcess --zz4b-tag, zz4b_stitch_selectors).
     "zz": ["ZZ?"],
     "nozzdiboson": ["WW?", "WZ?"],
     # 2022-2023: *_PTQQ-XtoY_{1J,2J} are exclusive bins -> sum them all.
@@ -90,6 +91,18 @@ vjets_stitch_selectors = common_samples_bg["vjets"] + [
     for x in [200, 400, 600]
     if not (v == "W" and x == 600)
 ]
+
+# Opt-in (PostProcess --zz4b-tag): the dedicated ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8
+# sample (2024 NanoAODv15; 2025 through --split-shared-mc) next to the inclusive pythia8 ZZ,
+# stitched in utils.load_samples (utils.ZZ4bStitch): the inclusive ZZ events with Z->bb, Z->bb and
+# both Z masses in the ZZto4B MadSpin window are replaced by ZZto4B (mode "split") or combined
+# with it in proportion to the effective luminosities (mode "lumi").
+ZZ4B_SAMPLE = "ZZto4B-1Jets"
+ZZ_INCLUSIVE_SAMPLE = "ZZ"
+zz4b_stitch_selectors = common_samples_bg["zz"] + [f"{ZZ4B_SAMPLE}?"]
+# MadSpin window of the ZZto4B gridpack (param_card mZ = 91.15351 GeV, Gamma_Z = 2.493202 GeV;
+# run_card bwcutoff = 15): mZ +- 15 Gamma_Z = [53.755, 128.552] GeV for both Z.
+ZZ4B_MZ_WINDOW = (91.15351 - 15 * 2.493202, 91.15351 + 15 * 2.493202)
 
 # ttH(bb): 2022 and 2022EE hold three skimmed productions of the same Powheg ttH(bb) sample
 # (TTHto2B_M-125, TTH_Hto2B_M-125, ttHto2B_M-125: same Powheg input and integration grids,
