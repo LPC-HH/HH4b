@@ -65,12 +65,16 @@ cat_corrections = {
         "jec": "Summer24Prompt24_V5",
         "jer": "Summer24Prompt24_JRV2",
         "jetveto": "Summer24Prompt24_RunBCDEFGHI_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_CDEFGHI.json.gz",
+        "pileup": "Collisions24_CDEFGHI_goldenJSON",
     },
     "2025": {
         "jme": f"{cat_correction_path}/JME/Run3-25Prompt-Summer24-NanoAODv15/2026-07-16",
         "jec": "Summer24Prompt25_V3",
         "jer": "Summer24Prompt25_JRV2",
         "jetveto": "Summer24Prompt25_RunCDEFG_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-25Prompt-Summer24-NanoAODv15/2026-06-05/puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz",
+        "pileup": "Collisions25_goldenJSON",
     },
 }
 
@@ -99,7 +103,13 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str | None = None):
+def add_pileup_weight(
+    weights: Weights,
+    year: str,
+    nPU: np.ndarray,
+    dataset: str | None = None,
+    n_true_int: np.ndarray | None = None,
+):
     # clip nPU from 0 to 100
     nPU = np.clip(nPU, 0, 99)
     # print(list(nPU))
@@ -127,25 +137,23 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         # no uncertainties
         weights.add("pileup", sf)
 
-    elif "2024" in year:
-        # public pileup corrections not available yet
-        path_pileup = package_path + "/corrections/data/pileup/PileupReweight_Summer24.root"
-        corr_file = uproot.open(path_pileup)
-
-        pileup_MC = corr_file["simul_hist"].to_numpy()[0]
-
-        pileup_data_nom = corr_file["data_hist"].to_numpy()[0]
-        pileup_data_up = corr_file["data_hist_up"].to_numpy()[0]
-        pileup_data_down = corr_file["data_hist_down"].to_numpy()[0]
-
-        sf_nom = np.clip(pileup_data_nom / pileup_MC, 0, 10)[nPU]
-        sf_up = np.clip(pileup_data_up / pileup_MC, 0, 10)[nPU]
-        sf_down = np.clip(pileup_data_down / pileup_MC, 0, 10)[nPU]
-
-        weights.add("pileup", sf_nom, sf_up, sf_down)
+    elif year in cat_corrections:
+        # official weights, a function of the true number of interactions (Pileup_nTrueInt)
+        if n_true_int is None:
+            raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
+        corr = correctionlib.CorrectionSet.from_file(cat_corrections[year]["pileup_json"])[
+            cat_corrections[year]["pileup"]
+        ]
+        # evaluate and clip up to 10 to avoid large weights
+        values = {
+            var: np.clip(corr.evaluate(n_true_int, var), 0, 10) for var in ["nominal", "up", "down"]
+        }
+        weights.add("pileup", values["nominal"], values["up"], values["down"])
 
     else:
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
+        # NOTE: these weights are defined in the true number of interactions but are evaluated at
+        # nPU; kept as is so that new 2022-2023 skims match the existing ones
         values = {}
 
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
