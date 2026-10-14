@@ -25,6 +25,7 @@ from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
+from .jec_clib import clib_jet_factory
 from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
@@ -49,6 +50,26 @@ pog_jsons = {
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
+}
+
+"""
+2024 and later: the jsonpog-integration rsync above is frozen since 2025-09; the official files are
+in the CMS analysis-corrections (CAT) area. Its dated folders never change ("latest" does), so they
+are pinned here. 2025 data are corrected for use with the Summer24 MC (the 2025 MC is the 2024 MC):
+same MC truth and JES uncertainty as 2024, residuals and JER scale factors derived on 2025 data.
+"""
+cat_correction_path = "/cvmfs/cms-griddata.cern.ch/cat/metadata"
+cat_corrections = {
+    "2024": {
+        "jme": f"{cat_correction_path}/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16",
+        "jec": "Summer24Prompt24_V5",
+        "jer": "Summer24Prompt24_JRV2",
+    },
+    "2025": {
+        "jme": f"{cat_correction_path}/JME/Run3-25Prompt-Summer24-NanoAODv15/2026-07-16",
+        "jec": "Summer24Prompt25_V3",
+        "jer": "Summer24Prompt25_JRV2",
+    },
 }
 
 
@@ -267,7 +288,24 @@ class JECs:
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
 
-    def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
+        if year in cat_corrections:
+            # official correctionlib JECs and JER (run-dependent data residuals, AK8 MC truth)
+            # replace the text-file ones of the pickle, which predate them
+            cat = cat_corrections[year]
+            for jet_type, (jerc_file, algo) in {
+                "ak4": ("jet_jerc", "AK4PFPuppi"),
+                "ak8": ("fatJet_jerc", "AK8PFPuppi"),
+            }.items():
+                path = f"{cat['jme']}/{jerc_file}.json.gz"
+                self.jet_factory[jet_type] = {
+                    **self.jet_factory[jet_type],
+                    f"{year}mc": clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=False),
+                    year: clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=True),
+                }
+
+    def _add_jec_variables(
+        self, jets: JetArray, event_rho: ak.Array, isData: bool, run: ak.Array | None = None
+    ) -> JetArray:
         """add variables needed for JECs"""
         jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
         jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
@@ -275,6 +313,9 @@ class JECs:
         if not isData:
             # gen pT needed for smearing
             jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        if run is not None:
+            # run number for the run-dependent data residuals
+            jets["run"] = ak.broadcast_arrays(run, jets.pt)[0]
         return jets
 
     def get_jec_jets(
@@ -298,7 +339,8 @@ class JECs:
             if "Rho" in events.fields
             else events.fixedGridRhoFastjetAll
         )
-        jets = self._add_jec_variables(jets, rho, isData)
+        run = events.run if (isData and year in cat_corrections) else None
+        jets = self._add_jec_variables(jets, rho, isData, run)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
         if (
