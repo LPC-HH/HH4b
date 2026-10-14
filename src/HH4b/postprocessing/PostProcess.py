@@ -630,6 +630,8 @@ def fom_cache_tag(args, year: str) -> str:
     except ValueError:
         source_year = year
     tail = zz4b_suffix(args, source_year) + tail
+    if getattr(args, "ak4away_assignment", "exclusive") == "shared":
+        tail = "__ak4shared" + tail
     xsec_suffix = FOM_CACHE_XSEC_SUFFIX if source_year in W_XSEC_CORRECTION_ERAS else ""
     if (
         source_year in hh_vars.tthtobb_era_selectors
@@ -968,6 +970,7 @@ def load_process_run3_samples(
             # (--zz4b-tag: also the ZZto4B-1Jets skim, zz label only)
             override_dir=override_dirs or None,
             zz4b_replace=zz4b_replace,
+            ak4away_assignment=getattr(args, "ak4away_assignment", "exclusive"),
         )
         # Safety net: if a sample has no events in the skimmer for this year
         # (e.g. a background absent in some era), skip it instead of crashing
@@ -2888,6 +2891,18 @@ if __name__ == "__main__":
             "ZZto4B MadSpin window [53.755, 128.552] GeV from it alone (utils.ZZ4bReplace), in every year "
             "whose MC has it; other years unchanged. FOM cache key suffix __zz4b-<tag>. "
             "Default: none"
+        ),
+    )
+    parser.add_argument(
+        "--ak4away-assignment",
+        type=str,
+        default="exclusive",
+        choices=["exclusive", "shared"],
+        help=(
+            '"exclusive" (default): the skim\'s AK4 jets away from the bb jets, one per bb jet; '
+            '"shared": the second bb jet gets the AK4 jet the skimmer chose before it stopped '
+            "sharing one between the two bb jets (rebuilt from the skim, "
+            "utils.ak4away_shared_assignment). FOM cache key token __ak4shared"
         ),
     )
     parser.add_argument(

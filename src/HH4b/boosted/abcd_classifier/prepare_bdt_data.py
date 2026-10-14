@@ -56,6 +56,7 @@ from HH4b import hh_vars
 from HH4b.hh_vars import txbb_strings
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import HLTs
+from HH4b.utils import ak4away_shared_assignment
 
 from . import dataset as ds_mod
 
@@ -110,6 +111,18 @@ def parse_args() -> argparse.Namespace:
         "--model-name",
         required=True,
         help="BDT training directory name; selects the cache subdir.",
+    )
+    parser.add_argument(
+        "--ak4away-assignment",
+        type=str,
+        default="exclusive",
+        choices=["exclusive", "shared"],
+        help=(
+            '"exclusive" (default): the skim\'s AK4 jets away from the bb jets, one per bb jet; '
+            '"shared": the second bb jet gets the AK4 jet the skimmer chose before it stopped '
+            "sharing one between the two bb jets (rebuilt from the skim, "
+            "utils.ak4away_shared_assignment)"
+        ),
     )
     parser.add_argument(
         "--run-dir",
@@ -783,6 +796,10 @@ def main() -> None:
         [year],
         samples=samples_to_load,
     )
+    if args.ak4away_assignment == "shared":
+        for sample, df in pickles.items():
+            n = ak4away_shared_assignment(df)
+            logger.info(f"{sample}: shared AK4-away assignment, {n} of {len(df)} events changed")
 
     region_masks: dict[str, dict[str, np.ndarray]] = {}
     for sample, df in pickles.items():

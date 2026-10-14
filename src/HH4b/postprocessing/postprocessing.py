@@ -334,6 +334,7 @@ def load_run3_samples(
     jmsr_year: str | None = None,
     override_dir: str | list[str] | None = None,
     zz4b_replace: utils.ZZ4bReplace | None = None,
+    ak4away_assignment: str = "exclusive",
 ):
     """Load the Run-3 samples of one year with the analysis columns and filters.
 
@@ -347,6 +348,10 @@ def load_run3_samples(
     ``zz4b_replace`` (opt-in, PostProcess --zz4b-tag) is passed on to ``utils.load_samples``, which
     then takes ZZ -> bbbb from ZZto4B-1Jets instead of the inclusive ZZ (``utils.ZZ4bReplace``);
     None loads them as they are.
+
+    ``ak4away_assignment``: "exclusive" (default) keeps the skim's AK4 jets away from the bb jets;
+    "shared" gives the second bb jet the AK4 jet the skimmer chose before it stopped sharing one
+    between the two bb jets (``utils.ak4away_shared_assignment``), for every sample.
 
     ``jmsr_correct`` (opt-in; PostProcess turns it on for glopart-v3 unless --no-glopartv3-jmsr)
     applies JMS/JMR to ``mass_str`` of every MC sample in ``syst_keys`` (all MC except QCD, the
@@ -575,6 +580,13 @@ def load_run3_samples(
         **events_dict_syst_ggf,
         **events_dict_syst_vbf,
     }
+
+    if ak4away_assignment not in utils.AK4AWAY_ASSIGNMENTS:
+        raise ValueError(f"ak4away_assignment must be one of {utils.AK4AWAY_ASSIGNMENTS}")
+    if ak4away_assignment == "shared":
+        for key, events in events_dict.items():
+            n = utils.ak4away_shared_assignment(events)
+            print(f"{key}: shared AK4-away assignment, {n} of {len(events)} events changed")
 
     return events_dict
 

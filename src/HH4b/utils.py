@@ -883,6 +883,38 @@ def _replace_zz4b(
     return frames
 
 
+AK4AWAY_ASSIGNMENTS = ("exclusive", "shared")
+
+
+def ak4away_shared_assignment(events: pd.DataFrame) -> int:
+    """Give the second bb jet the AK4 jet it had before the skimmer stopped sharing one, in place.
+
+    The skimmer (``objects.ak4_jets_awayfromak8``, ``sort_by="nearest"``) stores in ``AK4JetAway*``
+    index 0 the AK4 jet nearest to the first bb jet, and in index 1 the nearest to the second among
+    the remaining ones ("exclusive"). Before, index 1 was the nearest to the second bb jet among all
+    of them, which can be the same jet ("shared"). The shared choice follows from the stored jets:
+    it is jet 0 whenever jet 0 is closer to the second bb jet than the stored jet 1, or there is no
+    jet 1. All ``AK4JetAway*`` columns of those events are overwritten at index 1 with index 0.
+    Assumes the ``bbFatJet`` order of the skim (true when the loader reorders by the skim's own
+    tagger). Returns the number of events changed.
+    """
+    pt = events["AK4JetAwayPt"].to_numpy()
+    eta, phi = events["AK4JetAwayEta"].to_numpy(), events["AK4JetAwayPhi"].to_numpy()
+    feta, fphi = events["bbFatJetEta"].to_numpy()[:, 1], events["bbFatJetPhi"].to_numpy()[:, 1]
+
+    def delta_r(e, p):
+        return np.hypot(e - feta, np.mod(p - fphi + np.pi, 2 * np.pi) - np.pi)
+
+    has0, has1 = pt[:, 0] > 0, pt[:, 1] > 0
+    changed = has0 & (~has1 | (delta_r(eta[:, 0], phi[:, 0]) < delta_r(eta[:, 1], phi[:, 1])))
+    for key in np.unique(events.columns.get_level_values(0)):
+        if key.startswith("AK4JetAway") and (key, 1) in events.columns:
+            vals = events[key].to_numpy().copy()
+            vals[changed, 1] = vals[changed, 0]
+            events[key] = vals
+    return int(changed.sum())
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
