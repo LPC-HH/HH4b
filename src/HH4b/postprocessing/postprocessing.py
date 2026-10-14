@@ -335,6 +335,7 @@ def load_run3_samples(
     override_dir: str | list[str] | None = None,
     zz4b_replace: utils.ZZ4bReplace | None = None,
     ak4away_assignment: str = "exclusive",
+    mc_year: str | None = None,
 ):
     """Load the Run-3 samples of one year with the analysis columns and filters.
 
@@ -348,6 +349,10 @@ def load_run3_samples(
     ``zz4b_replace`` (opt-in, PostProcess --zz4b-tag) is passed on to ``utils.load_samples``, which
     then takes ZZ -> bbbb from ZZto4B-1Jets instead of the inclusive ZZ (``utils.ZZ4bReplace``);
     None loads them as they are.
+
+    ``mc_year`` (TODO(mc-sharing): remove once 2025 has MC of its own): the year the MC is used
+    for if it is not ``year`` (2025 from the 2024 skims); passed on to ``utils.load_samples``, which
+    then applies that year's jet veto map and, for 2025, its pileup weights.
 
     ``ak4away_assignment``: "exclusive" (default) keeps the skim's AK4 jets away from the bb jets;
     "shared" gives the second bb jet the AK4 jet the skimmer chose before it stopped sharing one
@@ -450,6 +455,7 @@ def load_run3_samples(
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
             zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -475,6 +481,7 @@ def load_run3_samples(
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
             zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -504,6 +511,7 @@ def load_run3_samples(
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
             zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -529,6 +537,7 @@ def load_run3_samples(
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
             zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -547,6 +556,7 @@ def load_run3_samples(
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
             zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=False,
         ),
     }

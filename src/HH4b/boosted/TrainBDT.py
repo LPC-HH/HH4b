@@ -1184,6 +1184,8 @@ def main(args):
             mass_str=args.mass_str,
             bdt_version=args.config_name,
             ak4away_assignment=args.ak4away_assignment,
+            # TODO(mc-sharing): the year the (shared 2024) MC is used for
+            mc_year=year,
         )
 
         # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
@@ -1359,6 +1361,8 @@ def main(args):
             mass_str=args.mass_str,
             bdt_version=args.config_name,
             ak4away_assignment=args.ak4away_assignment,
+            # TODO(mc-sharing): the year the (shared 2024) MC is used for
+            mc_year=year,
         )
         if args.apply_cuts:
             events_dict[year] = apply_cuts(

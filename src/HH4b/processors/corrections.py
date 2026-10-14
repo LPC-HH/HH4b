@@ -103,6 +103,17 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
+def get_pileup_weights(year: str, n_true_int: np.ndarray) -> dict[str, np.ndarray]:
+    """Official pileup weights (nominal, up, down) of ``year`` (2024 and later) at Pileup_nTrueInt,
+    clipped to [0, 10] to avoid large weights."""
+    corr = correctionlib.CorrectionSet.from_file(cat_corrections[year]["pileup_json"])[
+        cat_corrections[year]["pileup"]
+    ]
+    return {
+        var: np.clip(corr.evaluate(n_true_int, var), 0, 10) for var in ["nominal", "up", "down"]
+    }
+
+
 def add_pileup_weight(
     weights: Weights,
     year: str,
@@ -141,13 +152,7 @@ def add_pileup_weight(
         # official weights, a function of the true number of interactions (Pileup_nTrueInt)
         if n_true_int is None:
             raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
-        corr = correctionlib.CorrectionSet.from_file(cat_corrections[year]["pileup_json"])[
-            cat_corrections[year]["pileup"]
-        ]
-        # evaluate and clip up to 10 to avoid large weights
-        values = {
-            var: np.clip(corr.evaluate(n_true_int, var), 0, 10) for var in ["nominal", "up", "down"]
-        }
+        values = get_pileup_weights(year, n_true_int)
         weights.add("pileup", values["nominal"], values["up"], values["down"])
 
     else:

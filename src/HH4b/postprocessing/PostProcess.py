@@ -971,6 +971,8 @@ def load_process_run3_samples(
             override_dir=override_dirs or None,
             zz4b_replace=zz4b_replace,
             ak4away_assignment=getattr(args, "ak4away_assignment", "exclusive"),
+            # TODO(mc-sharing): the year the (shared 2024) MC is used for
+            mc_year=year,
         )
         # Safety net: if a sample has no events in the skimmer for this year
         # (e.g. a background absent in some era), skip it instead of crashing
