@@ -29,6 +29,7 @@ from .corrections import (
     get_jetveto_event,
     get_jmsr,
     get_pdf_weights,
+    get_pileup_weights,
     get_scale_weights,
 )
 from .GenSelection import (
@@ -1109,6 +1110,15 @@ class bbbbSkimmer(SkimmerABC):
         # jet veto maps
         if is_run3:
             cut_jetveto = get_jetveto_event(jets, year)
+            # TODO(mc-sharing): remove once 2025 has MC of its own, and cut on the year's map only
+            # again. The 2024 MC is also the 2025 MC (PostProcess --split-shared-mc), so it keeps
+            # the events that pass the 2024 or the 2025 map and saves both decisions;
+            # utils.load_samples applies the map of the year the events are used for.
+            if year == "2024" and not isData:
+                cut_jetveto_2025 = get_jetveto_event(jets, "2025")
+                skimmed_events["ak4_jetveto_2024"] = np.asarray(cut_jetveto, dtype=bool)
+                skimmed_events["ak4_jetveto_2025"] = np.asarray(cut_jetveto_2025, dtype=bool)
+                cut_jetveto = cut_jetveto | cut_jetveto_2025
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "pre-sel" or self._region == "signal":
@@ -1362,6 +1372,19 @@ class bbbbSkimmer(SkimmerABC):
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.weight()
+
+        # TODO(mc-sharing): remove once 2025 has MC of its own. The 2024 MC is also the 2025 MC
+        # (PostProcess --split-shared-mc): save the ratios of the 2025 to the 2024 pileup weights
+        # (2025 nominal, up, down over the 2024 nominal), which turn every weight column into its
+        # 2025 version, and the totals of the 2025 nominal, up and down; utils.load_samples
+        # reweights and normalizes the events used for 2025 with them.
+        if year == "2024":
+            pu24 = weights.partial_weight(include=["pileup"])
+            pu25 = get_pileup_weights("2025", events.Pileup.nTrueInt.to_numpy())
+            ratios = np.stack([pu25[var] / pu24 for var in ["nominal", "up", "down"]], axis=1)
+            weights_dict["pileup_2025_over_2024"] = ratios
+            for i, label in enumerate(["nominal", "pileupUp", "pileupDown"]):
+                totals_dict[f"np_{label}_pu2025"] = np.sum((weight_np * ratios[:, i])[gen_selected])
 
         return weights_dict, totals_dict
 

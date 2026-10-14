@@ -910,6 +910,62 @@ def _replace_zz4b(
     return frames
 
 
+# TODO(mc-sharing): remove once 2025 has MC of its own (and with it the mc_year argument of
+# load_samples). The 2024 MC is also the 2025 MC (PostProcess --split-shared-mc): the 2024 MC skims
+# keep the events that pass the 2024 or the 2025 jet veto map and save both decisions, the ratios of
+# the 2025 to the 2024 pileup weights (nominal, up, down) and the 2025 pileup totals (bbbbSkimmer).
+# Skims without these columns are loaded as before.
+MC_SHARING_COLUMNS = [
+    ("ak4_jetveto_2024", 1),
+    ("ak4_jetveto_2025", 1),
+    ("pileup_2025_over_2024", 3),
+]
+
+
+def _mc_sharing_veto(events: pd.DataFrame, mc_year: str) -> pd.DataFrame:
+    """Keep the events that pass the jet veto map of ``mc_year`` (2024 MC skims, see
+    ``MC_SHARING_COLUMNS``)."""
+    keep = _col1d(events, f"ak4_jetveto_{mc_year}").astype(bool)
+    return events.loc[keep].reset_index(drop=True)
+
+
+def _mc_sharing_pileup_2025(events: pd.DataFrame, totals: dict) -> dict:
+    """Turn the 2024 pileup weights of 2024 MC events used for 2025 into the 2025 ones, in place,
+    and return the np totals to normalize them with (``MC_SHARING_COLUMNS``).
+
+    Every weight column (nominal, its variations, scale and PDF weights, ``weight_noxsec``) is
+    multiplied by the 2025/2024 nominal ratio, except the pileup variations, which become the
+    nominal weight times the 2025 up/down over 2024 nominal ratio. np_nominal, np_pileupUp and
+    np_pileupDown become their 2025 totals; every other np total, and the per-LHE-V-pT totals, is
+    scaled by the same factor as its base total (the nominal one unless it is a pileup variation),
+    so ratios of totals (e.g. the V+jets range fractions) are unchanged.
+    """
+    ratios = events["pileup_2025_over_2024"].to_numpy()
+
+    def times(vals: np.ndarray, k: int) -> np.ndarray:
+        return vals * (ratios[:, k : k + 1] if vals.ndim == 2 else ratios[:, k])
+
+    weight = events["weight"].to_numpy().copy()
+    for col in events.columns.get_level_values(0).unique():
+        if col in ("weight_pileupUp", "weight_pileupDown"):
+            events[col] = times(weight, 1 if col.endswith("Up") else 2)
+        elif col in ("weight", "scale_weights", "pdf_weights") or (
+            col.startswith("weight_") and "nonorm" not in col
+        ):
+            events[col] = times(events[col].to_numpy(), 0)
+    factors = {
+        f"np_{label}": totals[f"np_{label}_pu2025"] / totals[f"np_{label}"]
+        for label in ("nominal", "pileupUp", "pileupDown")
+        if f"np_{label}" in totals
+    }
+    out = dict(totals)
+    for key, val in totals.items():
+        if key.startswith("np_") and not key.endswith("_pu2025"):
+            base = key.removesuffix("_lhevpt")
+            out[key] = np.asarray(val) * factors.get(base, factors["np_nominal"])
+    return out
+
+
 AK4AWAY_ASSIGNMENTS = ("exclusive", "shared")
 
 
@@ -956,6 +1012,7 @@ def load_samples(
     ptqq_stitch: PtqqStitch | None = None,
     override_dir: Path | str | list | None = None,
     zz4b_replace: ZZ4bReplace | None = None,
+    mc_year: str | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -981,6 +1038,10 @@ def load_samples(
         zz4b_replace (ZZ4bReplace): opt-in replacement of the ZZ -> bbbb part of the inclusive
             ZZ by ZZto4B-1Jets under one label (see ``ZZ4bReplace``), applied when both are
             selected for ``year``. None (default): every sample is loaded as it is.
+        mc_year (str): TODO(mc-sharing): the year the MC is used for, if it is not ``year`` (2025
+            from the 2024 skims). In 2024 MC skims with ``MC_SHARING_COLUMNS``, the events that fail
+            the jet veto map of ``mc_year`` (default ``year``) are dropped, and for 2025 the weights
+            and their np totals become the 2025 pileup ones.
 
     Returns:
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
@@ -1083,6 +1144,20 @@ def load_samples(
 
             sample_path = sample_dirs.get(sample, data_dir / sample)
             parquet_path, pickles_path = sample_path / "parquet", sample_path / "pickles"
+            # TODO(mc-sharing): the 2024 MC skims' jet veto decisions and 2025 pileup ratios
+            mc_sharing = False
+            if label != data_key and parquet_path.exists():
+                first = next((f for f in sorted(parquet_path.glob("*.parquet")) if _parquet_has_rows(f)), None)  # fmt: skip
+                mc_sharing = first is not None and "('ak4_jetveto_2024', '0')" in pq.read_schema(first).names  # fmt: skip
+            if mc_sharing and sample_columns is not None:
+                sample_columns = sample_columns + [
+                    col for col in format_columns(MC_SHARING_COLUMNS) if col not in sample_columns
+                ]
+            if mc_year not in (None, year) and not mc_sharing and label != data_key:
+                logger.warning(
+                    f"{sample} ({year} skim used for {mc_year}) has no {MC_SHARING_COLUMNS[0][0]}: "
+                    f"it keeps the {year} jet veto map and pileup weights"
+                )
             if range_mode and sample in ranges:
                 _check_range_sample(parquet_path, pickles_path, sample, *ranges[sample])
 
@@ -1124,10 +1199,17 @@ def load_samples(
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
 
+            # TODO(mc-sharing): the jet veto map of the year the 2024 MC is used for
+            if mc_sharing:
+                events = _mc_sharing_veto(events, mc_year or year)
+
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
             if "totals" in pickles:
                 totals = pickles["totals"]
+                # TODO(mc-sharing): 2025 pileup weights and totals for 2024 MC used for 2025
+                if mc_sharing and (mc_year or year) == "2025":
+                    totals = _mc_sharing_pileup_2025(events, totals)
                 _normalize_weights(
                     events,
                     year,
