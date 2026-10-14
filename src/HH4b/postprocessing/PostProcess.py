@@ -48,6 +48,7 @@ from HH4b.utils import (
     W_XSEC_CORRECTION_ERAS,
     PtqqStitch,
     ShapeVar,
+    ZZ4bReplace,
     check_get_jec_var,
     discretize_var,
     get_var_mapping,
@@ -547,6 +548,32 @@ def get_override_dir(args) -> str | None:
     return f"{args.data_dir}/{override_tag}" if override_tag else None
 
 
+def get_zz4b_replace(args) -> ZZ4bReplace | None:
+    """``--zz4b-tag`` settings for ``utils.load_samples(zz4b_replace=...)``; None without the flag.
+
+    The tag holds the ZZto4B-1Jets skim (2024; 2025 reads it through --split-shared-mc). The zz
+    label then reads ``hh_vars.zz4b_replace_selectors`` with that tag as a further override
+    directory, and ``utils.load_samples`` takes ZZ->bbbb in the ZZto4B MadSpin window from ZZto4B
+    alone (dropping those inclusive ZZ events) in every year that has both. Other years load the zz
+    label as before.
+    """
+    if not getattr(args, "zz4b_tag", None):
+        return None
+    return ZZ4bReplace()
+
+
+def zz4b_suffix(args, source_year: str) -> str:
+    """FOM slim-cache token of the ZZto4B replacement for an MC source year: "__zz4b-<tag>" if
+    --zz4b-tag has a ZZto4B-1Jets directory for it, else ""."""
+    zz4b_tag = getattr(args, "zz4b_tag", None)
+    if (
+        not zz4b_tag
+        or not (Path(args.data_dir) / zz4b_tag / source_year / hh_vars.ZZ4B_SAMPLE).is_dir()
+    ):
+        return ""
+    return f"__zz4b-{zz4b_tag}"
+
+
 def glopartv3_jmsr_on(args) -> bool:
     """Whether MC gets the load-time JMS/JMR of the glopart-v3 mass (``--glopartv3-jmsr``).
 
@@ -588,6 +615,10 @@ def fom_cache_tag(args, year: str) -> str:
     BDT-shape SF of its weights (``TTBAR_BDTSF_COL``), which ``fom_cache_rescore`` re-evaluates
     with the scanned model. Caches without it (ttbar weights with the SF of the model that built
     them, key without the suffix) are never read again.
+
+    Plus "__zz4b-<tag>" (before any "__jmsr...") for every year whose MC source year has a
+    ZZto4B-1Jets directory in --zz4b-tag (``zz4b_suffix``): its zz frame holds ZZto4B in place of
+    the inclusive ZZ -> bbbb events. The other years keep their keys.
     """
     tail = FOM_CACHE_TTSF_SUFFIX
     if glopartv3_jmsr_on(args):
@@ -598,6 +629,7 @@ def fom_cache_tag(args, year: str) -> str:
         source_year = split.source_year
     except ValueError:
         source_year = year
+    tail = zz4b_suffix(args, source_year) + tail
     xsec_suffix = FOM_CACHE_XSEC_SUFFIX if source_year in W_XSEC_CORRECTION_ERAS else ""
     if (
         source_year in hh_vars.tthtobb_era_selectors
@@ -903,6 +935,14 @@ def load_process_run3_samples(
         if ptqq_stitch is not None:
             samples_to_process = {source_year: {key: hh_vars.vjets_stitch_selectors}}
             logger.info(f"vjets: stitching the open-ended Bin-PTQQ samples with {ptqq_stitch}")
+        # --zz4b-tag (opt-in): ZZto4B-1Jets from that skim tag, combined with the inclusive ZZ in
+        # utils.load_samples wherever both exist (2024, and 2025 from the 2024 MC)
+        zz4b_replace = get_zz4b_replace(args) if key == "zz" else None
+        override_dirs = [d for d in [get_override_dir(args)] if d is not None]
+        if zz4b_replace is not None:
+            samples_to_process = {source_year: {key: hh_vars.zz4b_replace_selectors}}
+            override_dirs.append(f"{args.data_dir}/{args.zz4b_tag}")
+            logger.info(f"zz: ZZto4B replacement {zz4b_replace} with {args.zz4b_tag}")
 
         _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
@@ -925,7 +965,9 @@ def load_process_run3_samples(
             jmsr_correct=glopartv3_jmsr_on(args),
             jmsr_year=year,
             # --override-tag (opt-in): that skim's sample directories replace --tag's
-            override_dir=get_override_dir(args),
+            # (--zz4b-tag: also the ZZto4B-1Jets skim, zz label only)
+            override_dir=override_dirs or None,
+            zz4b_replace=zz4b_replace,
         )
         # Safety net: if a sample has no events in the skimmer for this year
         # (e.g. a background absent in some era), skip it instead of crashing
@@ -2837,6 +2879,18 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--zz4b-tag",
+        type=str,
+        default=None,
+        help=(
+            "optional skim tag under --data-dir holding ZZto4B-1Jets (2024 NanoAODv15; 2025 via "
+            "--split-shared-mc): the zz process then takes ZZ->bbbb with both Z masses in the "
+            "ZZto4B MadSpin window [53.755, 128.552] GeV from it alone (utils.ZZ4bReplace), in every year "
+            "whose MC has it; other years unchanged. FOM cache key suffix __zz4b-<tag>. "
+            "Default: none"
+        ),
+    )
+    parser.add_argument(
         "--override-tag",
         type=str,
         default=None,
@@ -3002,6 +3056,8 @@ if __name__ == "__main__":
         raise ValueError("--vjets-stitch-txbb-min is for --vjets-stitch-mode effective-lumi only")
     if args.override_tag and not (Path(args.data_dir) / args.override_tag).is_dir():
         raise ValueError(f"--override-tag: {Path(args.data_dir) / args.override_tag} not found")
+    if args.zz4b_tag and not (Path(args.data_dir) / args.zz4b_tag).is_dir():
+        raise ValueError(f"--zz4b-tag: {Path(args.data_dir) / args.zz4b_tag} not found")
     if args.scale_smear and glopartv3_jmsr_on(args):
         raise ValueError("--scale-smear re-derives the mass too: add --no-glopartv3-jmsr")
     if glopartv3_jmsr_on(args):

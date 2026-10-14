@@ -332,15 +332,21 @@ def load_run3_samples(
     ptqq_stitch: utils.PtqqStitch | None = None,
     jmsr_correct: bool = False,
     jmsr_year: str | None = None,
-    override_dir: str | None = None,
+    override_dir: str | list[str] | None = None,
+    zz4b_replace: utils.ZZ4bReplace | None = None,
 ):
     """Load the Run-3 samples of one year with the analysis columns and filters.
 
     ``ptqq_stitch`` (opt-in, PostProcess --vjets-stitch) is passed on to ``utils.load_samples``,
     which then stitches the open-ended 2024 V+jets Bin-PTQQ samples; None loads them as they are.
 
-    ``override_dir`` (opt-in, PostProcess --override-tag) is passed on to ``utils.load_samples``:
-    the sample directories of that skim tag replace the same-named ones of ``input_dir``.
+    ``override_dir`` (opt-in, PostProcess --override-tag / --zz4b-tag) is passed on to
+    ``utils.load_samples``: the sample directories of those skim tags replace the same-named ones of
+    ``input_dir`` (a list: later tags win).
+
+    ``zz4b_replace`` (opt-in, PostProcess --zz4b-tag) is passed on to ``utils.load_samples``, which
+    then takes ZZ -> bbbb from ZZto4B-1Jets instead of the inclusive ZZ (``utils.ZZ4bReplace``);
+    None loads them as they are.
 
     ``jmsr_correct`` (opt-in; PostProcess turns it on for glopart-v3 unless --no-glopartv3-jmsr)
     applies JMS/JMR to ``mass_str`` of every MC sample in ``syst_keys`` (all MC except QCD, the
@@ -438,6 +444,7 @@ def load_run3_samples(
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -462,6 +469,7 @@ def load_run3_samples(
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -490,6 +498,7 @@ def load_run3_samples(
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -514,6 +523,7 @@ def load_run3_samples(
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -531,6 +541,7 @@ def load_run3_samples(
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
             override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
             variations=False,
         ),
     }

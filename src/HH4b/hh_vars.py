@@ -65,7 +65,7 @@ common_samples_bg = {
     # Exact names: the prefix "ZZ" would also pick up a ZZto4B-1Jets directory and add it on top of
     # the inclusive ZZ, which already holds ZZ->bbbb. These are the ZZ directories of every v15
     # skim tag (2022-2023: ZZ, ZZto2L2Q-1Jets, ZZto4L-1Jets; 2024: ZZ), so the loaded frames are
-    # unchanged. ZZto4B-1Jets is loaded only with PostProcess --zz4b-tag (zz4b_stitch_selectors).
+    # unchanged. ZZto4B-1Jets is loaded only with PostProcess --zz4b-tag (zz4b_replace_selectors).
     "zz": ["ZZ?", "ZZto2L2Q-1Jets?", "ZZto4L-1Jets?"],
     "nozzdiboson": ["WW", "WZ"],
     # 2022-2023: *_PTQQ-XtoY_{1J,2J} are exclusive bins -> sum them all.
@@ -95,13 +95,13 @@ vjets_stitch_selectors = common_samples_bg["vjets"] + [
 ]
 
 # Opt-in (PostProcess --zz4b-tag): the dedicated ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8
-# sample (2024 NanoAODv15; 2025 through --split-shared-mc) next to the inclusive pythia8 ZZ,
-# stitched in utils.load_samples (utils.ZZ4bStitch): the inclusive ZZ events with Z->bb, Z->bb and
-# both Z masses in the ZZto4B MadSpin window are replaced by ZZto4B (mode "split") or combined
-# with it in proportion to the effective luminosities (mode "lumi").
+# sample (2024 NanoAODv15; 2025 through --split-shared-mc) replaces part of the inclusive pythia8
+# ZZ in utils.load_samples (utils.ZZ4bReplace): the inclusive ZZ events with Z->bb, Z->bb and both
+# Z masses in the ZZto4B MadSpin window are dropped and taken from ZZto4B alone; the other ZZ
+# events stay.
 ZZ4B_SAMPLE = "ZZto4B-1Jets"
 ZZ_INCLUSIVE_SAMPLE = "ZZ"
-zz4b_stitch_selectors = common_samples_bg["zz"] + [f"{ZZ4B_SAMPLE}?"]
+zz4b_replace_selectors = common_samples_bg["zz"] + [f"{ZZ4B_SAMPLE}?"]
 # MadSpin window of the ZZto4B gridpack (param_card mZ = 91.15351 GeV, Gamma_Z = 2.493202 GeV;
 # run_card bwcutoff = 15): mZ +- 15 Gamma_Z = [53.755, 128.552] GeV for both Z.
 ZZ4B_MZ_WINDOW = (91.15351 - 15 * 2.493202, 91.15351 + 15 * 2.493202)
