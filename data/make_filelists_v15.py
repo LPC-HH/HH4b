@@ -314,6 +314,9 @@ MC_SAMPLES_DICT = {
             "WW": "/WW_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "WZ": "/WZ_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
             "ZZ": "/ZZ_TuneCP5_13p6TeV_pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
+            # ZZ->bbbb only (MadSpin); not in the default "zz" selectors: loaded and stitched
+            # with the inclusive ZZ only by PostProcess --zz4b-tag (hh_vars.zz4b_stitch_selectors)
+            "ZZto4B-1Jets": "/ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM",
         },
         "HH": {
             # TrimmedSyst = larger productions with only the NNPDF3.1 PDF weights kept. Only the kl-1p00

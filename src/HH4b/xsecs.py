@@ -105,6 +105,10 @@ xsecs["WZto3LNu-1Jets-4FS"] = 5.315
 xsecs["ZZto2L2Q-1Jets"] = 3.86
 xsecs["ZZto4L-1Jets"] = 3.86
 xsecs["WZto4Q-1Jets-4FS"] = 24.88
+# ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8 (FxFx 0+1j, MadSpin Z -> bb, bwcutoff 15):
+# GenXSecAnalyzer on one 2024 MiniAODv6 file (0.3777 +- 0.0020) and 2022 + 2023 MiniAODv4 files
+# (0.3809 +- 0.0014), inverse-variance mean; = 16.7 x 0.1512^2 (0.3818) within 0.5%
+xsecs["ZZto4B-1Jets"] = 0.3798
 
 
 # SingleTop
