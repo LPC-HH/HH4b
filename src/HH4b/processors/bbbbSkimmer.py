@@ -179,6 +179,7 @@ class bbbbSkimmer(SkimmerABC):
         },
         "Pileup": {
             "nPU",
+            "nTrueInt",
         },
         "TriggerObject": {
             "pt": "Pt",
@@ -1278,7 +1279,13 @@ class bbbbSkimmer(SkimmerABC):
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
-        add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        add_pileup_weight(
+            weights,
+            year,
+            events.Pileup.nPU.to_numpy(),
+            dataset,
+            n_true_int=events.Pileup.nTrueInt.to_numpy(),
+        )
         add_ps_weight(weights, events.PSWeight)
 
         logger.debug("weights", extra=weights._weights.keys())
