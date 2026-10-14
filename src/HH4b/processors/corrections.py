@@ -25,6 +25,7 @@ from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
+from .jec_clib import clib_jet_factory
 from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
@@ -49,6 +50,32 @@ pog_jsons = {
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
+}
+
+"""
+2024 and later: the jsonpog-integration rsync above is frozen since 2025-09; the official files are
+in the CMS analysis-corrections (CAT) area. Its dated folders never change ("latest" does), so they
+are pinned here. 2025 data are corrected for use with the Summer24 MC (the 2025 MC is the 2024 MC):
+same MC truth and JES uncertainty as 2024, residuals and JER scale factors derived on 2025 data.
+"""
+cat_correction_path = "/cvmfs/cms-griddata.cern.ch/cat/metadata"
+cat_corrections = {
+    "2024": {
+        "jme": f"{cat_correction_path}/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16",
+        "jec": "Summer24Prompt24_V5",
+        "jer": "Summer24Prompt24_JRV2",
+        "jetveto": "Summer24Prompt24_RunBCDEFGHI_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-04-15/puWeights_CDEFGHI.json.gz",
+        "pileup": "Collisions24_CDEFGHI_goldenJSON",
+    },
+    "2025": {
+        "jme": f"{cat_correction_path}/JME/Run3-25Prompt-Summer24-NanoAODv15/2026-07-16",
+        "jec": "Summer24Prompt25_V3",
+        "jer": "Summer24Prompt25_JRV2",
+        "jetveto": "Summer24Prompt25_RunCDEFG_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-25Prompt-Summer24-NanoAODv15/2026-06-05/puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz",
+        "pileup": "Collisions25_goldenJSON",
+    },
 }
 
 
@@ -76,7 +103,24 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str | None = None):
+def get_pileup_weights(year: str, n_true_int: np.ndarray) -> dict[str, np.ndarray]:
+    """Official pileup weights (nominal, up, down) of ``year`` (2024 and later) at Pileup_nTrueInt,
+    clipped to [0, 10] to avoid large weights."""
+    corr = correctionlib.CorrectionSet.from_file(cat_corrections[year]["pileup_json"])[
+        cat_corrections[year]["pileup"]
+    ]
+    return {
+        var: np.clip(corr.evaluate(n_true_int, var), 0, 10) for var in ["nominal", "up", "down"]
+    }
+
+
+def add_pileup_weight(
+    weights: Weights,
+    year: str,
+    nPU: np.ndarray,
+    dataset: str | None = None,
+    n_true_int: np.ndarray | None = None,
+):
     # clip nPU from 0 to 100
     nPU = np.clip(nPU, 0, 99)
     # print(list(nPU))
@@ -104,25 +148,17 @@ def add_pileup_weight(weights: Weights, year: str, nPU: np.ndarray, dataset: str
         # no uncertainties
         weights.add("pileup", sf)
 
-    elif "2024" in year:
-        # public pileup corrections not available yet
-        path_pileup = package_path + "/corrections/data/pileup/PileupReweight_Summer24.root"
-        corr_file = uproot.open(path_pileup)
-
-        pileup_MC = corr_file["simul_hist"].to_numpy()[0]
-
-        pileup_data_nom = corr_file["data_hist"].to_numpy()[0]
-        pileup_data_up = corr_file["data_hist_up"].to_numpy()[0]
-        pileup_data_down = corr_file["data_hist_down"].to_numpy()[0]
-
-        sf_nom = np.clip(pileup_data_nom / pileup_MC, 0, 10)[nPU]
-        sf_up = np.clip(pileup_data_up / pileup_MC, 0, 10)[nPU]
-        sf_down = np.clip(pileup_data_down / pileup_MC, 0, 10)[nPU]
-
-        weights.add("pileup", sf_nom, sf_up, sf_down)
+    elif year in cat_corrections:
+        # official weights, a function of the true number of interactions (Pileup_nTrueInt)
+        if n_true_int is None:
+            raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
+        values = get_pileup_weights(year, n_true_int)
+        weights.add("pileup", values["nominal"], values["up"], values["down"])
 
     else:
         # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
+        # NOTE: these weights are defined in the true number of interactions but are evaluated at
+        # nPU; kept as is so that new 2022-2023 skims match the existing ones
         values = {}
 
         cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
@@ -229,6 +265,11 @@ def get_scale_weights(events):
 
     See also https://git.rwth-aachen.de/3pia/cms_analyses/common/-/blob/11e0c5225416a580d27718997a11dc3f1ec1e8d1/processor/generator.py#L93 for an example.
     """
+    # Some files (e.g. certain PFNano skims) don't store the LHEScaleWeight branch at all;
+    # treat that the same as "no scale weights" (return None, handled by the caller) so the
+    # job doesn't crash with AttributeError.
+    if "LHEScaleWeight" not in events.fields:
+        return None
     if len(events[0].LHEScaleWeight) > 0:
         if len(events[0].LHEScaleWeight) == 9:
             variations = events.LHEScaleWeight[:, [0, 1, 3, 5, 7, 8]].to_numpy()
@@ -262,7 +303,24 @@ class JECs:
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
 
-    def _add_jec_variables(self, jets: JetArray, event_rho: ak.Array, isData: bool) -> JetArray:
+        if year in cat_corrections:
+            # official correctionlib JECs and JER (run-dependent data residuals, AK8 MC truth)
+            # replace the text-file ones of the pickle, which predate them
+            cat = cat_corrections[year]
+            for jet_type, (jerc_file, algo) in {
+                "ak4": ("jet_jerc", "AK4PFPuppi"),
+                "ak8": ("fatJet_jerc", "AK8PFPuppi"),
+            }.items():
+                path = f"{cat['jme']}/{jerc_file}.json.gz"
+                self.jet_factory[jet_type] = {
+                    **self.jet_factory[jet_type],
+                    f"{year}mc": clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=False),
+                    year: clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=True),
+                }
+
+    def _add_jec_variables(
+        self, jets: JetArray, event_rho: ak.Array, isData: bool, run: ak.Array | None = None
+    ) -> JetArray:
         """add variables needed for JECs"""
         jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
         jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
@@ -270,6 +328,9 @@ class JECs:
         if not isData:
             # gen pT needed for smearing
             jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        if run is not None:
+            # run number for the run-dependent data residuals
+            jets["run"] = ak.broadcast_arrays(run, jets.pt)[0]
         return jets
 
     def get_jec_jets(
@@ -293,7 +354,8 @@ class JECs:
             if "Rho" in events.fields
             else events.fixedGridRhoFastjetAll
         )
-        jets = self._add_jec_variables(jets, rho, isData)
+        run = events.run if (isData and year in cat_corrections) else None
+        jets = self._add_jec_variables(jets, rho, isData, run)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
         if (
@@ -413,13 +475,13 @@ def get_jetveto_event(jets: JetArray, year: str):
     """
     Get event selection that rejects events with jets in the veto map
     """
-    if year == "2025":
-        # no veto map for 2025 yet
-        # TODO: update when available
-        return np.ones(len(jets), dtype=bool)
-
     # correction: Non-zero value for (eta, phi) indicates that the region is vetoed
-    cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
+    if year in cat_corrections:
+        cset = correctionlib.CorrectionSet.from_file(
+            f"{cat_corrections[year]['jme']}/jetvetomaps.json.gz"
+        )
+    else:
+        cset = correctionlib.CorrectionSet.from_file(get_pog_json("jetveto", year))
     j, nj = ak.flatten(jets), ak.num(jets)
 
     def get_veto(j, nj, csetstr):
@@ -433,10 +495,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
-        # "2024": "Winter24Prompt2024BCDEFGHI_V1",
-        "2024": "Summer24Prompt24_RunBCDEFGHI_V1",
-        # https://github.com/cms-jet/JECDatabase/tree/master/jet_veto_maps/Winter25Prompt25
-        # "2025": "Winter25Prompt25_RunCDE_V1",
+        **{y: cat["jetveto"] for y, cat in cat_corrections.items()},
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0

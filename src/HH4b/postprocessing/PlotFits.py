@@ -9,6 +9,7 @@ import numpy as np
 import uproot
 
 from HH4b import plotting, run_utils
+from HH4b.hh_vars import LUMI
 from HH4b.utils import ShapeVar
 
 
@@ -47,7 +48,7 @@ def plot_fits(args):
             ("vbfhh4b-kvm1p21-k2v1p94-klm0p94", "qqHH_CV_m1p21_C2V_1p94_kl_m0p94_13p6TeV_hbbhbb"),
             ("vbfhh4b-kvm1p6-k2v2p72-klm1p36", "qqHH_CV_m1p6_C2V_2p72_kl_m1p36_13p6TeV_hbbhbb"),
             ("vbfhh4b-kvm1p83-k2v3p57-klm3p39", "qqHH_CV_m1p83_C2V_3p57_kl_m3p39_13p6TeV_hbbhbb"),
-            ("vbfhh4b-kvm2p12-k2v3p87-klm5p96", "qqHH_CV_m2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
+            ("vbfhh4b-kv2p12-k2v3p87-klm5p96", "qqHH_CV_2p12_C2V_3p87_kl_m5p96_13p6TeV_hbbhbb"),
         ]
     )
     sig_keys = (
@@ -172,7 +173,8 @@ def plot_fits(args):
             )
             bgerrs[shape][region] = templates["TotalBkg"].errors()
 
-    year = "2022-2025"
+    # data-taking period of the fit (--year): sets the luminosity label
+    year = args.year
     pass_ratio_ylims = [0, 2]
     fail_ratio_ylims = [0, 2]
 
@@ -257,6 +259,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--figure", type=str, default=None, help="figure number to put in hepdata tables"
+    )
+    parser.add_argument(
+        "--year",
+        type=str,
+        default="2022-2025",
+        choices=list(LUMI),
+        help="data-taking period of the fit (hh_vars.LUMI key); sets the luminosity label",
     )
 
     run_utils.add_bool_arg(parser, "vbf-region", default=True, help="Include VBF region")

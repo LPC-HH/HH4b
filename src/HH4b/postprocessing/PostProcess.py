@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
+import json
 import logging
 import logging.config
 import pprint
@@ -45,10 +47,14 @@ from HH4b.postprocessing import (
 )
 from HH4b.postprocessing.bdt_inference import _add_year_features, model_feature_names
 from HH4b.utils import (
+    W_XSEC_CORRECTION_ERAS,
+    PtqqStitch,
     ShapeVar,
+    ZZ4bReplace,
     check_get_jec_var,
     discretize_var,
     get_var_mapping,
+    ptqq_open_threshold,
     singleVarHist,
 )
 
@@ -58,6 +64,22 @@ logger = logging.getLogger(__name__)
 
 # get top-level HH4b directory
 HH4B_DIR = Path(__file__).resolve().parents[3]
+
+# slim FOM cache key suffix of the years whose MC carries the 2022-2023 W cross-section correction
+# (xsecs.py "/ 2", utils._apply_w_xsec_correction; fom_cache_tag); caches without it are never read
+FOM_CACHE_XSEC_SUFFIX = "__wxshalf"
+# ... and of the years whose ttH(bb) and VBF H(bb) load one production, not two
+# (hh_vars.tthtobb_era_selectors, hh_vars.novhhtobb_era_selectors)
+FOM_CACHE_TTH_SUFFIX = "__hbb1prod"
+# ... and of the years whose MC skims hold the decay-specific diboson samples (ZZto2L2Q, ZZto4L,
+# WWto4Q, WWtoLNu2Q, WZto3LNu, WZto4Q) next to the inclusive ZZ/WW/WZ: the exact selectors
+# (hh_vars "ZZ?", "WW?", "WZ?") load only the inclusive samples, where the prefix selectors summed both
+FOM_CACHE_DIBOSON_SUFFIX = "__dibosonexact"
+DIBOSON_EXACT_ERAS = ("2022", "2022EE", "2023", "2023BPix")
+# ... and of every year: its ttbar frame stores the ttbar BDT-shape SF of its weights
+# (TTBAR_BDTSF_COL), which the --fom-cache path re-evaluates with the scanned model
+FOM_CACHE_TTSF_SUFFIX = "__ttbdtsf"
+TTBAR_BDTSF_COL = "ttbar_bdtsf_nom"
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -220,10 +242,21 @@ def _build_and_score_bdt_events(
             logger.info(progress_msg)
         events_chunk = events.iloc[start:end]
         bdt_chunk = make_bdt_dataframe.bdt_dataframe(events_chunk, key_map)
+        # same index as ``events``: the caller aligns masks built from ``events`` with .loc, and
+        # the 2024/2025 split halves are not indexed 0..n-1
+        bdt_chunk.index = events_chunk.index
         if rerun_inference:
             # year-aware models: add year_* one-hots before inference (no-op otherwise)
             _feat_order = _add_year_features(bdt_chunk, model_feature_names(bdt_model_name), year)
-            _X = bdt_chunk[_feat_order] if _feat_order is not None else bdt_chunk
+            # bdt_dataframe applies key_map to its OUTPUT column names too, so a shifted frame
+            # names JEC/JMSR-affected features with the jshift suffix (e.g. HHPt_JES_up). Select
+            # those shifted names -> the model sees the shifted kinematics; XGBoost applies by
+            # column position, so only the order must match. For jshift="" key_map is identity.
+            _X = (
+                bdt_chunk[[key_map(f) for f in _feat_order]]
+                if _feat_order is not None
+                else bdt_chunk
+            )
             preds = bdt_model.predict_proba(_X)
             add_bdt_scores(
                 bdt_chunk,
@@ -239,7 +272,7 @@ def _build_and_score_bdt_events(
 
     if len(built_chunks) == 1:
         return built_chunks[0]
-    return pd.concat(built_chunks, ignore_index=True)
+    return pd.concat(built_chunks)
 
 
 def _should_log_chunk_progress(chunk_num: int, total_chunks: int) -> bool:
@@ -554,6 +587,289 @@ def mc_split_mask(run, luminosity_block, event, split_half: int) -> np.ndarray:
     return parity % 2 == split_half
 
 
+def get_txbb_presel(txbb: str) -> float:
+    """TXbb preselection on the higher-TXbb jet, ``H1TXbb >= get_txbb_presel(txbb)``."""
+    if txbb == "pnet-legacy":
+        return 0.8
+    if txbb in ["glopart-v2", "pnet-v12", "glopart-v3"]:
+        return 0.3
+    raise ValueError(f"no TXbb preselection defined for {txbb}")
+
+
+def get_vjets_stitch(args) -> PtqqStitch | None:
+    """``--vjets-stitch`` settings for ``utils.load_samples``; None without the flag.
+
+    The TXbb load filter on the Bin-PTQQ samples is max(TXbb_0, TXbb_1) >= the H1 TXbb
+    preselection. Every region used downstream (pass bins, fail, FOM ABCD regions incl. the
+    low-TXbb anti-region) is built after ``mask_presel``, which requires exactly that (H1 is the
+    higher-TXbb jet after ``reorder_txbb``, and TXbb has no JEC/JMSR variation), so the filter
+    removes no event any region can use. There is no H2 TXbb preselection: the fail region has no
+    floor by default and the FOM anti-region is H2TXbb < 0.3, so a min(TXbb) filter would cut into
+    them; ``--vjets-stitch-txbb-min`` adds one only as a region-restricted stitch (see PtqqStitch).
+
+    ``--vjets-stitch-mode range``: LHE-V-pT range stitch instead (``utils.ptqq_range_norm``; needs
+    the LHE-pT re-skim, e.g. via ``--override-tag``), with the same TXbb load filter.
+    """
+    if not getattr(args, "vjets_stitch", False):
+        return None
+    txbb_min = getattr(args, "vjets_stitch_txbb_min", -1.0)
+    return PtqqStitch(
+        txbb_presel=get_txbb_presel(args.txbb),
+        txbb_min=txbb_min if txbb_min >= 0 else None,
+        mode=getattr(args, "vjets_stitch_mode", "effective-lumi"),
+    )
+
+
+def get_override_dir(args) -> str | None:
+    """``--override-tag`` skim directory for ``utils.load_samples(override_dir=...)``, or None."""
+    override_tag = getattr(args, "override_tag", None)
+    return f"{args.data_dir}/{override_tag}" if override_tag else None
+
+
+def get_zz4b_replace(args) -> ZZ4bReplace | None:
+    """``--zz4b-tag`` settings for ``utils.load_samples(zz4b_replace=...)``; None without the flag.
+
+    The tag holds the ZZto4B-1Jets skim (2024; 2025 reads it through --split-shared-mc). The zz
+    label then reads ``hh_vars.zz4b_replace_selectors`` with that tag as a further override
+    directory, and ``utils.load_samples`` takes ZZ->bbbb in the ZZto4B MadSpin window from ZZto4B
+    alone (dropping those inclusive ZZ events) in every year that has both. Other years load the zz
+    label as before.
+    """
+    if not getattr(args, "zz4b_tag", None):
+        return None
+    return ZZ4bReplace()
+
+
+def zz4b_suffix(args, source_year: str) -> str:
+    """FOM slim-cache token of the ZZto4B replacement for an MC source year: "__zz4b-<tag>" if
+    --zz4b-tag has a ZZto4B-1Jets directory for it, else ""."""
+    zz4b_tag = getattr(args, "zz4b_tag", None)
+    if (
+        not zz4b_tag
+        or not (Path(args.data_dir) / zz4b_tag / source_year / hh_vars.ZZ4B_SAMPLE).is_dir()
+    ):
+        return ""
+    return f"__zz4b-{zz4b_tag}"
+
+
+def glopartv3_jmsr_on(args) -> bool:
+    """Whether MC gets the load-time JMS/JMR of the glopart-v3 mass (``--glopartv3-jmsr``).
+
+    The v15 skimmer applies JMS/JMR only to the glopart-v2 mass, so for glopart-v3 PostProcess
+    applies the ``hh_vars.jmsr_values`` numbers itself (``postprocessing.jmsr_correct_mass``).
+    getattr: callers that build their own args without the flag keep the uncorrected mass.
+    """
+    return args.txbb == "glopart-v3" and getattr(args, "glopartv3_jmsr", False)
+
+
+def fom_cache_tag(args, year: str) -> str:
+    """Key of a year in the slim FOM cache (``fom_cache``).
+
+    ``args.tag``, plus "__vjstitch..." if --vjets-stitch changes that year's V+jets, i.e. if its MC
+    source year holds open-ended Bin-PTQQ samples (2024, and 2025, which borrows the 2024 MC). All
+    other years load identically with and without the flag, so they share the plain cache.
+
+    Plus "__jmsr<hash of the JMS/JMR values>" when the glopart-v3 JMS/JMR correction is on
+    (``glopartv3_jmsr_on``): the cache stores the MC mass and the BDT features built from it, so
+    corrected, uncorrected and differently corrected frames never share a key.
+
+    ``--vjets-stitch-mode range`` gives "__vjrange" instead of "__vjstitch...", and
+    ``--override-tag T`` adds "__ovr-T" to every year whose MC source year T has a directory for.
+
+    Plus "__wxshalf" (before any "__jmsr...") for every year whose MC source year is 2022-2023BPix
+    (``utils.W_XSEC_CORRECTION_ERAS``): their V+jets holds the 2022-2023 W samples whose cross
+    sections are halved (x0.5 since 2026-09-25; xsecs.py "/ 2" since 2026-09-28, with
+    ``utils._apply_w_xsec_correction`` rescaling the skims made with the 2x XSDB values), so a
+    cache built without it (doubled W, key without the suffix) is never read again. 2024 and 2025
+    (2024 MC) keep their keys: their frames are unchanged.
+
+    Plus "__hbb1prod" (after "__wxshalf") for every year whose MC source year has its own ttH(bb) or
+    VBF H(bb) selector (``hh_vars.tthtobb_era_selectors``, ``hh_vars.novhhtobb_era_selectors``:
+    2022, 2022EE): each loads one production instead of the two the common selectors summed (since
+    2026-09-27), so a cache with the doubled ttH/VBF H (key without the suffix) is never read again.
+    The other years' frames are unchanged.
+
+    Plus "__dibosonexact" (after "__hbb1prod") for every year whose MC source year is in
+    ``DIBOSON_EXACT_ERAS`` (2022-2023BPix): their skims hold the decay-specific ZZ/WW/WZ samples next
+    to the inclusive ones, and the exact diboson selectors (``hh_vars.common_samples_bg``, since the
+    origin/main merge) load only the inclusive ones instead of the sum, so a cache with the summed
+    diboson (key without the suffix) is never read again. 2024 and 2025 (2024 MC) have only the
+    inclusive samples and keep their keys.
+
+    Plus "__ttbdtsf" at the end of every key (since 2026-09-29): the ttbar frame stores the ttbar
+    BDT-shape SF of its weights (``TTBAR_BDTSF_COL``), which ``fom_cache_rescore`` re-evaluates
+    with the scanned model. Caches without it (ttbar weights with the SF of the model that built
+    them, key without the suffix) are never read again.
+
+    Plus "__zz4b-<tag>" (before any "__jmsr...") for every year whose MC source year has a
+    ZZto4B-1Jets directory in --zz4b-tag (``zz4b_suffix``): its zz frame holds ZZto4B in place of
+    the inclusive ZZ -> bbbb events. The other years keep their keys.
+    """
+    tail = FOM_CACHE_TTSF_SUFFIX
+    if glopartv3_jmsr_on(args):
+        vals = json.dumps(hh_vars.jmsr_values[mreg_strings[args.txbb]], sort_keys=True)
+        tail = "__jmsr" + hashlib.sha1(vals.encode()).hexdigest()[:8] + tail
+    try:
+        split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+        source_year = split.source_year
+    except ValueError:
+        source_year = year
+    tail = zz4b_suffix(args, source_year) + tail
+    if getattr(args, "ak4away_assignment", "exclusive") == "shared":
+        tail = "__ak4shared" + tail
+    xsec_suffix = FOM_CACHE_XSEC_SUFFIX if source_year in W_XSEC_CORRECTION_ERAS else ""
+    if (
+        source_year in hh_vars.tthtobb_era_selectors
+        or source_year in hh_vars.novhhtobb_era_selectors
+    ):
+        xsec_suffix += FOM_CACHE_TTH_SUFFIX
+    if source_year in DIBOSON_EXACT_ERAS:
+        xsec_suffix += FOM_CACHE_DIBOSON_SUFFIX
+    stitch = get_vjets_stitch(args)
+    override_tag = getattr(args, "override_tag", None)
+    if stitch is None and not override_tag:
+        return args.tag + xsec_suffix + tail
+    skim_dirs = [Path(args.data_dir) / args.tag / source_year]
+    override_suffix = ""
+    if override_tag and (Path(args.data_dir) / override_tag / source_year).is_dir():
+        override_suffix = f"__ovr-{override_tag}"
+        skim_dirs.append(Path(args.data_dir) / override_tag / source_year)
+    if stitch is None or not any(
+        ptqq_open_threshold(p.name) is not None
+        for skim_dir in skim_dirs
+        if skim_dir.is_dir()
+        for p in skim_dir.iterdir()
+    ):
+        return args.tag + override_suffix + xsec_suffix + tail
+    suffix = "__vjrange" if stitch.mode == "range" else "__vjstitch"
+    if stitch.txbb_min is not None:
+        suffix += f"-txbbmin{stitch.txbb_min:g}".replace(".", "p")
+    return args.tag + suffix + override_suffix + xsec_suffix + tail
+
+
+class TtbarBDTShapeSFs(NamedTuple):
+    """ttbar BDT-shape SF tables of a BDT model and their decorrelation bins."""
+
+    ggf: object  # correctionlib correction of bdt_score
+    vbf: object  # ... of bdt_score_vbf, used in the VBF category (--correct-vbf-bdt-shape)
+    ggf_bins: list
+    vbf_bins: list | None  # None without --correct-vbf-bdt-shape
+
+
+def load_ttbar_bdtshape_sfs(args) -> TtbarBDTShapeSFs:
+    """ttbar BDT-shape SFs of ``args.bdt_model``, or of 25Feb5_v13_glopartv2_rawmass if it has none."""
+    default = "25Feb5_v13_glopartv2_rawmass"
+    return TtbarBDTShapeSFs(
+        ggf=corrections._load_ttbar_bdtshape_sfs(
+            "cat5",
+            args.bdt_model if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins else default,
+            "bdt_score",
+        ),
+        vbf=corrections._load_ttbar_bdtshape_sfs(
+            "cat5",
+            args.bdt_model if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins else default,
+            "bdt_score_vbf",
+        ),
+        ggf_bins=ttbarsfs_decorr_ggfbdt_bins.get(
+            args.bdt_model, ttbarsfs_decorr_ggfbdt_bins[default]
+        ),
+        vbf_bins=(
+            ttbarsfs_decorr_vbfbdt_bins.get(args.bdt_model, ttbarsfs_decorr_vbfbdt_bins[default])
+            if args.correct_vbf_bdt_shape
+            else None
+        ),
+    )
+
+
+def ttbar_sf_vbf_mask(args, events: pd.DataFrame):
+    """Events whose ttbar BDT-shape SF is the VBF one: the VBF category at args' working points."""
+    if not args.vbf:
+        # if no VBF region, set all events to "fail VBF"
+        return np.zeros(len(events), dtype=bool)
+    mask_vbf = (events["bdt_score_vbf"] > args.vbf_bdt_wp) & (events["H2TXbb"] > args.vbf_txbb_wp)
+    if not args.vbf_priority:
+        mask_bin1 = (events["H2TXbb"] > args.txbb_wps[0]) & (events["bdt_score"] > args.bdt_wps[0])
+        # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
+        mask_vbf = mask_vbf & ~(mask_bin1)
+    return mask_vbf
+
+
+def ttbar_bdtshape_sf(args, events: pd.DataFrame, mask_vbf, sfs: TtbarBDTShapeSFs) -> np.ndarray:
+    """Nominal ttbar BDT-shape SF per event: the ggF SF of bdt_score, with
+    --correct-vbf-bdt-shape the VBF SF of bdt_score_vbf in ``mask_vbf`` (``ttbar_sf_vbf_mask``)."""
+    # inclusive bdt shape correction
+    bdtsf, _, _ = corrections.ttbar_SF(sfs.ggf, events, "bdt_score")
+    # use bdt_vbf correction for vbf category if it exists
+    if args.correct_vbf_bdt_shape:
+        vbfbdtsf, _, _ = corrections.ttbar_SF(sfs.vbf, events, "bdt_score_vbf")
+        bdtsf[mask_vbf] = vbfbdtsf[mask_vbf]
+    return bdtsf
+
+
+def ttbar_bdtshape_sf_shifts(
+    args, events: pd.DataFrame, mask_vbf, sfs: TtbarBDTShapeSFs
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """Per-bin up/down variations of the ttbar BDT-shape SF, {weight column: (shifted SF, SF)}.
+
+    Each column is the corrected weight x shifted SF / SF. The ggF bins act outside ``mask_vbf``
+    and the VBF bins inside it; both exist only with --correct-vbf-bdt-shape.
+    """
+    shifts = {}
+    if not args.correct_vbf_bdt_shape:
+        return shifts
+    for label, table, score, bins, unused in (
+        ("ggF", sfs.ggf, "bdt_score", sfs.ggf_bins, mask_vbf),
+        ("VBF", sfs.vbf, "bdt_score_vbf", sfs.vbf_bins, ~mask_vbf),
+    ):
+        for i in range(len(bins) - 1):
+            sf, sf_up, sf_dn = corrections.ttbar_SF(table, events, score, bins[i : i + 2])
+            # only use this correction/uncertainty where it applies
+            for arr in (sf, sf_up, sf_dn):
+                arr[unused] = np.ones(np.sum(unused))
+            name = f"weight_ttbarSF_{label}_BDT_bin_{bins[i]}_{bins[i+1]}"
+            shifts[f"{name}Up"] = (sf_up, sf)
+            shifts[f"{name}Down"] = (sf_dn, sf)
+    return shifts
+
+
+def fom_cache_rescore(args, events: dict[str, pd.DataFrame], year: str, model, feats) -> None:
+    """Score the slim FOM cache frames of ``year`` with ``model`` (``args.bdt_model``), in place.
+
+    The cached ttbar weights carry the ttbar BDT-shape SF of the model and working points that built
+    the cache (``TTBAR_BDTSF_COL``). It is re-evaluated with the new scores and args' working points
+    as in ``load_process_run3_samples``, every ttbar weight column is rescaled by new / old SF and
+    the per-bin BDT-shape variations are rebuilt, so the weights equal those of a direct load.
+    """
+    for df in events.values():
+        feat_order = _add_year_features(df, feats, year)
+        add_bdt_scores(
+            df,
+            model.predict_proba(df[feat_order] if feat_order is not None else df),
+            "",
+            weight_ttbar=args.weight_ttbar_bdt,
+            bdt_disc=args.bdt_disc,
+        )
+    tt = events.get("ttbar")
+    if tt is None:
+        return
+    if TTBAR_BDTSF_COL not in tt:
+        raise ValueError(f"{year} slim-cache ttbar frame has no {TTBAR_BDTSF_COL}: rebuild it")
+    sfs = load_ttbar_bdtshape_sfs(args)
+    mask_vbf = ttbar_sf_vbf_mask(args, tt)
+    bdtsf = ttbar_bdtshape_sf(args, tt, mask_vbf, sfs)
+    ratio = bdtsf / tt[TTBAR_BDTSF_COL].to_numpy()
+    weight_cols = [
+        col
+        for col in tt.columns
+        if col == "weight" or col.startswith(("weight_", "scale_weights_", "pdf_weights_"))
+    ]
+    for col in weight_cols:
+        tt[col] = tt[col].to_numpy() * ratio
+    for col, (sf_shift, sf) in ttbar_bdtshape_sf_shifts(args, tt, mask_vbf, sfs).items():
+        tt[col] = tt["weight"] * sf_shift / sf
+    tt[TTBAR_BDTSF_COL] = bdtsf
+
+
 def load_process_run3_samples(
     args,
     year,
@@ -576,42 +892,43 @@ def load_process_run3_samples(
     tt_ptjj_sf = corrections._load_ttbar_sfs(year, "PTJJ", args.txbb)
     tt_xbb_sf = corrections._load_ttbar_sfs(year, "Xbb", args.txbb)
     tt_tau32_sf = corrections._load_ttbar_sfs(year, "Tau3OverTau2", args.txbb)
-    tt_ggfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5",
-        (
-            args.bdt_model
-            if args.bdt_model in ttbarsfs_decorr_ggfbdt_bins
-            else "25Feb5_v13_glopartv2_rawmass"
-        ),
-        "bdt_score",
-    )
-    tt_vbfbdtshape_sf = corrections._load_ttbar_bdtshape_sfs(
-        "cat5",
-        (
-            args.bdt_model
-            if args.bdt_model in ttbarsfs_decorr_vbfbdt_bins
-            else "25Feb5_v13_glopartv2_rawmass"
-        ),
-        "bdt_score_vbf",
-    )
+    tt_bdtshape_sfs = load_ttbar_bdtshape_sfs(args)
 
     # get dictionary bins from keys
     # add defaults so that these do not fail
     ttsf_xbb_bins = ttbarsfs_decorr_txbb_bins.get(
         args.txbb, ttbarsfs_decorr_txbb_bins["glopart-v2"]
     )
-    ttsf_ggfbdtshape_bins = ttbarsfs_decorr_ggfbdt_bins.get(
-        args.bdt_model, ttbarsfs_decorr_ggfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
-    )
-    if args.correct_vbf_bdt_shape:
-        ttsf_vbfbdtshape_bins = ttbarsfs_decorr_vbfbdt_bins.get(
-            args.bdt_model, ttbarsfs_decorr_vbfbdt_bins["25Feb5_v13_glopartv2_rawmass"]
-        )
     TXbb_pt_corr_bins = txbbsfs_decorr_pt_bins.get(args.txbb, txbbsfs_decorr_pt_bins["glopart-v2"])
     TXbb_wps = txbbsfs_decorr_txbb_wps.get(args.txbb, txbbsfs_decorr_txbb_wps["glopart-v2"])
 
     # load TXbb SFs
-    if args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
+    if args.an184_txbb_sfs and args.txbb == "glopart-v3":
+        # Real glopart-v3 calibration: AN-23-184's measured GloParT-v3 Zbb SFs. Our glopart-v2 WP
+        # bands (defaulted above for v3) coincide with AN-184's purity edges, so WP1<->VHP(>0.99),
+        # WP2<->HP([0.975,0.99]), WP3<->MP([0.95,0.975]); WP4([0.3,0.95]) has no AN-184 measurement
+        # (SF=1, 2x-MP uncertainty). Reads corrections/data/txbb_sfs/glopart-v3/{2022,2023}/
+        # sf_an184_zbb.json. Replaces the dummy/borrow stopgaps with real v3 numbers.
+        txbb_sf = corrections._load_txbb_sfs(
+            year,
+            "sf_an184_zbb",
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            "glopart-v3",
+        )
+    elif args.borrow_txbb_sfs and args.txbb == "glopart-v3":
+        # Proxy calibration for glopart-v3 (no v3 TXbb SFs measured yet): borrow the measured
+        # glopart-v2 Zbb SFs. TXbb_wps / TXbb_pt_corr_bins already default to the glopart-v2
+        # definitions above, so the SF-file keys match; the v2 WP bands are applied to the
+        # ParT3TXbb score. Stopgap (mirrors the v2-borrowed ttbar SFs), NOT a real v3 calibration.
+        txbb_sf = corrections._load_txbb_sfs(
+            year,
+            "sf_glopart-v2_zbb",
+            TXbb_wps,
+            TXbb_pt_corr_bins,
+            "glopart-v2",
+        )
+    elif args.dummy_txbb_sfs or args.txbb not in ["pnet-legacy", "glopart-v2"]:
         txbb_sf = corrections._load_dummy_txbb_sfs(
             TXbb_wps,
             TXbb_pt_corr_bins,
@@ -640,26 +957,6 @@ def load_process_run3_samples(
         f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
     )
 
-    # QCD subsample naming differs across the v15 (glopart-v3) skimmer years:
-    #   2022/2022EE/2023/2023BPix -> 'QCD-4Jets_HT-*'
-    #   2024                       -> 'QCD_HT-*'
-    # (the module-level default 'QCD_HT-*' is the old glopart-v2 naming).
-    # check_selector is case-insensitive but these differ in structure, so set
-    # the right HT-bin list per year.  HT bins below 400 are dropped (trigger
-    # turn-on) as in the default.
-    if args.txbb == "glopart-v3":
-        _ht = [
-            "400to600",
-            "600to800",
-            "800to1000",
-            "1000to1200",
-            "1200to1500",
-            "1500to2000",
-            "2000",
-        ]
-        _pref = "QCD_HT-" if year == "2024" else "QCD-4Jets_HT-"
-        samples_run3[year]["qcd"] = [f"{_pref}{b}" for b in _ht]
-
     # define cutflows
     samples_year = list(samples_run3[year].keys())
 
@@ -670,6 +967,29 @@ def load_process_run3_samples(
     # this flag. They never build 2025, so defaulting to no sharing preserves their
     # behaviour exactly (full 2024 MC, weights untouched).
     mc_split = get_mc_split_config(year, split_shared_mc=getattr(args, "split_shared_mc", False))
+
+    # QCD MC (control plots, ROC): only the HT bins >= 400, for every tagger; the bins below are
+    # in the trigger turn-on (few events with huge weights). The QCD subsample naming differs
+    # between skims and eras ('QCD-4Jets_HT-*' in the v15 2022-2023BPix skims, 'QCD_HT-*' in the
+    # v15 2024 and the older skims), so both spellings are listed, as in
+    # hh_vars.common_samples_bg["qcd"]; each era's skim has only one of them. Also set for the MC
+    # source year (2025 reads the 2024 MC under --split-shared-mc).
+    qcd_ht400 = [
+        f"{prefix}{ht}"
+        for prefix in ["QCD-4Jets_HT-", "QCD_HT-"]
+        for ht in [
+            "400to600",
+            "600to800",
+            "800to1000",
+            "1000to1200",
+            "1200to1500",
+            "1500to2000",
+            "2000",
+        ]
+    ]
+    for _year in dict.fromkeys([year, mc_split.source_year]):
+        samples_run3[_year]["qcd"] = qcd_ht400
+
     if mc_split.source_year != year:
         samples_year = [hh_vars.data_key] + [
             k for k in samples_run3[mc_split.source_year] if k != hh_vars.data_key
@@ -695,11 +1015,27 @@ def load_process_run3_samples(
     for key in samples_year:
         logger.info(f"Load samples {key}")
 
+        # TEMPORARY(mc-sharing): MC keys for a shared year read from the source year's
+        # sample (e.g. 2025 MC <- 2024 disk); data always comes from the year itself.
         source_year = year
         if mc_split.source_year != year and key != hh_vars.data_key:
             source_year = mc_split.source_year
 
         samples_to_process = {source_year: {key: samples_run3[source_year][key]}}
+        # --vjets-stitch (opt-in): all four open-ended 2024 Bin-PTQQ samples, stitched in
+        # utils.load_samples; without it (default) only Bin-PTQQ-100 is read for 2024.
+        ptqq_stitch = get_vjets_stitch(args) if key == "vjets" else None
+        if ptqq_stitch is not None:
+            samples_to_process = {source_year: {key: hh_vars.vjets_stitch_selectors}}
+            logger.info(f"vjets: stitching the open-ended Bin-PTQQ samples with {ptqq_stitch}")
+        # --zz4b-tag (opt-in): ZZto4B-1Jets from that skim tag, combined with the inclusive ZZ in
+        # utils.load_samples wherever both exist (2024, and 2025 from the 2024 MC)
+        zz4b_replace = get_zz4b_replace(args) if key == "zz" else None
+        override_dirs = [d for d in [get_override_dir(args)] if d is not None]
+        if zz4b_replace is not None:
+            samples_to_process = {source_year: {key: hh_vars.zz4b_replace_selectors}}
+            override_dirs.append(f"{args.data_dir}/{args.zz4b_tag}")
+            logger.info(f"zz: ZZto4B replacement {zz4b_replace} with {args.zz4b_tag}")
 
         _loaded = load_run3_samples(
             f"{args.data_dir}/{args.tag}",
@@ -709,34 +1045,63 @@ def load_process_run3_samples(
             # JEC/JMR systematic shift columns are only needed for templates;
             # skip them for a nominal FOM scan (and avoids missing-column errors
             # when a skimmer lacks them, e.g. glopart-v3 v15 signal skimmer).
-            load_systematics=args.templates,
+            # --no-systematics also skips them (nominal-only templates).
+            load_systematics=args.templates and args.systematics,
             txbb_version=args.txbb,
             scale_and_smear=args.scale_smear,
             mass_str=mreg_strings[args.txbb],
             bdt_version=args.bdt_model,
+            ptqq_stitch=ptqq_stitch,
+            # glopart-v3: JMS/JMR of the MC mass at load time (before the MC split, so a shared
+            # year's two halves come from one set of draws), with the values of `year` (2025 MC is
+            # read from the 2024 skim)
+            jmsr_correct=glopartv3_jmsr_on(args),
+            jmsr_year=year,
+            # --override-tag (opt-in): that skim's sample directories replace --tag's
+            # (--zz4b-tag: also the ZZto4B-1Jets skim, zz label only)
+            override_dir=override_dirs or None,
+            zz4b_replace=zz4b_replace,
+            ak4away_assignment=getattr(args, "ak4away_assignment", "exclusive"),
+            # TODO(mc-sharing): the year the (shared 2024) MC is used for
+            mc_year=year,
         )
         # Safety net: if a sample has no events in the skimmer for this year
         # (e.g. a background absent in some era), skip it instead of crashing
         # on the missing key.  Minor backgrounds dropping in a year is a small,
         # consistent-across-models effect for a FOM comparison.
         if key not in _loaded:
-            logger.warning(f"Sample {key} absent for {year}; skipping.")
+            logger.warning(f"Sample {key} absent for {source_year}; skipping.")
             continue
         events_dict = _loaded[key]
 
         # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
-        # Keep this year's half of the shared 2024 sample, then rescale its weights: x2 to
-        # recover the full 2024 yield from the half we kept, and for 2025 the 2024->2025
-        # luminosity ratio on top. Both factors are folded into weight_scale.
+        # Keep this year's parity half of the shared 2024 MC and divide by the half's actual
+        # generator-weight fraction f (exact for any split imbalance); weight_scale / 2 is the
+        # 2024->2025 lumi factor (1 for 2024).
         if mc_split.split_half is not None and key != hh_vars.data_key:
-            events_dict = events_dict.loc[
-                mc_split_mask(
-                    events_dict["run"].to_numpy().squeeze(),
-                    events_dict["luminosityBlock"].to_numpy().squeeze(),
-                    events_dict["event"].to_numpy().squeeze(),
-                    mc_split.split_half,
-                )
-            ].copy()
+            _mask = mc_split_mask(
+                events_dict["run"].to_numpy().squeeze(),
+                events_dict["luminosityBlock"].to_numpy().squeeze(),
+                events_dict["event"].to_numpy().squeeze(),
+                mc_split.split_half,
+            )
+            _wcol = (
+                "finalWeight"
+                if "finalWeight" in events_dict.columns.get_level_values(0)
+                else "weight"
+            )
+            _w = np.asarray(events_dict[_wcol]).astype(float).squeeze()
+            _f = _w[_mask].sum() / _w.sum()
+            lumi_factor = mc_split.weight_scale / 2.0
+            # exact recovery 1/f; fall back to the assumed x2 only if f is degenerate
+            recover = (1.0 / _f) if _f > 0 else 2.0
+            split_scale = recover * lumi_factor
+            logger.info(
+                f"{key} {year}: split half {mc_split.split_half} genweight fraction f={_f:.4f} "
+                f"-> recover 1/f={recover:.4f} (assumed 2.0), lumi_factor={lumi_factor:.4f}, "
+                f"scale={split_scale:.4f}"
+            )
+            events_dict = events_dict.loc[_mask].copy()
 
             weight_cols = [
                 col
@@ -745,14 +1110,14 @@ def load_process_run3_samples(
                 or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
             ]
             for col in weight_cols:
-                events_dict[col] = events_dict[col] * mc_split.weight_scale
+                events_dict[col] = events_dict[col] * split_scale
 
         # inference and assign score
         jshifts = [""]
         # JEC/JMR shifts only matter for templates; for a nominal FOM scan the
-        # shifted columns aren't loaded (load_systematics=args.templates), so
-        # stay nominal-only to avoid missing-column errors.
-        if args.templates:
+        # shifted columns aren't loaded (load_systematics above), so stay
+        # nominal-only to avoid missing-column errors.  --no-systematics same.
+        if args.templates and args.systematics:
             if key in hh_vars.syst_keys:
                 jshifts += hh_vars.jec_shifts
             if key in hh_vars.jmsr_keys:
@@ -827,7 +1192,7 @@ def load_process_run3_samples(
             "H1PNetMass": events_dict[mreg_strings[args.txbb]][0],
             "H2PNetMass": events_dict[mreg_strings[args.txbb]][1],
         }
-        if args.templates and key in hh_vars.jmsr_keys:
+        if args.templates and args.systematics and key in hh_vars.jmsr_keys:
             more_vars.update(
                 {
                     f"H{jet + 1}PNetMass_{jshift}": events_dict[
@@ -860,7 +1225,7 @@ def load_process_run3_samples(
         # load_systematics=args.templates, so the v15 signal skimmer omits them on FOM scans).
         # Adopt main's memory-efficient .to_numpy()[:, i].copy() pattern.
         n_pdf_weights = 0
-        if args.templates:
+        if args.templates and args.systematics:
             if key in hh_vars.sig_keys + ["ttbar"]:
                 scale_np = events_dict["scale_weights"].to_numpy()
                 more_vars.update({f"scale_weights_{i}": scale_np[:, i].copy() for i in range(6)})
@@ -958,19 +1323,7 @@ def load_process_run3_samples(
 
         # tt corrections
         ttbar_weight = np.ones(nevents)
-        if args.vbf:
-            mask_vbf = (bdt_events["bdt_score_vbf"] > args.vbf_bdt_wp) & (
-                bdt_events["H2TXbb"] > args.vbf_txbb_wp
-            )
-            if not args.vbf_priority:
-                mask_bin1 = (bdt_events["H2TXbb"] > args.txbb_wps[0]) & (
-                    bdt_events["bdt_score"] > args.bdt_wps[0]
-                )
-                # prioritize bin 1 i.e. veto events in VBF region that pass the bin 1 selection
-                mask_vbf = mask_vbf & ~(mask_bin1)
-        else:
-            # if no VBF region, set all events to "fail VBF"
-            mask_vbf = np.zeros(len(bdt_events), dtype=bool)
+        mask_vbf = ttbar_sf_vbf_mask(args, bdt_events)
 
         if key == "ttbar":
             ptjjsf, _, _ = corrections.ttbar_SF(tt_ptjj_sf, bdt_events, "HHPt")
@@ -989,18 +1342,14 @@ def load_process_run3_samples(
             tempw2, _, _ = corrections.ttbar_SF(tt_xbb_sf, bdt_events, "H2TXbb")
             txbbsf = tempw1 * tempw2
 
-            # inclusive bdt shape correction
-            ggfbdtsf, _, _ = corrections.ttbar_SF(tt_ggfbdtshape_sf, bdt_events, "bdt_score")
-            bdtsf = ggfbdtsf
-            # use bdt_vbf correction for vbf category if it exists
-            if args.correct_vbf_bdt_shape:
-                vbfbdtsf, _, _ = corrections.ttbar_SF(
-                    tt_vbfbdtshape_sf, bdt_events, "bdt_score_vbf"
-                )
-                bdtsf[mask_vbf] = vbfbdtsf[mask_vbf]
+            # inclusive bdt shape correction (ggF, or VBF in the VBF category)
+            bdtsf = ttbar_bdtshape_sf(args, bdt_events, mask_vbf, tt_bdtshape_sfs)
 
             # total ttbar correction
             ttbar_weight = ptjjsf * tau32sf * txbbsf * bdtsf
+            if args.fom_cache:
+                # the slim FOM cache keeps it: fom_cache_rescore re-evaluates it per model
+                bdt_events[TTBAR_BDTSF_COL] = bdtsf
 
         # save corrected weights
         weights_to_correct = (
@@ -1067,50 +1416,14 @@ def load_process_run3_samples(
                 )
 
             # bdt up/dn variations in bins
-            for i in range(len(ttsf_ggfbdtshape_bins) - 1):
-                ggfbdtsf, ggfbdtsf_up, ggfbdtsf_dn = corrections.ttbar_SF(
-                    tt_ggfbdtshape_sf,
-                    bdt_events,
-                    "bdt_score",
-                    ttsf_ggfbdtshape_bins[i : i + 2],
-                )
-                if args.correct_vbf_bdt_shape:
-                    # only use ggf correction/uncertainty outside of vbf category
-                    ggfbdtsf[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    ggfbdtsf_up[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    ggfbdtsf_dn[mask_vbf] = np.ones(np.sum(mask_vbf))
-                    variation_vars.update(
-                        {
-                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Up": (
-                                bdt_events["weight"] * ggfbdtsf_up / ggfbdtsf
-                            ),
-                            f"weight_ttbarSF_ggF_BDT_bin_{ttsf_ggfbdtshape_bins[i]}_{ttsf_ggfbdtshape_bins[i+1]}Down": (
-                                bdt_events["weight"] * ggfbdtsf_dn / ggfbdtsf
-                            ),
-                        }
-                    )
-            if args.correct_vbf_bdt_shape:
-                for i in range(len(ttsf_vbfbdtshape_bins) - 1):
-                    vbfbdtsf, vbfbdtsf_up, vbfbdtsf_dn = corrections.ttbar_SF(
-                        tt_vbfbdtshape_sf,
-                        bdt_events,
-                        "bdt_score_vbf",
-                        ttsf_vbfbdtshape_bins[i : i + 2],
-                    )
-                    # only use vbf correction/uncertainty inside of vbf category
-                    vbfbdtsf[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    vbfbdtsf_up[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    vbfbdtsf_dn[~mask_vbf] = np.ones(np.sum(~mask_vbf))
-                    variation_vars.update(
-                        {
-                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Up": (
-                                bdt_events["weight"] * vbfbdtsf_up / vbfbdtsf
-                            ),
-                            f"weight_ttbarSF_VBF_BDT_bin_{ttsf_vbfbdtshape_bins[i]}_{ttsf_vbfbdtshape_bins[i+1]}Down": (
-                                bdt_events["weight"] * vbfbdtsf_dn / vbfbdtsf
-                            ),
-                        }
-                    )
+            variation_vars.update(
+                {
+                    col: bdt_events["weight"] * sf_shift / sf
+                    for col, (sf_shift, sf) in ttbar_bdtshape_sf_shifts(
+                        args, bdt_events, mask_vbf, tt_bdtshape_sfs
+                    ).items()
+                }
+            )
 
         if key != "data":
             variation_vars.update(
@@ -1139,10 +1452,7 @@ def load_process_run3_samples(
         bdt_events = bdt_events[mask_hlt]
         cutflow_dict[key]["HLT"] = np.sum(bdt_events["weight"].to_numpy())
 
-        if args.txbb == "pnet-legacy":
-            txbb_presel = 0.8
-        elif args.txbb in ["glopart-v2", "glopart-v3", "pnet-v12"]:
-            txbb_presel = 0.3
+        txbb_presel = get_txbb_presel(args.txbb)
 
         for jshift in jshifts:
             logger.info(f"Inference and selection for jshift {jshift}")
@@ -1175,8 +1485,13 @@ def load_process_run3_samples(
             # define category
             bdt_events[category] = 5  # all events
 
-            mask_fail = (bdt_events["H2TXbb"] < args.txbb_wps[1]) & (
-                bdt_events[bdt_score] > args.bdt_wps[2]
+            # QCD CR (fail): txbb below the band. A lower TXbb floor (--fail-txbb-floor,
+            # default 0.0 = no floor) restricts it to a narrow [floor, band) sideband so the
+            # data-driven QCD sits kinematically close to the pass regions.
+            mask_fail = (
+                (bdt_events["H2TXbb"] < args.txbb_wps[1])
+                & (bdt_events["H2TXbb"] >= args.fail_txbb_floor)
+                & (bdt_events[bdt_score] > args.bdt_wps[2])
             )
             bdt_events.loc[mask_fail, category] = 4
 
@@ -1207,8 +1522,14 @@ def load_process_run3_samples(
             mask_corner = (bdt_events["H2TXbb"] < args.txbb_wps[0]) & (
                 bdt_events[bdt_score] < args.bdt_wps[0]
             )
+            # Bin2/Bin3 TXbb can be decoupled from the fail edge (txbb_wps[1]) via
+            # --txbb-wp-bin2/--txbb-wp-bin3 (beyond-AN "scan above 0.85"); default (-1)
+            # keeps the AN behavior (Bin2/Bin3 TXbb = txbb_wps[1] = fail edge). `fail`
+            # (mask_fail above) always uses txbb_wps[1], so its control region is frozen.
+            txbb_bin2 = args.txbb_wp_bin2 if args.txbb_wp_bin2 >= 0 else args.txbb_wps[1]
+            txbb_bin3 = args.txbb_wp_bin3 if args.txbb_wp_bin3 >= 0 else args.txbb_wps[1]
             mask_bin2 = (
-                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                (bdt_events["H2TXbb"] > txbb_bin2)
                 & (bdt_events[bdt_score] > args.bdt_wps[1])
                 & ~(mask_bin1)
                 & ~(mask_corner)
@@ -1217,7 +1538,7 @@ def load_process_run3_samples(
             bdt_events.loc[mask_bin2, category] = 2
 
             mask_bin3 = (
-                (bdt_events["H2TXbb"] > args.txbb_wps[1])
+                (bdt_events["H2TXbb"] > txbb_bin3)
                 & (bdt_events[bdt_score] > args.bdt_wps[2])
                 & ~(mask_bin1)
                 & ~(mask_bin2)
@@ -1334,6 +1655,8 @@ def load_process_run3_samples(
             _feats = model_feature_names(args.bdt_model)
             if _feats:
                 columns += [f for f in _feats if f in bdt_events.columns]
+            if key == "ttbar":
+                columns += [TTBAR_BDTSF_COL]
         columns = list(dict.fromkeys(columns))  # deduplicate while preserving order
 
         if control_plots:
@@ -1602,16 +1925,22 @@ def scan_fom(
 
 
 def get_anti_cuts(args, region: str):
+    # Default FOM anti (ABCD "C/D") region: low TXbb, low BDT — QCD-pure, well-separated
+    # from the SR. With --fom-fail-match the TXbb part instead MATCHES the datacard QCD CR
+    # band [fail_txbb_floor, txbb_wps[1]) so the FOM b-estimate sees the same fail band as
+    # the fit. The BDT anti-cut stays low (ABCD orthogonality requirement, not matched).
+    def _anti_xbb(events):
+        if getattr(args, "fom_fail_match", False):
+            return (events["H2TXbb"] >= args.fail_txbb_floor) & (
+                events["H2TXbb"] < args.txbb_wps[1]
+            )
+        return events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
 
     def anti_cut_vbf(events):
-        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
-        cut_bdt = events["bdt_score_vbf"] < 0.6
-        return cut_xbb & cut_bdt
+        return _anti_xbb(events) & (events["bdt_score_vbf"] < 0.6)
 
     def anti_cut_ggf(events):
-        cut_xbb = events["H2TXbb"] < 0.8 if args.txbb == "pnet-legacy" else events["H2TXbb"] < 0.3
-        cut_bdt = events["bdt_score"] < 0.6
-        return cut_xbb & cut_bdt
+        return _anti_xbb(events) & (events["bdt_score"] < 0.6)
 
     if region == "vbf":
         return anti_cut_vbf
@@ -1690,6 +2019,26 @@ def get_cuts(args, region: str):
             & ~_corner(events)
         )
 
+    # bin 3 (pinned catch-all): TXbb>band & bdt>floor, minus bin1, bin2, VBF -- mirrors the
+    # sequential category assignment in postprocess_run3 (bin3 has NO corner veto). Used only
+    # for the opt-in --fom-scan-bin3 point-eval; never scanned, never alters resolved WPs.
+    def get_cut_bin3(events, xbb_cut, bdt_cut):
+        cut_bin1 = _veto_box(events, xbb_cut_bin1, bdt_cut_bin1, "bdt_score")
+        bin2_fn = get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
+        cut_bin2 = bin2_fn(events, args.txbb_wps[1], args.bdt_wps[1])
+        vbf_cut = (
+            _veto_box(events, args.vbf_txbb_wp, args.vbf_bdt_wp, "bdt_score_vbf")
+            if args.vbf
+            else np.zeros(len(events), dtype=bool)
+        )
+        return (
+            (events["H2TXbb"] > xbb_cut)
+            & (events["bdt_score"] > bdt_cut)
+            & ~cut_bin1
+            & ~cut_bin2
+            & ~vbf_cut
+        )
+
     if region == "vbf":
         if args.vbf and args.vbf_priority:
             return get_cut_vbf
@@ -1702,6 +2051,8 @@ def get_cuts(args, region: str):
         return get_cut_bin1_vetovbf if (args.vbf and args.vbf_priority) else get_cut_bin1
     elif region == "bin2":
         return get_cut_bin2_vetovbf if args.vbf else get_cut_bin2
+    elif region == "bin3":
+        return get_cut_bin3
     else:
         raise ValueError("Invalid region")
 
@@ -2042,6 +2393,8 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
     _cache_feats = None
     for year in args.years:
         print(f"\n{year}")
+        # slim-cache key of this year (args.tag, or its own key when --vjets-stitch changes it)
+        _cache_tag = fom_cache_tag(args, year)
         # build-only: load+cache each year then FREE it (no accumulation, no
         # combine/scan) -> a single command builds the whole shared cache with a
         # peak of one year's memory.  Safe even for the 187 GB 2024 data.
@@ -2051,7 +2404,7 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
             if (
                 _keys is None
                 and not args.fom_cache_rebuild
-                and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
+                and fom_cache.exists(args.fom_cache_dir, _cache_tag, args.txbb, year)
             ):
                 print(
                     f"{year}: slim cache already present, skipping (--fom-cache-rebuild to force)"
@@ -2072,7 +2425,7 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
                 events,
                 cutflow,
                 args.fom_cache_dir,
-                args.tag,
+                _cache_tag,
                 args.txbb,
                 year,
                 merge=_keys is not None,
@@ -2084,11 +2437,11 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
         _use_cache = (
             args.fom_cache
             and not args.fom_cache_rebuild
-            and fom_cache.exists(args.fom_cache_dir, args.tag, args.txbb, year)
+            and fom_cache.exists(args.fom_cache_dir, _cache_tag, args.txbb, year)
         )
         if _use_cache:
             print(f"{year}: loading model-independent slim FOM cache")
-            events, cutflow = fom_cache.load(args.fom_cache_dir, args.tag, args.txbb, year)
+            events, cutflow = fom_cache.load(args.fom_cache_dir, _cache_tag, args.txbb, year)
         else:
             events, cutflow = load_process_run3_samples(
                 args,
@@ -2100,11 +2453,12 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
                 args.rerun_inference,
             )
             if args.fom_cache:
-                n = fom_cache.save(events, cutflow, args.fom_cache_dir, args.tag, args.txbb, year)
+                n = fom_cache.save(events, cutflow, args.fom_cache_dir, _cache_tag, args.txbb, year)
                 print(f"{year}: wrote slim cache ({n} samples; scores dropped, model-independent)")
         # The slim cache stores the BDT *features* but not the model-specific score,
-        # so (re)run THIS model's inference per event when caching is on.  This is the
-        # only per-model work; loading/building each year happens once and is shared.
+        # so (re)run THIS model's inference per event when caching is on (and re-evaluate the
+        # ttbar BDT-shape SF with it).  This is the only per-model work; loading/building
+        # each year happens once and is shared.
         if args.fom_cache:
             if _cache_model is None:
                 _cache_model = xgb.XGBClassifier()
@@ -2112,18 +2466,37 @@ def _load_samples(args, plot_dir: Path, mass_window) -> tuple[dict, dict]:
                     fname=f"{HH4B_DIR}/src/HH4b/boosted/bdt_trainings_run3/{args.bdt_model}/trained_bdt.model"
                 )
                 _cache_feats = model_feature_names(args.bdt_model)
-            for _df in events.values():
-                _fo = _add_year_features(_df, _cache_feats, year)
-                _X = _df[_fo] if _fo is not None else _df
-                add_bdt_scores(
-                    _df,
-                    _cache_model.predict_proba(_X),
-                    "",
-                    weight_ttbar=args.weight_ttbar_bdt,
-                    bdt_disc=args.bdt_disc,
-                )
+                if _cache_feats is None:
+                    # no metrics.json (e.g. TrainBDT models): take the training feature order from
+                    # the BDT config, otherwise the whole cached frame (incl. non-feature columns
+                    # such as the string `year`) would be passed to xgboost
+                    _cache_feats = getattr(
+                        importlib.import_module(
+                            f".{args.bdt_config}", package="HH4b.boosted.bdt_trainings_run3"
+                        ),
+                        "FEATURES",
+                        None,
+                    )
+                _nf = _cache_model.get_booster().num_features()
+                if _cache_feats is None or len(_cache_feats) != _nf:
+                    raise ValueError(
+                        f"cannot determine the {_nf} input features of {args.bdt_model} for the "
+                        f"FOM cache path (got {_cache_feats})"
+                    )
+            fom_cache_rescore(args, events, year, _cache_model, _cache_feats)
         events_dict[year] = events
         cutflows[year] = cutflow
+        if getattr(args, "save_ntuples", False):
+            # per-event inference ntuples (post reorder/presel/inference/categorization) so any
+            # downstream ROC / mass / category plot reuses them without re-loading + re-inferring.
+            ntup_dir = (
+                Path(HH4B_DIR) / "src/HH4b/postprocessing/ntuples" / args.templates_tag / year
+            )
+            ntup_dir.mkdir(parents=True, exist_ok=True)
+            for _k, _df in events.items():
+                _df.to_parquet(ntup_dir / f"{_k}.parquet")
+            print(f"{year}: saved {len(events)} inference ntuples -> {ntup_dir}")
+
     print("Loaded all years")
     return events_dict, cutflows
 
@@ -2143,8 +2516,17 @@ def _combine_years(
 
     # eras with their OWN native MC (2024 MC now produced; 2025 borrows 2024 MC).
     # A requested year listed here contributes its real events; any year NOT here
-    # (e.g. 2025) has the available MC lumi-scaled up to cover it.
+    # (e.g. 2025 without --split-shared-mc) has the available MC lumi-scaled up to cover it.
     mc_eras = ["2022", "2022EE", "2023", "2023BPix", "2024"]
+    # TEMPORARY(mc-sharing) -- delete once 2025 has MC of its own.
+    # With --split-shared-mc, 2025 carries the ORTHOGONAL half of the 2024 MC (parity
+    # half-1, already lumi-normalized to 2025 in the year loop; 2024 keeps half-0).  That
+    # makes 2025 a native-like year, so list it here: combine then concatenates it at
+    # scale 1.0 -- keeping the 2024/2025 MC-stat decorrelated -- instead of lumi-inflating
+    # 2022-2024 to cover 2025 (which would non-orthogonally reuse 2024's own half and
+    # over-credit the signal).  Harmless if 2025 isn't requested (filtered by args.years).
+    if getattr(args, "split_shared_mc", False):
+        mc_eras = mc_eras + ["2025"]
     available = [y for y in mc_eras if y in args.years]
     missing = [y for y in args.years if y not in mc_eras]
     if missing:
@@ -2320,7 +2702,9 @@ def _run_fom_scans(args, events_combined: dict, mass_window, plot_dir: Path, bg_
             events_combined,
             get_cuts(args, "vbf"),
             get_anti_cuts(args, "vbf"),
-            np.arange(0.8, 0.999, 0.0025),
+            np.arange(
+                max(0.8, args.txbb_wps[1]) if args.fom_vbf_floor_at_band else 0.8, 0.999, 0.0025
+            ),  # opt-in: floor VBF TXbb at the band
             np.arange(0.9, 0.999, 0.0025),
             mass_window,
             plot_dir,
@@ -2404,14 +2788,20 @@ def _make_templates(
     if not args.vbf:
         selection_regions.pop("pass_vbf")
 
+    # individual templates per year
+    # --no-systematics -> nominal-only: no JEC/JMSR jshifts, no weight variations.
+    jshifts_templates = (
+        [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts if args.systematics else [""]
+    )
+    templates_weight_shifts = weight_shifts if args.systematics else {}
     for year in args.years:
         all_hist_samples = _compute_all_hist_samples(
-            list(events_combined.keys()), args.sig_keys, weight_shifts
+            list(events_combined.keys()), args.sig_keys, templates_weight_shifts
         )
         templates = {}
         for sample_key in list(events_combined.keys()):
             print(f"Creating templates for sample: {sample_key}")
-            for jshift in [""] + hh_vars.jec_shifts + hh_vars.jmsr_shifts:
+            for jshift in jshifts_templates:
                 events_by_year = {
                     sample_key: events_combined[sample_key][
                         events_combined[sample_key]["year"] == year
@@ -2429,7 +2819,7 @@ def _make_templates(
                     bg_keys=bg_keys_combined,
                     plot_dir="",
                     weight_key="weight",
-                    weight_shifts=weight_shifts,
+                    weight_shifts=templates_weight_shifts,
                     plot_shifts=False,
                     show=False,
                     energy=13.6,
@@ -2439,7 +2829,10 @@ def _make_templates(
                 )
                 for key, h in ttemps.items():
                     templates[key] = templates[key] + h if key in templates else h
-            del events_combined[sample_key]
+            # free each sample after the LAST year only: deleting it inside an earlier year
+            # leaves every later year of a multi-year run with empty templates
+            if year == args.years[-1]:
+                del events_combined[sample_key]
 
         postprocessing.save_templates(
             templates, templ_dir / f"{year}_templates.pkl", fit_shape_var, blind=args.blind
@@ -2630,6 +3023,14 @@ if __name__ == "__main__":
         "floor kept fixed (0.03).",
     )
     parser.add_argument(
+        "--fail-txbb-floor",
+        type=float,
+        default=0.0,
+        help="Lower TXbb bound of the QCD CR (fail) region; the fail region becomes "
+        "[floor, txbb_wps[1]). Default 0.0 = no floor (fail = TXbb < band). Set 0.75 for a "
+        "narrow sideband kinematically close to the pass regions.",
+    )
+    parser.add_argument(
         "--method",
         type=str,
         default="abcd",
@@ -2642,6 +3043,21 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--vbf-bdt-wp", type=float, default=-1, help="BDT VBF WP (-1 = auto: FOM-scan optimum)"
+    )
+    parser.add_argument(
+        "--txbb-wp-bin2",
+        type=float,
+        default=-1,
+        help="ggF Bin2 TXbb WP, decoupled from the fail edge (-1 = use txbb_wps[1], i.e. AN band). "
+        "Set >=0.85 to scan Bin2's TXbb above the frozen fail region (beyond-AN); fail stays TXbb<txbb_wps[1].",
+    )
+    parser.add_argument(
+        "--txbb-wp-bin3",
+        type=float,
+        default=-1,
+        help="ggF Bin3 TXbb WP, decoupled from the fail edge (-1 = use txbb_wps[1], i.e. AN band). "
+        "Set >=0.85 to scan Bin3's TXbb above the frozen fail region; events in txbb_wps[1]<TXbb<this "
+        "(buffer) are dropped from both pass and fail.",
     )
 
     parser.add_argument(
@@ -2676,6 +3092,14 @@ if __name__ == "__main__":
         help="Samples to use for FOM scan for ggF categories",
         choices=["hh4b", "vbfhh4b"],
     )
+    parser.add_argument(
+        "--fom-b-floor",
+        type=float,
+        default=0.5,
+        help="Minimum data-driven background per bin a FOM WP must have to be eligible "
+        "(default 0.5 = AN convention). Raise (e.g. 2.0) to keep the scan out of the "
+        "ultra-tight <b> regime at high luminosity.",
+    )
     run_utils.add_bool_arg(
         parser,
         "bdt-disc",
@@ -2703,6 +3127,79 @@ if __name__ == "__main__":
             "split the 2024 MC 50/50 between the 2024 and 2025 templates. Required to "
             "build 2025, which has no MC of its own. Needed whenever 2024 and 2025 will "
             "be combined in the same fit, so that their MC statistics stay independent"
+        ),
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "vjets-stitch",
+        default=False,
+        help=(
+            "stitch the four open-ended 2024 V+jets samples "
+            "{W,Z}to2Q-2Jets_Bin-PTQQ-{100,200,400,600} in GenVPt (also for 2025, which borrows "
+            "the 2024 MC): effective-luminosity weights, a sample trusted from its threshold + 50 "
+            "GeV (utils._stitch_open_ptqq), load filter max(TXbb_0, TXbb_1) >= the H1 TXbb "
+            "preselection, which drops no event any region can use. Off (default): Bin-PTQQ-100 "
+            "only. Years with stitched V+jets get their own FOM slim-cache key (<tag>__vjstitch)"
+        ),
+    )
+    parser.add_argument(
+        "--vjets-stitch-txbb-min",
+        type=float,
+        default=-1.0,
+        help=(
+            "with --vjets-stitch: read the Bin-PTQQ-200/400/600 samples only where "
+            "min(TXbb_0, TXbb_1) >= this (saves memory) and stitch only there; below it the "
+            "V+jets is Bin-PTQQ-100 alone, as without the flag (unbiased). -1 (default): off"
+        ),
+    )
+    parser.add_argument(
+        "--vjets-stitch-mode",
+        type=str,
+        default="effective-lumi",
+        choices=["effective-lumi", "range"],
+        help=(
+            "with --vjets-stitch: 'effective-lumi' (default) = the GenVPt stitch above; 'range' = "
+            "each Bin-PTQQ-X sample keeps only LHE V pT in [X, next threshold) (the highest "
+            "sample: >= X) and is normalised to sigma_X x its generator-weight fraction there "
+            "(Z: 100/200/400/600, W: 100/200/400; utils.ptqq_range_norm). Needs a skim with "
+            "GenVLHEPt and the per-LHE-V-pT-bin totals (e.g. --override-tag "
+            "20260820_glopartv3_reskim_v15_signal). FOM cache key <tag>__vjrange"
+        ),
+    )
+    parser.add_argument(
+        "--zz4b-tag",
+        type=str,
+        default=None,
+        help=(
+            "optional skim tag under --data-dir holding ZZto4B-1Jets (2024 NanoAODv15; 2025 via "
+            "--split-shared-mc): the zz process then takes ZZ->bbbb with both Z masses in the "
+            "ZZto4B MadSpin window [53.755, 128.552] GeV from it alone (utils.ZZ4bReplace), in every year "
+            "whose MC has it; other years unchanged. FOM cache key suffix __zz4b-<tag>. "
+            "Default: none"
+        ),
+    )
+    parser.add_argument(
+        "--ak4away-assignment",
+        type=str,
+        default="exclusive",
+        choices=["exclusive", "shared"],
+        help=(
+            '"exclusive" (default): the skim\'s AK4 jets away from the bb jets, one per bb jet; '
+            '"shared": the second bb jet gets the AK4 jet the skimmer chose before it stopped '
+            "sharing one between the two bb jets (rebuilt from the skim, "
+            "utils.ak4away_shared_assignment). FOM cache key token __ak4shared"
+        ),
+    )
+    parser.add_argument(
+        "--override-tag",
+        type=str,
+        default=None,
+        help=(
+            "optional second skim tag under --data-dir: its sample directories replace the "
+            "same-named ones of --tag, per year (e.g. 20260820_glopartv3_reskim_v15_signal: the "
+            "2024 V+jets with GenVLHEPt and the per-LHE-V-pT-bin totals, and the 2024 SM ggHH); "
+            "everything else still comes from --tag. Years whose MC comes from it get the FOM "
+            "cache key suffix __ovr-<tag>. Default: none"
         ),
     )
     run_utils.add_bool_arg(parser, "bdt-roc", default=False, help="make BDT ROC curve")
@@ -2752,7 +3249,35 @@ if __name__ == "__main__":
     )
     run_utils.add_bool_arg(parser, "fom-scan-bin1", default=True, help="FOM scan for bin 1")
     run_utils.add_bool_arg(parser, "fom-scan-bin2", default=True, help="FOM scan for bin 2")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-scan-bin3",
+        default=False,
+        help="opt-in: point-evaluate Bin 3 (pinned catch-all) so the FOM summary reports its "
+        "s/b/FOM. Never scanned; does not change resolved WPs. fom-fast path only.",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "save-ntuples",
+        default=False,
+        help="opt-in: dump per-event inference ntuples (parquet per sample/year) to "
+        "postprocessing/ntuples/<templates-tag>/ for reuse in downstream plots without re-inference.",
+    )
     run_utils.add_bool_arg(parser, "fom-scan-vbf", default=False, help="FOM scan for VBF bin")
+    run_utils.add_bool_arg(
+        parser,
+        "fom-vbf-floor-at-band",
+        default=False,
+        help="Start the VBF TXbb FOM grid at the fail/pass band txbb_wps[1] instead of 0.8 "
+        "(keeps the qqHH SR above the fail region). Default off = original AN behaviour.",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "fom-fail-match",
+        default=False,
+        help="Match the FOM b-estimate's anti (C/D) region TXbb to the datacard QCD CR band "
+        "[fail_txbb_floor, txbb_wps[1]) instead of the default TXbb<0.3 low corner (BDT still low).",
+    )
     run_utils.add_bool_arg(
         parser,
         "fom-fast",
@@ -2763,6 +3288,13 @@ if __name__ == "__main__":
         "Off by default; --fom-fast to enable.",
     )
     run_utils.add_bool_arg(parser, "templates", default=True, help="make templates")
+    run_utils.add_bool_arg(
+        parser,
+        "systematics",
+        default=True,
+        help="load JEC/JMSR + weight systematics for templates. --no-systematics makes nominal-only "
+        "templates (stat + normalization).",
+    )
     run_utils.add_bool_arg(parser, "vbf", default=True, help="Add VBF region")
     run_utils.add_bool_arg(
         parser, "vbf-priority", default=False, help="Prioritize the VBF region over ggF Cat 1"
@@ -2782,7 +3314,28 @@ if __name__ == "__main__":
         parser, "scale-smear", default=False, help="Rerun scaling and smearing of mass variables"
     )
     run_utils.add_bool_arg(
+        parser,
+        "glopartv3-jmsr",
+        default=True,
+        help="glopart-v3 only: apply JMS/JMR (hh_vars.jmsr_values, GloParT-v2 numbers) to the MC "
+        "regressed mass at load time, with real JMS/JMR up/down variations and the BDT re-run on "
+        "them; the v15 skim leaves this mass uncorrected. --no-glopartv3-jmsr reproduces the "
+        "earlier uncorrected results. Changes the slim FOM cache key.",
+    )
+    run_utils.add_bool_arg(
         parser, "dummy-txbb-sfs", default=False, help="use dummy TXbb SFs = 1+/-0.15"
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "borrow-txbb-sfs",
+        default=False,
+        help="borrow measured glopart-v2 Zbb TXbb SFs for glopart-v3 (proxy calibration; overrides dummy)",
+    )
+    run_utils.add_bool_arg(
+        parser,
+        "an184-txbb-sfs",
+        default=False,
+        help="use AN-23-184's measured GloParT-v3 Zbb TXbb SFs (real v3 calibration; WP1/2/3<->VHP/HP/MP; glopart-v3 only; overrides borrow/dummy)",
     )
 
     args = parser.parse_args()
@@ -2800,6 +3353,23 @@ if __name__ == "__main__":
             "Templates require explicit working points, but some are -1 (auto). "
             "Run the FOM scan first (--fom-scan --no-templates) to get the optima, "
             "then pass them explicitly via --txbb-wps/--bdt-wps/--vbf-txbb-wp/--vbf-bdt-wp."
+        )
+    if args.vjets_stitch_txbb_min >= 0 and not args.vjets_stitch:
+        raise ValueError("--vjets-stitch-txbb-min needs --vjets-stitch")
+    if args.vjets_stitch_mode != "effective-lumi" and not args.vjets_stitch:
+        raise ValueError("--vjets-stitch-mode needs --vjets-stitch")
+    if args.vjets_stitch_mode == "range" and args.vjets_stitch_txbb_min >= 0:
+        raise ValueError("--vjets-stitch-txbb-min is for --vjets-stitch-mode effective-lumi only")
+    if args.override_tag and not (Path(args.data_dir) / args.override_tag).is_dir():
+        raise ValueError(f"--override-tag: {Path(args.data_dir) / args.override_tag} not found")
+    if args.zz4b_tag and not (Path(args.data_dir) / args.zz4b_tag).is_dir():
+        raise ValueError(f"--zz4b-tag: {Path(args.data_dir) / args.zz4b_tag} not found")
+    if args.scale_smear and glopartv3_jmsr_on(args):
+        raise ValueError("--scale-smear re-derives the mass too: add --no-glopartv3-jmsr")
+    if glopartv3_jmsr_on(args):
+        logger.info(
+            f"glopart-v3 JMS/JMR on for the MC {mreg_strings[args.txbb]} "
+            "(--no-glopartv3-jmsr to turn off)"
         )
 
     print(args)

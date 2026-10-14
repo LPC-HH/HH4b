@@ -11,7 +11,7 @@ import numpy as np
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
-from .utils import add_selection, pad_val
+from .utils import PAD_VAL, add_selection, pad_val
 
 d_PDGID = 1
 u_PDGID = 2
@@ -318,6 +318,16 @@ def gen_selection_V(
     ]
     GenVVars = {f"GenV{key}": pad_val(vs[var], 1, axis=1) for (var, key) in skim_vars.items()}
 
+    # LHE-level V pT (status-2 intermediate W/Z), i.e. the variable the Bin-PTQQ generator filter
+    # cuts on; needed to stitch the open-ended 2024 PTQQ-X samples (the last-copy GenVPt is shifted
+    # by the parton shower). NanoAOD's LHE_Vpt is built from leptons only and is 0 for V->qq.
+    if "LHEPart" in events.fields:
+        lhe = events.LHEPart
+        lhe_vs = lhe[
+            ((abs(lhe.pdgId) == W_PDGID) | (abs(lhe.pdgId) == Z_PDGID)) & (lhe.status == 2)
+        ]
+        GenVVars["GenVLHEPt"] = pad_val(lhe_vs.pt, 1, axis=1)
+
     # get V daughters
     daughters = vs.children
     daughter0_pdgId = ak.firsts(abs(daughters.pdgId[:, :, 0]))
@@ -381,13 +391,19 @@ def gen_selection_VV(
     ]
     GenVVars = {f"GenV{key}": pad_val(vs[var], 2, axis=1) for (var, key) in skim_vars.items()}
 
-    # get V daughters
+    # get V daughters; pad to 2 Vs x 2 daughters/V so malformed gen records
+    # (e.g. some amcatnloFXFX diboson events with <2 Vs) don't crash the [:, 1, 1]
+    # indexing. No-op for well-formed events; missing entries -> PAD_VAL (no PDGID match).
     daughters = vs.children
+    daughters_pdgId = abs(daughters.pdgId)
+    daughters_pdgId = ak.pad_none(daughters_pdgId, 2, axis=2, clip=True)
+    daughters_pdgId = ak.pad_none(daughters_pdgId, 2, axis=1, clip=True)
+    daughters_pdgId = ak.fill_none(daughters_pdgId, PAD_VAL)
 
-    v0_daughter0_pdgId = abs(daughters.pdgId[:, 0, 0])
-    v0_daughter1_pdgId = abs(daughters.pdgId[:, 0, 1])
-    v1_daughter0_pdgId = abs(daughters.pdgId[:, 1, 0])
-    v1_daughter1_pdgId = abs(daughters.pdgId[:, 1, 1])
+    v0_daughter0_pdgId = daughters_pdgId[:, 0, 0]
+    v0_daughter1_pdgId = daughters_pdgId[:, 0, 1]
+    v1_daughter0_pdgId = daughters_pdgId[:, 1, 0]
+    v1_daughter1_pdgId = daughters_pdgId[:, 1, 1]
     GenVVars["GenV1BB"] = (
         (v0_daughter0_pdgId == b_PDGID) & (v0_daughter1_pdgId == b_PDGID)
     ).to_numpy()

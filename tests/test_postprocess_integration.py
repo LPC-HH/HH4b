@@ -105,6 +105,12 @@ def _integration_args(**overrides):
         fom_cache_keys=None,
         # 2024/2025 shared-MC split (parser default)
         split_shared_mc=False,
+        # TXbb SF source and fail/category TXbb thresholds (parser defaults)
+        an184_txbb_sfs=False,
+        borrow_txbb_sfs=False,
+        fail_txbb_floor=0.0,
+        txbb_wp_bin2=-1,
+        txbb_wp_bin3=-1,
     )
     for k, v in overrides.items():
         setattr(base, k, v)

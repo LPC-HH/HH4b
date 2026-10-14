@@ -56,6 +56,7 @@ from HH4b import hh_vars
 from HH4b.hh_vars import txbb_strings
 from HH4b.log_utils import log_config
 from HH4b.postprocessing import HLTs
+from HH4b.utils import ak4away_shared_assignment
 
 from . import dataset as ds_mod
 
@@ -77,6 +78,12 @@ DEFAULT_LABEL_MAP = {
     "ttbar": 2,
     "qcd": 3,
 }
+
+# Per-event k-fold ensemble weights written by apply.py --ensemble-dir (the std column is a
+# spread, not a weight, so it is not offered).
+ENSEMBLE_WEIGHT_COLS = tuple(
+    f"{w}_{st}" for w in ("w_QCD_A", "w_QCD_A_fixclip") for st in ("median", "mean", "q16", "q84")
+)
 
 # Matches the preselection in HH4b.boosted.TrainBDT.apply_cuts for glopart-v3.
 TXBB_PRESEL = 0.3
@@ -106,6 +113,18 @@ def parse_args() -> argparse.Namespace:
         help="BDT training directory name; selects the cache subdir.",
     )
     parser.add_argument(
+        "--ak4away-assignment",
+        type=str,
+        default="exclusive",
+        choices=["exclusive", "shared"],
+        help=(
+            '"exclusive" (default): the skim\'s AK4 jets away from the bb jets, one per bb jet; '
+            '"shared": the second bb jet gets the AK4 jet the skimmer chose before it stopped '
+            "sharing one between the two bb jets (rebuilt from the skim, "
+            "utils.ak4away_shared_assignment)"
+        ),
+    )
+    parser.add_argument(
         "--run-dir",
         required=True,
         help="ABCDnn run dir written by train.py / apply.py.  Used to find "
@@ -117,7 +136,7 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         type=str,
         default=["2022"],
-        choices=hh_vars.years + ["2022-2023", "2022-2023-2024"],
+        choices=hh_vars.years + ["2022-2023", "2022-2023-2024", "2022-2025"],
     )
     parser.add_argument(
         "--version",
@@ -183,12 +202,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--abcdnn-weight-col",
         default="w_QCD_A",
-        choices=["w_QCD_A", "w_QCD_A_raw", "TF"],
+        choices=[
+            "w_QCD_A",
+            "w_QCD_A_raw",
+            "TF",
+            "w_QCD_A_fixclip",
+            "w_QCD_A_oof",
+            "w_QCD_A_oof_fixclip",
+            "w_QCD_A_ins_fixclip",
+            "w_QCD_A_dec_fixclip",
+            *ENSEMBLE_WEIGHT_COLS,
+        ],
         help="Column from apply/per_event_weights.parquet to use as the "
         "B-data weight for --version abcd.  'w_QCD_A' = TF · purity, clamped "
         "to [0,100] (default); 'w_QCD_A_raw' = the same, UN-clamped (signed, "
         "for the TrainBDT-style |w| convention — train_bdt applies np.abs); "
-        "'TF' = TF only, no purity correction.",
+        "'TF' = TF only, no purity correction; 'w_QCD_A_fixclip' = "
+        "clip(clip(TF,0)·clip(purity,0), 0, 100) (zeroes TF<0 & purity<0 "
+        "events; in the parquet of apply.py --ensemble-dir or of a post-processed run); "
+        "'w_QCD_A_oof' / 'w_QCD_A_oof_fixclip' = the same two weights from a 2-fold "
+        "cross-fit, each Region-B event weighted by the ABCDnn fold that did not train on it "
+        "(only in the parquet of a cross-fit ABCDnn run, not written by apply.py); "
+        "'w_QCD_A_ins_fixclip' = the same two cross-fit models applied in-sample (each event "
+        "weighted by the fold that DID train on it; the control for 'w_QCD_A_oof_fixclip'); "
+        "'w_QCD_A_dec_fixclip' = clip(clip(TF_dec,0)·clip(purity_dec,0), 0, 100) from "
+        "decoupled models (TF from a 4-class C/D-only ABCDnn, purity from a cross-fitted "
+        "Region-B data-vs-ttbar classifier; only in the parquet of a decoupled run, not written "
+        "by apply.py); 'w_QCD_A[_fixclip]_{median,mean,q16,q84}' = per-event statistic of the "
+        "weight over the members of a k-fold ensemble (median = the HIG-24-010 central value; "
+        "written by apply.py --ensemble-dir, so pass --run-dir <run>/kfold<K>_s<S>).",
     )
     parser.add_argument(
         "--signal-keys",
@@ -754,6 +796,10 @@ def main() -> None:
         [year],
         samples=samples_to_load,
     )
+    if args.ak4away_assignment == "shared":
+        for sample, df in pickles.items():
+            n = ak4away_shared_assignment(df)
+            logger.info(f"{sample}: shared AK4-away assignment, {n} of {len(df)} events changed")
 
     region_masks: dict[str, dict[str, np.ndarray]] = {}
     for sample, df in pickles.items():

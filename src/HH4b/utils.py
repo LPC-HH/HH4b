@@ -12,6 +12,7 @@ import contextlib
 import logging
 import logging.config
 import pickle
+import re
 import time
 import warnings
 from copy import deepcopy
@@ -22,6 +23,7 @@ from pathlib import Path
 import hist
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 import vector
 from coffea.analysis_tools import PackedSelection
 from coffea.processor.accumulator import accumulate
@@ -31,6 +33,9 @@ from HH4b.xsecs import xsecs
 
 from .hh_vars import (
     LUMI,
+    ZZ4B_MZ_WINDOW,
+    ZZ4B_SAMPLE,
+    ZZ_INCLUSIVE_SAMPLE,
     data_key,
     jec_shifts,
     jec_vars,
@@ -189,10 +194,15 @@ def check_selector(sample: str, selector: str | list[str]):
         selector = [selector]
 
     # Case-insensitive matching: the v15 skimmer is inconsistent across years
-    # (e.g. ttHto2B_M-125 vs TTHto2B_M-125).  CMS sample names don't collide by
-    # case alone, so lowercasing both sides is safe.
+    # (e.g. ttHto2B_M-125 vs TTHto2B_M-125).  But names can collide by case alone:
+    # 2022/2022EE hold both ttHto2B_M-125 and TTHto2B_M-125 (two productions of the
+    # same sample), so a selector starting with "=" is an exact, case-sensitive match.
     sample_lc = sample.lower()
     for s in selector:
+        if s.startswith("="):
+            if s[1:] == sample:
+                return True
+            continue
         s = s.lower()  # noqa: PLW2901
         if s.endswith("?"):
             if s[:-1] == sample_lc:
@@ -217,6 +227,94 @@ def format_columns(columns: list):
         for i in range(num_columns):
             ret_columns.append(f"('{key}', '{i}')")
     return ret_columns
+
+
+# The 2022-2023 W->qq+jets samples whose cross sections in xsecs.py are the XSDB (= GenXSecAnalyzer)
+# values / 2: their MadGraph process cards generate each W charge twice, so XSDB is 2x the physical
+# cross section. The skimmer bakes
+# xsecs[sample] x LUMI[year] into every skim weight, and the skims made before the "/ 2" carry the
+# XSDB value: ``_apply_w_xsec_correction`` detects such a skim from weight / weight_noxsec, rescales
+# it to xsecs.py at load time and warns. Only in the eras that have these samples
+# (Run3Summer22/22EE/23/23BPix, one set of gridpacks); the 2024 Bin-PTQQ W samples (each charge
+# once) and all Z samples are correct. Any other xsecs.py or LUMI change still needs a re-skim.
+W_XSEC_CORRECTION_ERAS = ("2022", "2022EE", "2023", "2023BPix")
+W_XSEC_CORRECTION_SAMPLES = frozenset(
+    f"Wto2Q-2Jets_PTQQ-{ptqq}_{njets}"
+    for ptqq in ["100to200", "200to400", "400to600", "600"]
+    for njets in ["1J", "2J"]
+)
+_W_XSEC_CHECK_RTOL = 1e-9
+
+
+def _skim_norm_weight_columns(events: pd.DataFrame) -> list[str]:
+    """Columns the skimmer multiplied by xsec x LUMI: weight, weight_*, single_weight_*,
+    scale_weights, pdf_weights (not weight_noxsec, nor the unnormalised *nonorm* copies)."""
+    return [
+        col
+        for col in events.columns.get_level_values(0).unique()
+        if col in {"weight", "scale_weights", "pdf_weights"}
+        or (
+            col.startswith(("weight_", "single_weight_"))
+            and "noxsec" not in col
+            and "nonorm" not in col
+        )
+    ]
+
+
+def _apply_w_xsec_correction(events: pd.DataFrame, year: str, sample: str) -> None:
+    """Rescale a 2022-2023 W skim made with the doubled XSDB cross section to xsecs.py, in place.
+
+    MC only (the callers skip data), before ``finalWeight`` is formed. For a sample of
+    ``W_XSEC_CORRECTION_SAMPLES`` in ``W_XSEC_CORRECTION_ERAS``, the skim-time xsec x LUMI is
+    weight / weight_noxsec (one value for all events). If xsecs[sample] x LUMI[year] is half of it
+    (a skim made with the XSDB value, i.e. before the "/ 2" in xsecs.py), every column of
+    ``_skim_norm_weight_columns`` (weight, weight_*, single_weight_*, scale_weights, pdf_weights; not
+    weight_noxsec) is multiplied by exactly 0.5, with a warning (warnings.warn and logger.warning)
+    each time. If it equals it (a skim made after), nothing is done; anything else raises. No-op
+    for every other sample, for years outside ``W_XSEC_CORRECTION_ERAS`` and for empty frames.
+    """
+    if sample not in W_XSEC_CORRECTION_SAMPLES or year not in W_XSEC_CORRECTION_ERAS:
+        return
+    if not len(events):
+        return
+    if "weight_noxsec" not in events:
+        raise ValueError(
+            f"{sample} ({year}): weight_noxsec is needed to check its skim cross section "
+            "(load_samples(load_weight_noxsec=True))"
+        )
+    w = events["weight"].to_numpy().reshape(len(events), -1)[:, 0]
+    wn = events["weight_noxsec"].to_numpy().reshape(len(events), -1)[:, 0]
+    nonzero = wn != 0
+    if not nonzero.any():
+        raise ValueError(f"{sample} ({year}): weight_noxsec is 0 for every event")
+    ratio = w[nonzero] / wn[nonzero]
+    skim_norm = float(np.median(ratio))
+    if not np.allclose(ratio, skim_norm, rtol=_W_XSEC_CHECK_RTOL, atol=0):
+        raise ValueError(
+            f"{sample} ({year}): weight / weight_noxsec is not one value "
+            f"({ratio.min()} to {ratio.max()})"
+        )
+    norm = xsecs[sample] * LUMI[year]
+    rel = norm / skim_norm
+    if abs(rel - 1.0) <= _W_XSEC_CHECK_RTOL:
+        return  # skim made with the xsecs.py value
+    if abs(rel - 0.5) > 0.5 * _W_XSEC_CHECK_RTOL:
+        raise ValueError(
+            f"{sample} ({year}): skim xsec x lumi {skim_norm:.8g} is neither 1x nor 2x the "
+            f"xsecs.py x LUMI {norm:.8g} (ratio {rel:.8g}); re-skim or check xsecs.py"
+        )
+    factor = 0.5  # exact, so the rescaled weights are bitwise the halved skim weights
+    wcols = _skim_norm_weight_columns(events)
+    for col in wcols:
+        events[col] = events[col].to_numpy() * factor
+    msg = (
+        f"{sample} ({year}): skim made with the doubled XSDB cross section (its MadGraph process "
+        f"card generates each W charge twice); weights rescaled by {factor:g} to the xsecs.py value "
+        "(a re-skim with the current xsecs.py needs no rescaling)"
+    )
+    warnings.warn(msg, stacklevel=2)
+    logger.warning(msg)
+    logger.debug(f"{sample} ({year}): columns scaled by {factor:g}: {wcols}")
 
 
 def _resolve_xsec_key(sample: str, xsecs_dict: dict) -> str:
@@ -275,6 +373,9 @@ def _normalize_weights(
         #     events["weight"] = events["weight"].to_numpy() * xsecs[sample] * LUMI[year]
         # else:
         #     raise ValueError(f"{sample} has not been scaled by its xsec and lumi!")
+
+    # 2022-2023 W->qq+jets skims made with the doubled XSDB xsec: rescale to xsecs.py (warns)
+    _apply_w_xsec_correction(events, year, sample)
 
     events["finalWeight"] = events["weight"] / totals["np_nominal"]
     if sample in xsecs:
@@ -336,6 +437,567 @@ def _reorder_txbb(events: pd.DataFrame, txbb):
             events[key] = np.take_along_axis(events[key].to_numpy(), bbord, axis=1)
 
 
+def _parquet_has_rows(parquet_file: Path) -> bool:
+    """Same answer as ``not pd.read_parquet(parquet_file).empty``, from the file footer only.
+
+    ``DataFrame.empty`` means no rows or no columns. pandas turns the index columns listed in the
+    pandas metadata into the index, so those do not count as columns. The full read it replaces
+    loads every column of the file (~370 in the skims) just to test for emptiness.
+    """
+    with pq.ParquetFile(parquet_file) as pf:
+        if pf.metadata.num_rows == 0:
+            return False
+        schema = pf.schema_arrow
+    index_columns = (schema.pandas_metadata or {}).get("index_columns", [])
+    return len(schema.names) > sum(isinstance(col, str) for col in index_columns)
+
+
+# 2024 (Summer24) V+jets: {W,Z}to2Q-2Jets_Bin-PTQQ-X is generated with PTQQ > X and NO upper edge,
+# so the four samples overlap. By default only Bin-PTQQ-100 is loaded (hh_vars vjets selectors).
+# With ``load_samples(..., ptqq_stitch=PtqqStitch(...))`` (PostProcess --vjets-stitch) all four are
+# loaded and stitched below. The 2022-2023 *_PTQQ-XtoY_{1J,2J} samples are exclusive bins and do not
+# match. The generator-level PTQQ (LHE V pT) is not in the skim, so GenVPt (last-copy V,
+# GenSelection.py) is used, and a higher-threshold sample is trusted only from PTQQ_STITCH_MARGIN
+# above its threshold, where its GenVPt turn-on has reached the plateau.
+# ``PtqqStitch(mode="range")`` is the alternative for a skim with the LHE V pT (``GenVLHEPt``) and
+# the per-LHE-V-pT-bin totals (skimmer 7332ed8+): each sample covers only [X_i, X_next) in LHE V pT,
+# normalised to sigma_i x (its generator-weight fraction there); see ``ptqq_range_norm``.
+_PTQQ_OPEN_RE = re.compile(r"^([wz])to2q-2jets_bin-ptqq-(\d+)$")
+PTQQ_STITCH_MARGIN = 50.0  # GeV
+PTQQ_OPEN_INCLUSIVE = 100.0  # the lowest threshold, whose sample covers the whole phase space
+PTQQ_STITCH_MODES = ("effective-lumi", "range")
+# open-ended samples that must not be used (range mode raises if one is selected)
+PTQQ_OPEN_INVALID = {
+    ("w", 600.0): "Wto2Q-2Jets_Bin-PTQQ-600 (2024) is INVALID in DAS: it was generated with the "
+    "LHE V pT filter at 400 GeV, not 600 GeV",
+}
+# Bin edges (GeV) of the skimmer's per-LHE-V-pT-bin totals (bbbbSkimmer.LHEVPT_EDGES, copied here
+# so that postprocessing does not import the processors): arrays of len(edges) + 1 = 202 entries,
+# [0] underflow (< 0: no status-2 LHE W/Z), [k] = [edges[k-1], edges[k]), [-1] >= 2000 GeV. The
+# thresholds 100/200/400/600 are edges; LHEPart pT is stored with a reduced mantissa, which rounds a
+# value just above a threshold to exactly the threshold, never below, so a lower edge is inclusive.
+LHEVPT_EDGES = np.arange(0.0, 2001.0, 10.0)
+LHEVPT_COLUMN = "GenVLHEPt"
+
+
+def ptqq_open_threshold(sample: str) -> tuple[str, float] | None:
+    """(boson, X) for an open-ended ``{W,Z}to2Q-2Jets_Bin-PTQQ-X`` sample name, else None."""
+    m = _PTQQ_OPEN_RE.match(sample.lower())
+    return (m.group(1), float(m.group(2))) if m else None
+
+
+@dataclass
+class PtqqStitch:
+    """Settings for stitching the open-ended Bin-PTQQ V+jets samples in ``load_samples``.
+
+    Args:
+        txbb_presel: load filter max(TXbb_0, TXbb_1) >= txbb_presel on every open-ended sample.
+            Set it to the analysis preselection (PostProcess ``H1TXbb >= txbb_presel``, H1 being
+            the higher-TXbb jet); it then drops only events that no downstream region can use.
+            None: no TXbb load filter.
+        txbb_min: optional extra filter min(TXbb_0, TXbb_1) >= txbb_min on the higher-threshold
+            samples only, to save memory. The stitch then trusts them only in that region; outside
+            it the inclusive sample carries the full weight, exactly as without stitching, so every
+            selection stays unbiased. None: the higher-threshold samples are used everywhere.
+            Effective-lumi mode only (in range mode no other sample would cover the cut events).
+        margin: GenVPt margin (GeV) above its threshold from which a sample is trusted
+            (effective-lumi mode only).
+        mode: "effective-lumi" (default): GenVPt stitch with effective-luminosity weights
+            (``_stitch_open_ptqq``). "range": each sample covers one LHE-V-pT range
+            [X_i, X_next) (the highest sample: >= X_i), normalised to sigma_i x f_i with f_i its
+            generator-weight fraction in that range (``ptqq_range_norm``); needs a skim with
+            ``GenVLHEPt`` and the per-LHE-V-pT-bin totals.
+    """
+
+    txbb_presel: float | None = None
+    txbb_min: float | None = None
+    margin: float = PTQQ_STITCH_MARGIN
+    mode: str = "effective-lumi"
+
+    def __post_init__(self):
+        if self.mode not in PTQQ_STITCH_MODES:
+            raise ValueError(f"PtqqStitch mode must be one of {PTQQ_STITCH_MODES}, got {self.mode}")
+        if self.mode == "range" and self.txbb_min is not None:
+            raise ValueError(
+                "PtqqStitch(mode='range') takes no txbb_min: each LHE V pT range comes from one "
+                "sample only, so a min(TXbb) load filter would remove events nothing else covers"
+            )
+
+
+def _lhevpt_range_bins(lo: float, hi: float) -> slice:
+    """Slice of the per-LHE-V-pT-bin totals covering [lo, hi) (hi = inf: up to the overflow)."""
+    if lo not in LHEVPT_EDGES or not (np.isinf(hi) or hi in LHEVPT_EDGES) or not lo < hi:
+        raise ValueError(f"LHE V pT range [{lo}, {hi}) is not on the totals' bin edges")
+    # bin k is [edges[k-1], edges[k]), so the bin starting at an edge e has index searchsorted(e)
+    k_lo = int(np.searchsorted(LHEVPT_EDGES, lo, side="right"))
+    if np.isinf(hi):
+        return slice(k_lo, len(LHEVPT_EDGES) + 1)
+    return slice(k_lo, int(np.searchsorted(LHEVPT_EDGES, hi, side="right")))
+
+
+def _lhevpt_array(totals: dict, key: str, sample: str) -> np.ndarray:
+    """One per-LHE-V-pT-bin totals array, checked to exist and to have the skimmer's binning."""
+    if key not in totals:
+        raise ValueError(
+            f"{sample}: the pickle totals have no '{key}': this skim predates the per-LHE-V-pT-bin "
+            "totals (skimmer commit 7332ed8), which the range stitch needs; use the LHE-pT re-skim "
+            "(e.g. PostProcess --override-tag 20260820_glopartv3_reskim_v15_signal)"
+        )
+    arr = np.asarray(totals[key], dtype=np.float64)
+    if arr.shape != (len(LHEVPT_EDGES) + 1,):
+        raise ValueError(f"{sample}: '{key}' has shape {arr.shape}, not the skimmer's binning")
+    return arr
+
+
+def ptqq_range_norm(
+    totals: dict, lo: float, hi: float, syst_labels: list[str] = (), sample: str = ""
+) -> dict:
+    """Normalisation of one open-ended Bin-PTQQ sample restricted to LHE V pT in [lo, hi).
+
+    The sample's cross section in the range is sigma_i x f with f the fraction of its generated
+    events there, counted as the signed sum of generator weights over ALL generated events (no other
+    cut): ``f = sum_range genweight_lhevpt / sum_all genweight_lhevpt`` (the denominator is the
+    sample's ``nevents``, summed in float64 over the same events as the numerator).
+
+    ``_normalize_weights`` divides the nominal by ``np_nominal``, so the events of the range carry
+    sigma_i L F_nominal, with F_nominal = sum_range np_nominal_lhevpt / np_nominal; the factor
+    f / F_nominal makes that sigma_i L f exactly. A norm-preserving variation s normalised by its own
+    total np_s (``syst_labels``, e.g. "pileupUp") gets f / F_s, F_s = sum_range np_s_lhevpt / np_s,
+    so every such variation keeps the range normalisation sigma_i L f.
+
+    If the range holds every generated event (the highest sample, nothing below its threshold),
+    f and every F are exactly 1: the sample is taken whole at its cross section, weights unchanged.
+
+    Returns a dict with "f" (generator-weight fraction), "f_raw" (raw-count fraction, for
+    information), "F" and "factor" (dicts keyed by "nominal" and each syst label), and the
+    generated events / genweight fraction below ``lo`` ("n_below", "f_below").
+    """
+    rng = _lhevpt_range_bins(lo, hi)
+    gen = _lhevpt_array(totals, "genweight_lhevpt", sample)
+    nraw = _lhevpt_array(totals, "nevents_lhevpt", sample)
+    whole = nraw[rng].sum() == nraw.sum()  # every generated event is in the range
+    f = 1.0 if whole else gen[rng].sum() / gen.sum()
+    out = {
+        "f": f,
+        "f_raw": nraw[rng].sum() / nraw.sum(),
+        "n_below": int(nraw[: rng.start].sum()),
+        "f_below": gen[: rng.start].sum() / gen.sum(),
+        "F": {},
+        "factor": {},
+    }
+    for label in ["nominal", *syst_labels]:
+        per_bin = _lhevpt_array(totals, f"np_{label}_lhevpt", sample)
+        total = totals[f"np_{label}"]
+        big_f = 1.0 if whole else per_bin[rng].sum() / total
+        if not (np.isfinite(big_f) and big_f > 0 and np.isfinite(f) and f > 0):
+            raise ValueError(f"{sample}: no generated events in LHE V pT [{lo}, {hi}) ({label})")
+        out["F"][label] = big_f
+        out["factor"][label] = f / big_f
+    return out
+
+
+def _own_total_variations(
+    events: pd.DataFrame, variations: bool, weight_shifts: dict[str, Syst] | None
+) -> list[str]:
+    """The ``weight_<label>`` variations ``_normalize_weights`` divides by their own np_<label>."""
+    if not variations or weight_shifts is None:
+        return []
+    return [
+        wvar + shift
+        for wvar in weight_shifts
+        if f"weight_{wvar}Up" in events and wvar in norm_preserving_weights
+        for shift in ["Up", "Down"]
+    ]
+
+
+def _stitch_weight_columns(events: pd.DataFrame) -> list[str]:
+    """Weight columns a stitch factor multiplies (not the unnormalised ``*noxsec*``/``*nonorm*``)."""
+    return [
+        col
+        for col in events.columns.get_level_values(0).unique()
+        if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+        or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+    ]
+
+
+def _ptqq_range_ranges(samples: list[str], selector) -> dict[str, tuple[float, float]]:
+    """{sample: (lo, hi)} LHE V pT range of every open-ended sample the selector matches.
+
+    Per boson the thresholds X_1 < ... < X_n of the matched samples split the axis: sample k keeps
+    [X_k, X_k+1), the highest one [X_n, inf). Raises for an invalid sample (``PTQQ_OPEN_INVALID``).
+    """
+    by_boson: dict[str, list[tuple[float, str]]] = {}
+    for sample in samples:
+        thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
+        if thr is None:
+            continue
+        if thr in PTQQ_OPEN_INVALID:
+            raise ValueError(f"PTQQ range stitch: {sample} selected, but {PTQQ_OPEN_INVALID[thr]}")
+        by_boson.setdefault(thr[0], []).append((thr[1], sample))
+    ranges = {}
+    for boson, members in by_boson.items():
+        members.sort()
+        xs = [x for x, _ in members]
+        if xs[0] != PTQQ_OPEN_INCLUSIVE:
+            raise ValueError(
+                f"PTQQ range stitch ({boson.upper()}): the lowest sample must be Bin-PTQQ-"
+                f"{PTQQ_OPEN_INCLUSIVE:.0f} (matched: {[s for _, s in members]})"
+            )
+        for k, (x, sample) in enumerate(members):
+            ranges[sample] = (x, xs[k + 1] if k + 1 < len(xs) else np.inf)
+    return ranges
+
+
+def _ptqq_range_filters(filters: list | None, lo: float, hi: float) -> list:
+    """``filters`` AND lo <= GenVLHEPt (< hi), as a pyarrow DNF filter."""
+    col = f"('{LHEVPT_COLUMN}', '0')"
+    clause = [(col, ">=", lo)] + ([] if np.isinf(hi) else [(col, "<", hi)])
+    return _and_dnf(filters, [clause])
+
+
+def _check_range_sample(parquet_path: Path, pickles_path: Path, sample: str, lo, hi) -> None:
+    """Raise if a range-stitch sample has no events at all (its LHE V pT range would be missing)
+    or a non-empty parquet file without GenVLHEPt (a skim before 7e8dca7); warn if its parquet and
+    pickle jobs differ (the normalisation assumes they cover the same generated events)."""
+    col = f"('{LHEVPT_COLUMN}', '0')"
+    files = sorted(parquet_path.glob("*.parquet")) if parquet_path.is_dir() else []
+    files = [parquet_file for parquet_file in files if _parquet_has_rows(parquet_file)]
+    if not files:
+        raise ValueError(
+            f"PTQQ range stitch: {sample} has no events in {parquet_path}, so its LHE V pT range "
+            f"[{lo:g}, {hi:g}) would be missing"
+        )
+    for parquet_file in files:
+        if col not in pq.read_schema(parquet_file).names:
+            raise ValueError(
+                f"{sample}: {parquet_file} has no {LHEVPT_COLUMN} column: this skim predates the "
+                "LHE V pT (skimmer 7e8dca7/7332ed8), which the range stitch needs; use the LHE-pT "
+                "re-skim (e.g. PostProcess --override-tag 20260820_glopartv3_reskim_v15_signal)"
+            )
+    jobs_pq = {p.stem for p in parquet_path.glob("*.parquet")}
+    jobs_pk = {p.stem for p in pickles_path.glob("*.pkl")}
+    if jobs_pq != jobs_pk:
+        warnings.warn(
+            f"{sample}: parquet and pickle jobs differ (parquet only: {sorted(jobs_pq - jobs_pk)}, "
+            f"pickles only: {sorted(jobs_pk - jobs_pq)}); the range normalisation assumes they "
+            "cover the same generated events",
+            stacklevel=2,
+        )
+
+
+def _apply_ptqq_range(
+    events: pd.DataFrame,
+    sample: str,
+    totals: dict,
+    lo: float,
+    hi: float,
+    own_total: list[str],
+) -> pd.DataFrame:
+    """Range stitch of one open-ended sample: keep lo <= GenVLHEPt < hi and rescale its weights.
+
+    ``weight_<s>`` for s in ``own_total`` (normalised by np_s) gets f / F_s, every other weight
+    column f / F_nominal (``ptqq_range_norm``). Returns the (possibly row-reduced) frame.
+    """
+    norm = ptqq_range_norm(totals, lo, hi, own_total, sample)
+    v = events[LHEVPT_COLUMN].to_numpy().reshape(len(events), -1)[:, 0]
+    keep = (v >= lo) & (v < hi)
+    n_out = int(np.sum(~keep))
+    if n_out:
+        # the load filter already keeps only the range; this is a safety net (e.g. no pushdown)
+        events = events.loc[keep].reset_index(drop=True)
+    before = events["finalWeight"].to_numpy().sum()
+    for col in _stitch_weight_columns(events):
+        label = col[len("weight_") :] if col.startswith("weight_") else None
+        factor = norm["factor"][label if label in own_total else "nominal"]
+        events[col] = events[col].to_numpy() * factor
+    if norm["n_below"]:
+        warnings.warn(
+            f"{sample}: {norm['n_below']} generated events ({norm['f_below']:.3g} of the genweight) "
+            f"have LHE V pT below the sample threshold {lo:g} GeV; they are not used",
+            stacklevel=1,
+        )
+    logger.info(
+        f"PTQQ range stitch {sample}: LHE V pT [{lo:g}, {hi:g}), f={norm['f']:.6g} "
+        f"(raw-count {norm['f_raw']:.6g}), F_nominal={norm['F']['nominal']:.6g}, "
+        f"factor={norm['factor']['nominal']:.6g}, {len(events)} events ({n_out} outside the "
+        f"range dropped after the load filter), sum finalWeight {before:.6g} -> "
+        f"{events['finalWeight'].to_numpy().sum():.6g}"
+    )
+    return events
+
+
+def _and_dnf(filters: list | None, clauses: list[list[tuple]]) -> list[list[tuple]]:
+    """``filters AND (clauses[0] OR clauses[1] OR ...)`` as a pyarrow DNF filter (OR of AND-lists)."""
+    if not filters:
+        base = [[]]
+    elif isinstance(filters[0], tuple):  # a single flat AND-list
+        base = [list(filters)]
+    else:
+        base = [list(clause) for clause in filters]
+    return [b + c for b in base for c in clauses]
+
+
+def _ptqq_stitch_filters(
+    filters: list | None, txbb_str: str, stitch: PtqqStitch, higher: bool
+) -> list | None:
+    """The caller's filters plus the ``PtqqStitch`` TXbb filters for one open-ended sample."""
+    tx0, tx1 = (f"('{txbb_str}', '{i}')" for i in range(2))
+    if stitch.txbb_presel is not None:
+        cut = stitch.txbb_presel
+        filters = _and_dnf(filters, [[(tx0, ">=", cut)], [(tx1, ">=", cut)]])
+    if higher and stitch.txbb_min is not None:
+        cut = stitch.txbb_min
+        filters = _and_dnf(filters, [[(tx0, ">=", cut), (tx1, ">=", cut)]])
+    return filters
+
+
+def _stitch_open_ptqq(
+    loaded: list[tuple[str, pd.DataFrame]], txbb_str: str, stitch: PtqqStitch
+) -> None:
+    """Effective-luminosity stitching of the open-ended Bin-PTQQ samples, in place.
+
+    For an event with GenVPt v, the trusted samples of its boson are the inclusive (lowest
+    threshold) one, plus every sample with v >= X + margin when the event is in the stitch region
+    (min(TXbb_0, TXbb_1) >= ``stitch.txbb_min`` if set, else everywhere). An event from trusted
+    sample i has all its weights scaled by c_i / sum_j c_j over the trusted samples, with
+    c = 1 / median|finalWeight| (the inverse per-event weight, i.e. an effective luminosity); an
+    event from an untrusted sample gets 0. The factors sum to 1 at every (v, region), so every
+    yield is unbiased, and the low-weight high-threshold samples dominate the high-pT tail.
+    """
+    groups: dict[str, list[tuple[float, str, pd.DataFrame]]] = {}
+    for sample, events in loaded:
+        thr = ptqq_open_threshold(sample)
+        if thr is not None:
+            groups.setdefault(thr[0], []).append((thr[1], sample, events))
+
+    for boson, members in groups.items():
+        xs = np.array([x for x, _, _ in members])
+        if xs.min() != PTQQ_OPEN_INCLUSIVE:
+            raise ValueError(
+                f"PTQQ stitch ({boson.upper()}): the inclusive Bin-PTQQ-{PTQQ_OPEN_INCLUSIVE:.0f} "
+                f"sample was not loaded (loaded: {[s for _, s, _ in members]})"
+            )
+        cs = np.array(
+            [1.0 / np.median(np.abs(ev["finalWeight"].to_numpy())) for _, _, ev in members]
+        )
+        if not np.all(np.isfinite(cs) & (cs > 0)):
+            raise ValueError(f"PTQQ stitch ({boson.upper()}): bad effective luminosities {cs}")
+
+        for i, (_, sample, events) in enumerate(members):
+            v = events["GenVPt"].to_numpy().reshape(len(events), -1)[:, 0]
+            if not np.all(np.isfinite(v)):
+                warnings.warn(
+                    f"{sample}: {np.sum(~np.isfinite(v))} events without a finite GenVPt; only "
+                    "the inclusive sample is trusted for them",
+                    stacklevel=1,
+                )
+            higher_trusted = v[:, None] >= xs[None, :] + stitch.margin
+            if stitch.txbb_min is not None:
+                txbb = events[txbb_str].to_numpy()[:, :2]
+                higher_trusted &= (np.min(txbb, axis=1) >= stitch.txbb_min)[:, None]
+            trusted = (xs[None, :] == xs.min()) | higher_trusted
+            factor = np.where(trusted[:, i], cs[i] / (trusted * cs[None, :]).sum(axis=1), 0.0)
+
+            before = events["finalWeight"].to_numpy().sum()
+            wcols = [
+                col
+                for col in events.columns.get_level_values(0).unique()
+                if col in {"weight", "finalWeight", "scale_weights", "pdf_weights"}
+                or (col.startswith("weight_") and "noxsec" not in col and "nonorm" not in col)
+            ]
+            for col in wcols:
+                vals = events[col].to_numpy()
+                events[col] = vals * (factor[:, None] if vals.ndim == 2 else factor)
+            logger.info(
+                f"PTQQ stitch {sample}: c={cs[i]:.4g}, {len(events)} events "
+                f"({np.sum(factor == 0)} untrusted), sum finalWeight {before:.4g} -> "
+                f"{events['finalWeight'].to_numpy().sum():.4g} "
+                f"(txbb_presel={stitch.txbb_presel}, txbb_min={stitch.txbb_min})"
+            )
+
+
+# ZZ -> bbbb: the dedicated ZZto4B-1Jets sample (amcatnloFXFX, MadSpin "decay z > b b~", bwcutoff
+# 15) covers exactly the inclusive pythia8 ZZ events with Z->bb, Z->bb and both Z masses in its
+# MadSpin window, with about 6x the effective statistics of the inclusive sample there (2024,
+# both Z with pT > 250 GeV).
+# skim generator columns (GenSelection.gen_selection_VV, every dataset name containing "ZZ")
+ZZ4B_GEN_COLUMNS = [("GenV1BB", 1), ("GenV2BB", 1), ("GenVMass", 2)]
+
+
+@dataclass
+class ZZ4bReplace:
+    """Settings for replacing the ZZ -> bbbb part of the inclusive ZZ by ZZto4B-1Jets in
+    ``load_samples``.
+
+    The replaced phase space O is ZZ -> (Z -> bb)(Z -> bb) with both Z masses in ``mz_window`` (the
+    ZZto4B MadSpin window, ``hh_vars.ZZ4B_MZ_WINDOW``). The inclusive events in O (the skim's
+    ``GenV1BB & GenV2BB`` and both ``GenVMass`` in the window) are dropped and ZZto4B is taken whole
+    at its cross section, so O comes from ZZto4B alone; every other inclusive ZZ event (other
+    decays, ZZ -> bbbb outside the window) is kept. Every ZZto4B event is in O by construction; its
+    generator flags are only checked (some FxFx gen records hold fewer than two hard V, so the flags
+    are not used to select ZZto4B events).
+
+    Args:
+        inclusive, zz4b: sample directory names.
+        mz_window: (low, high) Z mass window in GeV.
+
+    Applied only in a year in which both directories are selected; elsewhere (e.g. 2022-2023,
+    which have no GloParT-v3 ZZto4B) the label is loaded as it is.
+    """
+
+    inclusive: str = ZZ_INCLUSIVE_SAMPLE
+    zz4b: str = ZZ4B_SAMPLE
+    mz_window: tuple[float, float] = ZZ4B_MZ_WINDOW
+
+
+def _col1d(events: pd.DataFrame, name: str, i: int = 0) -> np.ndarray:
+    x = events[name].to_numpy()
+    return x[:, i] if x.ndim == 2 else x
+
+
+def zz4b_overlap_mask(events: pd.DataFrame, mz_window: tuple[float, float]) -> np.ndarray:
+    """Events with Z->bb, Z->bb and both generator Z masses in ``mz_window`` (``ZZ4bReplace``)."""
+    lo, hi = mz_window
+    m0, m1 = _col1d(events, "GenVMass", 0), _col1d(events, "GenVMass", 1)
+    return (
+        _col1d(events, "GenV1BB").astype(bool)
+        & _col1d(events, "GenV2BB").astype(bool)
+        & (m0 >= lo)
+        & (m0 <= hi)
+        & (m1 >= lo)
+        & (m1 <= hi)
+    )
+
+
+def _replace_zz4b(
+    loaded: list[tuple[str, pd.DataFrame]], replace: ZZ4bReplace
+) -> list[pd.DataFrame]:
+    """Drop the inclusive ZZ events that ZZto4B replaces (``ZZ4bReplace``); returns the frames in
+    input order.
+
+    Called after ``_normalize_weights`` (finalWeight = sigma x L x w / sum w) and before the
+    concatenation, the 2024/2025 parity split and the load-time JMS/JMR, so both halves of the
+    shared 2024 MC get the same treatment.
+    """
+    names = [sample for sample, _ in loaded]
+    for sample in (replace.inclusive, replace.zz4b):
+        if sample not in names:
+            raise ValueError(
+                f"ZZto4B replacement: {sample} selected but has no events after the filters"
+            )
+    frames = [events for _, events in loaded]
+    i_inc, i_4b = names.index(replace.inclusive), names.index(replace.zz4b)
+    inc, zz4b = frames[i_inc], frames[i_4b]
+    overlap = zz4b_overlap_mask(inc, replace.mz_window)
+    w_inc = _col1d(inc, "finalWeight")
+    w_4b = _col1d(zz4b, "finalWeight")
+    # every ZZto4B event is in the overlap by construction; a large failing fraction means a wrong
+    # sample or window (a few FxFx gen records hold fewer than two hard V)
+    off = ~zz4b_overlap_mask(zz4b, replace.mz_window)
+    if off.mean() > 0.05:
+        warnings.warn(
+            f"ZZto4B replacement: {off.sum()} of {len(zz4b)} {replace.zz4b} events "
+            f"({off.mean():.1%}) fail the overlap definition (window {replace.mz_window})",
+            stacklevel=2,
+        )
+    frames[i_inc] = inc.loc[~overlap].reset_index(drop=True)
+    logger.info(
+        f"ZZto4B replacement: dropped {overlap.sum()} of {len(inc)} {replace.inclusive} events "
+        f"(sum finalWeight {w_inc[overlap].sum():.6g} of {w_inc.sum():.6g}); {replace.zz4b} "
+        f"{len(zz4b)} events, sum finalWeight {w_4b.sum():.6g}, negative-weight fraction "
+        f"{np.mean(w_4b < 0):.3f}, {off.sum()} outside the overlap definition"
+    )
+    return frames
+
+
+# TODO(mc-sharing): remove once 2025 has MC of its own (and with it the mc_year argument of
+# load_samples). The 2024 MC is also the 2025 MC (PostProcess --split-shared-mc): the 2024 MC skims
+# keep the events that pass the 2024 or the 2025 jet veto map and save both decisions, the ratios of
+# the 2025 to the 2024 pileup weights (nominal, up, down) and the 2025 pileup totals (bbbbSkimmer).
+# Skims without these columns are loaded as before.
+MC_SHARING_COLUMNS = [
+    ("ak4_jetveto_2024", 1),
+    ("ak4_jetveto_2025", 1),
+    ("pileup_2025_over_2024", 3),
+]
+
+
+def _mc_sharing_veto(events: pd.DataFrame, mc_year: str) -> pd.DataFrame:
+    """Keep the events that pass the jet veto map of ``mc_year`` (2024 MC skims, see
+    ``MC_SHARING_COLUMNS``)."""
+    keep = _col1d(events, f"ak4_jetveto_{mc_year}").astype(bool)
+    return events.loc[keep].reset_index(drop=True)
+
+
+def _mc_sharing_pileup_2025(events: pd.DataFrame, totals: dict) -> dict:
+    """Turn the 2024 pileup weights of 2024 MC events used for 2025 into the 2025 ones, in place,
+    and return the np totals to normalize them with (``MC_SHARING_COLUMNS``).
+
+    Every weight column (nominal, its variations, scale and PDF weights, ``weight_noxsec``) is
+    multiplied by the 2025/2024 nominal ratio, except the pileup variations, which become the
+    nominal weight times the 2025 up/down over 2024 nominal ratio. np_nominal, np_pileupUp and
+    np_pileupDown become their 2025 totals; every other np total, and the per-LHE-V-pT totals, is
+    scaled by the same factor as its base total (the nominal one unless it is a pileup variation),
+    so ratios of totals (e.g. the V+jets range fractions) are unchanged.
+    """
+    ratios = events["pileup_2025_over_2024"].to_numpy()
+
+    def times(vals: np.ndarray, k: int) -> np.ndarray:
+        return vals * (ratios[:, k : k + 1] if vals.ndim == 2 else ratios[:, k])
+
+    weight = events["weight"].to_numpy().copy()
+    for col in events.columns.get_level_values(0).unique():
+        if col in ("weight_pileupUp", "weight_pileupDown"):
+            events[col] = times(weight, 1 if col.endswith("Up") else 2)
+        elif col in ("weight", "scale_weights", "pdf_weights") or (
+            col.startswith("weight_") and "nonorm" not in col
+        ):
+            events[col] = times(events[col].to_numpy(), 0)
+    factors = {
+        f"np_{label}": totals[f"np_{label}_pu2025"] / totals[f"np_{label}"]
+        for label in ("nominal", "pileupUp", "pileupDown")
+        if f"np_{label}" in totals
+    }
+    out = dict(totals)
+    for key, val in totals.items():
+        if key.startswith("np_") and not key.endswith("_pu2025"):
+            base = key.removesuffix("_lhevpt")
+            out[key] = np.asarray(val) * factors.get(base, factors["np_nominal"])
+    return out
+
+
+AK4AWAY_ASSIGNMENTS = ("exclusive", "shared")
+
+
+def ak4away_shared_assignment(events: pd.DataFrame) -> int:
+    """Give the second bb jet the AK4 jet it had before the skimmer stopped sharing one, in place.
+
+    The skimmer (``objects.ak4_jets_awayfromak8``, ``sort_by="nearest"``) stores in ``AK4JetAway*``
+    index 0 the AK4 jet nearest to the first bb jet, and in index 1 the nearest to the second among
+    the remaining ones ("exclusive"). Before, index 1 was the nearest to the second bb jet among all
+    of them, which can be the same jet ("shared"). The shared choice follows from the stored jets:
+    it is jet 0 whenever jet 0 is closer to the second bb jet than the stored jet 1, or there is no
+    jet 1. All ``AK4JetAway*`` columns of those events are overwritten at index 1 with index 0.
+    Assumes the ``bbFatJet`` order of the skim (true when the loader reorders by the skim's own
+    tagger). Returns the number of events changed.
+    """
+    pt = events["AK4JetAwayPt"].to_numpy()
+    eta, phi = events["AK4JetAwayEta"].to_numpy(), events["AK4JetAwayPhi"].to_numpy()
+    feta, fphi = events["bbFatJetEta"].to_numpy()[:, 1], events["bbFatJetPhi"].to_numpy()[:, 1]
+
+    def delta_r(e, p):
+        return np.hypot(e - feta, np.mod(p - fphi + np.pi, 2 * np.pi) - np.pi)
+
+    has0, has1 = pt[:, 0] > 0, pt[:, 1] > 0
+    changed = has0 & (~has1 | (delta_r(eta[:, 0], phi[:, 0]) < delta_r(eta[:, 1], phi[:, 1])))
+    for key in np.unique(events.columns.get_level_values(0)):
+        if key.startswith("AK4JetAway") and (key, 1) in events.columns:
+            vals = events[key].to_numpy().copy()
+            vals[changed, 1] = vals[changed, 0]
+            events[key] = vals
+    return int(changed.sum())
+
+
 def load_samples(
     data_dir: Path,
     samples: dict[str, str],
@@ -347,6 +1009,10 @@ def load_samples(
     reorder_txbb: bool = False,  # temporary fix for sorting by given Txbb
     txbb_str: str = "bbFatJetPNetTXbbLegacy",
     load_weight_noxsec: bool = True,
+    ptqq_stitch: PtqqStitch | None = None,
+    override_dir: Path | str | list | None = None,
+    zz4b_replace: ZZ4bReplace | None = None,
+    mc_year: str | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -360,6 +1026,22 @@ def load_samples(
         columns (List): Optional columns to load.
         variations (bool): Normalize variations as well (saves time to not do so). Defaults to True.
         weight_shifts (Dict[str, Syst]): dictionary of weight shifts to consider.
+        ptqq_stitch (PtqqStitch): opt-in stitching of the overlapping open-ended 2024 V+jets
+            ``{W,Z}to2Q-2Jets_Bin-PTQQ-X`` samples selected under one label (see ``PtqqStitch``,
+            ``_stitch_open_ptqq`` and, for mode "range", ``ptqq_range_norm``). None (default):
+            every sample is loaded as it is.
+        override_dir (Path or list of Path): optional further skim directories (skimmer tags, like
+            ``data_dir``): every sample directory in ``override_dir / year`` replaces the
+            same-named one of ``data_dir / year`` (e.g. the LHE-pT re-skim of the 2024 V+jets and
+            SM ggHH), and a directory found only there is added; with a list, a later entry wins.
+            None (default), or no ``year`` directory there: everything is read from ``data_dir``.
+        zz4b_replace (ZZ4bReplace): opt-in replacement of the ZZ -> bbbb part of the inclusive
+            ZZ by ZZto4B-1Jets under one label (see ``ZZ4bReplace``), applied when both are
+            selected for ``year``. None (default): every sample is loaded as it is.
+        mc_year (str): TODO(mc-sharing): the year the MC is used for, if it is not ``year`` (2025
+            from the 2024 skims). In 2024 MC skims with ``MC_SHARING_COLUMNS``, the events that fail
+            the jet veto map of ``mc_year`` (default ``year``) are dropped, and for 2025 the weights
+            and their np totals become the 2025 pileup ones.
 
     Returns:
         Dict[str, pd.DataFrame]: ``events_dict`` dictionary of events dataframe for each sample.
@@ -369,6 +1051,23 @@ def load_samples(
 
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
+    sample_dirs = {}  # samples read from an override_dir instead of data_dir
+    if override_dir is None:
+        override_dirs = []
+    elif isinstance(override_dir, (str, Path)):
+        override_dirs = [override_dir]
+    else:
+        override_dirs = list(override_dir)
+    for odir in override_dirs:
+        if not (Path(odir) / year).is_dir():
+            continue
+        odir_samples = sorted(listdir(Path(odir) / year))
+        for sample in odir_samples:
+            sample_dirs[sample] = Path(odir) / year / sample
+            if sample not in full_samples_list:
+                full_samples_list.append(sample)
+        logger.info(f"Samples read from {Path(odir) / year}: {odir_samples}")
+    zz4b_columns = format_columns(ZZ4B_GEN_COLUMNS)
 
     logger.debug(f"Full list of directories in {data_dir}: {full_samples_list}")
     logger.debug(f"Samples to load {samples}")
@@ -381,14 +1080,86 @@ def load_samples(
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
+        # lowest open-ended Bin-PTQQ threshold per boson among this label's samples (for the stitch)
+        stitch_lowest = {}
+        if ptqq_stitch is not None:
+            for sample in full_samples_list:
+                thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
+                if thr is not None:
+                    stitch_lowest[thr[0]] = min(thr[1], stitch_lowest.get(thr[0], np.inf))
+        range_mode = ptqq_stitch is not None and ptqq_stitch.mode == "range"
+        # range stitch: the LHE V pT range [lo, hi) of every matched open-ended sample
+        ranges = _ptqq_range_ranges(full_samples_list, selector) if range_mode else {}
+        # columns read only for the stitch (dropped after it unless requested)
+        stitch_columns = format_columns(
+            [("GenVLHEPt" if range_mode else "GenVPt", 1), (txbb_str, 2)]
+        )
+
+        # ZZto4B replacement: on for this label and year only if both ZZ directories are selected
+        zz4b_on = False
+        if zz4b_replace is not None:
+            selected = [s for s in full_samples_list if check_selector(s, selector)]
+            has_inc, has_4b = zz4b_replace.inclusive in selected, zz4b_replace.zz4b in selected
+            if has_4b and not has_inc:
+                raise ValueError(
+                    f"ZZto4B replacement: {zz4b_replace.zz4b} selected for {label} ({year}) "
+                    f"without the inclusive {zz4b_replace.inclusive}; ZZto4B covers ZZ->bbbb only"
+                )
+            zz4b_on = has_inc and has_4b
+            if has_inc and not has_4b:
+                logger.info(
+                    f"ZZto4B replacement: no {zz4b_replace.zz4b} for {year}; {label} as it is"
+                )
+
         events_dict[label] = []  # list of directories we load in for this sample
+        loaded_names = []  # sample (directory) name of each entry in events_dict[label]
         for sample in full_samples_list:
             # check if this directory passes our selector string
             if not check_selector(sample, selector):
                 continue
 
-            sample_path = data_dir / sample
+            # open-ended Bin-PTQQ samples: GenVPt (GenVLHEPt in range mode) + TXbb for the stitch,
+            # and its TXbb (and LHE V pT range) load filters
+            sample_columns, sample_filters = load_columns, filters
+            thr = ptqq_open_threshold(sample) if ptqq_stitch is not None else None
+            if thr is not None:
+                if load_columns is not None:
+                    sample_columns = load_columns + [
+                        col for col in stitch_columns if col not in load_columns
+                    ]
+                sample_filters = _ptqq_stitch_filters(
+                    filters, txbb_str, ptqq_stitch, higher=thr[1] > stitch_lowest[thr[0]]
+                )
+                if range_mode:
+                    sample_filters = _ptqq_range_filters(sample_filters, *ranges[sample])
+            # ZZto4B replacement: the generator flags and Z masses of both ZZ samples
+            if (
+                zz4b_on
+                and sample in (zz4b_replace.inclusive, zz4b_replace.zz4b)
+                and sample_columns is not None
+            ):
+                sample_columns = sample_columns + [
+                    col for col in zz4b_columns if col not in sample_columns
+                ]
+
+            sample_path = sample_dirs.get(sample, data_dir / sample)
             parquet_path, pickles_path = sample_path / "parquet", sample_path / "pickles"
+            # TODO(mc-sharing): the 2024 MC skims' jet veto decisions and 2025 pileup ratios
+            mc_sharing = False
+            if label != data_key and parquet_path.exists():
+                first = next((f for f in sorted(parquet_path.glob("*.parquet")) if _parquet_has_rows(f)), None)  # fmt: skip
+                mc_sharing = first is not None and "('ak4_jetveto_2024', '0')" in pq.read_schema(first).names  # fmt: skip
+            if mc_sharing and sample_columns is not None:
+                sample_columns = sample_columns + [
+                    col for col in format_columns(MC_SHARING_COLUMNS) if col not in sample_columns
+                ]
+            if mc_year not in (None, year) and not mc_sharing and label != data_key:
+                logger.warning(
+                    f"{sample} ({year} skim used for {mc_year}) has no {MC_SHARING_COLUMNS[0][0]}: "
+                    f"it keeps the {year} jet veto map and pileup weights"
+                )
+            if range_mode and sample in ranges:
+                _check_range_sample(parquet_path, pickles_path, sample, *ranges[sample])
 
             # no parquet directory?
             if not parquet_path.exists():
@@ -397,25 +1168,28 @@ def load_samples(
 
             logger.debug(f"Loading {sample}")
 
-            try:
-                non_empty_passed_list = []
-                for parquet_file in parquet_path.glob("*.parquet"):
-                    # Read with column projection and filters upfront; check empty afterwards.
-                    # Previously the file was read twice: once with no args to test emptiness,
-                    # then again with columns/filters — doubling I/O per file.
-                    df_sample = pd.read_parquet(parquet_file, filters=filters, columns=load_columns)
-                    if not df_sample.empty:
-                        non_empty_passed_list.append(df_sample)
-                if not non_empty_passed_list:
-                    warnings.warn(f"No events after filtering for {sample}!", stacklevel=1)
-                    continue
-                events = pd.concat(non_empty_passed_list, ignore_index=True)
-            except Exception as e:
-                logger.error(f"Error loading {sample}: {e}")
-                warnings.warn(
-                    f"Can't read file with requested columns/filters for {sample}!", stacklevel=1
-                )
+            # One read per file: the footer says whether it has rows (the skims hold empty,
+            # column-less parquet files that a read with columns would reject), then a single read
+            # with this sample's filters and columns (the V+jets stitch adds its own). A file that
+            # cannot be read is an error that names it; the sample is never skipped silently.
+            non_empty_passed_list = []
+            for parquet_file in parquet_path.glob("*.parquet"):
+                try:
+                    if not _parquet_has_rows(parquet_file):
+                        continue
+                    df_sample = pd.read_parquet(
+                        parquet_file, filters=sample_filters, columns=sample_columns
+                    )
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Can't read {parquet_file} of sample {sample} ({label}, {year}) with the "
+                        f"requested columns/filters: {e}"
+                    ) from e
+                non_empty_passed_list.append(df_sample)
+            if not non_empty_passed_list:
+                warnings.warn(f"No events after filtering for {sample}!", stacklevel=1)
                 continue
+            events = pd.concat(non_empty_passed_list, ignore_index=True)
 
             # no events?
             if not len(events):
@@ -425,10 +1199,17 @@ def load_samples(
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
 
+            # TODO(mc-sharing): the jet veto map of the year the 2024 MC is used for
+            if mc_sharing:
+                events = _mc_sharing_veto(events, mc_year or year)
+
             # normalize by total events
             pickles = get_pickles(pickles_path, year, sample)
             if "totals" in pickles:
                 totals = pickles["totals"]
+                # TODO(mc-sharing): 2025 pileup weights and totals for 2024 MC used for 2025
+                if mc_sharing and (mc_year or year) == "2025":
+                    totals = _mc_sharing_pileup_2025(events, totals)
                 _normalize_weights(
                     events,
                     year,
@@ -438,21 +1219,67 @@ def load_samples(
                     variations=variations,
                     weight_shifts=weight_shifts,
                 )
+            elif range_mode and sample in ranges:
+                raise ValueError(
+                    f"{sample}: the pickles have no totals, which the PTQQ range stitch needs"
+                )
             else:
                 if label == data_key:
                     events["finalWeight"] = events["weight"]
                 else:
+                    # the 2022-2023 W xsec correction of _normalize_weights (weight_nonorm too)
+                    _apply_w_xsec_correction(events, year, sample)
                     n_events = get_nevents(pickles_path, year, sample)
                     events["weight_nonorm"] = events["weight"]
                     events["finalWeight"] = events["weight"] / n_events
 
+            if range_mode and sample in ranges:
+                # keep only this sample's LHE V pT range, normalised to sigma x f (after
+                # _normalize_weights, whose np_* totals the factors correct)
+                events = _apply_ptqq_range(
+                    events,
+                    sample,
+                    totals,
+                    *ranges[sample],
+                    _own_total_variations(events, variations, weight_shifts),
+                )
+
             events_dict[label].append(events)
+            loaded_names.append(sample)
             logger.info(f"Loaded {sample: <50}: {len(events)} entries")
+
+        stitch_only_columns = set()  # parquet names read only for the stitch, dropped after it
+        if ptqq_stitch is not None and len(events_dict[label]):
+            if not range_mode:
+                # remove the overlap between the open-ended Bin-PTQQ V+jets samples (2024 MC)
+                _stitch_open_ptqq(
+                    list(zip(loaded_names, events_dict[label])), txbb_str, ptqq_stitch
+                )
+            if load_columns is not None:
+                stitch_only_columns = {col for col in stitch_columns if col not in load_columns}
+        if zz4b_on and len(events_dict[label]):
+            # ZZ->bbbb in the ZZto4B window from ZZto4B-1Jets alone, before the concat
+            events_dict[label] = _replace_zz4b(
+                list(zip(loaded_names, events_dict[label])), zz4b_replace
+            )
+            if load_columns is not None:
+                stitch_only_columns |= {col for col in zz4b_columns if col not in load_columns}
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
             # Deduplicate columns that can arise when concatenating multiple sub-samples
-            events_dict[label] = events_dict[label].loc[:, ~events_dict[label].columns.duplicated()]
+            keep = ~events_dict[label].columns.duplicated()
+            if stitch_only_columns:
+                # match by the parquet name "('name', 'i')": pandas restores the second column
+                # level from the parquet metadata (int64 in the skims), so tuples of str miss it
+                keep &= ~np.array(
+                    [
+                        isinstance(col, tuple)
+                        and f"('{col[0]}', '{col[1]}')" in stitch_only_columns
+                        for col in events_dict[label].columns
+                    ]
+                )
+            events_dict[label] = events_dict[label].loc[:, keep]
         else:
             del events_dict[label]
 

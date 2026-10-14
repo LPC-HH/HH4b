@@ -29,6 +29,7 @@ from .corrections import (
     get_jetveto_event,
     get_jmsr,
     get_pdf_weights,
+    get_pileup_weights,
     get_scale_weights,
 )
 from .GenSelection import (
@@ -96,6 +97,45 @@ logger.setLevel(logging.INFO)
 
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
 
+# Bin edges (GeV) of the LHE-V-pT-binned totals saved for the V+jets samples (``lhevpt_totals``):
+# 10 GeV bins on [0, 2000), so the Bin-PTQQ thresholds (100, 200, 400, 600) and the 2022-2023
+# PTQQ-XtoY edges are bin edges. Each totals array has len(LHEVPT_EDGES) + 1 entries: [0] underflow
+# (< 0, i.e. events without a status-2 LHE W/Z, padded with PAD_VAL), [k] the bin
+# [LHEVPT_EDGES[k - 1], LHEVPT_EDGES[k]) for k = 1..200, [-1] overflow (>= 2000 GeV).
+LHEVPT_EDGES = np.arange(0.0, 2001.0, 10.0)
+
+
+def lhevpt_totals(
+    lhe_v_pt: np.ndarray, weight_np: np.ndarray, gen_weights: np.ndarray, gen_selected: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Totals per LHE V pT bin over the gen-selected events, before any analysis selection.
+
+    Binned versions of ``np_nominal`` (sum of the norm-preserving weights) and ``nevents`` (sum of
+    genWeight), plus the sum of squared norm-preserving weights and the raw event count, in the
+    bins of ``LHEVPT_EDGES``. They let the open-ended Bin-PTQQ V+jets samples be stitched per LHE
+    V pT bin, and their thresholds and cross sections be checked on all generated events. Numpy
+    arrays, so coffea's ``accumulate`` sums them element-wise across chunks and jobs.
+    """
+    idx = lhevpt_bin_index(lhe_v_pt, gen_selected)
+    w = weight_np[gen_selected]
+    return {
+        "np_nominal_lhevpt": lhevpt_sum(idx, w),
+        "np_nominal_lhevpt_sumw2": lhevpt_sum(idx, w**2),
+        "genweight_lhevpt": lhevpt_sum(idx, gen_weights[gen_selected]),
+        "nevents_lhevpt": np.bincount(idx, minlength=len(LHEVPT_EDGES) + 1),
+    }
+
+
+def lhevpt_bin_index(lhe_v_pt: np.ndarray, gen_selected: np.ndarray) -> np.ndarray:
+    """Index of each gen-selected event in the ``lhevpt_totals`` arrays (0 = underflow)."""
+    return np.searchsorted(LHEVPT_EDGES, lhe_v_pt[gen_selected], side="right")
+
+
+def lhevpt_sum(idx: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """Weighted sum per LHE V pT bin; float64 even for an empty chunk (bincount would give int64,
+    which coffea's in-place accumulate cannot add float sums to)."""
+    return np.bincount(idx, weights=w, minlength=len(LHEVPT_EDGES) + 1).astype(np.float64)
+
 
 class bbbbSkimmer(SkimmerABC):
     """
@@ -140,6 +180,7 @@ class bbbbSkimmer(SkimmerABC):
         },
         "Pileup": {
             "nPU",
+            "nTrueInt",
         },
         "TriggerObject": {
             "pt": "Pt",
@@ -210,7 +251,16 @@ class bbbbSkimmer(SkimmerABC):
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         if "v15" in nano_version and txbb == "glopart-v2":
-            logger.warning("Using glopart-v3 for v15 nanoAOD since glopart-v2 is not available")
+            # glopart-v2 IS available in v15 nanoAOD (FatJet_globalParT2_* branches present) and its
+            # tagger/mass columns are now saved via the v15 extra_vars block below. We still use
+            # glopart-v3 as the *primary* preselection tagger (the loose TXbb>0.3 presel is common to
+            # both, so this keeps the v15 event selection identical); postprocessing selects the
+            # tagger itself and can read the saved glopart-v2 columns. Remove this line to preselect
+            # on glopart-v2 instead.
+            logger.warning(
+                "v15 nanoAOD: using glopart-v3 for the (loose, common) preselection; "
+                "glopart-v2 columns are still saved for downstream v2 selection"
+            )
             txbb = "glopart-v3"
         self.txbb = txbb
 
@@ -421,17 +471,11 @@ class bbbbSkimmer(SkimmerABC):
             self.jmsr_vars += ["particleNet_mass_legacy", "ParTmassVis"]
         elif self._nano_version == "v12_private":
             self.jmsr_vars += ["particleNet_mass_legacy"]
-        elif "v14" in self._nano_version:
+        elif "v14" in self._nano_version or "v15" in self._nano_version:
             self.jmsr_vars += [
                 "particleNet_mass_legacy",
                 "ParTmassVis",
                 "ParTmassRes",
-                "ParT3massGeneric",
-                "ParT3massX2p",
-            ]
-        elif "v15" in self._nano_version:
-            self.jmsr_vars += [
-                "particleNet_mass_legacy",
                 "ParT3massGeneric",
                 "ParT3massX2p",
             ]
@@ -538,6 +582,20 @@ class bbbbSkimmer(SkimmerABC):
             }
         elif "v15" in self._nano_version:
             extra_vars = [
+                # ParT 2 (GloParT-v2) — the v15 NanoAOD carries FatJet_globalParT2_* branches
+                # (verified), get_ak8jets derives these fields; save them so the v13_glopartv2 BDT
+                # / AN-23-151 selection can run on the v15 skim (same-skim v2-vs-v3 control).
+                "ParTPQCD1HF",
+                "ParTPQCD0HF",
+                "ParTPQCD2HF",
+                "ParTPTopW",
+                "ParTPTopbW",
+                "ParTPXbb",
+                "ParTPXqq",
+                "ParTTXbb",
+                "ParTmassRes",
+                "ParTmassVis",
+                # ParT 3 (GloParT-v3)
                 "ParT3PQCD",
                 "ParT3PTopbWev",
                 "ParT3PTopbWmv",
@@ -699,6 +757,10 @@ class bbbbSkimmer(SkimmerABC):
         # fatjets ordered by txbb
         fatjets_xbb = fatjets[ak.argsort(fatjets[txbb_order], ascending=False)]
 
+        # GloParT-v2 fields (ParTP*, ParTTXbb, ParTmass*) only exist if the NanoAOD has
+        # globalParT(2)_* branches (e.g. not in the central 2024 Summer24 v15 samples): skip them
+        jmsr_vars = [var for var in self.jmsr_vars if var in fatjets.fields]
+
         # variations for bb fatjets
         jec_shifted_bbfatjetvars = {}
         if self._region == "signal" and isJECs:
@@ -744,7 +806,7 @@ class bbbbSkimmer(SkimmerABC):
             bb_jmsr_shifted_vars = get_jmsr(
                 fatjets_xbb,
                 2,
-                jmsr_vars=self.jmsr_vars,
+                jmsr_vars=jmsr_vars,
                 jms_values=self.jms_values[year],
                 jmr_values=self.jmr_values[year],
                 isData=isData,
@@ -809,7 +871,9 @@ class bbbbSkimmer(SkimmerABC):
             }
 
         # AK8 Jet variables
-        fatjet_skimvars = self.skim_vars["FatJet"]
+        fatjet_skimvars = {
+            var: key for (var, key) in self.skim_vars["FatJet"].items() if var in fatjets.fields
+        }
         if not isData:
             fatjet_skimvars = {
                 **fatjet_skimvars,
@@ -842,7 +906,7 @@ class bbbbSkimmer(SkimmerABC):
                         bbFatJetVars[f"bbFatJet{key}_{shift}"] = pad_val(vals, 2, axis=1)
 
             # FatJet JMSR
-            for var in self.jmsr_vars:
+            for var in jmsr_vars:
                 key = fatjet_skimvars[var]
                 bbFatJetVars[f"bbFatJet{key}_raw"] = bbFatJetVars[f"bbFatJet{key}"]
                 for shift, vals in bb_jmsr_shifted_vars[var].items():
@@ -973,7 +1037,22 @@ class bbbbSkimmer(SkimmerABC):
                     "JER_down",
                 ]
             for jshift in jshifts:
-                bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                try:
+                    bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                except KeyError as e:
+                    # A chunk with no fat jets never has its JEC/JMSR-shifted fat-jet
+                    # branches built (those live inside the `if shift != ""` blocks above),
+                    # so getBDT KeyErrors on e.g. "bbFatJetPt_JES_up". Such a chunk also
+                    # fails the >=2-fat-jet selection (0 events pass -> dump_table writes
+                    # nothing), so warn and skip the shifted BDT instead of crashing.
+                    # The nominal shift must always be buildable; re-raise if it is not.
+                    if jshift == "":
+                        raise
+                    logger.warning(
+                        f"{dataset}: shifted fat-jet var {e} absent for '{jshift}' "
+                        f"({len(events)} events, no fat jets in this chunk); skipping its BDT."
+                    )
+                    continue
                 skimmed_events = {
                     **skimmed_events,
                     **bdtVars,
@@ -1031,6 +1110,15 @@ class bbbbSkimmer(SkimmerABC):
         # jet veto maps
         if is_run3:
             cut_jetveto = get_jetveto_event(jets, year)
+            # TODO(mc-sharing): remove once 2025 has MC of its own, and cut on the year's map only
+            # again. The 2024 MC is also the 2025 MC (PostProcess --split-shared-mc), so it keeps
+            # the events that pass the 2024 or the 2025 map and saves both decisions;
+            # utils.load_samples applies the map of the year the events are used for.
+            if year == "2024" and not isData:
+                cut_jetveto_2025 = get_jetveto_event(jets, "2025")
+                skimmed_events["ak4_jetveto_2024"] = np.asarray(cut_jetveto, dtype=bool)
+                skimmed_events["ak4_jetveto_2025"] = np.asarray(cut_jetveto_2025, dtype=bool)
+                cut_jetveto = cut_jetveto | cut_jetveto_2025
             add_selection("ak4_jetveto", cut_jetveto, *selection_args)
 
         if self._region == "pre-sel" or self._region == "signal":
@@ -1151,12 +1239,15 @@ class bbbbSkimmer(SkimmerABC):
         if isData:
             skimmed_events["weight"] = np.ones(n_events)
         else:
+            # LHE V pT of every event, set by gen_selection_V only (Wto2Q-/Zto2Q- with LHEPart)
+            lhe_v_pt = genVars.get("GenVLHEPt")
             weights_dict, totals_temp = self.add_weights(
                 events,
                 year,
                 dataset,
                 gen_weights,
                 gen_selected,
+                lhe_v_pt=None if lhe_v_pt is None else lhe_v_pt[:, 0],
             )
             skimmed_events = {**skimmed_events, **weights_dict}
             totals_dict = {**totals_dict, **totals_temp}
@@ -1188,12 +1279,23 @@ class bbbbSkimmer(SkimmerABC):
         dataset,
         gen_weights,
         gen_selected,
+        lhe_v_pt: np.ndarray | None = None,
     ) -> tuple[dict, dict]:
-        """Adds weights and variations, saves totals for all norm preserving weights and variations"""
+        """Adds weights and variations, saves totals for all norm preserving weights and variations.
+
+        If ``lhe_v_pt`` (per-event LHE V pT) is given, also saves the per-LHE-V-pT-bin totals of
+        ``lhevpt_totals`` and, for every norm-preserving variation, ``np_<syst>_lhevpt``.
+        """
         weights = Weights(len(events), storeIndividual=True)
         weights.add("genweight", gen_weights)
 
-        add_pileup_weight(weights, year, events.Pileup.nPU.to_numpy(), dataset)
+        add_pileup_weight(
+            weights,
+            year,
+            events.Pileup.nPU.to_numpy(),
+            dataset,
+            n_true_int=events.Pileup.nTrueInt.to_numpy(),
+        )
         add_ps_weight(weights, events.PSWeight)
 
         logger.debug("weights", extra=weights._weights.keys())
@@ -1214,6 +1316,8 @@ class bbbbSkimmer(SkimmerABC):
         # norm preserving weights, used to do normalization in post-processing
         weight_np = weights.partial_weight(include=norm_preserving_weights)
         totals_dict["np_nominal"] = np.sum(weight_np[gen_selected])
+        if lhe_v_pt is not None:
+            totals_dict.update(lhevpt_totals(lhe_v_pt, weight_np, gen_weights, gen_selected))
 
         if self._systematics:
             for systematic in list(weights.variations):
@@ -1231,6 +1335,11 @@ class bbbbSkimmer(SkimmerABC):
 
                     # need to save total # events for each variation for normalization in post-processing
                     totals_dict[f"np_{systematic}"] = np.sum(var_weight[gen_selected])
+                    if lhe_v_pt is not None:
+                        # per LHE V pT bin, to normalise this variation per bin in a stitch
+                        totals_dict[f"np_{systematic}_lhevpt"] = lhevpt_sum(
+                            lhevpt_bin_index(lhe_v_pt, gen_selected), var_weight[gen_selected]
+                        )
 
         # TEMP: save each individual weight TODO: remove
         for key in weights._weights:
@@ -1263,6 +1372,19 @@ class bbbbSkimmer(SkimmerABC):
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.weight()
+
+        # TODO(mc-sharing): remove once 2025 has MC of its own. The 2024 MC is also the 2025 MC
+        # (PostProcess --split-shared-mc): save the ratios of the 2025 to the 2024 pileup weights
+        # (2025 nominal, up, down over the 2024 nominal), which turn every weight column into its
+        # 2025 version, and the totals of the 2025 nominal, up and down; utils.load_samples
+        # reweights and normalizes the events used for 2025 with them.
+        if year == "2024":
+            pu24 = weights.partial_weight(include=["pileup"])
+            pu25 = get_pileup_weights("2025", events.Pileup.nTrueInt.to_numpy())
+            ratios = np.stack([pu25[var] / pu24 for var in ["nominal", "up", "down"]], axis=1)
+            weights_dict["pileup_2025_over_2024"] = ratios
+            for i, label in enumerate(["nominal", "pileupUp", "pileupDown"]):
+                totals_dict[f"np_{label}_pu2025"] = np.sum((weight_np * ratios[:, i])[gen_selected])
 
         return weights_dict, totals_dict
 

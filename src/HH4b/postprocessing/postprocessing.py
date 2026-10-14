@@ -465,7 +465,41 @@ def load_run3_samples(
     bdt_version: str,
     load_bdt_scores: bool = True,
     extra_columns: list[tuple[str, int]] | None = None,
+    ptqq_stitch: utils.PtqqStitch | None = None,
+    jmsr_correct: bool = False,
+    jmsr_year: str | None = None,
+    override_dir: str | list[str] | None = None,
+    zz4b_replace: utils.ZZ4bReplace | None = None,
+    ak4away_assignment: str = "exclusive",
+    mc_year: str | None = None,
 ):
+    """Load the Run-3 samples of one year with the analysis columns and filters.
+
+    ``ptqq_stitch`` (opt-in, PostProcess --vjets-stitch) is passed on to ``utils.load_samples``,
+    which then stitches the open-ended 2024 V+jets Bin-PTQQ samples; None loads them as they are.
+
+    ``override_dir`` (opt-in, PostProcess --override-tag / --zz4b-tag) is passed on to
+    ``utils.load_samples``: the sample directories of those skim tags replace the same-named ones of
+    ``input_dir`` (a list: later tags win).
+
+    ``zz4b_replace`` (opt-in, PostProcess --zz4b-tag) is passed on to ``utils.load_samples``, which
+    then takes ZZ -> bbbb from ZZto4B-1Jets instead of the inclusive ZZ (``utils.ZZ4bReplace``);
+    None loads them as they are.
+
+    ``mc_year`` (TODO(mc-sharing): remove once 2025 has MC of its own): the year the MC is used
+    for if it is not ``year`` (2025 from the 2024 skims); passed on to ``utils.load_samples``, which
+    then applies that year's jet veto map and, for 2025, its pileup weights.
+
+    ``ak4away_assignment``: "exclusive" (default) keeps the skim's AK4 jets away from the bb jets;
+    "shared" gives the second bb jet the AK4 jet the skimmer chose before it stopped sharing one
+    between the two bb jets (``utils.ak4away_shared_assignment``), for every sample.
+
+    ``jmsr_correct`` (opt-in; PostProcess turns it on for glopart-v3 unless --no-glopartv3-jmsr)
+    applies JMS/JMR to ``mass_str`` of every MC sample in ``syst_keys`` (all MC except QCD, the
+    samples the skimmer corrects for GloParT-v2) with ``jmsr_correct_mass``, using the values of
+    ``jmsr_year`` (default ``year``; differs for 2025 MC read from the 2024 skim). Data and QCD MC
+    are never changed.
+    """
     assert txbb_version in [
         "pnet-v12",
         "pnet-legacy",
@@ -480,15 +514,16 @@ def load_run3_samples(
     if extra_columns:
         load_columns += extra_columns
     load_columns_systematics = list(load_columns_syst)
-    if txbb_version == "glopart-v3":
+    # `load_columns_syst` hardcodes the glopart-v2 visible-mass name for the JMSR-shifted
+    # mass columns (bbFatJetParTmassVis_{JMS,JMR}_{up,down}, _raw).  Other taggers name the
+    # shifted mass after their regressed-mass string (glopart-v3 -> bbFatJetParT3massX2p), so
+    # swap in the correct name -- otherwise a --templates load errors on the missing v2 column.
+    if mass_str != "bbFatJetParTmassVis":
         load_columns_systematics = [
-            (
-                col.replace("bbFatJetParTmassVis", "bbFatJetParT3massX2p"),
-                ncols,
-            )
-            for col, ncols in load_columns_systematics
+            c for c in load_columns_systematics if not str(c[0]).startswith("bbFatJetParTmassVis")
         ]
-
+        load_columns_systematics += [(f"{mass_str}_{jshift}", 2) for jshift in jmsr_shifts]
+        load_columns_systematics += [(f"{mass_str}_raw", 2)]
     if load_bdt_scores:
         load_columns += [
             ("bdt_score", 1),
@@ -503,6 +538,15 @@ def load_run3_samples(
 
     # add HLTs to load columns
     load_columns_year = load_columns + [(hlt, 1) for hlt in HLTs[year]]
+
+    # JMS/JMR at load time starts from the uncorrected mass, so the MC samples it corrects also read
+    # the skim's "<mass>_raw" (already in load_columns_systematics when systematics are loaded)
+    load_columns_jmsr = (
+        [(f"{mass_str}_raw", 2)]
+        if jmsr_correct
+        and not (load_systematics and (f"{mass_str}_raw", 2) in load_columns_systematics)
+        else []
+    )
 
     samples_syst_ggf = {
         sample: samples_run3[year][sample]
@@ -536,12 +580,19 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics + load_columns_ggf
-                if load_systematics
-                else load_columns_year
+                (
+                    load_columns_year + load_columns_systematics + load_columns_ggf
+                    if load_systematics
+                    else load_columns_year
+                )
+                + load_columns_jmsr
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -555,12 +606,19 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics + load_columns_vbf
-                if load_systematics
-                else load_columns_year
+                (
+                    load_columns_year + load_columns_systematics + load_columns_vbf
+                    if load_systematics
+                    else load_columns_year
+                )
+                + load_columns_jmsr
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -575,15 +633,22 @@ def load_run3_samples(
             filters=filters,
             # TODO: remove load_columns_ttbar_gen after analysis
             columns=utils.format_columns(
-                load_columns_year
-                + load_columns_systematics
-                + load_columns_ttbar
-                + load_columns_ttbar_gen
-                if load_systematics
-                else load_columns_year + load_columns_ttbar_gen
+                (
+                    load_columns_year
+                    + load_columns_systematics
+                    + load_columns_ttbar
+                    + load_columns_ttbar_gen
+                    if load_systematics
+                    else load_columns_year + load_columns_ttbar_gen
+                )
+                + load_columns_jmsr
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -597,12 +662,19 @@ def load_run3_samples(
             year,
             filters=filters,
             columns=utils.format_columns(
-                load_columns_year + load_columns_systematics
-                if load_systematics
-                else load_columns_year
+                (
+                    load_columns_year + load_columns_systematics
+                    if load_systematics
+                    else load_columns_year
+                )
+                + load_columns_jmsr
             ),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=True,
             weight_shifts=get_weight_shifts(txbb_version, bdt_version),
         ),
@@ -618,9 +690,29 @@ def load_run3_samples(
             columns=utils.format_columns(load_columns_year),
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
+            ptqq_stitch=ptqq_stitch,
+            override_dir=override_dir,
+            zz4b_replace=zz4b_replace,
+            mc_year=mc_year,
             variations=False,
         ),
     }
+
+    if jmsr_correct:
+        if scale_and_smear:
+            raise ValueError("jmsr_correct and scale_and_smear both re-derive the mass; pick one")
+        # all MC except QCD (samples_nosyst = data + QCD MC are never corrected)
+        for events_dict_mc in [
+            events_dict_ttbar,
+            events_dict_syst_bg,
+            events_dict_syst_ggf,
+            events_dict_syst_vbf,
+        ]:
+            for key, events in events_dict_mc.items():
+                jmsr_correct_mass(
+                    events, jmsr_year if jmsr_year is not None else year, mass_str, key
+                )
+                print(f"JMS/JMR applied to {mass_str} of {key} ({jmsr_year or year} values)")
 
     if scale_and_smear:
         # re-run scaling and smearing of mass variables
@@ -636,7 +728,75 @@ def load_run3_samples(
         **events_dict_syst_vbf,
     }
 
+    if ak4away_assignment not in utils.AK4AWAY_ASSIGNMENTS:
+        raise ValueError(f"ak4away_assignment must be one of {utils.AK4AWAY_ASSIGNMENTS}")
+    if ak4away_assignment == "shared":
+        for key, events in events_dict.items():
+            n = utils.ak4away_shared_assignment(events)
+            print(f"{key}: shared AK4-away assignment, {n} of {len(events)} events changed")
+
     return events_dict
+
+
+def jmsr_correct_mass(
+    events: pd.DataFrame, year: str, mass_str: str, key: str, seed: int = 42
+) -> None:
+    """Apply JMS/JMR to the regressed mass ``mass_str`` of one MC frame (sample ``key``), in place.
+
+    Used for a mass the skimmer leaves uncorrected (GloParT-v3 ``bbFatJetParT3massX2p`` in the v15
+    skims: the skimmer applies JMS/JMR only to ``ParTmassVis``). JMR is a resolution scaling
+    (sigma_new = JMR * sigma_MC), applied with the morphing formula of ``scale_smear_mass``: one
+    standard-normal draw s per jet from ``np.random.default_rng(seed)`` over the frame as loaded,
+    and, starting from the uncorrected mass m (the skim's ``<mass>_raw``),
+
+        m(JMS, JMR) = m * JMS * (1 + s * sqrt(max(JMR^2 - 1, 0)) * sigma_res / m)
+
+    i.e. m * JMS plus a Gaussian smear of width JMS * sqrt(JMR^2 - 1) * sigma_res, with
+    sigma_res = ``jmsr_res[mass_str][key]``. The nominal mass uses (JMS_nom, JMR_nom), JMS_x uses
+    (JMS_x, JMR_nom) and JMR_x uses (JMS_nom, JMR_x), with the values ``jmsr_values[mass_str]`` of
+    ``year``. Without smearing (JMR <= 1) the mass is exactly m * JMS, so JMS = JMR = 1 returns m
+    bit for bit; at m = 0 the smear term takes its limit JMS * s * sqrt(JMR^2 - 1) * sigma_res. The
+    JMS/JMR-shifted columns are written only where the frame has them (loaded with systematics).
+    Raises if the skim's nominal mass already differs from ``<mass>_raw``, i.e. the skimmer corrected
+    it and this would apply it twice (every column is derived from ``<mass>_raw``, so a second call
+    on a frame this function already corrected gives the same result).
+    """
+    vals = jmsr_values[mass_str]
+    raw_key = f"{mass_str}_raw"
+    if raw_key not in events:
+        raise KeyError(f"{raw_key} not loaded: the uncorrected mass is needed for JMS/JMR")
+    x = events[raw_key].to_numpy(copy=True)
+    if not np.array_equal(x, events[mass_str].to_numpy(), equal_nan=True):
+        raise ValueError(
+            f"{mass_str} differs from {raw_key}: the skim is already JMS/JMR-corrected, so the "
+            "postprocessing correction would apply it twice (use --no-glopartv3-jmsr)"
+        )
+
+    rng = np.random.default_rng(seed=seed)
+    random_smear = rng.standard_normal(size=x.shape)
+
+    def _scale_smear(jms: float, jmr: float) -> np.ndarray:
+        smear = np.sqrt(max(jmr * jmr - 1, 0))
+        if smear == 0:
+            return x * jms
+        res = jmsr_res[mass_str][key]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            mass = x * jms * (1 + random_smear * smear * res / x)
+        return np.where(x == 0, jms * random_smear * smear * res, mass)
+
+    jms_nom = vals["JMS"][year]["nom"]
+    jmr_nom = vals["JMR"][year]["nom"]
+    factors = {"": (jms_nom, jmr_nom)}
+    for shift in ["up", "down"]:
+        factors[f"JMS_{shift}"] = (vals["JMS"][year][shift], jmr_nom)
+        factors[f"JMR_{shift}"] = (jms_nom, vals["JMR"][year][shift])
+
+    for jshift, (jms, jmr) in factors.items():
+        col = mass_str if jshift == "" else f"{mass_str}_{jshift}"
+        if col in events:
+            mass = _scale_smear(jms, jmr)
+            for i in range(mass.shape[1]):
+                events[(col, i)] = mass[:, i]
 
 
 def scale_smear_mass(
@@ -876,6 +1036,14 @@ def get_templates(
         Dict[str, Hist]: dictionary of templates, saved as hist.Hist objects.
 
     """
+    # older skims (e.g. v12) may lack some signal benchmarks or use a different
+    # naming (e.g. VBF CV-m2p12 vs CV-2p12) -> drop signals not actually loaded,
+    # so downstream (sig_events, hist_samples) stays consistent.
+    missing_sig = [k for k in sig_keys if k not in events_dict]
+    if missing_sig:
+        print(f"WARNING get_templates: signals not in events_dict, skipping: {missing_sig}")
+        sig_keys = [k for k in sig_keys if k in events_dict]
+
     do_jshift = jshift != ""
     jlabel = "" if not do_jshift else "_" + jshift
     templates = {}

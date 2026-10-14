@@ -43,6 +43,7 @@ def _load_txbb_sfs(
     elif "2023" in year:
         year_ = "2023"
     elif "2024" in year or "2025" in year:
+        # TODO: replace with measured 2024/2025 TXbb SFs; the 2023 ones are used until then.
         print(f"WARNING: Using 2023 txbb correction for {year}")
         year_ = "2023"
     else:
@@ -117,6 +118,7 @@ def _load_ttbar_sfs(year: str, corr: str, txbb_version: str):
     elif "2023" in year:
         year_ = "2023"
     elif "2024" in year or "2025" in year:
+        # TODO: replace with measured 2024/2025 ttbar SFs; the 2023 ones are used until then.
         print(f"WARNING: Using 2023 ttbar correction for {year}")
         year_ = "2023"
     # ttbar SFs aren't derived for glopart-v3 yet; it shares the ParT mass-
@@ -168,20 +170,13 @@ def _get_json_fname(year: str, label: str, region: str):
 
 
 def _load_trig_effs(year: str, label: str, region: str):
-    year_ = year
-    if "2024" in year or "2025" in year:
-        print(f"WARNING: Using 2023BPix trigger efficiencies for {year}")
-        year_ = "2023BPix"
-    fname = _get_json_fname(year_, label, region)
+    fname = _get_json_fname(year, label, region)
     return correctionlib.CorrectionSet.from_file(fname)
 
 
 def _get_bins(year: str, label: str, region: str) -> dict[str, list[float]]:
     """Extract bins from json file"""
-    year_ = year
-    if "2024" in year or "2025" in year:
-        year_ = "2023BPix"
-    fname = _get_json_fname(year_, label, region)
+    fname = _get_json_fname(year, label, region)
     with Path(fname).open() as f:
         json_dict = json.load(f)
     sample_dict = json_dict["corrections"][0]["data"]["content"][0]["value"]
@@ -214,8 +209,10 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
         txbb_str = "txbbPNetLegacy"
         txbb = "bbFatJetPNetTXbbLegacy"
     elif "part3" in txbb_str.lower() or txbb_str == "bbFatJetParT3TXbb":
-        # glopart-v3: use the v3 TXbb column for the events, but fall back to the
-        # glopart-v2 ('txbbGloParT') efficiency maps (v3 effs not derived yet).
+        # glopart-v3: use the v3 TXbb column for the events and the 'txbbGloParT' eff maps.
+        # For 2024/2025 those maps are Armen's globalParT3 (real v3) effs; for 2022/2023 they
+        # remain the glopart-v2 maps (v3 effs not derived there) applied to v3 scores as a proxy
+        # (same ParT family, [0,1] tagger).
         txbb_str = "txbbGloParT"
         txbb = "bbFatJetParT3TXbb"
     elif txbb_str == "bbFatJetParTTXbb":
@@ -224,8 +221,10 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     else:
         raise RuntimeError(f"txbb_str {txbb_str} not supported for trigger SF.")
 
-    # Trigger efficiencies aren't derived for 2024/2025 -> fall back to 2023BPix's maps.
-    # eff_year drives BOTH the file load and the correction keys, so they always match.
+    # 2024/2025 trigger effs are now derived (Armen; converted via
+    # corrections/convert_armen_2024_2025.py) and present as fatjet_triggereff_{2024,2025}_*.
+    # The check below is kept as a safety net: any year still missing its own file borrows the
+    # LATEST available era (2023BPix). The file + the internal correction keys use eff_year.
     eff_year = year
     # both the ptmsd and the b-tag (txbb) efficiency maps are loaded below, so fall back
     # if EITHER is missing for this year (checking only ptmsd could still leave a missing
