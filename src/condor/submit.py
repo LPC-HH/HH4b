@@ -17,7 +17,7 @@ from HH4b import run_utils
 
 t2_redirectors = {
     "lpc": "root://cmseos.fnal.gov//",
-    "ucsd": "root://redirector.t2.ucsd.edu:1095//",
+    "ucsd": "root://redir.t2.ucsd.edu:1095//",
 }
 
 

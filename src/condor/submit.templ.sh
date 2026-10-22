@@ -12,7 +12,7 @@ get_modified_outdir() {
     if [[ "$$t2_prefix" == "root://cmseos.fnal.gov//" ]]; then
         # Replace zichun with zhao1
         echo "$${outdir//zichun/zhao1}"
-    elif [[ "$$t2_prefix" == "root://redirector.t2.ucsd.edu:1095//" ]]; then
+    elif [[ "$$t2_prefix" == "root://redir.t2.ucsd.edu:1095//" ]]; then
         # Replace zhao1 with zichun
         echo "$${outdir//zhao1/zichun}"
     else
