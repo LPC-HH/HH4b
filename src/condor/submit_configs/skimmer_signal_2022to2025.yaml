@@ -3,7 +3,7 @@
     # Same as skimmer_signal.yaml except in 2024: the Diboson subsamples are listed explicitly,
     # incl. ZZto4B-1Jets (ZZ->bbbb, replaces the inclusive ZZ->bbbb only in PostProcess --zz4b-tag),
     # and the 2J WtoLNu PTLNu-100to200/200to400 entries (listed as 1J twice there) are fixed.
-    # 2022-2023 ZZto4B-1Jets: to be added once a GloParT-v3 (PFNano 25v2) production exists.
+    # 2022-2023: every Diboson subsample of the index, ZZto4B-1Jets included (PFNano 25v2, GloParT-v3).
     "2022":
         {
             "HH": { "files_per_job": 15, },
