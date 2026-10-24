@@ -16,8 +16,8 @@ import correctionlib
 import numpy as np
 from coffea.jetmet_tools import CorrectedJetsFactory
 
-# correctionlib input names -> jet fields; as build_jec.jec_name_map, plus the run number for the
-# run-dependent data residuals
+# correctionlib input names -> jet fields; as jec_name_map of corrections/archive/build_jec.py,
+# plus the run number for the run-dependent data residuals
 jec_name_map = {
     "JetPt": "pt",
     "JetMass": "mass",
