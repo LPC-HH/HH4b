@@ -108,7 +108,7 @@ cat_jerc = {
     **{y: {k: cat[k] for k in ("jme", "jec", "jer")} for y, cat in cat_corrections.items()},
 }
 
-# input names of CorrectedMETFactory -> MET and jet fields (as corrections/build_jec.py)
+# input names of CorrectedMETFactory -> MET and jet fields (as corrections/archive/build_jec.py)
 met_name_map = {
     "JetPt": "pt",
     "JetPhi": "phi",
