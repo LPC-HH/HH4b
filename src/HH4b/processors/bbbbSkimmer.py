@@ -709,11 +709,21 @@ class bbbbSkimmer(SkimmerABC):
             jec_shifted_jetvars = {}
 
         # MET: Type-1 PUPPI MET from RawPuppiMET with the JECs re-applied above (NanoAOD PuppiMET
-        # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too.
+        # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too. In MC, also
+        # its JES/JER/unclustered-energy variations, which the shifted BDTs use.
         met_vars = {}
-        met_type1 = JEC_loader.type1_puppi_met(events, year, isData)
+        met_pt_shifted = {}
+        jer_smear_factor = None
+        if not isData and isJECs and jec_shifted_jetvars:
+            jer_smear_factor = jets.jet_energy_resolution_correction
+        met_type1 = JEC_loader.type1_puppi_met(events, year, isData, jer_smear_factor)
         if met_type1 is not None:
-            met_pt, met_phi = met_type1
+            met_pt, met_phi = met_type1[""]
+            for shift, (pt, phi) in met_type1.items():
+                if shift:
+                    met_vars[f"MET_pt_{shift}"] = pt
+                    met_vars[f"MET_phi_{shift}"] = phi
+                    met_pt_shifted[shift] = pt
             for name in ["PuppiMET", "RawPuppiMET"]:
                 met_vars[f"{name}_pt"] = events[name].pt.to_numpy()
                 met_vars[f"{name}_phi"] = events[name].phi.to_numpy()
@@ -1032,7 +1042,13 @@ class bbbbSkimmer(SkimmerABC):
                 ]
             for jshift in jshifts:
                 try:
-                    bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                    bdtVars = self.getBDT(
+                        bbFatJetVars,
+                        vbfJetVars,
+                        ak4JetAwayVars,
+                        met_pt_shifted.get(jshift, met_pt),
+                        jshift,
+                    )
                 except KeyError as e:
                     # A chunk with no fat jets never has its JEC/JMSR-shifted fat-jet
                     # branches built (those live inside the `if shift != ""` blocks above),

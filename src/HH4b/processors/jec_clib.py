@@ -135,13 +135,31 @@ def clib_jet_factory(
 
 
 # TODO: use coffea's CorrectedMETFactory (Type-1 mode) once on coffea >= 2026.9.0 or a 0.7.x
-# release after 0.7.31
-def type1_puppi_met(events, path: str, jec_tag: str, isData: bool) -> tuple[np.ndarray, np.ndarray]:
-    """(pt, phi) of the Type-1 PUPPI MET from RawPuppiMET with the AK4 PUPPI JEC ``jec_tag`` of
-    ``path``, as in CMSSW: every Jet and CorrT1METJet with muon-subtracted corrected pT > 15 GeV and
-    EM fraction < 0.9 shifts it by -(f_L1L2L3Res - f_L1) x muon-subtracted raw pT; no smearing.
+# release after 0.7.31. It gives the same nominal and, with the total JES uncertainty passed as
+# jes_uncertainties, the same JES variations; its JER variation of the unsmeared MET differs (it
+# scales each jet by the JER-varied over the nominal smeared pT, which blows up for jets smeared
+# to ~0 GeV).
+def type1_puppi_met(
+    events, path: str, jec_tag: str, isData: bool, jer_smear_factor: ak.Array | None = None
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """{"": (pt, phi)} of the Type-1 PUPPI MET from RawPuppiMET with the AK4 PUPPI JEC ``jec_tag``
+    of ``path``, as in CMSSW: every Jet and CorrT1METJet with muon-subtracted corrected pT > 15 GeV
+    and EM fraction < 0.9 shifts it by -(f_L1L2L3Res - f_L1) x muon-subtracted raw pT; no smearing.
     Adapted from coffea's Type-1 CorrectedMETFactory (scikit-hep/coffea#1537); same output as
-    DAZSLE/hbb-run3#74 (correct_met)."""
+    DAZSLE/hbb-run3#74 (correct_met).
+
+    With ``jer_smear_factor`` (MC: the nominal JER smearing factor of each events.Jet), also the
+    variations of the unsmeared Type-1 MET as in CMSJMECalculators
+    (gitlab.cern.ch/cms-analysis/general/CMSJMECalculators, Type1METVariationsCalculator with
+    isT1SmearedMET false; the MET_T1 variations of nanoAOD-tools' jetmetUncertainties are the
+    same). They move the same jets, at pT_L1L2L3, the corrected pT of their muon-subtracted part
+    plus the muon:
+    - JES_up/down: each jet at pT_L1L2L3 x (1 +- delta), delta the total JES uncertainty at
+      (eta, pT_L1L2L3);
+    - JER_up = JER_down: the Jets at pT_L1L2L3 x their smearing factor, i.e. the smeared Type-1 MET
+      (the CorrT1METJets unsmeared, as in coffea's Type-1 MET without their smearing factors);
+    - UES_up/down: plus/minus the unclustered-energy shift of NanoAOD PuppiMET.
+    """
     cset = _correction_set(path)
     level = "DATA" if isData else "MC"
     corr_full = cset.compound[f"{jec_tag}_{level}_L1L2L3Res_AK4PFPuppi"]
@@ -154,9 +172,10 @@ def type1_puppi_met(events, path: str, jec_tag: str, isData: bool) -> tuple[np.n
     met_x = raw_met_pt * np.cos(raw_met_phi)
     met_y = raw_met_pt * np.sin(raw_met_phi)
     jets, low_pt_jets = events.Jet, events.CorrT1METJet
-    for coll, raw_pt, em_fraction in [
-        (jets, (1 - jets.rawFactor) * jets.pt, jets.chEmEF + jets.neEmEF),
-        (low_pt_jets, low_pt_jets.rawPt, low_pt_jets.EmEF),
+    type1_jets = []  # per collection: what the variations need
+    for coll, raw_pt, em_fraction, smear_factor in [
+        (jets, (1 - jets.rawFactor) * jets.pt, jets.chEmEF + jets.neEmEF, jer_smear_factor),
+        (low_pt_jets, low_pt_jets.rawPt, low_pt_jets.EmEF, None),
     ]:
         idx = np.repeat(np.arange(nev), ak.to_numpy(ak.num(raw_pt)))
         raw = _to_numpy(ak.flatten(raw_pt))
@@ -178,4 +197,42 @@ def type1_puppi_met(events, path: str, jec_tag: str, isData: bool) -> tuple[np.n
         shift = np.where(use, (f - f_l1) * raw_nomu, 0.0)
         met_x -= np.bincount(idx, weights=shift * np.cos(phi), minlength=nev)
         met_y -= np.bincount(idx, weights=shift * np.sin(phi), minlength=nev)
-    return np.hypot(met_x, met_y), np.arctan2(met_y, met_x)
+        pt_l1l2l3 = f * raw_nomu + (raw - raw_nomu)
+        type1_jets.append((idx, use, pt_l1l2l3, inputs["JetEta"], phi, smear_factor))
+
+    def polar(x, y):
+        return np.hypot(x, y), np.arctan2(y, x)
+
+    out = {"": polar(met_x, met_y)}
+    if jer_smear_factor is None:
+        return out
+
+    def vector_sum(idx, values, phi):
+        return (
+            np.bincount(idx, weights=values * np.cos(phi), minlength=nev),
+            np.bincount(idx, weights=values * np.sin(phi), minlength=nev),
+        )
+
+    # sums over the jets of their pT changes: pT_L1L2L3 x delta (JES), pT_L1L2L3 x (s - 1) (JER)
+    jes_unc = cset[f"{jec_tag}_MC_Total_AK4PFPuppi"]
+    jes_x = jes_y = jer_x = jer_y = 0.0
+    for idx, use, pt_l1l2l3, eta, phi, smear_factor in type1_jets:
+        jes_inputs = {"JetEta": eta, "JetPt": pt_l1l2l3}
+        delta = jes_unc.evaluate(*[jes_inputs[inp.name] for inp in jes_unc.inputs])
+        dx, dy = vector_sum(idx, np.where(use, pt_l1l2l3 * delta, 0.0), phi)
+        jes_x, jes_y = jes_x + dx, jes_y + dy
+        if smear_factor is not None:
+            smear = _to_numpy(ak.flatten(smear_factor))
+            dx, dy = vector_sum(idx, np.where(use, pt_l1l2l3 * (smear - 1), 0.0), phi)
+            jer_x, jer_y = jer_x + dx, jer_y + dy
+    out["JES_up"] = polar(met_x - jes_x, met_y - jes_y)
+    out["JES_down"] = polar(met_x + jes_x, met_y + jes_y)
+    out["JER_up"] = out["JER_down"] = polar(met_x - jer_x, met_y - jer_y)
+    puppi = events.PuppiMET
+    ues_x = _to_numpy(puppi.ptUnclusteredUp) * np.cos(_to_numpy(puppi.phiUnclusteredUp))
+    ues_y = _to_numpy(puppi.ptUnclusteredUp) * np.sin(_to_numpy(puppi.phiUnclusteredUp))
+    ues_x -= _to_numpy(puppi.pt) * np.cos(_to_numpy(puppi.phi))
+    ues_y -= _to_numpy(puppi.pt) * np.sin(_to_numpy(puppi.phi))
+    out["UES_up"] = polar(met_x + ues_x, met_y + ues_y)
+    out["UES_down"] = polar(met_x - ues_x, met_y - ues_y)
+    return out
