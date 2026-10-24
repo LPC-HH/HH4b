@@ -747,8 +747,12 @@ DATA_SAMPLES_DICT = {
                 "/JetMET1/Run2024H-MINIv6NANOv15-v2/NANOAOD",
             ],
             "JetMET_Run2024I": [
+                # MINIv6NANOv15: runs 386478-386693
                 "/JetMET0/Run2024I-MINIv6NANOv15-v2/NANOAOD",
                 "/JetMET1/Run2024I-MINIv6NANOv15-v1/NANOAOD",
+                # MINIv6NANOv15_v2: runs 386694-386951
+                "/JetMET0/Run2024I-MINIv6NANOv15_v2-v1/NANOAOD",
+                "/JetMET1/Run2024I-MINIv6NANOv15_v2-v2/NANOAOD",
             ],
         },
         "EGamma": {
@@ -815,6 +819,10 @@ DATA_SAMPLES_DICT = {
     "2025": {
         "JetMET": {
             "JetMET_Run2025C": [
+                # v1: runs 392174-393087
+                "/JetMET0/Run2025C-PromptReco-v1/NANOAOD",
+                "/JetMET1/Run2025C-PromptReco-v1/NANOAOD",
+                # v2: runs 393111-393516
                 "/JetMET0/Run2025C-PromptReco-v2/NANOAOD",
                 "/JetMET1/Run2025C-PromptReco-v2/NANOAOD",
             ],
@@ -827,6 +835,10 @@ DATA_SAMPLES_DICT = {
                 "/JetMET1/Run2025E-PromptReco-v1/NANOAOD",
             ],
             "JetMET_Run2025F": [
+                # v1: runs 396629-397596
+                "/JetMET0/Run2025F-PromptReco-v1/NANOAOD",
+                "/JetMET1/Run2025F-PromptReco-v1/NANOAOD",
+                # v2: runs 397619-397853
                 "/JetMET0/Run2025F-PromptReco-v2/NANOAOD",
                 "/JetMET1/Run2025F-PromptReco-v2/NANOAOD",
             ],
