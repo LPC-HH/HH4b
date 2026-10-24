@@ -1,10 +1,11 @@
-## To build JECs
+## JECs
 
-```
-python -m build_jec jec_compiled.pkl.gz
-```
+Run 3 (2022-2025): the official JME correctionlib files on CVMFS, pinned in
+`processors/corrections.py` (`cat_jerc`) and read at run time through `processors/jec_clib.py`
+(https://github.com/LPC-HH/HH4b/pull/366). A version update is a new dated folder and tag there;
+nothing to build. The earlier text-file pickles and their builder are in `archive/`.
 
-or:
+Run 2:
 
 ```
 python -m build_jec_run2 jec_compiled_run2.pkl.gz

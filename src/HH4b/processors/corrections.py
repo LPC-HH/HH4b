@@ -21,6 +21,7 @@ import correctionlib
 import numpy as np
 import uproot
 from coffea.analysis_tools import Weights
+from coffea.jetmet_tools import CorrectedMETFactory
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
@@ -76,6 +77,46 @@ cat_corrections = {
         "pileup_json": f"{cat_correction_path}/LUM/Run3-25Prompt-Summer24-NanoAODv15/2026-06-05/puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz",
         "pileup": "Collisions25_goldenJSON",
     },
+}
+
+"""
+JECs and JER of every Run 3 year from the correctionlib files of the CAT area (processors/jec_clib.py),
+no text files: pinned dated folders with the latest versions (identical to "latest" on 2026-10-20).
+The 2022-2023 data residuals of these versions are run dependent, as the 2024 and 2025 ones.
+"""
+cat_jerc = {
+    "2022": {
+        "jme": f"{cat_correction_path}/JME/Run3-22CDSep23-Summer22-NanoAODv12/2026-06-05",
+        "jec": "Summer22_22Sep2023_V4",
+        "jer": "Summer22_22Sep2023_JRV2",
+    },
+    "2022EE": {
+        "jme": f"{cat_correction_path}/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05",
+        "jec": "Summer22EE_22Sep2023_V4",
+        "jer": "Summer22EE_22Sep2023_JRV2",
+    },
+    "2023": {
+        "jme": f"{cat_correction_path}/JME/Run3-23CSep23-Summer23-NanoAODv12/2026-07-15",
+        "jec": "Summer23Prompt23_V4",
+        "jer": "Summer23Prompt23_RunCv1234_JRV3",
+    },
+    "2023BPix": {
+        "jme": f"{cat_correction_path}/JME/Run3-23DSep23-Summer23BPix-NanoAODv12/2026-07-15",
+        "jec": "Summer23BPixPrompt23_V4",
+        "jer": "Summer23BPixPrompt23_RunD_JRV3",
+    },
+    **{y: {k: cat[k] for k in ("jme", "jec", "jer")} for y, cat in cat_corrections.items()},
+}
+
+# input names of CorrectedMETFactory -> MET and jet fields (as corrections/archive/build_jec.py)
+met_name_map = {
+    "JetPt": "pt",
+    "JetPhi": "phi",
+    "ptRaw": "pt_raw",
+    "METpt": "pt",
+    "METphi": "phi",
+    "UnClusteredEnergyDeltaX": "MetUnclustEnUpDeltaX",
+    "UnClusteredEnergyDeltaY": "MetUnclustEnUpDeltaY",
 }
 
 
@@ -284,39 +325,30 @@ def get_scale_weights(events):
 
 class JECs:
     def __init__(self, year):
-        # TODO: add more years when available
-        if year in ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]:
-            jec_compiled = package_path + "/corrections/jec_compiled.pkl.gz"
-        elif year in ["2016", "2016APV", "2017", "2018"]:
-            jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
-        else:
-            jec_compiled = None
-
         self.jet_factory = {}
         self.met_factory = None
 
-        if jec_compiled is not None:
-            with gzip.open(jec_compiled, "rb") as filehandler:
-                jmestuff = pickle.load(filehandler)
-
-            self.jet_factory["ak4"] = jmestuff["jet_factory"]
-            self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
-            self.met_factory = jmestuff["met_factory"]
-
-        if year in cat_corrections:
-            # official correctionlib JECs and JER (run-dependent data residuals, AK8 MC truth)
-            # replace the text-file ones of the pickle, which predate them
-            cat = cat_corrections[year]
+        if year in cat_jerc:
+            # official correctionlib JECs and JER (run-dependent data residuals)
+            cat = cat_jerc[year]
             for jet_type, (jerc_file, algo) in {
                 "ak4": ("jet_jerc", "AK4PFPuppi"),
                 "ak8": ("fatJet_jerc", "AK8PFPuppi"),
             }.items():
                 path = f"{cat['jme']}/{jerc_file}.json.gz"
                 self.jet_factory[jet_type] = {
-                    **self.jet_factory[jet_type],
                     f"{year}mc": clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=False),
                     year: clib_jet_factory(path, cat["jec"], cat["jer"], algo, isData=True),
                 }
+            self.met_factory = CorrectedMETFactory(met_name_map)
+        elif year in ["2016", "2016APV", "2017", "2018"]:
+            jec_compiled = package_path + "/corrections/jec_compiled_run2.pkl.gz"
+            with gzip.open(jec_compiled, "rb") as filehandler:
+                jmestuff = pickle.load(filehandler)
+
+            self.jet_factory["ak4"] = jmestuff["jet_factory"]
+            self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
+            self.met_factory = jmestuff["met_factory"]
 
     def _add_jec_variables(
         self, jets: JetArray, event_rho: ak.Array, isData: bool, run: ak.Array | None = None
@@ -354,7 +386,7 @@ class JECs:
             if "Rho" in events.fields
             else events.fixedGridRhoFastjetAll
         )
-        run = events.run if (isData and year in cat_corrections) else None
+        run = events.run if (isData and year in cat_jerc) else None
         jets = self._add_jec_variables(jets, rho, isData, run)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
@@ -379,22 +411,9 @@ class JECs:
         jec_cache = cachetools.Cache(np.inf)
 
         if isData:
-            if year == "2022":
-                corr_key = f"{year}_runCD"
-            elif year == "2022EE" and "Run2022E" in dataset:
-                corr_key = f"{year}_runE"
-            elif year == "2022EE" and "Run2022F" in dataset:
-                corr_key = f"{year}_runF"
-            elif year == "2022EE" and "Run2022G" in dataset:
-                corr_key = f"{year}_runG"
-            elif year == "2023":
-                corr_key = "2023_runCv4" if "Run2023Cv4" in dataset else "2023_runCv123"
-            elif year == "2023BPix":
-                corr_key = "2023BPix_runD"
-            elif year == "2024":
-                corr_key = "2024"
-            elif year == "2025":
-                corr_key = "2025"
+            if year in cat_jerc:
+                # run-dependent residuals: one correction for all eras of the year
+                corr_key = year
             else:
                 print(dataset, year)
                 print("warning, no valid dataset, JECs won't be applied to data")
