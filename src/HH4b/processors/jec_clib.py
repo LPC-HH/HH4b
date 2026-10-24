@@ -1,7 +1,6 @@
 """
-JECs and JER from the official correctionlib files, for eras whose corrections are published only in
-that format (2024 and later): correctionlib-backed stand-ins for the four parts of a coffea 0.7
-``JECStack``. The unchanged ``CorrectedJetsFactory`` then applies the nominal JEC, the hybrid JER
+JECs and JER of every Run 3 year from the official correctionlib files: correctionlib-backed
+stand-ins for the four parts of a coffea 0.7 ``JECStack``. The unchanged ``CorrectedJetsFactory`` then applies the nominal JEC, the hybrid JER
 smearing and the JES/JER variations, and the corrected jets keep the fields of the text-file path
 (``pt``, ``mass``, ``JES_jes``, ``JER``).
 
