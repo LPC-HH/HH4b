@@ -708,23 +708,15 @@ class bbbbSkimmer(SkimmerABC):
             jets = events.Jet
             jec_shifted_jetvars = {}
 
-        if JEC_loader.met_factory is not None:
-            # check if "MET" attribute exists
-            if hasattr(events, "MET"):
-                events_met = events.MET
-            elif hasattr(events, "PuppiMET"):
-                events_met = events.PuppiMET
-                # No deltaX and deltaY in PuppiMET, so we have to calculate them
-                # by definition: up - nominal
-                deltaX_up = events_met.ptUnclusteredUp * np.cos(events_met.phiUnclusteredUp)
-                deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
-                deltaX_nom = events_met.pt * np.cos(events_met.phi)
-                deltaY_nom = events_met.pt * np.sin(events_met.phi)
-                events_met["MetUnclustEnUpDeltaX"] = deltaX_up - deltaX_nom
-                events_met["MetUnclustEnUpDeltaY"] = deltaY_up - deltaY_nom
-            else:
-                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
-            met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
+        # MET: Type-1 PUPPI MET from RawPuppiMET with the JECs re-applied above (NanoAOD PuppiMET
+        # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too.
+        met_vars = {}
+        met_type1 = JEC_loader.type1_puppi_met(events, year, isData)
+        if met_type1 is not None:
+            met_pt, met_phi = met_type1
+            for name in ["PuppiMET", "RawPuppiMET"]:
+                met_vars[f"{name}_pt"] = events[name].pt.to_numpy()
+                met_vars[f"{name}_phi"] = events[name].phi.to_numpy()
         else:
             if hasattr(events, "MET"):
                 met = events.MET
@@ -732,6 +724,7 @@ class bbbbSkimmer(SkimmerABC):
                 met = events.PuppiMET
             else:
                 raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
+            met_pt, met_phi = met.pt.to_numpy(), met.phi.to_numpy()
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
@@ -915,13 +908,14 @@ class bbbbSkimmer(SkimmerABC):
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
         # Event variables
-        met_pt = met.pt
         eventVars = {
             key: events[val].to_numpy()
             for key, val in self.skim_vars["Event"].items()
             if key in events.fields
         }
-        eventVars["MET_pt"] = met_pt.to_numpy()
+        eventVars["MET_pt"] = met_pt
+        eventVars["MET_phi"] = met_phi
+        eventVars.update(met_vars)
         eventVars["ht"] = ht.to_numpy()
         eventVars["nJets"] = ak.sum(jets_sel, axis=1).to_numpy()
         eventVars["nFatJets"] = ak.num(fatjets).to_numpy()
