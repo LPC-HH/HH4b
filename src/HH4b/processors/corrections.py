@@ -351,14 +351,19 @@ class JECs:
             self.met_factory = jmestuff["met_factory"]
 
     def type1_puppi_met(
-        self, events: NanoEventsArray, year: str, isData: bool
-    ) -> tuple[np.ndarray, np.ndarray] | None:
+        self,
+        events: NanoEventsArray,
+        year: str,
+        isData: bool,
+        jer_smear_factor: ak.Array | None = None,
+    ) -> dict[str, tuple[np.ndarray, np.ndarray]] | None:
         """``jec_clib.type1_puppi_met`` with the year's correctionlib JECs; None without them or
         without RawPuppiMET."""
         if year not in cat_jerc or "RawPuppiMET" not in events.fields:
             return None
         cat = cat_jerc[year]
-        return type1_puppi_met(events, f"{cat['jme']}/jet_jerc.json.gz", cat["jec"], isData)
+        path = f"{cat['jme']}/jet_jerc.json.gz"
+        return type1_puppi_met(events, path, cat["jec"], isData, jer_smear_factor)
 
     def _add_jec_variables(
         self, jets: JetArray, event_rho: ak.Array, isData: bool, run: ak.Array | None = None

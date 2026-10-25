@@ -271,7 +271,7 @@ class ttSkimmer(SkimmerABC):
         met_vars = {}
         met_type1 = JEC_loader.type1_puppi_met(events, year, isData)
         if met_type1 is not None:
-            met_pt, met_phi = met_type1
+            met_pt, met_phi = met_type1[""]
             for name in ["PuppiMET", "RawPuppiMET"]:
                 met_vars[f"{name}_pt"] = events[name].pt.to_numpy()
                 met_vars[f"{name}_phi"] = events[name].phi.to_numpy()

@@ -491,6 +491,7 @@ jec_vars = [
     "VBFJetMass",
     "AK4JetAwayPt",
     "AK4JetAwayMass",
+    "MET_pt",
     "bdt_score",
     "bdt_score_vbf",
     "HHPt",

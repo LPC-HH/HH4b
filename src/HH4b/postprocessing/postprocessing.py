@@ -201,7 +201,7 @@ for jshift in jmsr_shifts:
     ]
 load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
-# JES/JER shifts of the VBF jet mass and the AK4-away jets: read where the skims have them,
+# JES/JER shifts of the VBF jet mass, the AK4-away jets and the MET: read where the skims have them,
 # filled by fill_ak4_jec_shifts where they do not
 load_columns_syst_ak4 = [
     col
@@ -210,6 +210,7 @@ load_columns_syst_ak4 = [
         (f"VBFJetMass_{jshift}", 2),
         (f"AK4JetAwayPt_{jshift}", 2),
         (f"AK4JetAwayMass_{jshift}", 2),
+        (f"MET_pt_{jshift}", 1),
     ]
 ]
 
@@ -771,7 +772,7 @@ def fill_ak4_jec_shifts(events: pd.DataFrame, key: str) -> pd.DataFrame:
     """The JES/JER shifts of ``load_columns_syst_ak4`` for the events of skims made before they were
     saved (the columns are missing, or NaN for the rows of such skims). The VBF jet mass follows
     from its saved shifted pT, since the jets' CorrectedJetsFactory scales pT and mass by the same
-    factor; the AK4-away jets keep their nominal values, as before."""
+    factor; the AK4-away jets and the MET keep their nominal values, as before."""
     fallback = {}
     for jshift in jec_shifts:
         for i in range(2):
@@ -782,6 +783,7 @@ def fill_ak4_jec_shifts(events: pd.DataFrame, key: str) -> pd.DataFrame:
             fallback[(f"VBFJetMass_{jshift}", i)] = events[("VBFJetMass", i)].to_numpy() * ratio
             for var in ["AK4JetAwayPt", "AK4JetAwayMass"]:
                 fallback[(f"{var}_{jshift}", i)] = events[(var, i)].to_numpy()
+        fallback[(f"MET_pt_{jshift}", 0)] = events[("MET_pt", 0)].to_numpy()
 
     filled, missing_cols = set(), {}
     for col, vals in fallback.items():
@@ -796,7 +798,7 @@ def fill_ak4_jec_shifts(events: pd.DataFrame, key: str) -> pd.DataFrame:
     if filled:
         print(
             f"{key}: JES/JER shifts of {', '.join(sorted(filled))} not in (all of) the skims: VBF "
-            "jet mass from its shifted pT, AK4-away jets nominal"
+            "jet mass from its shifted pT, AK4-away jets and MET nominal"
         )
     return events
 
