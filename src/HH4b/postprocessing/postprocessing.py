@@ -201,6 +201,19 @@ for jshift in jmsr_shifts:
     ]
 load_columns_syst += [("bbFatJetParTmassVis_raw", 2)]
 
+# JES/JER shifts of the VBF jet mass, the AK4-away jets and the MET: read where the skims have them,
+# filled by fill_ak4_jec_shifts where they do not
+load_columns_syst_ak4 = [
+    col
+    for jshift in jec_shifts
+    for col in [
+        (f"VBFJetMass_{jshift}", 2),
+        (f"AK4JetAwayPt_{jshift}", 2),
+        (f"AK4JetAwayMass_{jshift}", 2),
+        (f"MET_pt_{jshift}", 1),
+    ]
+]
+
 # load scale weights for ttbar
 load_columns_ttbar = [
     ("scale_weights", 6),
@@ -572,6 +585,10 @@ def load_run3_samples(
         if sample not in syst_keys
     }
 
+    optional_syst_columns = (
+        utils.format_columns(load_columns_syst_ak4) if load_systematics else None
+    )
+
     # load ggf samples
     events_dict_syst_ggf = {
         **utils.load_samples(
@@ -587,6 +604,7 @@ def load_run3_samples(
                 )
                 + load_columns_jmsr
             ),
+            optional_columns=optional_syst_columns,
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
@@ -613,6 +631,7 @@ def load_run3_samples(
                 )
                 + load_columns_jmsr
             ),
+            optional_columns=optional_syst_columns,
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
@@ -643,6 +662,7 @@ def load_run3_samples(
                 )
                 + load_columns_jmsr
             ),
+            optional_columns=optional_syst_columns,
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
@@ -669,6 +689,7 @@ def load_run3_samples(
                 )
                 + load_columns_jmsr
             ),
+            optional_columns=optional_syst_columns,
             reorder_txbb=reorder_txbb,
             txbb_str=txbb_str,
             ptqq_stitch=ptqq_stitch,
@@ -698,16 +719,25 @@ def load_run3_samples(
         ),
     }
 
+    # every MC except QCD (syst_keys), loaded with the systematics; data and QCD MC are in
+    # events_dict_nosyst
+    events_dicts_mc_except_qcd = [
+        events_dict_ttbar,
+        events_dict_syst_bg,
+        events_dict_syst_ggf,
+        events_dict_syst_vbf,
+    ]
+
+    if load_systematics:
+        for events_dict_mc in events_dicts_mc_except_qcd:
+            for key in events_dict_mc:
+                events_dict_mc[key] = fill_ak4_jec_shifts(events_dict_mc[key], key)
+
     if jmsr_correct:
         if scale_and_smear:
             raise ValueError("jmsr_correct and scale_and_smear both re-derive the mass; pick one")
-        # all MC except QCD (samples_nosyst = data + QCD MC are never corrected)
-        for events_dict_mc in [
-            events_dict_ttbar,
-            events_dict_syst_bg,
-            events_dict_syst_ggf,
-            events_dict_syst_vbf,
-        ]:
+        # data and QCD MC are never corrected
+        for events_dict_mc in events_dicts_mc_except_qcd:
             for key, events in events_dict_mc.items():
                 jmsr_correct_mass(
                     events, jmsr_year if jmsr_year is not None else year, mass_str, key
@@ -736,6 +766,41 @@ def load_run3_samples(
             print(f"{key}: shared AK4-away assignment, {n} of {len(events)} events changed")
 
     return events_dict
+
+
+def fill_ak4_jec_shifts(events: pd.DataFrame, key: str) -> pd.DataFrame:
+    """The JES/JER shifts of ``load_columns_syst_ak4`` for the events of skims made before they were
+    saved (the columns are missing, or NaN for the rows of such skims). The VBF jet mass follows
+    from its saved shifted pT, since the jets' CorrectedJetsFactory scales pT and mass by the same
+    factor; the AK4-away jets and the MET keep their nominal values, as before."""
+    fallback = {}
+    for jshift in jec_shifts:
+        for i in range(2):
+            pt = events[("VBFJetPt", i)].to_numpy()
+            ratio = np.divide(
+                events[(f"VBFJetPt_{jshift}", i)].to_numpy(), pt, out=np.ones(len(pt)), where=pt > 0
+            )
+            fallback[(f"VBFJetMass_{jshift}", i)] = events[("VBFJetMass", i)].to_numpy() * ratio
+            for var in ["AK4JetAwayPt", "AK4JetAwayMass"]:
+                fallback[(f"{var}_{jshift}", i)] = events[(var, i)].to_numpy()
+        fallback[(f"MET_pt_{jshift}", 0)] = events[("MET_pt", 0)].to_numpy()
+
+    filled, missing_cols = set(), {}
+    for col, vals in fallback.items():
+        if col not in events.columns:
+            missing_cols[col] = vals
+            filled.add(col[0].rsplit("_", 2)[0])
+        elif events[col].isna().any():
+            events[col] = events[col].fillna(pd.Series(vals, index=events.index))
+            filled.add(col[0].rsplit("_", 2)[0])
+    if missing_cols:
+        events = pd.concat([events, pd.DataFrame(missing_cols, index=events.index)], axis=1)
+    if filled:
+        print(
+            f"{key}: JES/JER shifts of {', '.join(sorted(filled))} not in (all of) the skims: VBF "
+            "jet mass from its shifted pT, AK4-away jets and MET nominal"
+        )
+    return events
 
 
 def jmsr_correct_mass(
