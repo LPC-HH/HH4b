@@ -40,12 +40,11 @@ class TestCalculateTriggerWeights:
 
     @patch("HH4b.postprocessing.PostProcess.corrections.trigger_SF")
     def test_mc_applies_sf(self, mock_trigger_sf):
-        """MC samples should call corrections.trigger_SF and propagate the uncertainty."""
+        """MC samples should call corrections.trigger_SF and propagate its per-event uncertainty."""
         n = 3
         sf = np.array([1.1, 0.9, 1.0])
-        total = 100.0
-        total_err = 5.0
-        mock_trigger_sf.return_value = (sf, None, total, total_err)
+        unc = np.array([0.05, 0.02, 1.5])
+        mock_trigger_sf.return_value = (sf, unc, 100.0, 5.0)
 
         w, w_up, w_dn = calculate_trigger_weights(
             events_dict=MagicMock(),
@@ -57,10 +56,8 @@ class TestCalculateTriggerWeights:
         )
 
         np.testing.assert_array_equal(w, sf)
-        expected_up = sf * (1 + total_err / total)
-        expected_dn = sf * (1 - total_err / total)
-        np.testing.assert_allclose(w_up, expected_up)
-        np.testing.assert_allclose(w_dn, expected_dn)
+        np.testing.assert_allclose(w_up, sf + unc)
+        np.testing.assert_allclose(w_dn, np.maximum(sf - unc, 0))
         mock_trigger_sf.assert_called_once()
 
     @patch("HH4b.postprocessing.PostProcess.corrections.trigger_SF")
@@ -68,7 +65,7 @@ class TestCalculateTriggerWeights:
         """Signal samples (key != 'data') should also get trigger SF."""
         n = 2
         sf = np.array([1.05, 0.95])
-        mock_trigger_sf.return_value = (sf, None, 50.0, 2.0)
+        mock_trigger_sf.return_value = (sf, np.array([0.01, 0.02]), 50.0, 2.0)
 
         w, _, _ = calculate_trigger_weights(
             events_dict=MagicMock(),

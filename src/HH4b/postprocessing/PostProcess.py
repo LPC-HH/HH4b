@@ -83,6 +83,9 @@ FOM_CACHE_LUMI_PREFIX = "__lumi"
 # (TTBAR_BDTSF_COL), which the --fom-cache path re-evaluates with the scanned model
 FOM_CACHE_TTSF_SUFFIX = "__ttbdtsf"
 TTBAR_BDTSF_COL = "ttbar_bdtsf_nom"
+# ... and of every year: its MC weights carry the trigger SF with the jets outside the efficiency
+# maps at the edge bins (corrections.trigger_SF), not at SF = 1
+FOM_CACHE_TRIG_SUFFIX = "__trigedge"
 
 plt.style.use(hep.style.CMS)
 hep.style.use("CMS")
@@ -496,11 +499,12 @@ def calculate_trigger_weights(
     trigger_weight_up = np.ones(n_events)
     trigger_weight_dn = np.ones(n_events)
     if key != "data":
-        trigger_weight, _, total, total_err = corrections.trigger_SF(
+        # per-event SF and its statistical uncertainty (both jets, data and MC efficiencies)
+        trigger_weight, trigger_unc, _, _ = corrections.trigger_SF(
             year, events_dict, txbb_strings[txbb], trigger_region
         )
-        trigger_weight_up = trigger_weight * (1 + total_err / total)
-        trigger_weight_dn = trigger_weight * (1 - total_err / total)
+        trigger_weight_up = trigger_weight + trigger_unc
+        trigger_weight_dn = np.maximum(trigger_weight - trigger_unc, 0)
 
     return trigger_weight, trigger_weight_up, trigger_weight_dn
 
@@ -710,11 +714,15 @@ def fom_cache_tag(args, year: str) -> str:
     with the scanned model. Caches without it (ttbar weights with the SF of the model that built
     them, key without the suffix) are never read again.
 
+    Plus "__trigedge" just before "__ttbdtsf" in every key (since 2026-10-24): the MC weights carry
+    the trigger SF with the jets outside the efficiency maps at the edge bins
+    (``corrections.trigger_SF``), where they had SF = 1 before.
+
     Plus "__zz4b-<tag>" (before any "__jmsr...") for every year whose MC source year has a
     ZZto4B-1Jets directory in --zz4b-tag (``zz4b_suffix``): its zz frame holds ZZto4B in place of
     the inclusive ZZ -> bbbb events. The other years keep their keys.
     """
-    tail = FOM_CACHE_TTSF_SUFFIX
+    tail = FOM_CACHE_TRIG_SUFFIX + FOM_CACHE_TTSF_SUFFIX
     if glopartv3_jmsr_on(args):
         vals = json.dumps(hh_vars.jmsr_values[mreg_strings[args.txbb]], sort_keys=True)
         tail = "__jmsr" + hashlib.sha1(vals.encode()).hexdigest()[:8] + tail
