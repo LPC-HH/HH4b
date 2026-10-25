@@ -1,7 +1,7 @@
 # Archived Run 3 text-file JECs
 
 Superseded by the official correctionlib JECs and JER (2024 and 2025 since #363, 2022 and 2023 since
-https://github.com/LPC-HH/HH4b/pull/366): `processors/corrections.py` (`cat_jerc`) reads every Run 3
+https://github.com/LPC-HH/HH4b/pull/367): `processors/corrections.py` (`cat_jerc`) reads every Run 3
 year from the JME correctionlib files on CVMFS through `processors/jec_clib.py`. Nothing in this
 folder is read by the code; it is kept for reference and for reproducing older skims.
 
