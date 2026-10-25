@@ -609,15 +609,17 @@ jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 # GloParT-v3 regressed mass (v15 skims). There is no GloParT-v3 jet-mass measurement, so these are
-# PLACEHOLDERS with safe uncertainties chosen by the user (2026-09-26), the same in every era: JMS
-# nominal 1 (no correction), down/up 0.95/1.05; JMR nominal 1 (no extra smearing), down 1 (one-sided),
-# up 1.15. JMR is a RESOLUTION scaling (sigma_new = JMR * sigma_MC): postprocessing.jmsr_correct_mass
-# adds a Gaussian smear of width sqrt(JMR^2 - 1) * jmsr_res (below), so the nominal and JMR-down masses
-# are the uncorrected MC mass. The v15 skimmer applies JMS/JMR only to ParTmassVis, so PostProcess
-# applies these at load time (--no-glopartv3-jmsr = off).
+# PLACEHOLDERS with safe uncertainties, the same in every era: JMS nominal 1 (no correction),
+# down/up 0.95/1.05; JMR nominal 1 (no extra smearing), up 1.05 (was 1.15), down 1. JMR is a
+# RESOLUTION scaling (sigma_new = JMR * sigma_MC): postprocessing.jmsr_correct_mass adds a Gaussian
+# smear of width sqrt(JMR^2 - 1) * jmsr_res (below), so the nominal and JMR-down masses are the
+# uncorrected MC mass. JMR is one-sided: CreateDatacard does not use the JMR-down templates and
+# gives combine the up template mirrored about the nominal (Down = 2 x Nominal - Up,
+# --jmr-symmetrize). The v15 skimmer applies JMS/JMR only to ParTmassVis, so PostProcess applies
+# these at load time (--no-glopartv3-jmsr = off).
 jmsr_values["bbFatJetParT3massX2p"] = {
     "JMR": {
-        year: {"nom": 1.0, "down": 1.0, "up": 1.15}
+        year: {"nom": 1.0, "down": 1.0, "up": 1.05}
         for year in ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
     },
     "JMS": {
