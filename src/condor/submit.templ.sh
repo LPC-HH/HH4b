@@ -55,8 +55,15 @@ do
     xrdcp -f commithash.txt $${t2_prefix}/$${modified_outdir}/githashes/commithash_${jobnum}.txt
 done
 
-pip install -e .
-pip install -r requirements.txt
+# zichun/hh4b-docker holds the requirements, so HH4b runs from the clone; with an image without
+# them (submit.py --image coffeateam/coffea-base-almalinux8), the job installs them
+pip_install=${pip_install}
+if [[ "$$pip_install" == "true" ]]; then
+    pip install -e .
+    pip install -r requirements.txt
+else
+    export PYTHONPATH=$$PWD/src
+fi
 
 # run code
 # pip install --user onnxruntime

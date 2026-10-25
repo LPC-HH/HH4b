@@ -20,6 +20,21 @@ t2_redirectors = {
     "ucsd": "root://redir.t2.ucsd.edu:1095//",
 }
 
+# job images: (CVMFS path, whether the job pip installs HH4b and requirements.txt)
+job_images = {
+    # coffea-base-almalinux8 with a Python 3.11 environment that holds the pinned requirements
+    # (https://gitlab.cern.ch/zichun/hh4b-docker)
+    "zichun/hh4b-docker": (
+        "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/zichun/hh4b-docker:latest",
+        False,
+    ),
+    # Python 3.8 and coffea, without the pinned requirements
+    "coffeateam/coffea-base-almalinux8": (
+        "/cvmfs/unpacked.cern.ch/registry.hub.docker.com/coffeateam/coffea-base-almalinux8:0.7.22-py3.8",
+        True,
+    ),
+}
+
 
 def write_template(templ_file: str, out_file: str, templ_args: dict):
     """Write to ``out_file`` based on template from ``templ_file`` using ``templ_args``"""
@@ -85,6 +100,7 @@ def main(args):
 
     jdl_templ = "src/condor/submit.templ.jdl"
     sh_templ = "src/condor/submit.templ.sh"
+    image, pip_install = job_images[args.image]
 
     # submit jobs
     nsubmit = 0
@@ -102,7 +118,13 @@ def main(args):
 
                 prefix = f"{args.year}_{subsample}"
                 localcondor = f"{local_dir}/{prefix}_{j}.jdl"
-                jdl_args = {"dir": local_dir, "prefix": prefix, "jobid": j, "proxy": proxy}
+                jdl_args = {
+                    "dir": local_dir,
+                    "prefix": prefix,
+                    "jobid": j,
+                    "proxy": proxy,
+                    "image": image,
+                }
                 write_template(jdl_templ, localcondor, jdl_args)
 
                 localsh = f"{local_dir}/{prefix}_{j}.sh"
@@ -128,6 +150,7 @@ def main(args):
                         "--save-systematics" if args.save_systematics else "--no-save-systematics"
                     ),
                     "region": f"--region {args.region}" if "skimmer" in args.processor else "",
+                    "pip_install": "true" if pip_install else "false",
                 }
                 write_template(sh_templ, localsh, sh_args)
                 os.system(f"chmod u+x {localsh}")
@@ -174,6 +197,14 @@ def parse_args(parser):
     parser.add_argument("--files-per-job", default=20, help="# files per condor job", type=int)
     run_utils.add_bool_arg(
         parser, "submit", default=False, help="submit files as well as create them"
+    )
+    parser.add_argument(
+        "--image",
+        default="zichun/hh4b-docker",
+        help="job image; with coffeateam/coffea-base-almalinux8 the jobs pip install HH4b and "
+        "requirements.txt",
+        type=str,
+        choices=list(job_images),
     )
     parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
     parser.add_argument("--git-user", default="LPC-HH", help="which user's repo to use", type=str)

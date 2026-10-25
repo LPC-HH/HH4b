@@ -89,6 +89,9 @@ filterwarnings = [
   "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
   # hepdata_validator triggers jsonschema's deprecation warnings on import
   "ignore:jsonschema.* is deprecated:DeprecationWarning",
+  # Python 3.11: the lark parser of awkward 1.10 imports sre_parse and sre_constants
+  "ignore:module 'sre_parse' is deprecated:DeprecationWarning",
+  "ignore:module 'sre_constants' is deprecated:DeprecationWarning",
 ]
 log_cli_level = "INFO"
 testpaths = [
