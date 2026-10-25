@@ -257,7 +257,7 @@
                 "Wto2Q-2Jets_Bin-PTQQ-100",
                 "Wto2Q-2Jets_Bin-PTQQ-200",
                 "Wto2Q-2Jets_Bin-PTQQ-400",
-                # INVALID in DAS (generated with ptMin 400); skimmed but not used by PostProcess
+                # v2-v3 (LHE filter at 600 GeV); the earlier v2-v2 (ptMin 400) is INVALID in DAS
                 "Wto2Q-2Jets_Bin-PTQQ-600",
                 # Zto2Q NLO samples
                 "Zto2Q-2Jets_Bin-PTQQ-100",

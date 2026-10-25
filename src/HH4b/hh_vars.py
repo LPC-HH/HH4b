@@ -82,14 +82,11 @@ common_samples_bg = {
 # open-ended 2024 samples, loaded with utils.load_samples(ptqq_stitch=...) so that the four
 # Bin-PTQQ samples are stitched in GenVPt (utils._stitch_open_ptqq), or with --vjets-stitch-mode
 # range in LHE V pT ranges (utils.ptqq_range_norm). No 2022-2023 name matches them.
-# Wto2Q-2Jets_Bin-PTQQ-600 (2024, v2-v2) is left out: the dataset is INVALID in DAS (generated with
-# an LHE filter at 400 GeV instead of 600); W above 600 GeV comes from W-100/200/400 (range mode:
-# W-400 alone, whole sample).
+# Wto2Q-2Jets_Bin-PTQQ-600 is the v2-v3 production; skims of the INVALID v2-v2 one (LHE filter at
+# 400 GeV instead of 600) are left out by utils.load_samples (PTQQ_OPEN_FILTER_CHECK), and W above
+# 600 GeV then comes from W-100/200/400 (range mode: W-400 alone, whole sample).
 vjets_stitch_selectors = common_samples_bg["vjets"] + [
-    f"{v}to2Q-2Jets_Bin-PTQQ-{x}?"
-    for v in ["W", "Z"]
-    for x in [200, 400, 600]
-    if not (v == "W" and x == 600)
+    f"{v}to2Q-2Jets_Bin-PTQQ-{x}?" for v in ["W", "Z"] for x in [200, 400, 600]
 ]
 
 # Opt-in (PostProcess --zz4b-tag): the dedicated ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8

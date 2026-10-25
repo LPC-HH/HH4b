@@ -452,30 +452,20 @@ def _parquet_has_rows(parquet_file: Path) -> bool:
     return len(schema.names) > sum(isinstance(col, str) for col in index_columns)
 
 
-# 2024 (Summer24) V+jets: {W,Z}to2Q-2Jets_Bin-PTQQ-X is generated with PTQQ > X and NO upper edge,
-# so the four samples overlap. By default only Bin-PTQQ-100 is loaded (hh_vars vjets selectors).
-# With ``load_samples(..., ptqq_stitch=PtqqStitch(...))`` (PostProcess --vjets-stitch) all four are
-# loaded and stitched below. The 2022-2023 *_PTQQ-XtoY_{1J,2J} samples are exclusive bins and do not
-# match. The generator-level PTQQ (LHE V pT) is not in the skim, so GenVPt (last-copy V,
-# GenSelection.py) is used, and a higher-threshold sample is trusted only from PTQQ_STITCH_MARGIN
-# above its threshold, where its GenVPt turn-on has reached the plateau.
-# ``PtqqStitch(mode="range")`` is the alternative for a skim with the LHE V pT (``GenVLHEPt``) and
-# the per-LHE-V-pT-bin totals (skimmer 7332ed8+): each sample covers only [X_i, X_next) in LHE V pT,
-# normalised to sigma_i x (its generator-weight fraction there); see ``ptqq_range_norm``.
+# 2024 V+jets: {W,Z}to2Q-2Jets_Bin-PTQQ-X has PTQQ > X with no upper edge, so the four samples
+# overlap. By default only Bin-PTQQ-100 is loaded; load_samples(ptqq_stitch=...) stitches all four,
+# in GenVPt above a margin ("effective-lumi") or in LHE V pT ranges ("range", ptqq_range_norm).
 _PTQQ_OPEN_RE = re.compile(r"^([wz])to2q-2jets_bin-ptqq-(\d+)$")
 PTQQ_STITCH_MARGIN = 50.0  # GeV
 PTQQ_OPEN_INCLUSIVE = 100.0  # the lowest threshold, whose sample covers the whole phase space
 PTQQ_STITCH_MODES = ("effective-lumi", "range")
-# open-ended samples that must not be used (range mode raises if one is selected)
-PTQQ_OPEN_INVALID = {
-    ("w", 600.0): "Wto2Q-2Jets_Bin-PTQQ-600 (2024) is INVALID in DAS: it was generated with the "
-    "LHE V pT filter at 400 GeV, not 600 GeV",
+# open-ended samples with an invalid production, used only if the skim passes _ptqq_lhe_filter_ok
+PTQQ_OPEN_FILTER_CHECK = {
+    ("w", 600.0): "the INVALID v2-v2 production has its LHE filter at 400 GeV",
 }
-# Bin edges (GeV) of the skimmer's per-LHE-V-pT-bin totals (bbbbSkimmer.LHEVPT_EDGES, copied here
-# so that postprocessing does not import the processors): arrays of len(edges) + 1 = 202 entries,
-# [0] underflow (< 0: no status-2 LHE W/Z), [k] = [edges[k-1], edges[k]), [-1] >= 2000 GeV. The
-# thresholds 100/200/400/600 are edges; LHEPart pT is stored with a reduced mantissa, which rounds a
-# value just above a threshold to exactly the threshold, never below, so a lower edge is inclusive.
+# Edges (GeV) of the skimmer's per-LHE-V-pT-bin totals, copied from bbbbSkimmer.LHEVPT_EDGES: 202
+# bins, [0] = no LHE W/Z, [k] = [edges[k-1], edges[k]), [-1] >= 2000 GeV. A lower edge is inclusive
+# (the stored LHE pT rounds to a threshold, never below it).
 LHEVPT_EDGES = np.arange(0.0, 2001.0, 10.0)
 LHEVPT_COLUMN = "GenVLHEPt"
 
@@ -596,6 +586,18 @@ def ptqq_range_norm(
     return out
 
 
+def _ptqq_lhe_filter_ok(pickles_path: Path, year: str, sample: str, threshold: float) -> bool:
+    """Whether the skim has LHE V pT totals and no generated event below ``threshold``."""
+    pickles_path = Path(pickles_path)
+    if not pickles_path.is_dir() or not any(f.name != ".DS_Store" for f in pickles_path.iterdir()):
+        return False
+    totals = get_pickles(pickles_path, year, sample).get("totals", {})
+    if "nevents_lhevpt" not in totals:
+        return False
+    nraw = _lhevpt_array(totals, "nevents_lhevpt", sample)
+    return nraw[: _lhevpt_range_bins(threshold, np.inf).start].sum() == 0
+
+
 def _own_total_variations(
     events: pd.DataFrame, variations: bool, weight_shifts: dict[str, Syst] | None
 ) -> list[str]:
@@ -624,15 +626,13 @@ def _ptqq_range_ranges(samples: list[str], selector) -> dict[str, tuple[float, f
     """{sample: (lo, hi)} LHE V pT range of every open-ended sample the selector matches.
 
     Per boson the thresholds X_1 < ... < X_n of the matched samples split the axis: sample k keeps
-    [X_k, X_k+1), the highest one [X_n, inf). Raises for an invalid sample (``PTQQ_OPEN_INVALID``).
+    [X_k, X_k+1), the highest one [X_n, inf).
     """
     by_boson: dict[str, list[tuple[float, str]]] = {}
     for sample in samples:
         thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
         if thr is None:
             continue
-        if thr in PTQQ_OPEN_INVALID:
-            raise ValueError(f"PTQQ range stitch: {sample} selected, but {PTQQ_OPEN_INVALID[thr]}")
         by_boson.setdefault(thr[0], []).append((thr[1], sample))
     ranges = {}
     for boson, members in by_boson.items():
@@ -1084,16 +1084,30 @@ def load_samples(
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
 
+        # leave out skims of invalid open-ended productions (PTQQ_OPEN_FILTER_CHECK)
+        label_samples = full_samples_list
+        if ptqq_stitch is not None:
+            label_samples = []
+            for sample in full_samples_list:
+                thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
+                sample_path = sample_dirs.get(sample, data_dir / sample)
+                if thr in PTQQ_OPEN_FILTER_CHECK and not _ptqq_lhe_filter_ok(
+                    sample_path / "pickles", year, sample, thr[1]
+                ):
+                    logger.warning(f"PTQQ stitch: {sample} left out: {PTQQ_OPEN_FILTER_CHECK[thr]}")
+                    continue
+                label_samples.append(sample)
+
         # lowest open-ended Bin-PTQQ threshold per boson among this label's samples (for the stitch)
         stitch_lowest = {}
         if ptqq_stitch is not None:
-            for sample in full_samples_list:
+            for sample in label_samples:
                 thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
                 if thr is not None:
                     stitch_lowest[thr[0]] = min(thr[1], stitch_lowest.get(thr[0], np.inf))
         range_mode = ptqq_stitch is not None and ptqq_stitch.mode == "range"
         # range stitch: the LHE V pT range [lo, hi) of every matched open-ended sample
-        ranges = _ptqq_range_ranges(full_samples_list, selector) if range_mode else {}
+        ranges = _ptqq_range_ranges(label_samples, selector) if range_mode else {}
         # columns read only for the stitch (dropped after it unless requested)
         stitch_columns = format_columns(
             [("GenVLHEPt" if range_mode else "GenVPt", 1), (txbb_str, 2)]
@@ -1117,7 +1131,7 @@ def load_samples(
 
         events_dict[label] = []  # list of directories we load in for this sample
         loaded_names = []  # sample (directory) name of each entry in events_dict[label]
-        for sample in full_samples_list:
+        for sample in label_samples:
             # check if this directory passes our selector string
             if not check_selector(sample, selector):
                 continue
