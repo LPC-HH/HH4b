@@ -1291,8 +1291,14 @@ class bbbbSkimmer(SkimmerABC):
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(dataframe, fname)
 
+        output = {"totals": totals_dict, "cutflow": cutflow}
+        if isData:
+            # entries read from each input file (check_data_files.py)
+            meta = events.metadata
+            output["processed_entries"] = {meta["filename"]: meta["entrystop"] - meta["entrystart"]}
+
         print("Return ", f"{time.time() - start:.2f}")
-        return {year: {dataset: {"totals": totals_dict, "cutflow": cutflow}}}
+        return {year: {dataset: output}}
 
     def postprocess(self, accumulator):
         return accumulator

@@ -88,8 +88,35 @@ def run_dask(p: processor, fileset: dict, args):
                     pickle.dump(out["pkl"], f)
 
 
-def run(p: processor, fileset: dict, skipbadfiles: bool, args):
-    """Run processor without fancy dask (outputs then need to be accumulated manually)"""
+def open_data_files(fileset: dict, attempts: int = 3, wait: int = 60) -> tuple[dict, dict, dict]:
+    """Open every file of a data fileset, up to ``attempts`` times ``wait`` s apart. Returns the
+    fileset without the files that never opened, {key: {file: entries}} of the others and
+    {key: {file: last error}} of the left-out ones. Authentication errors are raised."""
+    good, entries, bad = {}, {}, {}
+    for key, files in fileset.items():
+        for fname in files:
+            for attempt in range(attempts):
+                try:
+                    with uproot.open(fname) as rfile:
+                        entries.setdefault(key, {})[fname] = rfile["Events"].num_entries
+                    good.setdefault(key, []).append(fname)
+                    break
+                except Exception as e:
+                    if "Auth failed" in str(e):
+                        raise
+                    if attempt == attempts - 1:
+                        error = f"{type(e).__name__}: {str(e).strip().splitlines()[0]}"
+                        bad.setdefault(key, {})[fname] = error
+                        print(f"Leaving out {fname}: {error}")
+                    else:
+                        time.sleep(wait)
+    return good, entries, bad
+
+
+def run(p: processor, fileset: dict, skipbadfiles: bool, args, data_files: tuple | None = None):
+    """Run processor without fancy dask (outputs then need to be accumulated manually).
+    ``data_files``: the entries and the left-out files of ``open_data_files``, saved in the
+    pickle next to the entries the processor read (check_data_files.py compares them)."""
     run_utils.add_mixins(nanoevents)  # update nanoevents schema
 
     # outputs are saved here as pickles
@@ -132,7 +159,8 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     )
 
     # try file opening 3 times if it fails
-    for i in range(3):
+    out = {}
+    for i in range(3 if fileset else 0):
         try:
             out, _metrics = run(fileset, "Events", processor_instance=p)
             break
@@ -144,6 +172,11 @@ def run(p: processor, fileset: dict, skipbadfiles: bool, args):
                 time.sleep(60)
             else:
                 raise e
+
+    for label, per_key in zip(["file_entries", "bad_files"], data_files or ({}, {})):
+        for key, files in per_key.items():
+            year, dataset = key.split("_", 1)
+            out.setdefault(year, {}).setdefault(dataset, {})[label] = files
 
     print(out)
 
@@ -199,6 +232,7 @@ def main(args):
     )
 
     skipbadfiles = True
+    data_files = None
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
@@ -230,16 +264,16 @@ def main(args):
             args.endi,
         )
 
-        # don't skip "bad" files for data - we want it throw an error in that case
-        for key in fileset:
-            if key in DATA_SAMPLES:
-                skipbadfiles = False
+        # data: files that do not open after retries are left out and recorded in the pickle
+        if any(sample in DATA_SAMPLES for sample in samples):
+            fileset, file_entries, bad_files = open_data_files(fileset)
+            data_files = (file_entries, bad_files)
 
     print(f"Running on fileset {fileset}")
     if args.executor == "dask":
         run_dask(p, fileset, args)
     else:
-        run(p, fileset, skipbadfiles, args)
+        run(p, fileset, skipbadfiles, args, data_files)
 
 
 if __name__ == "__main__":

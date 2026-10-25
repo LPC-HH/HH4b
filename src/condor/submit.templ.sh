@@ -60,7 +60,8 @@ pip install -r requirements.txt
 
 # run code
 # pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} --txbb ${txbb} ${region} ${save_root}
+# a failed job copies no output and exits non-zero
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize ${save_systematics} --nano-version ${nano_version} --txbb ${txbb} ${region} ${save_root} || exit 1
 
 #move output to t2s
 for t2_prefix in ${t2_prefixes}

@@ -17,6 +17,7 @@ import time
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
+from functools import lru_cache
 from os import listdir
 from pathlib import Path
 
@@ -26,12 +27,15 @@ import pandas as pd
 import pyarrow.parquet as pq
 import vector
 from coffea.analysis_tools import PackedSelection
+from coffea.lumi_tools import LumiMask
 from coffea.processor.accumulator import accumulate
 from hist import Hist
 
+from HH4b.data_lumi import GOLDEN_JSON_DIR, LS_SCALE, keys_of, lumi_corrections
 from HH4b.xsecs import xsecs
 
 from .hh_vars import (
+    GOLDEN_JSON,
     LUMI,
     ZZ4B_MZ_WINDOW,
     ZZ4B_SAMPLE,
@@ -244,6 +248,8 @@ W_XSEC_CORRECTION_SAMPLES = frozenset(
     for njets in ["1J", "2J"]
 )
 _W_XSEC_CHECK_RTOL = 1e-9
+# of the 1x / 2x check: admits a LUMI update since the skim (the 2x case is not rescaled for it)
+_W_XSEC_LUMI_RTOL = 0.02
 
 
 def _skim_norm_weight_columns(events: pd.DataFrame) -> list[str]:
@@ -296,9 +302,9 @@ def _apply_w_xsec_correction(events: pd.DataFrame, year: str, sample: str) -> No
         )
     norm = xsecs[sample] * LUMI[year]
     rel = norm / skim_norm
-    if abs(rel - 1.0) <= _W_XSEC_CHECK_RTOL:
+    if abs(rel - 1.0) <= _W_XSEC_LUMI_RTOL:
         return  # skim made with the xsecs.py value
-    if abs(rel - 0.5) > 0.5 * _W_XSEC_CHECK_RTOL:
+    if abs(rel - 0.5) > 0.5 * _W_XSEC_LUMI_RTOL:
         raise ValueError(
             f"{sample} ({year}): skim xsec x lumi {skim_norm:.8g} is neither 1x nor 2x the "
             f"xsecs.py x LUMI {norm:.8g} (ratio {rel:.8g}); re-skim or check xsecs.py"
@@ -922,6 +928,27 @@ MC_SHARING_COLUMNS = [
 ]
 
 
+@lru_cache(maxsize=None)
+def _golden_lumi_mask(year: str) -> LumiMask:
+    return LumiMask(GOLDEN_JSON_DIR / GOLDEN_JSON[year])
+
+
+def _apply_golden_json(
+    events: pd.DataFrame, year: str, sample: str, lost: np.ndarray | None = None
+) -> pd.DataFrame:
+    """The data events in the golden JSON of ``year`` (``hh_vars.GOLDEN_JSON``) and not in the
+    lumisections ``lost`` by the skims (keys run x LS_SCALE + LS, ``HH4b.data_lumi``)."""
+    if year not in GOLDEN_JSON:
+        logger.warning(f"{sample}: no golden JSON for {year}, all data events kept")
+        return events
+    run, ls = _col1d(events, "run"), _col1d(events, "luminosityBlock")
+    keep = _golden_lumi_mask(year)(run, ls)
+    if lost is not None:
+        keep &= ~np.isin(run.astype(np.int64) * LS_SCALE + ls, lost)
+    logger.info(f"{sample}: {np.sum(~keep)} of {len(events)} events not golden or lost")
+    return events.loc[keep].reset_index(drop=True)
+
+
 def _mc_sharing_veto(events: pd.DataFrame, mc_year: str) -> pd.DataFrame:
     """Keep the events that pass the jet veto map of ``mc_year`` (2024 MC skims, see
     ``MC_SHARING_COLUMNS``)."""
@@ -1053,6 +1080,13 @@ def load_samples(
     """
     events_dict = {}
 
+    # data the skims of this tag lost (HH4b.data_lumi): their lumisections are dropped from the
+    # data, and the MC used for the year is scaled to the luminosity the data hold
+    lumi_year = mc_year or year
+    lumi = lumi_corrections(Path(data_dir), lumi_year) if lumi_year in GOLDEN_JSON else {}
+    lost = keys_of(lumi["lost_lumis"]) if "lost_lumis" in lumi else None
+    mc_lumi_scale = lumi["lumi_pb"] / LUMI[lumi_year] if "lumi_pb" in lumi else 1.0
+
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
     sample_dirs = {}  # samples read from an override_dir instead of data_dir
@@ -1083,6 +1117,12 @@ def load_samples(
         load_columns = columns
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
+        # data: the run and lumisection for the golden JSON (dropped after it unless requested)
+        golden_columns = []
+        if label == data_key and columns is not None:
+            run_ls = format_columns([("run", 1), ("luminosityBlock", 1)])
+            golden_columns = [col for col in run_ls if col not in columns]
+            load_columns = columns + golden_columns
 
         # leave out skims of invalid open-ended productions (PTQQ_OPEN_FILTER_CHECK)
         label_samples = full_samples_list
@@ -1224,6 +1264,9 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
+            if label == data_key:
+                events = _apply_golden_json(events, year, sample, lost)
+
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
 
@@ -1261,6 +1304,12 @@ def load_samples(
                     events["weight_nonorm"] = events["weight"]
                     events["finalWeight"] = events["weight"] / n_events
 
+            if label != data_key and mc_lumi_scale != 1.0:
+                for col in [*_skim_norm_weight_columns(events), "finalWeight", "weight_nonorm"]:
+                    if col in events:
+                        events[col] = events[col].to_numpy() * mc_lumi_scale
+                logger.info(f"{sample}: weights x {mc_lumi_scale:.6f} (data lost by the skims)")
+
             if range_mode and sample in ranges:
                 # keep only this sample's LHE V pT range, normalised to sigma x f (after
                 # _normalize_weights, whose np_* totals the factors correct)
@@ -1276,7 +1325,9 @@ def load_samples(
             loaded_names.append(sample)
             logger.info(f"Loaded {sample: <50}: {len(events)} entries")
 
-        stitch_only_columns = set()  # parquet names read only for the stitch, dropped after it
+        # parquet names read only for the golden JSON, the stitch or the ZZto4B replacement,
+        # dropped after them
+        load_only_columns = set(golden_columns)
         if ptqq_stitch is not None and len(events_dict[label]):
             if not range_mode:
                 # remove the overlap between the open-ended Bin-PTQQ V+jets samples (2024 MC)
@@ -1284,26 +1335,25 @@ def load_samples(
                     list(zip(loaded_names, events_dict[label])), txbb_str, ptqq_stitch
                 )
             if load_columns is not None:
-                stitch_only_columns = {col for col in stitch_columns if col not in load_columns}
+                load_only_columns |= {col for col in stitch_columns if col not in load_columns}
         if zz4b_on and len(events_dict[label]):
             # ZZ->bbbb in the ZZto4B window from ZZto4B-1Jets alone, before the concat
             events_dict[label] = _replace_zz4b(
                 list(zip(loaded_names, events_dict[label])), zz4b_replace
             )
             if load_columns is not None:
-                stitch_only_columns |= {col for col in zz4b_columns if col not in load_columns}
+                load_only_columns |= {col for col in zz4b_columns if col not in load_columns}
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
             # Deduplicate columns that can arise when concatenating multiple sub-samples
             keep = ~events_dict[label].columns.duplicated()
-            if stitch_only_columns:
+            if load_only_columns:
                 # match by the parquet name "('name', 'i')": pandas restores the second column
                 # level from the parquet metadata (int64 in the skims), so tuples of str miss it
                 keep &= ~np.array(
                     [
-                        isinstance(col, tuple)
-                        and f"('{col[0]}', '{col[1]}')" in stitch_only_columns
+                        isinstance(col, tuple) and f"('{col[0]}', '{col[1]}')" in load_only_columns
                         for col in events_dict[label].columns
                     ]
                 )

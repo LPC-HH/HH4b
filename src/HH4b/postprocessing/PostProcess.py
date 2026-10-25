@@ -23,7 +23,7 @@ import pandas as pd
 import uproot
 import xgboost as xgb
 
-from HH4b import hh_vars, plotting, postprocessing, run_utils
+from HH4b import data_lumi, hh_vars, plotting, postprocessing, run_utils
 from HH4b.eventlist_manifest import write_eventlist_manifest
 from HH4b.hh_vars import (
     bg_keys,
@@ -47,6 +47,7 @@ from HH4b.postprocessing import (
 )
 from HH4b.postprocessing.bdt_inference import _add_year_features, model_feature_names
 from HH4b.utils import (
+    GOLDEN_JSON_DIR,
     W_XSEC_CORRECTION_ERAS,
     PtqqStitch,
     ShapeVar,
@@ -76,6 +77,8 @@ FOM_CACHE_TTH_SUFFIX = "__hbb1prod"
 # (hh_vars "ZZ?", "WW?", "WZ?") load only the inclusive samples, where the prefix selectors summed both
 FOM_CACHE_DIBOSON_SUFFIX = "__dibosonexact"
 DIBOSON_EXACT_ERAS = ("2022", "2022EE", "2023", "2023BPix")
+# ... and of every year: its data in the golden JSON, and LUMI (a hash of both; fom_cache_tag)
+FOM_CACHE_LUMI_PREFIX = "__lumi"
 # ... and of every year: its ttbar frame stores the ttbar BDT-shape SF of its weights
 # (TTBAR_BDTSF_COL), which the --fom-cache path re-evaluates with the scanned model
 FOM_CACHE_TTSF_SUFFIX = "__ttbdtsf"
@@ -696,6 +699,12 @@ def fom_cache_tag(args, year: str) -> str:
     diboson (key without the suffix) is never read again. 2024 and 2025 (2024 MC) have only the
     inclusive samples and keep their keys.
 
+    Plus "__lumi<hash>" (after "__hbb1prod" and "__dibosonexact") for every year (since
+    2026-10-24): its data are the golden events the skims hold and its MC is scaled to their
+    luminosity (``utils._apply_golden_json``, ``HH4b.data_lumi``), and the MC split factor depends
+    on LUMI; the hash covers the year's golden JSON, ``<tag>/lumi_<year>.json`` and the LUMI of the
+    year and of its MC source year, so a cache of other data or luminosities is never read again.
+
     Plus "__ttbdtsf" at the end of every key (since 2026-09-29): the ttbar frame stores the ttbar
     BDT-shape SF of its weights (``TTBAR_BDTSF_COL``), which ``fom_cache_rescore`` re-evaluates
     with the scanned model. Caches without it (ttbar weights with the SF of the model that built
@@ -725,6 +734,11 @@ def fom_cache_tag(args, year: str) -> str:
         xsec_suffix += FOM_CACHE_TTH_SUFFIX
     if source_year in DIBOSON_EXACT_ERAS:
         xsec_suffix += FOM_CACHE_DIBOSON_SUFFIX
+    golden = hh_vars.GOLDEN_JSON.get(year)
+    golden_md5 = golden and hashlib.md5((GOLDEN_JSON_DIR / golden).read_bytes()).hexdigest()
+    skim_lumi = data_lumi.lumi_corrections(Path(args.data_dir) / args.tag, year)
+    lumi = json.dumps([golden_md5, skim_lumi, hh_vars.LUMI[year], hh_vars.LUMI[source_year]])
+    xsec_suffix += FOM_CACHE_LUMI_PREFIX + hashlib.sha1(lumi.encode()).hexdigest()[:8]
     stitch = get_vjets_stitch(args)
     override_tag = getattr(args, "override_tag", None)
     if stitch is None and not override_tag:

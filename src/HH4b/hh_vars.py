@@ -10,26 +10,64 @@ from collections import OrderedDict
 
 years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
 
-# in pb^-1
+# Golden JSON of each year's data (corrections/data/golden_json/, corrections/fetch_golden_json.py);
+# utils.load_samples drops the data events outside it.
+GOLDEN_JSON = {
+    "2022": "Cert_Collisions2022_355100_362760_Golden.json",
+    "2022EE": "Cert_Collisions2022_355100_362760_Golden.json",
+    "2023": "Cert_Collisions2023_366442_370790_Golden.json",
+    "2023BPix": "Cert_Collisions2023_366442_370790_Golden.json",
+    "2024": "Cert_Collisions2024_378981_386951_Golden.json",
+    "2025": "Cert_Collisions2025_391658_398903_Golden.json",
+}
+
+# analyzed eras: first and last run of their golden lumisections, from the CAT per-era golden JSONs
+# (2022-2024) and the runs of the JetMET0 PromptReco datasets on DAS (2025); the B eras are not used
+DATA_ERAS = {
+    "2022": {"C": (355862, 357482), "D": (357538, 357900)},
+    "2022EE": {"E": (359022, 360331), "F": (360390, 362167), "G": (362433, 362760)},
+    "2023": {"C": (367095, 368823)},
+    "2023BPix": {"D": (369803, 370790)},
+    "2024": {
+        "C": (379416, 380236),
+        "D": (380306, 380947),
+        "E": (380963, 381544),
+        "F": (382229, 383779),
+        "G": (383811, 385801),
+        "H": (385836, 386319),
+        "I": (386478, 386951),
+    },
+    "2025": {
+        "C": (392174, 393516),
+        "D": (394393, 395948),
+        "E": (395982, 396422),
+        "F": (396629, 397853),
+        "G": (397867, 398903),
+    },
+}
+
+# in pb^-1; Run 3: brilcalc of the golden JSONs above in the analyzed eras
+# (corrections/golden_lumi.py), normtag_PHYSICS; 2025 normtag_BRIL, preliminary (normtag_PHYSICS has
+# no 2025 runs yet)
 LUMI = {
-    "2022": 7980.5,
-    "2022EE": 26671.6,
-    "2023": 18084.4,
-    "2023BPix": 9692.1,
-    "2024": 108960.0,
-    "2024C": 7240.0,
-    "2024D": 7960.0,
-    "2024E": 11320.0,
-    "2024F": 27760.0,
-    "2024G": 37770.0,
-    "2024H": 5440.0,
-    "2024I": 11470.0,
-    "2025C": 20780.0,
-    "2025E": 14000.0,
-    "2025D": 25290.0,
-    "2025F": 30350.0,
-    # TODO: 2025G ongoing
-    "2025": 90420.0,
+    "2022": 7989.5,
+    "2022EE": 26674.9,
+    "2023": 17964.2,
+    "2023BPix": 9676.7,
+    "2024": 109804.9,
+    "2024C": 7250.7,
+    "2024D": 7976.1,
+    "2024E": 11423.2,
+    "2024F": 28037.8,
+    "2024G": 38069.1,
+    "2024H": 5489.7,
+    "2024I": 11558.2,
+    "2025": 110374.7,
+    "2025C": 21563.6,
+    "2025D": 25823.9,
+    "2025E": 14048.2,
+    "2025F": 26693.6,
+    "2025G": 22245.3,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
