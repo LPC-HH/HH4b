@@ -26,7 +26,7 @@ from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray
 
-from .jec_clib import clib_jet_factory
+from .jec_clib import clib_jet_factory, type1_puppi_met
 from .utils import pad_val
 
 ak.behavior.update(vector.behavior)
@@ -349,6 +349,16 @@ class JECs:
             self.jet_factory["ak4"] = jmestuff["jet_factory"]
             self.jet_factory["ak8"] = jmestuff["fatjet_factory"]
             self.met_factory = jmestuff["met_factory"]
+
+    def type1_puppi_met(
+        self, events: NanoEventsArray, year: str, isData: bool
+    ) -> tuple[np.ndarray, np.ndarray] | None:
+        """``jec_clib.type1_puppi_met`` with the year's correctionlib JECs; None without them or
+        without RawPuppiMET."""
+        if year not in cat_jerc or "RawPuppiMET" not in events.fields:
+            return None
+        cat = cat_jerc[year]
+        return type1_puppi_met(events, f"{cat['jme']}/jet_jerc.json.gz", cat["jec"], isData)
 
     def _add_jec_variables(
         self, jets: JetArray, event_rho: ak.Array, isData: bool, run: ak.Array | None = None

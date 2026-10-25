@@ -132,3 +132,50 @@ def clib_jet_factory(
             ),
         )
     return CorrectedJetsFactory(dict(jec_name_map), stack)
+
+
+# TODO: use coffea's CorrectedMETFactory (Type-1 mode) once on coffea >= 2026.9.0 or a 0.7.x
+# release after 0.7.31
+def type1_puppi_met(events, path: str, jec_tag: str, isData: bool) -> tuple[np.ndarray, np.ndarray]:
+    """(pt, phi) of the Type-1 PUPPI MET from RawPuppiMET with the AK4 PUPPI JEC ``jec_tag`` of
+    ``path``, as in CMSSW: every Jet and CorrT1METJet with muon-subtracted corrected pT > 15 GeV and
+    EM fraction < 0.9 shifts it by -(f_L1L2L3Res - f_L1) x muon-subtracted raw pT; no smearing.
+    Adapted from coffea's Type-1 CorrectedMETFactory (scikit-hep/coffea#1537); same output as
+    DAZSLE/hbb-run3#74 (correct_met)."""
+    cset = _correction_set(path)
+    level = "DATA" if isData else "MC"
+    corr_full = cset.compound[f"{jec_tag}_{level}_L1L2L3Res_AK4PFPuppi"]
+    corr_l1 = cset[f"{jec_tag}_{level}_L1FastJet_AK4PFPuppi"]
+    nev = len(events)
+    rho = _to_numpy(events.Rho.fixedGridRhoFastjetAll)
+    run = _to_numpy(events.run)
+    raw_met_pt = _to_numpy(events.RawPuppiMET.pt)
+    raw_met_phi = _to_numpy(events.RawPuppiMET.phi)
+    met_x = raw_met_pt * np.cos(raw_met_phi)
+    met_y = raw_met_pt * np.sin(raw_met_phi)
+    jets, low_pt_jets = events.Jet, events.CorrT1METJet
+    for coll, raw_pt, em_fraction in [
+        (jets, (1 - jets.rawFactor) * jets.pt, jets.chEmEF + jets.neEmEF),
+        (low_pt_jets, low_pt_jets.rawPt, low_pt_jets.EmEF),
+    ]:
+        idx = np.repeat(np.arange(nev), ak.to_numpy(ak.num(raw_pt)))
+        raw = _to_numpy(ak.flatten(raw_pt))
+        inputs = {
+            "JetA": _to_numpy(ak.flatten(coll.area)),
+            "JetEta": _to_numpy(ak.flatten(coll.eta)),
+            "JetPhi": _to_numpy(ak.flatten(coll.phi)),
+            "JetPt": raw,
+            "Rho": rho[idx],
+            "run": run[idx],
+        }
+        f = corr_full.evaluate(*[inputs[inp.name] for inp in corr_full.inputs])
+        f_l1 = corr_l1.evaluate(*[inputs[inp.name] for inp in corr_l1.inputs])
+        raw_nomu = raw * (1 - _to_numpy(ak.flatten(coll.muonSubtrFactor)))
+        phi = inputs["JetPhi"]
+        if "muonSubtrDeltaPhi" in coll.fields:
+            phi = phi + _to_numpy(ak.flatten(coll.muonSubtrDeltaPhi))
+        use = (f * raw_nomu > 15) & (_to_numpy(ak.flatten(em_fraction)) < 0.9)
+        shift = np.where(use, (f - f_l1) * raw_nomu, 0.0)
+        met_x -= np.bincount(idx, weights=shift * np.cos(phi), minlength=nev)
+        met_y -= np.bincount(idx, weights=shift * np.sin(phi), minlength=nev)
+    return np.hypot(met_x, met_y), np.arctan2(met_y, met_x)
