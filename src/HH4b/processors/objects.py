@@ -507,7 +507,9 @@ def vbf_jets(
         & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
     )
 
-    return jets[ak4_sel][:, :2]
+    # the jets keep the NanoAOD order, the pT order with the production's JECs
+    vbf = jets[ak4_sel]
+    return vbf[ak.argsort(vbf.pt, ascending=False)][:, :2]
 
 
 def ak4_jets_awayfromak8(
