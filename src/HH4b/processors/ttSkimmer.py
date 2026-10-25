@@ -167,7 +167,7 @@ class ttSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "hfNoisyHitsFilt",
+            "hfNoisyHitsFilter",
         ]
 
         self._accumulator = processor.dict_accumulator({})

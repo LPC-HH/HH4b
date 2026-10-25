@@ -927,6 +927,11 @@ MC_SHARING_COLUMNS = [
     ("pileup_2025_over_2024", 3),
 ]
 
+# TODO(mc-sharing): remove once 2025 has MC of its own. Its MC is the 2024 MC, so its data also pass
+# the MET filter that only the 2024 list has (bbbbSkimmer.year_met_filters; the skims save it for
+# the data). Data skims without the column are loaded as before.
+MC_SHARING_DATA_FILTERS = {"2025": "Flag_ecalBadCalibFilter"}
+
 
 @lru_cache(maxsize=None)
 def _golden_lumi_mask(year: str) -> LumiMask:
@@ -946,6 +951,13 @@ def _apply_golden_json(
     if lost is not None:
         keep &= ~np.isin(run.astype(np.int64) * LS_SCALE + ls, lost)
     logger.info(f"{sample}: {np.sum(~keep)} of {len(events)} events not golden or lost")
+    return events.loc[keep].reset_index(drop=True)
+
+
+def _mc_sharing_data_filter(events: pd.DataFrame, flag: str, sample: str) -> pd.DataFrame:
+    """The data events that pass ``flag`` (``MC_SHARING_DATA_FILTERS``)."""
+    keep = _col1d(events, flag).astype(bool)
+    logger.info(f"{sample}: {np.sum(~keep)} of {len(events)} events fail {flag}")
     return events.loc[keep].reset_index(drop=True)
 
 
@@ -1211,6 +1223,15 @@ def load_samples(
                 sample_columns = sample_columns + [
                     col for col in format_columns(MC_SHARING_COLUMNS) if col not in sample_columns
                 ]
+            # TODO(mc-sharing): the MET filter of the shared MC's year for the data
+            data_filter = MC_SHARING_DATA_FILTERS.get(year) if label == data_key else None
+            if data_filter is not None and parquet_path.exists():
+                first = next((f for f in sorted(parquet_path.glob("*.parquet")) if _parquet_has_rows(f)), None)  # fmt: skip
+                if first is None or format_columns([(data_filter, 1)])[0] not in pq.read_schema(first).names:  # fmt: skip
+                    logger.warning(f"{sample} has no {data_filter}: loaded without it")
+                    data_filter = None
+                elif sample_columns is not None:
+                    sample_columns = sample_columns + format_columns([(data_filter, 1)])
             if mc_year not in (None, year) and not mc_sharing and label != data_key:
                 logger.warning(
                     f"{sample} ({year} skim used for {mc_year}) has no {MC_SHARING_COLUMNS[0][0]}: "
@@ -1266,6 +1287,8 @@ def load_samples(
 
             if label == data_key:
                 events = _apply_golden_json(events, year, sample, lost)
+                if data_filter is not None:
+                    events = _mc_sharing_data_filter(events, data_filter, sample)
 
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
