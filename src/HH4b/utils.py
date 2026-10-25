@@ -1004,6 +1004,7 @@ def load_samples(
     year: str,
     filters: list = None,
     columns: list = None,
+    optional_columns: list | None = None,
     variations: bool = True,
     weight_shifts: dict[str, Syst] = None,
     reorder_txbb: bool = False,  # temporary fix for sorting by given Txbb
@@ -1024,6 +1025,9 @@ def load_samples(
         year (str): year.
         filters (List): Optional filters when loading data.
         columns (List): Optional columns to load.
+        optional_columns (List): further columns (as ``format_columns`` names them) loaded only from
+            the sample directories whose parquet files have them; a frame that combines directories
+            with and without them has NaN for the rows of the latter.
         variations (bool): Normalize variations as well (saves time to not do so). Defaults to True.
         weight_shifts (Dict[str, Syst]): dictionary of weight shifts to consider.
         ptqq_stitch (PtqqStitch): opt-in stitching of the overlapping open-ended 2024 V+jets
@@ -1160,6 +1164,16 @@ def load_samples(
                 )
             if range_mode and sample in ranges:
                 _check_range_sample(parquet_path, pickles_path, sample, *ranges[sample])
+            # optional columns: only if this sample's skim has them (e.g. newer JES/JER shifts)
+            if optional_columns and sample_columns is not None and parquet_path.exists():
+                first_file = next((f for f in sorted(parquet_path.glob("*.parquet")) if _parquet_has_rows(f)), None)  # fmt: skip
+                if first_file is not None:
+                    names = set(pq.read_schema(first_file).names)
+                    sample_columns = sample_columns + [
+                        col
+                        for col in optional_columns
+                        if col in names and col not in sample_columns
+                    ]
 
             # no parquet directory?
             if not parquet_path.exists():

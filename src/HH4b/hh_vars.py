@@ -488,6 +488,9 @@ for key in jmsr:
 jec_vars = [
     "bbFatJetPt",
     "VBFJetPt",
+    "VBFJetMass",
+    "AK4JetAwayPt",
+    "AK4JetAwayMass",
     "bdt_score",
     "bdt_score_vbf",
     "HHPt",

@@ -891,12 +891,27 @@ class bbbbSkimmer(SkimmerABC):
 
         # JEC and JMSR
         if self._region == "signal" and isJECs:
-            # Jet JEC variables
-            for var in ["pt"]:
+            # Jet JEC variables (None from get_jec_jets if it applied no JECs, e.g. no AK4 jets)
+            if jec_shifted_jetvars:
+                for var in ["pt"]:
+                    key = self.skim_vars["Jet"][var]
+                    for shift, vals in jec_shifted_jetvars[var].items():
+                        if shift != "":
+                            ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+
+            # AK4JetAway JEC variables
+            away_jets = (
+                ak4_jets_awayfromak8 if len(ak4_jets_awayfromak8) == 2 else [ak4_jets_awayfromak8]
+            )
+            for var in ["pt", "mass"]:
                 key = self.skim_vars["Jet"][var]
-                for shift, vals in jec_shifted_jetvars[var].items():
-                    if shift != "":
-                        ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+                for label, shift in self.jecs.items():
+                    if shift in ak.fields(away_jets[0]):
+                        for vari in ["up", "down"]:
+                            vals = [jets_away[shift][vari][var] for jets_away in away_jets]
+                            ak4JetAwayVars[f"AK4JetAway{key}_{label}_{vari}"] = pad_val(
+                                ak.concatenate(vals, axis=1), 2, axis=1
+                            )
 
             # FatJet JEC variables
             for var in ["pt"]:
@@ -1002,7 +1017,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # JEC variations for VBF Jets
         if self._region == "signal" and isJECs:
-            for var in ["pt"]:
+            for var in ["pt", "mass"]:
                 key = self.skim_vars["Jet"][var]
                 for label, shift in self.jecs.items():
                     if shift in ak.fields(vbf_jets):
