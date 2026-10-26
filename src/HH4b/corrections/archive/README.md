@@ -1,9 +1,9 @@
 # Archived Run 3 text-file JECs
 
 Superseded by the official correctionlib JECs and JER (2024 and 2025 since #363, 2022 and 2023 since
-https://github.com/LPC-HH/HH4b/pull/367): `processors/corrections.py` (`cat_jerc`) reads every Run 3
-year from the JME correctionlib files on CVMFS through `processors/jec_clib.py`. Nothing in this
-folder is read by the code; it is kept for reference and for reproducing older skims.
+https://github.com/LPC-HH/HH4b/pull/367): `processors/corrections.py` (`cat_corrections`) reads
+every Run 3 year from the JME correctionlib files on CVMFS through `processors/jec_clib.py`. Nothing
+in this folder is read by the code; it is kept for reference and for reproducing older skims.
 
 - `jec_compiled.pkl.gz`: coffea JEC stacks built from text files by `build_jec.py`: 2022/2022EE
   Summer22(EE)_22Sep2023 V2 with JER JRV1, 2023/2023BPix Summer23(BPix)Prompt23 V1 with JER JRV1,

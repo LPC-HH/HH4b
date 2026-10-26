@@ -54,13 +54,52 @@ pog_jsons = {
 }
 
 """
-2024 and later: the jsonpog-integration rsync above is frozen since 2025-09; the official files are
-in the CMS analysis-corrections (CAT) area. Its dated folders never change ("latest" does), so they
-are pinned here. 2025 data are corrected for use with the Summer24 MC (the 2025 MC is the 2024 MC):
-same MC truth and JES uncertainty as 2024, residuals and JER scale factors derived on 2025 data.
+Run 3 corrections, one entry per year, from the CMS analysis-corrections (CAT) area: the
+jsonpog-integration rsync above is frozen since 2025-09. Its dated folders never change ("latest"
+does), so they are pinned here.
+- jme, jec, jer: the JME folder and the JEC and JER versions, read from the correctionlib files
+  (processors/jec_clib.py), no text files; the latest versions (identical to "latest" on
+  2026-10-20), with run-dependent data residuals in every year
+- jetveto: the jet veto map in the JME folder
+- pileup_json, pileup: the pileup weight file and correction
+The 2022-2023 jet veto maps and pileup weights are the same files as in jsonpog-integration.
+2025 data are corrected for use with the Summer24 MC (the 2025 MC is the 2024 MC): same MC truth and
+JES uncertainty as 2024, residuals and JER scale factors derived on 2025 data.
 """
 cat_correction_path = "/cvmfs/cms-griddata.cern.ch/cat/metadata"
 cat_corrections = {
+    "2022": {
+        "jme": f"{cat_correction_path}/JME/Run3-22CDSep23-Summer22-NanoAODv12/2026-06-05",
+        "jec": "Summer22_22Sep2023_V4",
+        "jer": "Summer22_22Sep2023_JRV2",
+        "jetveto": "Summer22_23Sep2023_RunCD_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-22CDSep23-Summer22-NanoAODv12/2024-01-31/puWeights.json.gz",
+        "pileup": "Collisions2022_355100_357900_eraBCD_GoldenJson",
+    },
+    "2022EE": {
+        "jme": f"{cat_correction_path}/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05",
+        "jec": "Summer22EE_22Sep2023_V4",
+        "jer": "Summer22EE_22Sep2023_JRV2",
+        "jetveto": "Summer22EE_23Sep2023_RunEFG_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-22EFGSep23-Summer22EE-NanoAODv12/2024-01-31/puWeights.json.gz",
+        "pileup": "Collisions2022_359022_362760_eraEFG_GoldenJson",
+    },
+    "2023": {
+        "jme": f"{cat_correction_path}/JME/Run3-23CSep23-Summer23-NanoAODv12/2026-07-15",
+        "jec": "Summer23Prompt23_V4",
+        "jer": "Summer23Prompt23_RunCv1234_JRV3",
+        "jetveto": "Summer23Prompt23_RunC_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-23CSep23-Summer23-NanoAODv12/2024-01-31/puWeights.json.gz",
+        "pileup": "Collisions2023_366403_369802_eraBC_GoldenJson",
+    },
+    "2023BPix": {
+        "jme": f"{cat_correction_path}/JME/Run3-23DSep23-Summer23BPix-NanoAODv12/2026-07-15",
+        "jec": "Summer23BPixPrompt23_V4",
+        "jer": "Summer23BPixPrompt23_RunD_JRV3",
+        "jetveto": "Summer23BPixPrompt23_RunD_V1",
+        "pileup_json": f"{cat_correction_path}/LUM/Run3-23DSep23-Summer23BPix-NanoAODv12/2024-01-31/puWeights.json.gz",
+        "pileup": "Collisions2023_369803_370790_eraD_GoldenJson",
+    },
     "2024": {
         "jme": f"{cat_correction_path}/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/2026-07-16",
         "jec": "Summer24Prompt24_V5",
@@ -77,35 +116,6 @@ cat_corrections = {
         "pileup_json": f"{cat_correction_path}/LUM/Run3-25Prompt-Summer24-NanoAODv15/2026-06-05/puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz",
         "pileup": "Collisions25_goldenJSON",
     },
-}
-
-"""
-JECs and JER of every Run 3 year from the correctionlib files of the CAT area (processors/jec_clib.py),
-no text files: pinned dated folders with the latest versions (identical to "latest" on 2026-10-20).
-The 2022-2023 data residuals of these versions are run dependent, as the 2024 and 2025 ones.
-"""
-cat_jerc = {
-    "2022": {
-        "jme": f"{cat_correction_path}/JME/Run3-22CDSep23-Summer22-NanoAODv12/2026-06-05",
-        "jec": "Summer22_22Sep2023_V4",
-        "jer": "Summer22_22Sep2023_JRV2",
-    },
-    "2022EE": {
-        "jme": f"{cat_correction_path}/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05",
-        "jec": "Summer22EE_22Sep2023_V4",
-        "jer": "Summer22EE_22Sep2023_JRV2",
-    },
-    "2023": {
-        "jme": f"{cat_correction_path}/JME/Run3-23CSep23-Summer23-NanoAODv12/2026-07-15",
-        "jec": "Summer23Prompt23_V4",
-        "jer": "Summer23Prompt23_RunCv1234_JRV3",
-    },
-    "2023BPix": {
-        "jme": f"{cat_correction_path}/JME/Run3-23DSep23-Summer23BPix-NanoAODv12/2026-07-15",
-        "jec": "Summer23BPixPrompt23_V4",
-        "jer": "Summer23BPixPrompt23_RunD_JRV3",
-    },
-    **{y: {k: cat[k] for k in ("jme", "jec", "jer")} for y, cat in cat_corrections.items()},
 }
 
 # input names of CorrectedMETFactory -> MET and jet fields (as corrections/archive/build_jec.py)
@@ -125,6 +135,9 @@ def get_UL_year(year: str) -> str:
 
 
 def get_pog_json(obj: str, year: str) -> str:
+    if obj == "pileup" and year in cat_corrections:
+        # Run 3: the pinned CAT file (2024 and 2025 are not in the frozen jsonpog-integration area)
+        return cat_corrections[year]["pileup_json"]
     try:
         pog_json = pog_jsons[obj]
     except:
@@ -144,14 +157,16 @@ def get_pog_json(obj: str, year: str) -> str:
     return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
 
 
-def get_pileup_weights(year: str, n_true_int: np.ndarray) -> dict[str, np.ndarray]:
-    """Official pileup weights (nominal, up, down) of ``year`` (2024 and later) at Pileup_nTrueInt,
-    clipped to [0, 10] to avoid large weights."""
-    corr = correctionlib.CorrectionSet.from_file(cat_corrections[year]["pileup_json"])[
-        cat_corrections[year]["pileup"]
-    ]
+def get_pileup_weights(year: str, n_int: np.ndarray) -> dict[str, np.ndarray]:
+    """Official pileup weights (nominal, up, down) of ``year`` at ``n_int``, clipped to [0, 10] to
+    avoid large weights. https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3"""
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
+    corr = {
+        "2018": "Collisions18_UltraLegacy_goldenJSON",
+        **{y: cat["pileup"] for y, cat in cat_corrections.items()},
+    }[year]
     return {
-        var: np.clip(corr.evaluate(n_true_int, var), 0, 10) for var in ["nominal", "up", "down"]
+        var: np.clip(cset[corr].evaluate(n_int, var), 0, 10) for var in ["nominal", "up", "down"]
     }
 
 
@@ -189,32 +204,16 @@ def add_pileup_weight(
         # no uncertainties
         weights.add("pileup", sf)
 
-    elif year in cat_corrections:
-        # official weights, a function of the true number of interactions (Pileup_nTrueInt)
-        if n_true_int is None:
-            raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
-        values = get_pileup_weights(year, n_true_int)
-        weights.add("pileup", values["nominal"], values["up"], values["down"])
-
     else:
-        # https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3
-        # NOTE: these weights are defined in the true number of interactions but are evaluated at
-        # nPU; kept as is so that new 2022-2023 skims match the existing ones
-        values = {}
-
-        cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
-        corr = {
-            "2018": "Collisions18_UltraLegacy_goldenJSON",
-            "2022": "Collisions2022_355100_357900_eraBCD_GoldenJson",
-            "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
-            "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
-            "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
-        }[year]
-        # evaluate and clip up to 10 to avoid large weights
-        values["nominal"] = np.clip(cset[corr].evaluate(nPU, "nominal"), 0, 10)
-        values["up"] = np.clip(cset[corr].evaluate(nPU, "up"), 0, 10)
-        values["down"] = np.clip(cset[corr].evaluate(nPU, "down"), 0, 10)
-
+        # official weights, a function of the true number of interactions (Pileup_nTrueInt)
+        # NOTE: 2018 and 2022-2023 evaluate them at nPU, kept as is so that new skims of those
+        # years match the existing ones
+        if year in ["2024", "2025"]:
+            if n_true_int is None:
+                raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
+            values = get_pileup_weights(year, n_true_int)
+        else:
+            values = get_pileup_weights(year, nPU)
         weights.add("pileup", values["nominal"], values["up"], values["down"])
 
 
@@ -328,9 +327,9 @@ class JECs:
         self.jet_factory = {}
         self.met_factory = None
 
-        if year in cat_jerc:
+        if year in cat_corrections:
             # official correctionlib JECs and JER (run-dependent data residuals)
-            cat = cat_jerc[year]
+            cat = cat_corrections[year]
             for jet_type, (jerc_file, algo) in {
                 "ak4": ("jet_jerc", "AK4PFPuppi"),
                 "ak8": ("fatJet_jerc", "AK8PFPuppi"),
@@ -359,9 +358,9 @@ class JECs:
     ) -> dict[str, tuple[np.ndarray, np.ndarray]] | None:
         """``jec_clib.type1_puppi_met`` with the year's correctionlib JECs; None without them or
         without RawPuppiMET."""
-        if year not in cat_jerc or "RawPuppiMET" not in events.fields:
+        if year not in cat_corrections or "RawPuppiMET" not in events.fields:
             return None
-        cat = cat_jerc[year]
+        cat = cat_corrections[year]
         path = f"{cat['jme']}/jet_jerc.json.gz"
         return type1_puppi_met(events, path, cat["jec"], isData, jer_smear_factor)
 
@@ -401,7 +400,7 @@ class JECs:
             if "Rho" in events.fields
             else events.fixedGridRhoFastjetAll
         )
-        run = events.run if (isData and year in cat_jerc) else None
+        run = events.run if (isData and year in cat_corrections) else None
         jets = self._add_jec_variables(jets, rho, isData, run)
 
         apply_jecs = ak.any(jets.pt) if (applyData or not isData) else False
@@ -426,7 +425,7 @@ class JECs:
         jec_cache = cachetools.Cache(np.inf)
 
         if isData:
-            if year in cat_jerc:
+            if year in cat_corrections:
                 # run-dependent residuals: one correction for all eras of the year
                 corr_key = year
             else:
@@ -524,13 +523,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         veto = cset[csetstr].evaluate("jetvetomap", j_eta, j_phi)
         return ak.unflatten(veto, nj)
 
-    corr_str = {
-        "2022": "Summer22_23Sep2023_RunCD_V1",
-        "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
-        "2023": "Summer23Prompt23_RunC_V1",
-        "2023BPix": "Summer23BPixPrompt23_RunD_V1",
-        **{y: cat["jetveto"] for y, cat in cat_corrections.items()},
-    }[year]
+    corr_str = {y: cat["jetveto"] for y, cat in cat_corrections.items()}[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
 

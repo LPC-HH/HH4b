@@ -35,7 +35,7 @@ def jet_factory_factory(files):
 
 
 # Run 3 (2022-2025): the processors take the official correctionlib JECs/JER instead
-# (processors/corrections.py cat_jerc, processors/jec_clib.py); these entries are unused
+# (processors/corrections.py cat_corrections, processors/jec_clib.py); these entries are unused
 jet_factory = {
     "2022mc": jet_factory_factory(
         files=[
