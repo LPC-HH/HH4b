@@ -32,10 +32,25 @@ jec_name_map = {
 }
 
 
+# NanoAOD stores phi with 12 mantissa bits, so jets within ~2.4e-4 of pi get |phi| = 3.1416016,
+# outside the phi binning of the 2023BPix-2025 L2Relative (edges +-3.1416, value 1 outside); the
+# JERC inputs are clipped as for the jet veto maps (corrections.get_jetveto_event)
+PHI_MAX = 3.1415
+
+
 def _to_numpy(arr) -> np.ndarray:
     if isinstance(arr, ak.Array):
         arr = ak.to_numpy(ak.materialized(arr))
     return np.asarray(arr, dtype=np.float64)
+
+
+def _clib_args(kwargs: dict, signature: list[str]) -> list[np.ndarray]:
+    """The correctionlib arguments in ``signature`` order, JetPhi clipped to +-PHI_MAX."""
+    args = [_to_numpy(kwargs[name]) for name in signature]
+    return [
+        np.clip(arg, -PHI_MAX, PHI_MAX) if name == "JetPhi" else arg
+        for name, arg in zip(signature, args)
+    ]
 
 
 class ClibJetCorrector:
@@ -46,7 +61,7 @@ class ClibJetCorrector:
         self.signature = [inp.name for inp in correction.inputs]
 
     def getCorrection(self, **kwargs):
-        args = [_to_numpy(kwargs[name]) for name in self.signature]
+        args = _clib_args(kwargs, self.signature)
         return ak.Array(self._corr.evaluate(*args).astype(np.float32))
 
 
@@ -60,7 +75,7 @@ class ClibJetCorrectionUncertainty:
         self.levels = ["jes"]
 
     def getUncertainty(self, **kwargs):
-        unc = self._corr.evaluate(*[_to_numpy(kwargs[name]) for name in self.signature])
+        unc = self._corr.evaluate(*_clib_args(kwargs, self.signature))
         return zip(self.levels, [ak.Array(np.stack([1 + unc, 1 - unc], axis=1).astype(np.float32))])
 
 
@@ -72,7 +87,7 @@ class ClibJetResolution:
         self.signature = [inp.name for inp in correction.inputs]
 
     def getResolution(self, **kwargs):
-        args = [_to_numpy(kwargs[name]) for name in self.signature]
+        args = _clib_args(kwargs, self.signature)
         return ak.Array(self._corr.evaluate(*args).astype(np.float32))
 
 
@@ -90,7 +105,7 @@ class ClibJetResolutionScaleFactor:
             raise ValueError(f"{sf.name} and {unc.name} have different inputs")
 
     def getScaleFactor(self, **kwargs):
-        args = [_to_numpy(kwargs[name]) for name in self.signature]
+        args = _clib_args(kwargs, self.signature)
         sf = self._sf.evaluate(*args)
         unc = self._unc.evaluate(*args)
         return ak.Array(np.stack([sf, sf + unc, sf - unc], axis=1).astype(np.float32))
@@ -179,10 +194,11 @@ def type1_puppi_met(
     ]:
         idx = np.repeat(np.arange(nev), ak.to_numpy(ak.num(raw_pt)))
         raw = _to_numpy(ak.flatten(raw_pt))
+        jet_phi = _to_numpy(ak.flatten(coll.phi))
         inputs = {
             "JetA": _to_numpy(ak.flatten(coll.area)),
             "JetEta": _to_numpy(ak.flatten(coll.eta)),
-            "JetPhi": _to_numpy(ak.flatten(coll.phi)),
+            "JetPhi": np.clip(jet_phi, -PHI_MAX, PHI_MAX),
             "JetPt": raw,
             "Rho": rho[idx],
             "run": run[idx],
@@ -190,7 +206,7 @@ def type1_puppi_met(
         f = corr_full.evaluate(*[inputs[inp.name] for inp in corr_full.inputs])
         f_l1 = corr_l1.evaluate(*[inputs[inp.name] for inp in corr_l1.inputs])
         raw_nomu = raw * (1 - _to_numpy(ak.flatten(coll.muonSubtrFactor)))
-        phi = inputs["JetPhi"]
+        phi = jet_phi
         if "muonSubtrDeltaPhi" in coll.fields:
             phi = phi + _to_numpy(ak.flatten(coll.muonSubtrDeltaPhi))
         use = (f * raw_nomu > 15) & (_to_numpy(ak.flatten(em_fraction)) < 0.9)
