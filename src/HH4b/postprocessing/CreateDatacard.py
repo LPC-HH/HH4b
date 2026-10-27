@@ -491,9 +491,9 @@ if "2025" in years and templates_have_glopartv3_jmsr(args.templates_dir):
 # 2025 JER: PLACEHOLDER borrowed from 2024. 2025 has no MC of its own (PostProcess
 # --split-shared-mc builds it from half of the 2024 MC) and no JER measurement, so its JER
 # templates carry the 2024 MC JER variation (the 2024 MC JER SFs, which are the 2023BPix
-# Summer23BPixPrompt23 RunD JRV1 SFs, see corrections/build_jec.py). It gets its own nuisance,
-# CMS_res_j_2025, uncorrelated with the other eras like every JER nuisance; replace the values
-# once 2025 MC and 2025 JER SFs exist. Cards without 2025 are unchanged.
+# Summer23BPixPrompt23 RunD JRV1 SFs, see corrections/archive/build_jec.py). It gets its own
+# nuisance, CMS_res_j_2025, uncorrelated with the other eras like every JER nuisance; replace the
+# values once 2025 MC and 2025 JER SFs exist. Cards without 2025 are unchanged.
 if "2025" in years:
     uncorr_year_shape_systs["JER"].uncorr_years["2025"] = ["2025"]
     logging.info("2025: separate JER nuisance (placeholder: 2024 JER variation of the 2024 MC)")

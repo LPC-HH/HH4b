@@ -139,8 +139,8 @@ def bdt_dataframe(events, key_map=lambda x: x):
             key_map("HHPt"): mask(hh.pt, hh_pad),
             key_map("HHeta"): mask(hh.eta, hh_pad),
             key_map("HHmass"): mask(hh.mass, hh_pad),
-            # met in the event
-            key_map("MET"): events.MET_pt[0],
+            # MET (Type-1 PUPPI, recomputed in the skimmer with the re-applied JECs)
+            key_map("MET"): events[(key_map("MET_pt"), 0)],
             # fatjet tau32
             key_map("H1T32"): mask(
                 events[key_map("bbFatJetTau3OverTau2")].to_numpy()[:, 0], h1_pad

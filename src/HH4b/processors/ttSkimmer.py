@@ -267,7 +267,17 @@ class ttSkimmer(SkimmerABC):
             nano_version=self._nano_version,
         )
 
-        met = JEC_loader.met_factory.build(events.MET, ak4_jets, {}) if isData else events.MET
+        # MET as in bbbbSkimmer
+        met_vars = {}
+        met_type1 = JEC_loader.type1_puppi_met(events, year, isData)
+        if met_type1 is not None:
+            met_pt, met_phi = met_type1[""]
+            for name in ["PuppiMET", "RawPuppiMET"]:
+                met_vars[f"{name}_pt"] = events[name].pt.to_numpy()
+                met_vars[f"{name}_phi"] = events[name].phi.to_numpy()
+        else:
+            met = events.MET if hasattr(events, "MET") else events.PuppiMET
+            met_pt, met_phi = met.pt.to_numpy(), met.phi.to_numpy()
 
         num_fatjets = 2  # number to save
         fatjets = get_ak8jets(events.FatJet)
@@ -346,14 +356,14 @@ class ttSkimmer(SkimmerABC):
         print("Lepton vars", f"{time.time() - start:.2f}")
 
         # event variable
-        met_pt = met.pt
-
         eventVars = {
             key: events[val].to_numpy()
             for key, val in self.skim_vars["Event"].items()
             if key in events.fields
         }
-        eventVars["MET_pt"] = met_pt.to_numpy()
+        eventVars["MET_pt"] = met_pt
+        eventVars["MET_phi"] = met_phi
+        eventVars.update(met_vars)
 
         skimmed_events = {
             **genVars,
@@ -404,7 +414,7 @@ class ttSkimmer(SkimmerABC):
         )
 
         # MET
-        met_selection = met.pt >= self.met_selection["pt"]
+        met_selection = met_pt >= self.met_selection["pt"]
 
         cut_metfilters = np.ones(len(events), dtype="bool")
         for mf in self.met_filters:

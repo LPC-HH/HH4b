@@ -708,23 +708,25 @@ class bbbbSkimmer(SkimmerABC):
             jets = events.Jet
             jec_shifted_jetvars = {}
 
-        if JEC_loader.met_factory is not None:
-            # check if "MET" attribute exists
-            if hasattr(events, "MET"):
-                events_met = events.MET
-            elif hasattr(events, "PuppiMET"):
-                events_met = events.PuppiMET
-                # No deltaX and deltaY in PuppiMET, so we have to calculate them
-                # by definition: up - nominal
-                deltaX_up = events_met.ptUnclusteredUp * np.cos(events_met.phiUnclusteredUp)
-                deltaY_up = events_met.ptUnclusteredUp * np.sin(events_met.phiUnclusteredUp)
-                deltaX_nom = events_met.pt * np.cos(events_met.phi)
-                deltaY_nom = events_met.pt * np.sin(events_met.phi)
-                events_met["MetUnclustEnUpDeltaX"] = deltaX_up - deltaX_nom
-                events_met["MetUnclustEnUpDeltaY"] = deltaY_up - deltaY_nom
-            else:
-                raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
-            met = JEC_loader.met_factory.build(events_met, jets, {}) if isData else events_met
+        # MET: Type-1 PUPPI MET from RawPuppiMET with the JECs re-applied above (NanoAOD PuppiMET
+        # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too. In MC, also
+        # its JES/JER/unclustered-energy variations, which the shifted BDTs use.
+        met_vars = {}
+        met_pt_shifted = {}
+        jer_smear_factor = None
+        if not isData and isJECs and jec_shifted_jetvars:
+            jer_smear_factor = jets.jet_energy_resolution_correction
+        met_type1 = JEC_loader.type1_puppi_met(events, year, isData, jer_smear_factor)
+        if met_type1 is not None:
+            met_pt, met_phi = met_type1[""]
+            for shift, (pt, phi) in met_type1.items():
+                if shift:
+                    met_vars[f"MET_pt_{shift}"] = pt
+                    met_vars[f"MET_phi_{shift}"] = phi
+                    met_pt_shifted[shift] = pt
+            for name in ["PuppiMET", "RawPuppiMET"]:
+                met_vars[f"{name}_pt"] = events[name].pt.to_numpy()
+                met_vars[f"{name}_phi"] = events[name].phi.to_numpy()
         else:
             if hasattr(events, "MET"):
                 met = events.MET
@@ -732,6 +734,7 @@ class bbbbSkimmer(SkimmerABC):
                 met = events.PuppiMET
             else:
                 raise AttributeError("Neither 'MET' nor 'PuppiMET' attribute found in events.")
+            met_pt, met_phi = met.pt.to_numpy(), met.phi.to_numpy()
 
         jets = good_ak4jets(jets, year, self._nano_version)
         ht = ak.sum(jets.pt, axis=1)
@@ -891,12 +894,27 @@ class bbbbSkimmer(SkimmerABC):
 
         # JEC and JMSR
         if self._region == "signal" and isJECs:
-            # Jet JEC variables
-            for var in ["pt"]:
+            # Jet JEC variables (None from get_jec_jets if it applied no JECs, e.g. no AK4 jets)
+            if jec_shifted_jetvars:
+                for var in ["pt"]:
+                    key = self.skim_vars["Jet"][var]
+                    for shift, vals in jec_shifted_jetvars[var].items():
+                        if shift != "":
+                            ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+
+            # AK4JetAway JEC variables
+            away_jets = (
+                ak4_jets_awayfromak8 if len(ak4_jets_awayfromak8) == 2 else [ak4_jets_awayfromak8]
+            )
+            for var in ["pt", "mass"]:
                 key = self.skim_vars["Jet"][var]
-                for shift, vals in jec_shifted_jetvars[var].items():
-                    if shift != "":
-                        ak4JetVars[f"ak4Jet{key}_{shift}"] = pad_val(vals, num_jets, axis=1)
+                for label, shift in self.jecs.items():
+                    if shift in ak.fields(away_jets[0]):
+                        for vari in ["up", "down"]:
+                            vals = [jets_away[shift][vari][var] for jets_away in away_jets]
+                            ak4JetAwayVars[f"AK4JetAway{key}_{label}_{vari}"] = pad_val(
+                                ak.concatenate(vals, axis=1), 2, axis=1
+                            )
 
             # FatJet JEC variables
             for var in ["pt"]:
@@ -915,13 +933,14 @@ class bbbbSkimmer(SkimmerABC):
                     bbFatJetVars[f"bbFatJet{key}{label}"] = vals
 
         # Event variables
-        met_pt = met.pt
         eventVars = {
             key: events[val].to_numpy()
             for key, val in self.skim_vars["Event"].items()
             if key in events.fields
         }
-        eventVars["MET_pt"] = met_pt.to_numpy()
+        eventVars["MET_pt"] = met_pt
+        eventVars["MET_phi"] = met_phi
+        eventVars.update(met_vars)
         eventVars["ht"] = ht.to_numpy()
         eventVars["nJets"] = ak.sum(jets_sel, axis=1).to_numpy()
         eventVars["nFatJets"] = ak.num(fatjets).to_numpy()
@@ -1002,7 +1021,7 @@ class bbbbSkimmer(SkimmerABC):
 
         # JEC variations for VBF Jets
         if self._region == "signal" and isJECs:
-            for var in ["pt"]:
+            for var in ["pt", "mass"]:
                 key = self.skim_vars["Jet"][var]
                 for label, shift in self.jecs.items():
                     if shift in ak.fields(vbf_jets):
@@ -1038,7 +1057,13 @@ class bbbbSkimmer(SkimmerABC):
                 ]
             for jshift in jshifts:
                 try:
-                    bdtVars = self.getBDT(bbFatJetVars, vbfJetVars, ak4JetAwayVars, met_pt, jshift)
+                    bdtVars = self.getBDT(
+                        bbFatJetVars,
+                        vbfJetVars,
+                        ak4JetAwayVars,
+                        met_pt_shifted.get(jshift, met_pt),
+                        jshift,
+                    )
                 except KeyError as e:
                     # A chunk with no fat jets never has its JEC/JMSR-shifted fat-jet
                     # branches built (those live inside the `if shift != ""` blocks above),

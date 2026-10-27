@@ -59,6 +59,8 @@ def test_load_run3_samples_glopart_v3_rewrites_systematic_mass_columns(monkeypat
         return {label: {"weight": [1.0]} for label in samples}
 
     monkeypatch.setattr(pp.utils, "load_samples", fake_load_samples)
+    # the fake frames have no jet columns for the JES/JER fill of old skims (fill_ak4_jec_shifts)
+    monkeypatch.setattr(pp, "fill_ak4_jec_shifts", lambda events, _key: events)
 
     samples_run3 = _base_samples_run3_for_year("2024")
     pp.load_run3_samples(
