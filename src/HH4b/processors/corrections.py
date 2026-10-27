@@ -12,8 +12,10 @@ Authors: Raghav Kansal, Cristina Suarez, Zichun Hao
 from __future__ import annotations
 
 import gzip
+import json
 import pathlib
 import pickle
+from functools import lru_cache
 
 import awkward as ak
 import cachetools
@@ -118,6 +120,46 @@ cat_corrections = {
     },
 }
 
+
+@lru_cache(maxsize=None)
+def _jetid_correction_set(path: str) -> correctionlib.CorrectionSet:
+    """A JME JetID JSON with its int inputs declared real: correctionlib 2.2.2 (requirements.txt,
+    for the Python 3.8 job image) cannot bin on int inputs; the IDs are identical to those of
+    correctionlib 2.9 on the unchanged file."""
+    with gzip.open(path) as f:
+        data = json.load(f)
+    for correction in data["corrections"]:
+        for inp in correction["inputs"]:
+            if inp["type"] == "int":
+                inp["type"] = "real"
+    return correctionlib.CorrectionSet.from_string(json.dumps(data))
+
+
+def jetid_json(jets: JetArray) -> tuple[ak.Array, ak.Array]:
+    """AK4 PUPPI Tight and TightLeptonVeto IDs of the JME JetID JSON, i.e.
+    https://twiki.cern.ch/twiki/bin/view/CMS/JetID13p6TeV as the file cites: data/jetid.json.gz,
+    copied from JME/Run3-22CDSep23-Summer22-NanoAODv12/2026-06-05 of the CAT area; the JME folders
+    of all Run 3 years in cat_corrections have the same AK4 PUPPI criteria."""
+    cset = _jetid_correction_set(f"{package_path}/corrections/data/jetid.json.gz")
+    flat = ak.flatten(jets)
+    names = [
+        "eta",
+        "chHEF",
+        "neHEF",
+        "chEmEF",
+        "neEmEF",
+        "muEF",
+        "chMultiplicity",
+        "neMultiplicity",
+    ]
+    inputs = [np.asarray(flat[name], dtype=np.float64) for name in names]
+    inputs.append(inputs[-2] + inputs[-1])  # multiplicity: charged + neutral
+    return tuple(
+        ak.unflatten(cset[f"AK4PUPPI_{wp}"].evaluate(*inputs) > 0.5, ak.num(jets))
+        for wp in ["Tight", "TightLeptonVeto"]
+    )
+
+
 # input names of CorrectedMETFactory -> MET and jet fields (as corrections/archive/build_jec.py)
 met_name_map = {
     "JetPt": "pt",
@@ -159,7 +201,9 @@ def get_pog_json(obj: str, year: str) -> str:
 
 def get_pileup_weights(year: str, n_int: np.ndarray) -> dict[str, np.ndarray]:
     """Official pileup weights (nominal, up, down) of ``year`` at ``n_int``, clipped to [0, 10] to
-    avoid large weights. https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3"""
+    avoid large weights. The weights are a function of the true number of interactions
+    (Pileup_nTrueInt); 2018 passes nPU, as before.
+    https://twiki.cern.ch/twiki/bin/view/CMS/LumiRecommendationsRun3"""
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("pileup", year))
     corr = {
         "2018": "Collisions18_UltraLegacy_goldenJSON",
@@ -206,14 +250,9 @@ def add_pileup_weight(
 
     else:
         # official weights, a function of the true number of interactions (Pileup_nTrueInt)
-        # NOTE: 2018 and 2022-2023 evaluate them at nPU, kept as is so that new skims of those
-        # years match the existing ones
-        if year in ["2024", "2025"]:
-            if n_true_int is None:
-                raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
-            values = get_pileup_weights(year, n_true_int)
-        else:
-            values = get_pileup_weights(year, nPU)
+        if year != "2018" and n_true_int is None:
+            raise ValueError(f"The {year} pileup weights need Pileup_nTrueInt")
+        values = get_pileup_weights(year, nPU if year == "2018" else n_true_int)
         weights.add("pileup", values["nominal"], values["up"], values["down"])
 
 
