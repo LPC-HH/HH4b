@@ -272,11 +272,15 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
     totals = []
     total_errs = []
 
+    def clamp(x, edges):
+        """Jets outside a map take its edge bin (the maps give 1.0 there, efficiency and error)."""
+        return np.clip(x, edges[0], np.nextafter(edges[-1], -np.inf))
+
     # iterate over jets
     for jet in range(2):
-        pt = events_dict["bbFatJetPt"][jet]
-        msd = events_dict["bbFatJetMsd"][jet]
-        xbb = events_dict[txbb][jet]
+        pt = clamp(events_dict["bbFatJetPt"][jet], pt_range)
+        msd = clamp(events_dict["bbFatJetMsd"][jet], msd_range)
+        xbb = clamp(events_dict[txbb][jet], xbb_range)
 
         num_ev = pt.shape[0]
 
@@ -287,6 +291,7 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
         eff_data_per_jet[jet] = {}
         eff_mc_per_jet[jet] = {}
 
+        vals = {}
         for var in ["nominal", "stat_up"]:
             eff_data_val = np.zeros(num_ev)
             eff_data_btag_val = np.zeros(num_ev)
@@ -310,8 +315,18 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
             eff_mc_val[matched == 1] = eff_mc_all[matched == 1]
             eff_mc_btag_val[matched == 1] = eff_mc_btag_all[matched == 1]
 
-            eff_data_per_jet[jet][var] = eff_data_val * eff_data_btag_val
-            eff_mc_per_jet[jet][var] = eff_mc_val * eff_mc_btag_val
+            vals[var] = (eff_data_val, eff_data_btag_val, eff_mc_val, eff_mc_btag_val)
+
+        # efficiency = (pT, mSD) efficiency x TXbb efficiency; stat_up is the absolute error of each
+        # map, so the errors add in quadrature relative to the efficiencies
+        (n_data, n_data_btag, n_mc, n_mc_btag), (s_data, s_data_btag, s_mc, s_mc_btag) = (
+            vals["nominal"],
+            vals["stat_up"],
+        )
+        eff_data_per_jet[jet]["nominal"] = n_data * n_data_btag
+        eff_data_per_jet[jet]["stat_up"] = np.hypot(s_data * n_data_btag, n_data * s_data_btag)
+        eff_mc_per_jet[jet]["nominal"] = n_mc * n_mc_btag
+        eff_mc_per_jet[jet]["stat_up"] = np.hypot(s_mc * n_mc_btag, n_mc * s_mc_btag)
 
         sf_per_jet = eff_data_per_jet[jet]["nominal"] / eff_mc_per_jet[jet]["nominal"]
         sf_err_per_jet = sf_per_jet * np.sqrt(
@@ -347,23 +362,20 @@ def trigger_SF(year: str, events_dict: dict[str, pd.DataFrame], txbb_str: str, r
 
     # unc on eff: (1 - z): dz
     # z = x * y = (1-eff_1)(1-eff_2)
-    # dz = z * sqrt( (dx/x)**2 + (dy/y)**2 )
+    # dz = sqrt( (y dx)**2 + (x dy)**2 ), i.e. z * sqrt( (dx/x)**2 + (dy/y)**2 ) without dividing by
+    # x or y, which are 0 for a jet at efficiency 1
     for var in ["up"]:
         dx_data = eff_data_per_jet[0][f"stat_{var}"]
         dy_data = eff_data_per_jet[1][f"stat_{var}"]
         x_data = 1 - eff_data_per_jet[0]["nominal"]
         y_data = 1 - eff_data_per_jet[1]["nominal"]
-        z = x_data * y_data
-        dz = z * np.sqrt((dx_data / x_data) ** 2 + (dy_data / y_data) ** 2)
-        unc_eff_data = dz
+        unc_eff_data = np.hypot(y_data * dx_data, x_data * dy_data)
 
         dx_mc = eff_mc_per_jet[0][f"stat_{var}"]
         dy_mc = eff_mc_per_jet[1][f"stat_{var}"]
         x_mc = 1 - eff_mc_per_jet[0]["nominal"]
         y_mc = 1 - eff_mc_per_jet[1]["nominal"]
-        z = x_mc * y_mc
-        dz = z * np.sqrt((dx_mc / x_mc) ** 2 + (dy_mc / y_mc) ** 2)
-        unc_eff_mc = dz
+        unc_eff_mc = np.hypot(y_mc * dx_mc, x_mc * dy_mc)
 
         unc_sf = sf * np.sqrt((unc_eff_data / tot_eff_data) ** 2 + (unc_eff_mc / tot_eff_mc) ** 2)
 

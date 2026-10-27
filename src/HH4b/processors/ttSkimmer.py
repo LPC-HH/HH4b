@@ -61,6 +61,7 @@ class ttSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
+            "msoftdrop_nano": "MsdNano",
             "Txbb": "PNetTXbb",  # these are discriminants
             "Txjj": "PNetTXjj",
             "Tqcd": "PNetTQCD",
@@ -167,7 +168,7 @@ class ttSkimmer(SkimmerABC):
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "eeBadScFilter",
-            "hfNoisyHitsFilt",
+            "hfNoisyHitsFilter",
         ]
 
         self._accumulator = processor.dict_accumulator({})
@@ -292,6 +293,8 @@ class ttSkimmer(SkimmerABC):
             dataset=dataset,
             nano_version=self._nano_version,
         )
+        # softdrop mass from the subjets re-corrected with the AK4 JEC (NanoAOD's: MsdNano)
+        fatjets = JEC_loader.correct_msoftdrop(events, fatjets, year, isData)
 
         # save variations with 10\%
         jmsr_shifted_vars = get_jmsr(

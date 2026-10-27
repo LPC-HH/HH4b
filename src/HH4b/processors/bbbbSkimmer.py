@@ -137,6 +137,24 @@ def lhevpt_sum(idx: np.ndarray, w: np.ndarray) -> np.ndarray:
     return np.bincount(idx, weights=w, minlength=len(LHEVPT_EDGES) + 1).astype(np.float64)
 
 
+def ecal_bad_crystal_veto(events) -> np.ndarray:
+    """Data events hit by the bad EB crystal of runs 362433-367144 (JME recipe, data only):
+    PuppiMET pT > 100 GeV and a jet with pT > 50 GeV, -0.5 < eta < -0.1, -2.1 < phi < -1.8, a
+    neutral or charged EM fraction > 0.9 and |dphi(jet, PuppiMET)| > 2.9."""
+    jets, met = events.Jet, events.PuppiMET
+    bad_jet = (
+        (jets.pt > 50)
+        & (jets.eta > -0.5)
+        & (jets.eta < -0.1)
+        & (jets.phi > -2.1)
+        & (jets.phi < -1.8)
+        & ((jets.neEmEF > 0.9) | (jets.chEmEF > 0.9))
+        & (np.abs(jets.delta_phi(met)) > 2.9)
+    )
+    in_runs = (events.run >= 362433) & (events.run <= 367144)
+    return ak.to_numpy(in_runs & (met.pt > 100) & ak.any(bad_jet, axis=1))
+
+
 class bbbbSkimmer(SkimmerABC):
     """
     Skims nanoaod files, saving selected branches and events passing preselection cuts
@@ -161,6 +179,7 @@ class bbbbSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
+            "msoftdrop_nano": "MsdNano",
             "Txbb": "PNetTXbb",  # these are discriminants
             "Txjj": "PNetTXjj",
             "Tqcd": "PNetTQCD",
@@ -425,8 +444,11 @@ class bbbbSkimmer(SkimmerABC):
             "BadPFMuonDzFilter",
             "eeBadScFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
         ]
+        # Flag_ecalBadCalibFilter is recommended for 2024. In 2022-2023 NanoAOD it is still the
+        # Run 2 filter of 35 EE crystals and misses the bad EB crystal of those years, which the
+        # twiki covers with a jet-based recipe (ecal_bad_crystal_veto).
+        self.year_met_filters = {"2024": ["ecalBadCalibFilter"]}
 
         """
         signal region:
@@ -708,6 +730,9 @@ class bbbbSkimmer(SkimmerABC):
             jets = events.Jet
             jec_shifted_jetvars = {}
 
+        # softdrop mass from the subjets re-corrected with the AK4 JEC above (NanoAOD's: MsdNano)
+        fatjets = JEC_loader.correct_msoftdrop(events, fatjets, year, isData)
+
         # MET: Type-1 PUPPI MET from RawPuppiMET with the JECs re-applied above (NanoAOD PuppiMET
         # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too. In MC, also
         # its JES/JER/unclustered-energy variations, which the shifted BDTs use.
@@ -944,6 +969,10 @@ class bbbbSkimmer(SkimmerABC):
         eventVars["ht"] = ht.to_numpy()
         eventVars["nJets"] = ak.sum(jets_sel, axis=1).to_numpy()
         eventVars["nFatJets"] = ak.num(fatjets).to_numpy()
+        # for postprocessing, which applies it to the data of a year whose MC has it
+        # (utils.MC_SHARING_DATA_FILTERS)
+        if isData and "ecalBadCalibFilter" in events.Flag.fields:
+            eventVars["Flag_ecalBadCalibFilter"] = events.Flag.ecalBadCalibFilter.to_numpy()
         if isData:
             pileupVars = {key: np.ones(len(events)) * PAD_VAL for key in self.skim_vars["Pileup"]}
         else:
@@ -1127,9 +1156,13 @@ class bbbbSkimmer(SkimmerABC):
 
         # metfilters
         cut_metfilters = np.ones(len(events), dtype="bool")
-        for mf in self.met_filters:
+        for mf in self.met_filters + self.year_met_filters.get(year, []):
             if mf in events.Flag.fields:
                 cut_metfilters = cut_metfilters & events.Flag[mf]
+            else:
+                logger.warning(f"Missing MET filter {mf}!")
+        if isData:
+            cut_metfilters = cut_metfilters & ~ecal_bad_crystal_veto(events)
         add_selection("met_filters", cut_metfilters, *selection_args)
 
         # jet veto maps
@@ -1291,8 +1324,14 @@ class bbbbSkimmer(SkimmerABC):
         fname = events.behavior["__events_factory__"]._partition_key.replace("/", "_") + ".parquet"
         self.dump_table(dataframe, fname)
 
+        output = {"totals": totals_dict, "cutflow": cutflow}
+        if isData:
+            # entries read from each input file (check_data_files.py)
+            meta = events.metadata
+            output["processed_entries"] = {meta["filename"]: meta["entrystop"] - meta["entrystart"]}
+
         print("Return ", f"{time.time() - start:.2f}")
-        return {year: {dataset: {"totals": totals_dict, "cutflow": cutflow}}}
+        return {year: {dataset: output}}
 
     def postprocess(self, accumulator):
         return accumulator

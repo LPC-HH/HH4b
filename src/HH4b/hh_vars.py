@@ -10,26 +10,64 @@ from collections import OrderedDict
 
 years = ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
 
-# in pb^-1
+# Golden JSON of each year's data (corrections/data/golden_json/, corrections/fetch_golden_json.py);
+# utils.load_samples drops the data events outside it.
+GOLDEN_JSON = {
+    "2022": "Cert_Collisions2022_355100_362760_Golden.json",
+    "2022EE": "Cert_Collisions2022_355100_362760_Golden.json",
+    "2023": "Cert_Collisions2023_366442_370790_Golden.json",
+    "2023BPix": "Cert_Collisions2023_366442_370790_Golden.json",
+    "2024": "Cert_Collisions2024_378981_386951_Golden.json",
+    "2025": "Cert_Collisions2025_391658_398903_Golden.json",
+}
+
+# analyzed eras: first and last run of their golden lumisections, from the CAT per-era golden JSONs
+# (2022-2024) and the runs of the JetMET0 PromptReco datasets on DAS (2025); the B eras are not used
+DATA_ERAS = {
+    "2022": {"C": (355862, 357482), "D": (357538, 357900)},
+    "2022EE": {"E": (359022, 360331), "F": (360390, 362167), "G": (362433, 362760)},
+    "2023": {"C": (367095, 368823)},
+    "2023BPix": {"D": (369803, 370790)},
+    "2024": {
+        "C": (379416, 380236),
+        "D": (380306, 380947),
+        "E": (380963, 381544),
+        "F": (382229, 383779),
+        "G": (383811, 385801),
+        "H": (385836, 386319),
+        "I": (386478, 386951),
+    },
+    "2025": {
+        "C": (392174, 393516),
+        "D": (394393, 395948),
+        "E": (395982, 396422),
+        "F": (396629, 397853),
+        "G": (397867, 398903),
+    },
+}
+
+# in pb^-1; Run 3: brilcalc of the golden JSONs above in the analyzed eras
+# (corrections/golden_lumi.py), normtag_PHYSICS; 2025 normtag_BRIL, preliminary (normtag_PHYSICS has
+# no 2025 runs yet)
 LUMI = {
-    "2022": 7980.5,
-    "2022EE": 26671.6,
-    "2023": 18084.4,
-    "2023BPix": 9692.1,
-    "2024": 108960.0,
-    "2024C": 7240.0,
-    "2024D": 7960.0,
-    "2024E": 11320.0,
-    "2024F": 27760.0,
-    "2024G": 37770.0,
-    "2024H": 5440.0,
-    "2024I": 11470.0,
-    "2025C": 20780.0,
-    "2025E": 14000.0,
-    "2025D": 25290.0,
-    "2025F": 30350.0,
-    # TODO: 2025G ongoing
-    "2025": 90420.0,
+    "2022": 7989.5,
+    "2022EE": 26674.9,
+    "2023": 17964.2,
+    "2023BPix": 9676.7,
+    "2024": 109804.9,
+    "2024C": 7250.7,
+    "2024D": 7976.1,
+    "2024E": 11423.2,
+    "2024F": 28037.8,
+    "2024G": 38069.1,
+    "2024H": 5489.7,
+    "2024I": 11558.2,
+    "2025": 110374.7,
+    "2025C": 21563.6,
+    "2025D": 25823.9,
+    "2025E": 14048.2,
+    "2025F": 26693.6,
+    "2025G": 22245.3,
     "2018": 59830.0,
     "2017": 41480.0,
     "2016": 36330.0,
@@ -82,14 +120,11 @@ common_samples_bg = {
 # open-ended 2024 samples, loaded with utils.load_samples(ptqq_stitch=...) so that the four
 # Bin-PTQQ samples are stitched in GenVPt (utils._stitch_open_ptqq), or with --vjets-stitch-mode
 # range in LHE V pT ranges (utils.ptqq_range_norm). No 2022-2023 name matches them.
-# Wto2Q-2Jets_Bin-PTQQ-600 (2024, v2-v2) is left out: the dataset is INVALID in DAS (generated with
-# an LHE filter at 400 GeV instead of 600); W above 600 GeV comes from W-100/200/400 (range mode:
-# W-400 alone, whole sample).
+# Wto2Q-2Jets_Bin-PTQQ-600 is the v2-v3 production; skims of the INVALID v2-v2 one (LHE filter at
+# 400 GeV instead of 600) are left out by utils.load_samples (PTQQ_OPEN_FILTER_CHECK), and W above
+# 600 GeV then comes from W-100/200/400 (range mode: W-400 alone, whole sample).
 vjets_stitch_selectors = common_samples_bg["vjets"] + [
-    f"{v}to2Q-2Jets_Bin-PTQQ-{x}?"
-    for v in ["W", "Z"]
-    for x in [200, 400, 600]
-    if not (v == "W" and x == 600)
+    f"{v}to2Q-2Jets_Bin-PTQQ-{x}?" for v in ["W", "Z"] for x in [200, 400, 600]
 ]
 
 # Opt-in (PostProcess --zz4b-tag): the dedicated ZZto4B-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8
@@ -574,15 +609,17 @@ jmsr_values["bbFatJetParTmassVis"]["JMS"] = {
     "2025": {"nom": 1.0, "down": 1.0, "up": 1.0},  # TODO: placeholder for future
 }
 # GloParT-v3 regressed mass (v15 skims). There is no GloParT-v3 jet-mass measurement, so these are
-# PLACEHOLDERS with safe uncertainties chosen by the user (2026-09-26), the same in every era: JMS
-# nominal 1 (no correction), down/up 0.95/1.05; JMR nominal 1 (no extra smearing), down 1 (one-sided),
-# up 1.15. JMR is a RESOLUTION scaling (sigma_new = JMR * sigma_MC): postprocessing.jmsr_correct_mass
-# adds a Gaussian smear of width sqrt(JMR^2 - 1) * jmsr_res (below), so the nominal and JMR-down masses
-# are the uncorrected MC mass. The v15 skimmer applies JMS/JMR only to ParTmassVis, so PostProcess
-# applies these at load time (--no-glopartv3-jmsr = off).
+# PLACEHOLDERS with safe uncertainties, the same in every era: JMS nominal 1 (no correction),
+# down/up 0.95/1.05; JMR nominal 1 (no extra smearing), up 1.05 (was 1.15), down 1. JMR is a
+# RESOLUTION scaling (sigma_new = JMR * sigma_MC): postprocessing.jmsr_correct_mass adds a Gaussian
+# smear of width sqrt(JMR^2 - 1) * jmsr_res (below), so the nominal and JMR-down masses are the
+# uncorrected MC mass. JMR is one-sided: CreateDatacard does not use the JMR-down templates and
+# gives combine the up template mirrored about the nominal (Down = 2 x Nominal - Up,
+# --jmr-symmetrize). The v15 skimmer applies JMS/JMR only to ParTmassVis, so PostProcess applies
+# these at load time (--no-glopartv3-jmsr = off).
 jmsr_values["bbFatJetParT3massX2p"] = {
     "JMR": {
-        year: {"nom": 1.0, "down": 1.0, "up": 1.15}
+        year: {"nom": 1.0, "down": 1.0, "up": 1.05}
         for year in ["2022", "2022EE", "2023", "2023BPix", "2024", "2025"]
     },
     "JMS": {

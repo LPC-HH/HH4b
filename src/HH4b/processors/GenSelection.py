@@ -412,7 +412,7 @@ def gen_selection_VV(
     ).to_numpy()
     GenVVars["GenV1CS"] = (
         ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
-        | ((v0_daughter0_pdgId == c_PDGID) & (v0_daughter1_pdgId == s_PDGID))
+        | ((v0_daughter0_pdgId == s_PDGID) & (v0_daughter1_pdgId == c_PDGID))
     ).to_numpy()
     GenVVars["GenV2BB"] = (
         (v1_daughter0_pdgId == b_PDGID) & (v1_daughter1_pdgId == b_PDGID)
@@ -422,7 +422,7 @@ def gen_selection_VV(
     ).to_numpy()
     GenVVars["GenV2CS"] = (
         ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
-        | ((v1_daughter0_pdgId == c_PDGID) & (v1_daughter1_pdgId == s_PDGID))
+        | ((v1_daughter0_pdgId == s_PDGID) & (v1_daughter1_pdgId == c_PDGID))
     ).to_numpy()
 
     # match V to fatjet

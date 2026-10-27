@@ -10,6 +10,8 @@ from coffea.nanoevents.methods.nanoaod import (
     TauArray,
 )
 
+from .corrections import jetid_json
+
 # https://twiki.cern.ch/twiki/bin/view/CMS/MuonRun32022
 
 
@@ -194,8 +196,9 @@ def good_ak4jets(jets: JetArray, year: str, nano_version: str):
                 jetidtightlepveto = jets.isTightLeptonVeto
         elif nano_version.startswith("v15"):
             if year in ["2022", "2022EE", "2023", "2023BPix"]:
-                # still using v12 MCs (2022, 2022EE, 2023, 2023BPix)
-                jetidtight, jetidtightlepveto = jetid_v12(jets)
+                # the 2022-2023 PFNano are NanoAODv14: the JME JetID JSON
+                # TODO: fall back to jetid_v15 when the 2022-2023 NanoAODv15 MCs are ready
+                jetidtight, jetidtightlepveto = jetid_json(jets)
             else:
                 jetidtight, jetidtightlepveto = jetid_v15(jets)
 
@@ -504,7 +507,9 @@ def vbf_jets(
         & ak.all(jets.metric_table(muons) > dr_leptons, axis=2)
     )
 
-    return jets[ak4_sel][:, :2]
+    # the jets keep the NanoAOD order, the pT order with the production's JECs
+    vbf = jets[ak4_sel]
+    return vbf[ak.argsort(vbf.pt, ascending=False)][:, :2]
 
 
 def ak4_jets_awayfromak8(

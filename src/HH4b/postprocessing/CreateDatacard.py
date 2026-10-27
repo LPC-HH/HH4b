@@ -163,6 +163,13 @@ add_bool_arg(
     "lumi-scaled and averaged; separate 2024 and 2025 nuisances kept)",
     default=True,
 )
+add_bool_arg(
+    parser,
+    "jmr-symmetrize",
+    "treat the glopart-v3 JMR as one-sided: ignore the JMR-down templates and give combine the "
+    "JMR-up variation mirrored about the nominal, Down = max(2 x Nominal - Up, 0) per bin",
+    default=True,
+)
 args = parser.parse_args()
 
 
@@ -526,6 +533,22 @@ else:
         "split halves, lumi-scaled and averaged); separate 2024/2025 nuisances kept"
     )
 
+# One-sided JMR (--jmr-symmetrize; meeting of 2026-10-06). The GloParT-v3 JMR placeholder can only
+# widen the mass, so its JMR-down templates equal the nominal, and a one-sided morph makes combine's
+# interpolation non-monotonic for theta < 0. Combine gets instead the JMR-up variation mirrored
+# about the nominal (`mirror_up`), per bin with N the nominal yield and r = Up / N:
+#
+#     Down = N x (2 - r) = 2 N - Up, floored at 0
+#
+# rhalphalib's own symmetrization (setParamEffect with effect_down=None) is wrong for shape
+# nuisances: it builds Down = N x (N - |N - r|), mixing a yield with a ratio (Down = Up above ~1
+# event, negative below); even the relative form N x (1 - |r - 1|) gives Down = Up where r < 1, i.e.
+# in the peak bins of a widening. The measured glopart-v2 and PNet JMR keep their down templates.
+symmetrized_shape_systs = set()
+if args.jmr_symmetrize and args.jmsr and templates_have_glopartv3_jmsr(args.templates_dir):
+    symmetrized_shape_systs.add("JMR")
+    logging.info("jmr-symmetrize: JMR-down templates ignored, Down = max(2 x Nominal - Up, 0)")
+
 # Empty-bin floor (fix of 2026-09-29, default on): see `floor_empty_bins` in fill_regions.
 if args.shape_empty_bin_floor > 0:
     logging.info(
@@ -849,6 +872,25 @@ def fill_regions(
                         (f"{skey}_{uncorr_label}", skey, syst, values_up, values_down)
                     )
 
+            # one-sided systematics (--jmr-symmetrize): the Down templates are replaced by the Up
+            # variation mirrored about the all-era nominal
+            if symmetrized_shape_systs:
+                nominal_all = np.maximum(sample_template.values(), 0.0)
+                variations = [
+                    (
+                        sdkey,
+                        skey,
+                        syst,
+                        values_up,
+                        (
+                            mirror_up(nominal_all, values_up)
+                            if skey in symmetrized_shape_systs
+                            else values_down
+                        ),
+                    )
+                    for sdkey, skey, syst, values_up, values_down in variations
+                ]
+
             # nominal values, errors
             values_nominal = np.maximum(sample_template.values(), 0.0)
 
@@ -961,6 +1003,13 @@ def fill_regions(
             ch.setObservation(region_templates[data_key, :])
 
     return floor_stats
+
+
+def mirror_up(values_nominal: np.ndarray, values_up: np.ndarray) -> np.ndarray:
+    """Down yields of a one-sided shape systematic: the Up yields mirrored about the nominal,
+    2 x Nominal - Up per bin, floored at 0 (combine needs a Down template for every shape
+    nuisance). Where the nominal is 0 the Down yield is 0, as for any shift into an empty bin."""
+    return np.maximum(2.0 * values_nominal - values_up, 0.0)
 
 
 def floor_empty_bins(

@@ -17,6 +17,7 @@ import time
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
+from functools import lru_cache
 from os import listdir
 from pathlib import Path
 
@@ -26,12 +27,15 @@ import pandas as pd
 import pyarrow.parquet as pq
 import vector
 from coffea.analysis_tools import PackedSelection
+from coffea.lumi_tools import LumiMask
 from coffea.processor.accumulator import accumulate
 from hist import Hist
 
+from HH4b.data_lumi import GOLDEN_JSON_DIR, LS_SCALE, keys_of, lumi_corrections
 from HH4b.xsecs import xsecs
 
 from .hh_vars import (
+    GOLDEN_JSON,
     LUMI,
     ZZ4B_MZ_WINDOW,
     ZZ4B_SAMPLE,
@@ -244,6 +248,8 @@ W_XSEC_CORRECTION_SAMPLES = frozenset(
     for njets in ["1J", "2J"]
 )
 _W_XSEC_CHECK_RTOL = 1e-9
+# of the 1x / 2x check: admits a LUMI update since the skim (the 2x case is not rescaled for it)
+_W_XSEC_LUMI_RTOL = 0.02
 
 
 def _skim_norm_weight_columns(events: pd.DataFrame) -> list[str]:
@@ -296,9 +302,9 @@ def _apply_w_xsec_correction(events: pd.DataFrame, year: str, sample: str) -> No
         )
     norm = xsecs[sample] * LUMI[year]
     rel = norm / skim_norm
-    if abs(rel - 1.0) <= _W_XSEC_CHECK_RTOL:
+    if abs(rel - 1.0) <= _W_XSEC_LUMI_RTOL:
         return  # skim made with the xsecs.py value
-    if abs(rel - 0.5) > 0.5 * _W_XSEC_CHECK_RTOL:
+    if abs(rel - 0.5) > 0.5 * _W_XSEC_LUMI_RTOL:
         raise ValueError(
             f"{sample} ({year}): skim xsec x lumi {skim_norm:.8g} is neither 1x nor 2x the "
             f"xsecs.py x LUMI {norm:.8g} (ratio {rel:.8g}); re-skim or check xsecs.py"
@@ -452,30 +458,20 @@ def _parquet_has_rows(parquet_file: Path) -> bool:
     return len(schema.names) > sum(isinstance(col, str) for col in index_columns)
 
 
-# 2024 (Summer24) V+jets: {W,Z}to2Q-2Jets_Bin-PTQQ-X is generated with PTQQ > X and NO upper edge,
-# so the four samples overlap. By default only Bin-PTQQ-100 is loaded (hh_vars vjets selectors).
-# With ``load_samples(..., ptqq_stitch=PtqqStitch(...))`` (PostProcess --vjets-stitch) all four are
-# loaded and stitched below. The 2022-2023 *_PTQQ-XtoY_{1J,2J} samples are exclusive bins and do not
-# match. The generator-level PTQQ (LHE V pT) is not in the skim, so GenVPt (last-copy V,
-# GenSelection.py) is used, and a higher-threshold sample is trusted only from PTQQ_STITCH_MARGIN
-# above its threshold, where its GenVPt turn-on has reached the plateau.
-# ``PtqqStitch(mode="range")`` is the alternative for a skim with the LHE V pT (``GenVLHEPt``) and
-# the per-LHE-V-pT-bin totals (skimmer 7332ed8+): each sample covers only [X_i, X_next) in LHE V pT,
-# normalised to sigma_i x (its generator-weight fraction there); see ``ptqq_range_norm``.
+# 2024 V+jets: {W,Z}to2Q-2Jets_Bin-PTQQ-X has PTQQ > X with no upper edge, so the four samples
+# overlap. By default only Bin-PTQQ-100 is loaded; load_samples(ptqq_stitch=...) stitches all four,
+# in GenVPt above a margin ("effective-lumi") or in LHE V pT ranges ("range", ptqq_range_norm).
 _PTQQ_OPEN_RE = re.compile(r"^([wz])to2q-2jets_bin-ptqq-(\d+)$")
 PTQQ_STITCH_MARGIN = 50.0  # GeV
 PTQQ_OPEN_INCLUSIVE = 100.0  # the lowest threshold, whose sample covers the whole phase space
 PTQQ_STITCH_MODES = ("effective-lumi", "range")
-# open-ended samples that must not be used (range mode raises if one is selected)
-PTQQ_OPEN_INVALID = {
-    ("w", 600.0): "Wto2Q-2Jets_Bin-PTQQ-600 (2024) is INVALID in DAS: it was generated with the "
-    "LHE V pT filter at 400 GeV, not 600 GeV",
+# open-ended samples with an invalid production, used only if the skim passes _ptqq_lhe_filter_ok
+PTQQ_OPEN_FILTER_CHECK = {
+    ("w", 600.0): "the INVALID v2-v2 production has its LHE filter at 400 GeV",
 }
-# Bin edges (GeV) of the skimmer's per-LHE-V-pT-bin totals (bbbbSkimmer.LHEVPT_EDGES, copied here
-# so that postprocessing does not import the processors): arrays of len(edges) + 1 = 202 entries,
-# [0] underflow (< 0: no status-2 LHE W/Z), [k] = [edges[k-1], edges[k]), [-1] >= 2000 GeV. The
-# thresholds 100/200/400/600 are edges; LHEPart pT is stored with a reduced mantissa, which rounds a
-# value just above a threshold to exactly the threshold, never below, so a lower edge is inclusive.
+# Edges (GeV) of the skimmer's per-LHE-V-pT-bin totals, copied from bbbbSkimmer.LHEVPT_EDGES: 202
+# bins, [0] = no LHE W/Z, [k] = [edges[k-1], edges[k]), [-1] >= 2000 GeV. A lower edge is inclusive
+# (the stored LHE pT rounds to a threshold, never below it).
 LHEVPT_EDGES = np.arange(0.0, 2001.0, 10.0)
 LHEVPT_COLUMN = "GenVLHEPt"
 
@@ -596,6 +592,18 @@ def ptqq_range_norm(
     return out
 
 
+def _ptqq_lhe_filter_ok(pickles_path: Path, year: str, sample: str, threshold: float) -> bool:
+    """Whether the skim has LHE V pT totals and no generated event below ``threshold``."""
+    pickles_path = Path(pickles_path)
+    if not pickles_path.is_dir() or not any(f.name != ".DS_Store" for f in pickles_path.iterdir()):
+        return False
+    totals = get_pickles(pickles_path, year, sample).get("totals", {})
+    if "nevents_lhevpt" not in totals:
+        return False
+    nraw = _lhevpt_array(totals, "nevents_lhevpt", sample)
+    return nraw[: _lhevpt_range_bins(threshold, np.inf).start].sum() == 0
+
+
 def _own_total_variations(
     events: pd.DataFrame, variations: bool, weight_shifts: dict[str, Syst] | None
 ) -> list[str]:
@@ -624,15 +632,13 @@ def _ptqq_range_ranges(samples: list[str], selector) -> dict[str, tuple[float, f
     """{sample: (lo, hi)} LHE V pT range of every open-ended sample the selector matches.
 
     Per boson the thresholds X_1 < ... < X_n of the matched samples split the axis: sample k keeps
-    [X_k, X_k+1), the highest one [X_n, inf). Raises for an invalid sample (``PTQQ_OPEN_INVALID``).
+    [X_k, X_k+1), the highest one [X_n, inf).
     """
     by_boson: dict[str, list[tuple[float, str]]] = {}
     for sample in samples:
         thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
         if thr is None:
             continue
-        if thr in PTQQ_OPEN_INVALID:
-            raise ValueError(f"PTQQ range stitch: {sample} selected, but {PTQQ_OPEN_INVALID[thr]}")
         by_boson.setdefault(thr[0], []).append((thr[1], sample))
     ranges = {}
     for boson, members in by_boson.items():
@@ -921,6 +927,39 @@ MC_SHARING_COLUMNS = [
     ("pileup_2025_over_2024", 3),
 ]
 
+# TODO(mc-sharing): remove once 2025 has MC of its own. Its MC is the 2024 MC, so its data also pass
+# the MET filter that only the 2024 list has (bbbbSkimmer.year_met_filters; the skims save it for
+# the data). Data skims without the column are loaded as before.
+MC_SHARING_DATA_FILTERS = {"2025": "Flag_ecalBadCalibFilter"}
+
+
+@lru_cache(maxsize=None)
+def _golden_lumi_mask(year: str) -> LumiMask:
+    return LumiMask(GOLDEN_JSON_DIR / GOLDEN_JSON[year])
+
+
+def _apply_golden_json(
+    events: pd.DataFrame, year: str, sample: str, lost: np.ndarray | None = None
+) -> pd.DataFrame:
+    """The data events in the golden JSON of ``year`` (``hh_vars.GOLDEN_JSON``) and not in the
+    lumisections ``lost`` by the skims (keys run x LS_SCALE + LS, ``HH4b.data_lumi``)."""
+    if year not in GOLDEN_JSON:
+        logger.warning(f"{sample}: no golden JSON for {year}, all data events kept")
+        return events
+    run, ls = _col1d(events, "run"), _col1d(events, "luminosityBlock")
+    keep = _golden_lumi_mask(year)(run, ls)
+    if lost is not None:
+        keep &= ~np.isin(run.astype(np.int64) * LS_SCALE + ls, lost)
+    logger.info(f"{sample}: {np.sum(~keep)} of {len(events)} events not golden or lost")
+    return events.loc[keep].reset_index(drop=True)
+
+
+def _mc_sharing_data_filter(events: pd.DataFrame, flag: str, sample: str) -> pd.DataFrame:
+    """The data events that pass ``flag`` (``MC_SHARING_DATA_FILTERS``)."""
+    keep = _col1d(events, flag).astype(bool)
+    logger.info(f"{sample}: {np.sum(~keep)} of {len(events)} events fail {flag}")
+    return events.loc[keep].reset_index(drop=True)
+
 
 def _mc_sharing_veto(events: pd.DataFrame, mc_year: str) -> pd.DataFrame:
     """Keep the events that pass the jet veto map of ``mc_year`` (2024 MC skims, see
@@ -1053,6 +1092,13 @@ def load_samples(
     """
     events_dict = {}
 
+    # data the skims of this tag lost (HH4b.data_lumi): their lumisections are dropped from the
+    # data, and the MC used for the year is scaled to the luminosity the data hold
+    lumi_year = mc_year or year
+    lumi = lumi_corrections(Path(data_dir), lumi_year) if lumi_year in GOLDEN_JSON else {}
+    lost = keys_of(lumi["lost_lumis"]) if "lost_lumis" in lumi else None
+    mc_lumi_scale = lumi["lumi_pb"] / LUMI[lumi_year] if "lumi_pb" in lumi else 1.0
+
     data_dir = Path(data_dir) / year
     full_samples_list = listdir(data_dir)  # get all directories in data_dir
     sample_dirs = {}  # samples read from an override_dir instead of data_dir
@@ -1083,17 +1129,37 @@ def load_samples(
         load_columns = columns
         if label != "data" and load_weight_noxsec:
             load_columns = columns + format_columns([("weight_noxsec", 1)])
+        # data: the run and lumisection for the golden JSON (dropped after it unless requested)
+        golden_columns = []
+        if label == data_key and columns is not None:
+            run_ls = format_columns([("run", 1), ("luminosityBlock", 1)])
+            golden_columns = [col for col in run_ls if col not in columns]
+            load_columns = columns + golden_columns
+
+        # leave out skims of invalid open-ended productions (PTQQ_OPEN_FILTER_CHECK)
+        label_samples = full_samples_list
+        if ptqq_stitch is not None:
+            label_samples = []
+            for sample in full_samples_list:
+                thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
+                sample_path = sample_dirs.get(sample, data_dir / sample)
+                if thr in PTQQ_OPEN_FILTER_CHECK and not _ptqq_lhe_filter_ok(
+                    sample_path / "pickles", year, sample, thr[1]
+                ):
+                    logger.warning(f"PTQQ stitch: {sample} left out: {PTQQ_OPEN_FILTER_CHECK[thr]}")
+                    continue
+                label_samples.append(sample)
 
         # lowest open-ended Bin-PTQQ threshold per boson among this label's samples (for the stitch)
         stitch_lowest = {}
         if ptqq_stitch is not None:
-            for sample in full_samples_list:
+            for sample in label_samples:
                 thr = ptqq_open_threshold(sample) if check_selector(sample, selector) else None
                 if thr is not None:
                     stitch_lowest[thr[0]] = min(thr[1], stitch_lowest.get(thr[0], np.inf))
         range_mode = ptqq_stitch is not None and ptqq_stitch.mode == "range"
         # range stitch: the LHE V pT range [lo, hi) of every matched open-ended sample
-        ranges = _ptqq_range_ranges(full_samples_list, selector) if range_mode else {}
+        ranges = _ptqq_range_ranges(label_samples, selector) if range_mode else {}
         # columns read only for the stitch (dropped after it unless requested)
         stitch_columns = format_columns(
             [("GenVLHEPt" if range_mode else "GenVPt", 1), (txbb_str, 2)]
@@ -1117,7 +1183,7 @@ def load_samples(
 
         events_dict[label] = []  # list of directories we load in for this sample
         loaded_names = []  # sample (directory) name of each entry in events_dict[label]
-        for sample in full_samples_list:
+        for sample in label_samples:
             # check if this directory passes our selector string
             if not check_selector(sample, selector):
                 continue
@@ -1157,6 +1223,15 @@ def load_samples(
                 sample_columns = sample_columns + [
                     col for col in format_columns(MC_SHARING_COLUMNS) if col not in sample_columns
                 ]
+            # TODO(mc-sharing): the MET filter of the shared MC's year for the data
+            data_filter = MC_SHARING_DATA_FILTERS.get(year) if label == data_key else None
+            if data_filter is not None and parquet_path.exists():
+                first = next((f for f in sorted(parquet_path.glob("*.parquet")) if _parquet_has_rows(f)), None)  # fmt: skip
+                if first is None or format_columns([(data_filter, 1)])[0] not in pq.read_schema(first).names:  # fmt: skip
+                    logger.warning(f"{sample} has no {data_filter}: loaded without it")
+                    data_filter = None
+                elif sample_columns is not None:
+                    sample_columns = sample_columns + format_columns([(data_filter, 1)])
             if mc_year not in (None, year) and not mc_sharing and label != data_key:
                 logger.warning(
                     f"{sample} ({year} skim used for {mc_year}) has no {MC_SHARING_COLUMNS[0][0]}: "
@@ -1210,6 +1285,11 @@ def load_samples(
                 warnings.warn(f"No events for {sample}!", stacklevel=1)
                 continue
 
+            if label == data_key:
+                events = _apply_golden_json(events, year, sample, lost)
+                if data_filter is not None:
+                    events = _mc_sharing_data_filter(events, data_filter, sample)
+
             if reorder_txbb:
                 _reorder_txbb(events, txbb_str)
 
@@ -1247,6 +1327,12 @@ def load_samples(
                     events["weight_nonorm"] = events["weight"]
                     events["finalWeight"] = events["weight"] / n_events
 
+            if label != data_key and mc_lumi_scale != 1.0:
+                for col in [*_skim_norm_weight_columns(events), "finalWeight", "weight_nonorm"]:
+                    if col in events:
+                        events[col] = events[col].to_numpy() * mc_lumi_scale
+                logger.info(f"{sample}: weights x {mc_lumi_scale:.6f} (data lost by the skims)")
+
             if range_mode and sample in ranges:
                 # keep only this sample's LHE V pT range, normalised to sigma x f (after
                 # _normalize_weights, whose np_* totals the factors correct)
@@ -1262,7 +1348,9 @@ def load_samples(
             loaded_names.append(sample)
             logger.info(f"Loaded {sample: <50}: {len(events)} entries")
 
-        stitch_only_columns = set()  # parquet names read only for the stitch, dropped after it
+        # parquet names read only for the golden JSON, the stitch or the ZZto4B replacement,
+        # dropped after them
+        load_only_columns = set(golden_columns)
         if ptqq_stitch is not None and len(events_dict[label]):
             if not range_mode:
                 # remove the overlap between the open-ended Bin-PTQQ V+jets samples (2024 MC)
@@ -1270,26 +1358,25 @@ def load_samples(
                     list(zip(loaded_names, events_dict[label])), txbb_str, ptqq_stitch
                 )
             if load_columns is not None:
-                stitch_only_columns = {col for col in stitch_columns if col not in load_columns}
+                load_only_columns |= {col for col in stitch_columns if col not in load_columns}
         if zz4b_on and len(events_dict[label]):
             # ZZ->bbbb in the ZZto4B window from ZZto4B-1Jets alone, before the concat
             events_dict[label] = _replace_zz4b(
                 list(zip(loaded_names, events_dict[label])), zz4b_replace
             )
             if load_columns is not None:
-                stitch_only_columns |= {col for col in zz4b_columns if col not in load_columns}
+                load_only_columns |= {col for col in zz4b_columns if col not in load_columns}
 
         if len(events_dict[label]):
             events_dict[label] = pd.concat(events_dict[label])
             # Deduplicate columns that can arise when concatenating multiple sub-samples
             keep = ~events_dict[label].columns.duplicated()
-            if stitch_only_columns:
+            if load_only_columns:
                 # match by the parquet name "('name', 'i')": pandas restores the second column
                 # level from the parquet metadata (int64 in the skims), so tuples of str miss it
                 keep &= ~np.array(
                     [
-                        isinstance(col, tuple)
-                        and f"('{col[0]}', '{col[1]}')" in stitch_only_columns
+                        isinstance(col, tuple) and f"('{col[0]}', '{col[1]}')" in load_only_columns
                         for col in events_dict[label].columns
                     ]
                 )

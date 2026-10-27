@@ -3,6 +3,8 @@ cachetools==5.3.1
 cloudpickle>=3.0.0
 coffea==0.7.21
 colorama==0.4.6
+# Python 3.11 (the zichun/hh4b-docker job image) needs correctionlib==2.9.0, since 2.2.2 has no
+# Python 3.11 wheel, and numba==0.60.0, since newer numba breaks the numba code of awkward 1.10
 correctionlib==2.2.2
 hist==2.7.1
 lz4
