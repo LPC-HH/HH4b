@@ -179,6 +179,7 @@ class bbbbSkimmer(SkimmerABC):
         "FatJet": {
             **P4,
             "msoftdrop": "Msd",
+            "msoftdrop_nano": "MsdNano",
             "Txbb": "PNetTXbb",  # these are discriminants
             "Txjj": "PNetTXjj",
             "Tqcd": "PNetTQCD",
@@ -728,6 +729,9 @@ class bbbbSkimmer(SkimmerABC):
         else:
             jets = events.Jet
             jec_shifted_jetvars = {}
+
+        # softdrop mass from the subjets re-corrected with the AK4 JEC above (NanoAOD's: MsdNano)
+        fatjets = JEC_loader.correct_msoftdrop(events, fatjets, year, isData)
 
         # MET: Type-1 PUPPI MET from RawPuppiMET with the JECs re-applied above (NanoAOD PuppiMET
         # carries the JECs of its production); PuppiMET and RawPuppiMET are saved too. In MC, also
