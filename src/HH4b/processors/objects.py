@@ -96,26 +96,44 @@ def veto_electrons_run2(electrons: ElectronArray):
     )
 
 
+ETA_BARREL_ENDCAP = 1.479
+
+
+def _veto_impact_parameter(leptons, eta):
+    """|dz|, |dxy| cuts with barrel/endcap boundary at |eta| = 1.479 (HH4b lepton-veto sync)."""
+    barrel = np.abs(eta) < ETA_BARREL_ENDCAP
+    return ak.where(
+        barrel,
+        (np.abs(leptons.dz) < 0.10) & (np.abs(leptons.dxy) < 0.05),
+        (np.abs(leptons.dz) < 0.20) & (np.abs(leptons.dxy) < 0.10),
+    )
+
+
 def veto_muons(muons: MuonArray):
     """
-    Definition used in Run 2 boosted VBF Hbb
-    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L551-L553
+    HH4b lepton-veto synchronization (Run 3):
+    pT > 10, |eta| < 2.4, eta-dependent dz/dxy, looseId, PFIsoLoose (pfIsoId >= 2)
     """
     return (
-        (muons.pt >= 10) & (abs(muons.eta) <= 2.4) & (muons.looseId) & (muons.pfRelIso04_all < 0.25)
+        (muons.pt > 10)
+        & (np.abs(muons.eta) < 2.4)
+        & _veto_impact_parameter(muons, muons.eta)
+        & muons.looseId
+        & (muons.pfIsoId >= 2)  # equivalent: muons.pfRelIso04_all < 0.25
     )
 
 
 def veto_electrons(electrons: ElectronArray):
     """
-    Definition used in Run 2 boosted VBF Hbb
-    https://github.com/rkansal47/HHbbVV/blob/bdcc8c672a0fa0aa2182a9d4d677e07fc3c9a281/src/HHbbVV/processors/bbVVSkimmer.py#L542-L547
+    HH4b lepton-veto synchronization (Run 3):
+    pT > 15, |eta| < 2.5, eta-dependent dz/dxy,
+    cutBasedElectronID-RunIIIWinter22-V1-veto (cutBased >= 1, includes isolation)
     """
     return (
-        (electrons.pt >= 20)
-        & (abs(electrons.eta) <= 2.5)
-        & (electrons.miniPFRelIso_all < 0.4)
-        & (electrons.cutBased >= electrons.LOOSE)
+        (electrons.pt > 15)
+        & (np.abs(electrons.eta) < 2.5)
+        & _veto_impact_parameter(electrons, electrons.eta)
+        & (electrons.cutBased >= 1)
     )
 
 

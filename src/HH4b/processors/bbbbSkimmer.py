@@ -1071,6 +1071,10 @@ class bbbbSkimmer(SkimmerABC):
             **vbfJetVars,
         }
 
+        # number of veto leptons per event (for lepton-veto synchronization)
+        skimmed_events["nVetoMuons"] = ak.to_numpy(ak.sum(veto_muon_sel, axis=1))
+        skimmed_events["nVetoElectrons"] = ak.to_numpy(ak.sum(veto_electron_sel, axis=1))
+
         if self._region == "signal":
             jshifts = [""]
             if not isData and isJECs:
